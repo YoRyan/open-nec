@@ -8,7 +8,7 @@ This project will also be documenting the controls specific to each locomotive a
 
 ## Build Instructions
 
-This project uses MSBuild, which is included with Visual Studio. [Open](https://docs.microsoft.com/en-us/dotnet/framework/tools/developer-command-prompt-for-vs) a developer console to gain access to the command. Then ensure `luac50.exe` is in your PATH and run `msbuild Source\opennec.proj /t:Build` to compile the project. The compiled files will be output to the Mod folder, from which they can be copied into Train Simulator's Assets folder.
+This project uses MSBuild, which is included with Visual Studio. [Open](https://docs.microsoft.com/en-us/dotnet/framework/tools/developer-command-prompt-for-vs) a developer console to gain access to the command. Then ensure `luac50.exe` is in your PATH and run `msbuild Source\OpenNec.proj /t:Build` to compile the project. The compiled files will be output to the Mod folder, from which they can be copied into Train Simulator's Assets folder.
 
 ## Legal
 
