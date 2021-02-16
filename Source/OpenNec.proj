@@ -10,7 +10,6 @@
     </AvailableItemName>
   </ItemGroup>
   <ItemGroup>
-    <LuaBinary Include="RSC\NorthEastCorridor\RailVehicles\Electric\AEM7\Default\Engine\RailVehicle_EngineScript.lua" />
   </ItemGroup>
   <Target Name="Build" DependsOnTargets="Lua" />
   <Target Name="Lua" Inputs="%(LuaBinary.Identity)" Outputs="$(OutputPath)\%(LuaBinary.RelativeDir)%(LuaBinary.Filename).out">
