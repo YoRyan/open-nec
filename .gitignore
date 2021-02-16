@@ -1,0 +1,5 @@
+# Dev preferences
+.vscode/
+
+# Output directory
+mod/

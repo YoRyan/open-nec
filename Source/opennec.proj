@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <OutputPath>..\Mod</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)lua.xml" />
+    <AvailableItemName Include="LuaBinary">
+      <Targets>Lua</Targets>
+    </AvailableItemName>
+  </ItemGroup>
+  <ItemGroup>
+    <LuaBinary Include="RSC\NorthEastCorridor\RailVehicles\Electric\AEM7\Default\Engine\RailVehicle_EngineScript.lua" />
+  </ItemGroup>
+  <Target Name="Build" DependsOnTargets="Lua" />
+  <Target Name="Lua" Inputs="%(LuaBinary.Identity)" Outputs="$(OutputPath)\%(LuaBinary.RelativeDir)%(LuaBinary.Filename).out">
+    <MakeDir Directories="$(OutputPath)\%(LuaBinary.RelativeDir)" Condition="!Exists('$(OutputPath)\%(LuaBinary.RelativeDir)')" />
+    <Exec Command='luac50.exe -s -o "$(OutputPath)\%(LuaBinary.RelativeDir)%(LuaBinary.Filename).out" "%(LuaBinary.Identity)"' />
+  </Target>
+</Project>
