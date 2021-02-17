@@ -66,7 +66,10 @@ end)
 
 OnCustomSignalMessage = RailWorks.wrapErrors(function (message)
   local code = Atc.get_pulse_code(message)
-  if code ~= nil then
+  if code == nil then
+    RailWorks.showMessage("WARNING:\nUnknown signal '" .. message .. "'")
+    state.atc_code = Atc.pulse_code.restricting
+  else
     state.atc_code = code
   end
 end)
