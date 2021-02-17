@@ -1,3 +1,5 @@
+![Project logo](Docs/OpenNec.svg)
+
 # Open Northeast Corridor Project
 
 The Open NEC Project is a heavily work-in-progress systems overhaul mod for Dovetail Games' Northeast Corridor content for Train Simulator 20xx. The objectives are to fix the control bugs, permit every locomotive to run on every route, and create as realistic an experience as possible. Particular attention will be paid to ATC and ACSES systems in use on the real-life Northeast Corridor.
