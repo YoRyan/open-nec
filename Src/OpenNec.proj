@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <OutputPath>..\Mod</OutputPath>
+    <OutputPath>..</OutputPath>
   </PropertyGroup>
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Lua.xml" />
@@ -10,10 +10,14 @@
     </AvailableItemName>
   </ItemGroup>
   <ItemGroup>
+    <LuaBinary Include="Mod\**\*.lua" />
+  </ItemGroup>
+  <ItemGroup>
+    <LuaLibrary Include="Lib\**\*.lua" />
   </ItemGroup>
   <Target Name="Build" DependsOnTargets="Lua" />
-  <Target Name="Lua" Inputs="%(LuaBinary.Identity)" Outputs="$(OutputPath)\%(LuaBinary.RelativeDir)%(LuaBinary.Filename).out">
+  <Target Name="Lua" Inputs="@(LuaLibrary);%(LuaBinary.Identity)" Outputs="$(OutputPath)\%(LuaBinary.RelativeDir)%(LuaBinary.Filename).out">
     <MakeDir Directories="$(OutputPath)\%(LuaBinary.RelativeDir)" Condition="!Exists('$(OutputPath)\%(LuaBinary.RelativeDir)')" />
-    <Exec Command='luac50.exe -s -o "$(OutputPath)\%(LuaBinary.RelativeDir)%(LuaBinary.Filename).out" "%(LuaBinary.Identity)"' />
+    <Exec Command="luac50.exe -s -o &quot;$(OutputPath)\%(LuaBinary.RelativeDir)%(LuaBinary.Filename).out&quot; @(LuaLibrary->'&quot;%(Identity)&quot;', ' ') &quot;%(LuaBinary.Identity)&quot;" />
   </Target>
 </Project>
