@@ -7,9 +7,8 @@ Tables.__index = Tables
 -- indices.
 function Tables.values(t)
   local i = 1
-  local l = table.getn(t)
   return function (_, _)
-    if i <= l then
+    if i <= table.getn(t) then
       local v = t[i]
       i = i + 1
       return v
