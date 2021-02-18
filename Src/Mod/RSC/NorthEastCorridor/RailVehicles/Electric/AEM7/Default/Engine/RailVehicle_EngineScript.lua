@@ -65,11 +65,19 @@ OnControlValueChange = RailWorks.wraperrors(function (name, index, value)
 end)
 
 OnCustomSignalMessage = RailWorks.wraperrors(function (message)
-  local code = Atc.getpulsecode(message)
-  if code == nil then
-    RailWorks.showmessage("WARNING:\nUnknown signal '" .. message .. "'")
-    state.atc_code = Atc.pulsecode.restrict
-  else
-    state.atc_code = code
-  end
+  state.atc_code = readpulsecode(message)
 end)
+
+function readpulsecode (message)
+  local atc = Atc.getpulsecode(message)
+  if atc ~= nil then
+    return atc
+  end
+  local power = Power.getchangepoint(message)
+  if power ~= nil then
+    -- Power switch signal. No change.
+    return state.atc_code
+  end
+  RailWorks.showmessage("WARNING:\nUnknown signal '" .. message .. "'")
+  return Atc.pulsecode.restrict
+end
