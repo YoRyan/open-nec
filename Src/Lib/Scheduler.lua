@@ -13,11 +13,10 @@ function Scheduler.new()
   return self
 end
 
--- From the main coroutine, create and start a new coroutine.
+-- From the main coroutine, create a new coroutine.
 function Scheduler.run(self, fn)
   local co = coroutine.create(fn)
   table.insert(self._coroutines, co)
-  self:_resume(co)
 end
 
 -- From the main coroutine, update all active coroutines.
