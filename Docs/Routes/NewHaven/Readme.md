@@ -34,3 +34,5 @@ To simulate power changeovers, Dovetail marked the end points of the route's thi
 | `P-OverheadEnd` | Overhead catenary end |
 | `P-ThirdRailStart` | Third rail start |
 | `P-ThirdRailEnd` | Third rail end |
+| `P-AIOverheadToThirdNow` | AI overhead to third rail switch |
+| `P-AIThirdToOverheadNow` | AI third rail to overhead switch |
