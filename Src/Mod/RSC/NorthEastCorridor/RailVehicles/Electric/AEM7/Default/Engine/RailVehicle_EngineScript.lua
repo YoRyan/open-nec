@@ -87,9 +87,7 @@ function showpulsecode (code)
   RailWorks.SetControlValue("CabSignal2", 0, cs2)
 end
 
-OnControlValueChange = function (name, index, value)
-  RailWorks.SetControlValue(name, index, value)
-end
+OnControlValueChange = RailWorks.SetControlValue
 
 OnCustomSignalMessage = RailWorks.wraperrors(function (message)
   atc:receivemessage(message)
