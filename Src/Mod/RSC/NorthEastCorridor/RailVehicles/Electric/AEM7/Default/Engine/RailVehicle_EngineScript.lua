@@ -6,6 +6,7 @@ state = {throttle=0,
          atc_do_upgrade=false,
          atc_upgrade_beep=false,
          atc_do_downgrade=false}
+onebeep = 0.4
 
 Initialise = RailWorks.wraperrors(function ()
   RailWorks.BeginUpdate()
@@ -24,7 +25,7 @@ function upgrade_sound ()
     sched:yielduntil(function () return state.atc_do_upgrade end)
     state.atc_do_upgrade = false
     state.atc_upgrade_beep = true
-    sched:sleep(0.4)
+    sched:sleep(onebeep)
     state.atc_upgrade_beep = false
   end
 end
