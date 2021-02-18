@@ -13,10 +13,11 @@ function Scheduler.new()
   return self
 end
 
--- From the main coroutine, create a new coroutine.
-function Scheduler.run(self, fn)
+-- From the main coroutine, create and start a new coroutine.
+function Scheduler.run(self, fn, ...)
   local co = coroutine.create(fn)
   table.insert(self._coroutines, co)
+  coroutine.resume(co, unpack(arg))
 end
 
 -- From the main coroutine, update all active coroutines.
@@ -60,10 +61,25 @@ function Scheduler.yield(self, sleep)
   coroutine.yield()
 end
 
--- Yield control until the provided function returns true.
-function Scheduler.yielduntil(self, cond)
-  while not cond() do
-    self:yield()
+-- Yield control until the provided function returns true, or if the optional
+-- timeout is reached. Returns true if the condition became true and false if
+-- the timeout was reached.
+function Scheduler.yielduntil(self, cond, timeout)
+  if timeout ~= nil then
+    local start = self:clock()
+    while true do
+      if cond() then
+        return true
+      elseif self:clock() >= start + timeout then
+        return false
+      end
+      self:yield()
+    end
+  else
+    while not cond() do
+      self:yield()
+    end
+    return true
   end
 end
 
@@ -78,4 +94,30 @@ end
 -- Push a message to the debug message queue.
 function Scheduler.print(self, msg)
   table.insert(self._messages, msg)
+end
+
+
+Event = {}
+Event.__index = Event
+
+-- Create a new Event context.
+function Event.new(scheduler)
+  local self = setmetatable({}, Event)
+  self._sched = scheduler
+  self._trigger = false
+  return self
+end
+
+-- Allow one coroutine that is blocking on this event to proceed.
+function Event.trigger(self)
+  self._trigger = true
+end
+
+-- Block until this event is triggered, with an optional timeout.
+function Event.waitfor(self, timeout)
+  local res = self._sched:yielduntil(
+    function () return self._trigger end,
+    timeout)
+  self._trigger = false
+  return res
 end

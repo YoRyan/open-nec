@@ -1,32 +1,42 @@
 sched = Scheduler.new()
+atc = nil
 state = {throttle=0,
          train_brake=0,
          dynamic_brake=0,
-         atc_code=Atc.pulsecode.restrict,
-         atc_do_upgrade=false,
-         atc_upgrade_beep=false,
-         atc_do_downgrade=false}
+         acknowledge=false,
+
+         speed_mps=0,
+         acceleration_mps2=0,
+
+         alert=nil,
+         beep_alert=false}
 onebeep = 0.4
 
 Initialise = RailWorks.wraperrors(function ()
+  do
+    local newatc = Atc.new(sched)
+    local config = newatc.config
+    config.getspeed_mps =
+      function () return state.speed_mps end
+    config.getacceleration_mps2 =
+      function () return state.acceleration_mps2 end
+    config.getacknowledge =
+      function () return state.acknowledge end
+    config.doalert =
+      function () state.alert:trigger() end
+    atc = newatc
+  end
+  state.alert = Event.new(sched)
+  sched:run(doalerts)
   RailWorks.BeginUpdate()
-  sched:run(background)
-  sched:run(upgrade_sound)
 end)
 
-function background ()
+function doalerts ()
   while true do
-    sched:yield()
-  end
-end
-
-function upgrade_sound ()
-  while true do
-    sched:yielduntil(function () return state.atc_do_upgrade end)
-    state.atc_do_upgrade = false
-    state.atc_upgrade_beep = true
+    state.alert:waitfor()
+    state.beep_alert = true
     sched:sleep(onebeep)
-    state.atc_upgrade_beep = false
+    state.beep_alert = false
   end
 end
 
@@ -49,8 +59,8 @@ Update = RailWorks.wraperrors(function (dt)
   RailWorks.SetControlValue("TrainBrakeControl", 0, state.train_brake)
   RailWorks.SetControlValue("DynamicBrake", 0, state.dynamic_brake)
   RailWorks.SetControlValue(
-    "OverSpeedAlert", 0, RailWorks.frombool(state.atc_upgrade_beep))
-  showpulsecode(state.atc_code)
+    "OverSpeedAlert", 0, RailWorks.frombool(state.beep_alert))
+  showpulsecode(atc.state.pulsecode)
 end)
 
 function showpulsecode (code)
@@ -77,27 +87,10 @@ function showpulsecode (code)
   RailWorks.SetControlValue("CabSignal2", 0, cs2)
 end
 
-OnControlValueChange = RailWorks.wraperrors(function (name, index, value)
+OnControlValueChange = function (name, index, value)
   RailWorks.SetControlValue(name, index, value)
-end)
+end
 
 OnCustomSignalMessage = RailWorks.wraperrors(function (message)
-  local newcode = readpulsecode(message)
-  state.atc_do_upgrade = newcode > state.atc_code
-  state.atc_do_downgrade = newcode < state.atc_code
-  state.atc_code = newcode
+  atc:receivemessage(message)
 end)
-
-function readpulsecode (message)
-  local atc = Atc.getpulsecode(message)
-  if atc ~= nil then
-    return atc
-  end
-  local power = Power.getchangepoint(message)
-  if power ~= nil then
-    -- Power switch signal. No change.
-    return state.atc_code
-  end
-  RailWorks.showmessage("WARNING:\nUnknown signal '" .. message .. "'")
-  return Atc.pulsecode.restrict
-end
