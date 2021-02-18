@@ -14,8 +14,9 @@ Atc.pulse_code = {restricting = "Restricting",
                   clear_150 = "Clear150"}
 
 -- Get the pulse code that corresponds to a signal message. If nil, then the
--- message can be ignored.
-function Atc.get_pulse_code(message)
+-- message is of an unknown format.
+function Atc.getpulsecode(message)
+  -- Amtrak/NJ Transit signals
   if string.sub(message, 1, 3) == "sig" then
     local code = string.sub(message, 4, 4)
     -- DTG "Clear"

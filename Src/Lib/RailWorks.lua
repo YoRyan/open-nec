@@ -3,24 +3,24 @@
 RailWorks = {}
 RailWorks.__index = RailWorks
 
-function RailWorks.showMessage(msg)
+function RailWorks.showmessage(msg)
   SysCall("ScenarioManager:ShowMessage", tostring(msg), "", 1)
 end
 
 -- Run the provided function and arguments with pcall and report any errors
 -- to the player.
-function RailWorks.catchErrors(...)
+function RailWorks.catcherrors(...)
   success, err = pcall(unpack(arg))
   if not success then
-    RailWorks.showMessage("ERROR:\n" .. err)
+    RailWorks.showmessage("ERROR:\n" .. err)
   end
 end
 
 -- Wrap the provided function with a pcall wrapper that reports any errors
 -- to the player.
-function RailWorks.wrapErrors(fn)
+function RailWorks.wraperrors(fn)
   return function (...)
-    return RailWorks.catchErrors(fn, unpack(arg))
+    return RailWorks.catcherrors(fn, unpack(arg))
   end
 end
 

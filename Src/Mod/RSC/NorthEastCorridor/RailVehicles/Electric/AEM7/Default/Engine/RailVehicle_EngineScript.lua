@@ -10,12 +10,12 @@ function background ()
   end
 end
 
-Initialise = RailWorks.wrapErrors(function ()
+Initialise = RailWorks.wraperrors(function ()
   RailWorks.BeginUpdate()
   sched:run(background)
 end)
 
-Update = RailWorks.wrapErrors(function (dt)
+Update = RailWorks.wraperrors(function (dt)
   if not RailWorks.GetIsEngineWithKey() then
     return
   end
@@ -25,18 +25,18 @@ Update = RailWorks.wrapErrors(function (dt)
   state.dynamic_brake = RailWorks.GetControlValue("VirtualDynamicBrake", 0)
 
   sched:update(dt)
-  for msg in sched:iter_messages() do
-    RailWorks.showMessage(msg)
+  for msg in sched:getmessages() do
+    RailWorks.showmessage(msg)
   end
-  sched:clear_messages()
+  sched:clearmessages()
 
   RailWorks.SetControlValue("Regulator", 0, state.throttle)
   RailWorks.SetControlValue("TrainBrakeControl", 0, state.train_brake)
   RailWorks.SetControlValue("DynamicBrake", 0, state.dynamic_brake)
-  show_pulse_code(state.atc_code)
+  showpulsecode(state.atc_code)
 end)
 
-function show_pulse_code (code)
+function showpulsecode (code)
   local cs, cs1, cs2
   if code == Atc.pulse_code.restricting then
     cs, cs1, cs2 = 7, 0, 0
@@ -60,14 +60,14 @@ function show_pulse_code (code)
   RailWorks.SetControlValue("CabSignal2", 0, cs2)
 end
 
-OnControlValueChange = RailWorks.wrapErrors(function (name, index, value)
+OnControlValueChange = RailWorks.wraperrors(function (name, index, value)
   RailWorks.SetControlValue(name, index, value)
 end)
 
-OnCustomSignalMessage = RailWorks.wrapErrors(function (message)
-  local code = Atc.get_pulse_code(message)
+OnCustomSignalMessage = RailWorks.wraperrors(function (message)
+  local code = Atc.getpulsecode(message)
   if code == nil then
-    RailWorks.showMessage("WARNING:\nUnknown signal '" .. message .. "'")
+    RailWorks.showmessage("WARNING:\nUnknown signal '" .. message .. "'")
     state.atc_code = Atc.pulse_code.restricting
   else
     state.atc_code = code

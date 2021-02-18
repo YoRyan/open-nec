@@ -42,12 +42,12 @@ end
 
 -- From the main coroutine, iterate through all debug messages pushed by
 -- coroutines since the last update.
-function Scheduler.iter_messages(self)
+function Scheduler.getmessages(self)
   return Tables.values(self._messages)
 end
 
 -- From the main coroutine, clear the debug message queue.
-function Scheduler.clear_messages(self)
+function Scheduler.clearmessages(self)
   self._messages = {}
 end
 
