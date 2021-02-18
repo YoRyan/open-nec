@@ -57,8 +57,15 @@ function Scheduler.clock(self)
 end
 
 -- Yield control until the next frame.
-function Scheduler.yield(sleep)
+function Scheduler.yield(self, sleep)
   coroutine.yield()
+end
+
+-- Yield control until the provided function returns true.
+function Scheduler.yielduntil(self, cond)
+  while not cond() do
+    self:yield()
+  end
 end
 
 -- Freeze execution for the given time.

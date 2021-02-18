@@ -2,7 +2,16 @@ sched = Scheduler.new()
 state = {throttle=0,
          train_brake=0,
          dynamic_brake=0,
-         atc_code=Atc.pulsecode.restrict}
+         atc_code=Atc.pulsecode.restrict,
+         atc_do_upgrade=false,
+         atc_upgrade_beep=false,
+         atc_do_downgrade=false}
+
+Initialise = RailWorks.wraperrors(function ()
+  RailWorks.BeginUpdate()
+  sched:run(background)
+  sched:run(upgrade_sound)
+end)
 
 function background ()
   while true do
@@ -10,10 +19,15 @@ function background ()
   end
 end
 
-Initialise = RailWorks.wraperrors(function ()
-  RailWorks.BeginUpdate()
-  sched:run(background)
-end)
+function upgrade_sound ()
+  while true do
+    sched:yielduntil(function () return state.atc_do_upgrade end)
+    state.atc_do_upgrade = false
+    state.atc_upgrade_beep = true
+    sched:sleep(0.4)
+    state.atc_upgrade_beep = false
+  end
+end
 
 Update = RailWorks.wraperrors(function (dt)
   if not RailWorks.GetIsEngineWithKey() then
@@ -33,6 +47,8 @@ Update = RailWorks.wraperrors(function (dt)
   RailWorks.SetControlValue("Regulator", 0, state.throttle)
   RailWorks.SetControlValue("TrainBrakeControl", 0, state.train_brake)
   RailWorks.SetControlValue("DynamicBrake", 0, state.dynamic_brake)
+  RailWorks.SetControlValue(
+    "OverSpeedAlert", 0, RailWorks.frombool(state.atc_upgrade_beep))
   showpulsecode(state.atc_code)
 end)
 
@@ -65,7 +81,10 @@ OnControlValueChange = RailWorks.wraperrors(function (name, index, value)
 end)
 
 OnCustomSignalMessage = RailWorks.wraperrors(function (message)
-  state.atc_code = readpulsecode(message)
+  local newcode = readpulsecode(message)
+  state.atc_do_upgrade = newcode > state.atc_code
+  state.atc_do_downgrade = newcode < state.atc_code
+  state.atc_code = newcode
 end)
 
 function readpulsecode (message)

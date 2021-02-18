@@ -24,6 +24,15 @@ function RailWorks.wraperrors(fn)
   end
 end
 
+-- Convert a boolean to an integer value that can be passed to SetControlValue().
+function RailWorks.frombool(b)
+  if b then
+    return 1
+  else
+    return 0
+  end
+end
+
 function RailWorks.BeginUpdate()
   Call("BeginUpdate")
 end
