@@ -81,3 +81,7 @@ The position of the "Alerter Enable" button above the cab signal display. It is 
 #### CruiseSet
 
 The position of the cruise control speed dial on the dash. It ranges from 10 (off) to 120.
+
+#### AWSReset
+
+The position of the acknowledge (Q) button. It is 1 when depressed and 0 when released.
