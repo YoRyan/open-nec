@@ -2,7 +2,7 @@ sched = Scheduler.new()
 state = {throttle=0,
          train_brake=0,
          dynamic_brake=0,
-         atc_code=Atc.pulse_code.restricting}
+         atc_code=Atc.pulsecode.restrict}
 
 function background ()
   while true do
@@ -38,19 +38,19 @@ end)
 
 function showpulsecode (code)
   local cs, cs1, cs2
-  if code == Atc.pulse_code.restricting then
+  if code == Atc.pulsecode.restrict then
     cs, cs1, cs2 = 7, 0, 0
-  elseif code == Atc.pulse_code.approach then
+  elseif code == Atc.pulsecode.approach then
     cs, cs1, cs2 = 6, 0, 0
-  elseif code == Atc.pulse_code.approach_medium then
+  elseif code == Atc.pulsecode.approachmed then
     cs, cs1, cs2 = 4, 0, 1
-  elseif code == Atc.pulse_code.cab_speed_60 then
+  elseif code == Atc.pulsecode.cabspeed60 then
     cs, cs1, cs2 = 3, 1, 0
-  elseif code == Atc.pulse_code.cab_speed_80 then
+  elseif code == Atc.pulsecode.cabspeed80 then
     cs, cs1, cs2 = 2, 1, 0
-  elseif code == Atc.pulse_code.clear_100
-      or code == Atc.pulse_code.clear_125
-      or code == Atc.pulse_code.clear_150 then
+  elseif code == Atc.pulsecode.clear100
+      or code == Atc.pulsecode.clear125
+      or code == Atc.pulsecode.clear150 then
     cs, cs1, cs2 = 1, 1, 0
   else
     cs, cs1, cs2 = 8, 0, 0
@@ -68,7 +68,7 @@ OnCustomSignalMessage = RailWorks.wraperrors(function (message)
   local code = Atc.getpulsecode(message)
   if code == nil then
     RailWorks.showmessage("WARNING:\nUnknown signal '" .. message .. "'")
-    state.atc_code = Atc.pulse_code.restricting
+    state.atc_code = Atc.pulsecode.restrict
   else
     state.atc_code = code
   end
