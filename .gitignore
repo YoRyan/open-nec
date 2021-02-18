@@ -3,3 +3,6 @@
 
 # Output directory
 /Mod/
+
+# Luac binaries
+*.out
