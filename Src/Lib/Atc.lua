@@ -18,30 +18,141 @@ Atc.pulsecode = {restrict=0,
 -- in the config table initialized here.
 function Atc.new(scheduler)
   local self = setmetatable({}, Atc)
-  self.config = {getspeed_mps=function () return 0 end,
-                 getacceleration_mps2=function () return 0 end,
-                 getacknowledge=function() return false end,
-                 doalert=function () end,
-                 -- From the Train Sim World: Northeast Corridor New York manual
-                 suppressing_mps2=-0.5,
-                 suppression_mps2=-1.5,
-                 -- 20 mph
-                 restrictspeed_mps=8.94,
-                 -- 3 mph
-                 speedmargin_mps=1.34}
-  self.state = {pulsecode=Atc.pulsecode.restrict,
-                alarm=false,
-                suppressing=false,
-                suppression=false,
-                penalty=false,
-                _downgrade=Event.new(scheduler),
-                _upgrade=Event.new(scheduler)}
+  self.config = {
+    getspeed_mps=function () return 0 end,
+    getacceleration_mps2=function () return 0 end,
+    getacknowledge=function () return false end,
+    doalert=function () end,
+    countdown_s=6,
+    -- Rates fom the Train Sim World: Northeast Corridor New York manual.
+    suppressing_mps2=-0.5,
+    suppression_mps2=-1.5,
+    -- The suppression deceleration rate is in practice impossible to achieve in
+    -- gameplay, so also let the locomotive supply its own suppression condition.
+    getsuppression=function () return false end,
+    -- 20 mph
+    restrictspeed_mps=8.94,
+    -- 3 mph
+    speedmargin_mps=1.34
+  }
+  self.state = {
+    -- The current pulse code in effect.
+    pulsecode=Atc.pulsecode.restrict,
+    -- True when the alarm is sounding.
+    alarm=false,
+    -- True when the suppressing deceleration rate is achieved.
+    suppressing=false,
+    -- True when the suppression condition is achieved.
+    -- 'suppression' implies 'suppressing'.
+    suppression=false,
+    -- True when a penalty brake is applied.
+    penalty=false,
+
+    _enforce=Event.new(scheduler),
+    _upgrade=Event.new(scheduler)
+  }
   self._sched = scheduler
-  self._sched:run(Atc._doupgrades, self)
+  self._sched:run(Atc._setsuppress, self)
+  self._sched:run(Atc._doenforce, self)
+  self._sched:run(Atc._doupgrade, self)
   return self
 end
 
-function Atc._doupgrades(self)
+function Atc._setsuppress(self)
+  while true do
+    local accel_mps2 = self.config.getacceleration_mps2()
+    self.state.suppressing =
+      accel_mps2 <= self.config.suppressing_mps2 or self.config.getsuppression()
+    self.state.suppression =
+      accel_mps2 <= self.config.suppression_mps2 or self.config.getsuppression()
+    -- Sample every third of a second to avoid spurious precision errors.
+    self._sched:sleep(0.3)
+  end
+end
+
+function Atc._doenforce(self)
+  local penalty = function ()
+    self.state.alarm = true
+    self.state.penalty = true
+    self._sched:yielduntil(function ()
+      return self.config.getspeed_mps() <= 0 and self.config.getacknowledge()
+    end)
+    self.state.alarm = false
+    self.state.penalty = false
+  end
+  while true do
+    self._sched:yielduntil(function ()
+      return self.state._enforce:poll() or not self:_iscomplying()
+    end)
+    -- Alarm phase. Acknowledge the alarm and reach the initial suppressing
+    -- deceleration rate.
+    self.state.alarm = true
+    local acknowledged
+    do
+      local ack = false
+      acknowledged = self._sched:yielduntil(function ()
+        -- The player need only acknowledge the alarm once.
+        ack = ack or self.config.getacknowledge()
+        return ack and (self.state.suppressing or self:_iscomplying())
+      end, self.config.countdown_s)
+    end
+    if acknowledged then
+      -- Suppressing phase. Reach the suppression deceleration rate.
+      self.state.alarm = false
+      local suppressed = self._sched:yielduntil(function ()
+        return self.state.suppression or self:_iscomplying()
+      end, self.config.countdown_s)
+      if suppressed then
+        -- Suppression phase. Maintain the suppression deceleration rate
+        -- until the train complies with the speed limit.
+        self._sched:yielduntil(function ()
+          return not self.state.suppression or self:_iscomplying()
+        end)
+        -- From here, return to the beginning of the loop, either to wait for
+        -- the next enforcement action or to repeat it immediately.
+      else
+        penalty()
+      end
+    else
+      penalty()
+    end
+  end
+end
+
+function Atc._iscomplying(self)
+  local limit_mps = self:getpulsecodespeed_mps(self.state.pulsecode)
+  return self.config.getspeed_mps() <= limit_mps + self.config.speedmargin_mps
+end
+
+function Atc._iscomplyingstrict(self)
+  local limit_mps = self:getpulsecodespeed_mps(self.state.pulsecode)
+  return self.config.getspeed_mps() <= limit_mps
+end
+
+-- Get the speed limit, in m/s, that corresponds to a pulse code.
+function Atc.getpulsecodespeed_mps(self, pulsecode)
+  if pulsecode == Atc.pulsecode.restrict then
+    return self.config.restrictspeed_mps
+  elseif pulsecode == Atc.pulsecode.approach then
+    return 13.4 -- 30 mph
+  elseif pulsecode == Atc.pulsecode.approachmed then
+    return 20.1 -- 45 mph
+  elseif pulsecode == Atc.pulsecode.cabspeed60 then
+    return 26.8 -- 60 mph
+  elseif pulsecode == Atc.pulsecode.cabspeed80 then
+    return 35.8 -- 80 mph
+  elseif pulsecode == Atc.pulsecode.clear100 then
+    return 44.7 -- 100 mph
+  elseif pulsecode == Atc.pulsecode.clear125 then
+    return 55.9 -- 125 mph
+  elseif pulsecode == Atc.pulsecode.clear150 then
+    return 67.1 -- 150 mph
+  else
+    return nil
+  end
+end
+
+function Atc._doupgrade(self)
   while true do
     self.state._upgrade:waitfor()
     self.config.doalert()
@@ -52,7 +163,7 @@ end
 function Atc.receivemessage(self, message)
   local newcode = self:_getnewpulsecode(message)
   if newcode < self.state.pulsecode then
-    self.state._downgrade:trigger()
+    self.state._enforce:trigger()
   elseif newcode > self.state.pulsecode then
     self.state._upgrade:trigger()
   end

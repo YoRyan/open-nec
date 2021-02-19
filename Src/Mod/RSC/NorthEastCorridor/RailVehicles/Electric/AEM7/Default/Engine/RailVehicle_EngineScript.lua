@@ -1,15 +1,17 @@
 sched = Scheduler.new()
 atc = nil
-state = {throttle=0,
-         train_brake=0,
-         dynamic_brake=0,
-         acknowledge=false,
+state = {
+  throttle=0,
+  train_brake=0,
+  dynamic_brake=0,
+  acknowledge=false,
 
-         speed_mps=0,
-         acceleration_mps2=0,
-
-         alert=nil,
-         beep_alert=false}
+  speed_mps=0,
+  acceleration_mps2=0,
+  
+  event_alert=nil,
+  beep_alert=false
+}
 onebeep = 0.4
 
 Initialise = RailWorks.wraperrors(function ()
@@ -22,18 +24,21 @@ Initialise = RailWorks.wraperrors(function ()
       function () return state.acceleration_mps2 end
     config.getacknowledge =
       function () return state.acknowledge end
+    config.getsuppression =
+      -- Brake in the "Full Service" range.
+      function () return state.train_brake >= 0.55 and state.throttle == 0 end
     config.doalert =
-      function () state.alert:trigger() end
+      function () state.event_alert:trigger() end
     atc = newatc
   end
-  state.alert = Event.new(sched)
+  state.event_alert = Event.new(sched)
   sched:run(doalerts)
   RailWorks.BeginUpdate()
 end)
 
 function doalerts ()
   while true do
-    state.alert:waitfor()
+    state.event_alert:waitfor()
     state.beep_alert = true
     sched:sleep(onebeep)
     state.beep_alert = false
@@ -48,6 +53,9 @@ Update = RailWorks.wraperrors(function (dt)
   state.throttle = RailWorks.GetControlValue("VirtualThrottle", 0)
   state.train_brake = RailWorks.GetControlValue("VirtualBrake", 0)
   state.dynamic_brake = RailWorks.GetControlValue("VirtualDynamicBrake", 0)
+  state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
+  state.speed_mps = RailWorks.GetSpeed()
+  state.acceleration_mps2 = RailWorks.GetAcceleration()
 
   sched:update(dt)
   for msg in sched:getmessages() do
@@ -55,11 +63,29 @@ Update = RailWorks.wraperrors(function (dt)
   end
   sched:clearmessages()
 
-  RailWorks.SetControlValue("Regulator", 0, state.throttle)
-  RailWorks.SetControlValue("TrainBrakeControl", 0, state.train_brake)
-  RailWorks.SetControlValue("DynamicBrake", 0, state.dynamic_brake)
+  local penalty = atc.state.penalty
+  do
+    local v
+    if penalty then v = 0
+    else v = state.throttle end
+    RailWorks.SetControlValue("Regulator", 0, v)
+  end
+  do
+    local v
+    if penalty then v = 0.99
+    else v = state.train_brake end
+    RailWorks.SetControlValue("TrainBrakeControl", 0, v)
+  end
+  do
+    local v
+    if penalty then v = 0
+    else v = state.dynamic_brake end
+    RailWorks.SetControlValue("DynamicBrake", 0, v)
+  end
   RailWorks.SetControlValue(
-    "OverSpeedAlert", 0, RailWorks.frombool(state.beep_alert))
+    "AWS", 0, RailWorks.frombool(atc.state.alarm))
+  RailWorks.SetControlValue(
+    "OverSpeedAlert", 0, RailWorks.frombool(state.beep_alert or atc.state.alarm))
   showpulsecode(atc.state.pulsecode)
 end)
 

@@ -121,3 +121,11 @@ function Event.waitfor(self, timeout)
   self._trigger = false
   return res
 end
+
+-- Check the status of this event without blocking. Returns true if the event
+-- was triggered (and resets it), or false otherwise.
+function Event.poll(self)
+  local res = self._trigger
+  self._trigger = false
+  return res
+end

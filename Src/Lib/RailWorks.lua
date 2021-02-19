@@ -56,3 +56,11 @@ end
 function RailWorks.SetControlValue(name, index, value)
   Call("SetControlValue", name, index, value)
 end
+
+function RailWorks.GetSpeed()
+  return Call("GetSpeed")
+end
+
+function RailWorks.GetAcceleration()
+  return Call("GetAcceleration")
+end
