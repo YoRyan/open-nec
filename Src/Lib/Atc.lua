@@ -171,7 +171,7 @@ function Atc.receivemessage(self, message)
 end
 
 function Atc._getnewpulsecode(self, message)
-  local code = Atc.getpulsecode(message)
+  local code = self:getpulsecode(message)
   if code ~= nil then
     return code
   end
@@ -186,7 +186,7 @@ end
 
 -- Get the pulse code that corresponds to a signal message. If nil, then the
 -- message is of an unknown format.
-function Atc.getpulsecode(message)
+function Atc.getpulsecode(self, message)
   -- Amtrak/NJ Transit signals
   if string.sub(message, 1, 3) == "sig" then
     local code = string.sub(message, 4, 4)
@@ -208,6 +208,9 @@ function Atc.getpulsecode(message)
       return Atc.pulsecode.approach
     elseif code == "7" then
       return Atc.pulsecode.restrict
+    -- DTG "Ignore"
+    elseif code == "8" then
+      return self.state.pulsecode
     else
       return nil
     end
