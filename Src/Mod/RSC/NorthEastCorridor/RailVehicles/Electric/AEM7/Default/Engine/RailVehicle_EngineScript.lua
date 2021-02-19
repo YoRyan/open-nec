@@ -12,7 +12,7 @@ state = {
   event_alert=nil,
   beep_alert=false
 }
-onebeep = 0.4
+onebeep = 0.3
 
 Initialise = RailWorks.wraperrors(function ()
   do
