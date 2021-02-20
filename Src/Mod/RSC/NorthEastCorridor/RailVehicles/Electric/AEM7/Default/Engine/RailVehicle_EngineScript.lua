@@ -10,11 +10,14 @@ state = {
   speed_mps=0,
   acceleration_mps2=0,
   trackspeed_mps=0,
+  forwardspeedlimits={}, -- {{speed_mps=..., distance_m=...}, ...}
+  backwardspeedlimits={}, -- {{speed_mps=..., distance_m=...}, ...}
   
   event_alert=nil,
   beep_alert=false
 }
 onebeep = 0.3
+nspeedlimits = 3
 
 Initialise = RailWorks.wraperrors(function ()
   do
@@ -40,6 +43,10 @@ Initialise = RailWorks.wraperrors(function ()
       function () return state.speed_mps end
     config.gettrackspeed_mps =
       function () return state.trackspeed_mps end
+    config.getforwardspeedlimits =
+      function () return state.forwardspeedlimits end
+    config.getbackwardspeedlimits =
+      function () return state.forwardspeedlimits end
     config.getacknowledge =
       function () return state.acknowledge end
     config.doalert =
@@ -72,6 +79,20 @@ Update = RailWorks.wraperrors(function (dt)
   state.speed_mps = RailWorks.GetSpeed()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
   state.trackspeed_mps, _ = RailWorks.GetCurrentSpeedLimit(1)
+  do
+    local speedlimits = {}
+    for speed_mps, distance_m in RailWorks.getforwardspeedlimits(nspeedlimits) do
+      table.insert(speedlimits, {speed_mps=speed_mps, distance_m=distance_m})
+    end
+    state.forwardspeedlimits = speedlimits
+  end
+  do
+    local speedlimits = {}
+    for speed_mps, distance_m in RailWorks.getbackwardspeedlimits(nspeedlimits) do
+      table.insert(speedlimits, {speed_mps=speed_mps, distance_m=distance_m})
+    end
+    state.backwardspeedlimits = speedlimits
+  end
 
   sched:update(dt)
   for msg in sched:getmessages() do

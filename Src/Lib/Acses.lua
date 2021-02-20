@@ -12,6 +12,8 @@ function Acses.new(scheduler)
   self.config = {
     getspeed_mps=function () return 0 end,
     gettrackspeed_mps=function () return 0 end,
+    getforwardspeedlimits=function () return {} end,
+    getbackwardspeedlimits=function () return {} end,
     getacknowledge=function () return false end,
     doalert=function () end,
     -- 3 mph
@@ -29,6 +31,17 @@ function Acses.new(scheduler)
 
     _violatedspeed_mps=nil
   }
+  do
+    local newtrackspeed = AcsesTrackSpeed.new(scheduler)
+    local config = newtrackspeed.config
+    config.gettrackspeed_mps =
+      function () return self.config.gettrackspeed_mps() end
+    config.getforwardspeedlimits =
+      function () return self.config.getforwardspeedlimits() end
+    config.getbackwardspeedlimits =
+      function () return self.config.getforwardspeedlimits() end
+    self.trackspeed = newtrackspeed
+  end
   self._sched = scheduler
   self._sched:run(Acses._setstate, self)
   self._sched:run(Acses._doenforce, self)
@@ -40,7 +53,7 @@ function Acses._setstate(self)
     if self.state._violatedspeed_mps ~= nil then
       self.state.enforcedspeed_mps = self.state._violatedspeed_mps
     else
-      local newspeed_mps = self.config.gettrackspeed_mps()
+      local newspeed_mps = self.trackspeed.state.speedlimit_mps
       if newspeed_mps ~= self.state.enforcedspeed_mps then
         self.config.doalert()
       end
@@ -95,12 +108,97 @@ end
 
 function Acses._getviolation(self)
   local speed_mps = self.config.getspeed_mps()
-  local trackspeed_mps = self.config.gettrackspeed_mps()
+  local trackspeed_mps = self.trackspeed.state.speedlimit_mps
   if speed_mps > trackspeed_mps + self.config.penaltylimit_mps then
     return "penalty", trackspeed_mps
   elseif speed_mps > trackspeed_mps + self.config.alertlimit_mps then
     return "alert", trackspeed_mps
   else
     return nil
+  end
+end
+
+
+-- A speed post tracker that calculates the speed limit in force at the
+-- player's location, irrespective of train length.
+AcsesTrackSpeed = {}
+AcsesTrackSpeed.__index = AcsesTrackSpeed
+
+-- From the main coroutine, create a new speed post tracker context. This will
+-- add coroutines to the provided scheduler. The caller should also customize
+-- the properties in the config table initialized here.
+function AcsesTrackSpeed.new(scheduler)
+  local self = setmetatable({}, AcsesTrackSpeed)
+  self.config = {
+    gettrackspeed_mps=function () return 0 end,
+    getforwardspeedlimits=function () return {} end,
+    getbackwardspeedlimits=function () return {} end
+  }
+  self.state = {
+    speedlimit_mps=0,
+    _forwardlimit_mps=nil,
+    _backwardlimit_mps=nil
+  }
+  self._sched = scheduler
+  self._sched:run(AcsesTrackSpeed._setstate, self)
+  self._sched:run(AcsesTrackSpeed._lookforward, self)
+  self._sched:run(AcsesTrackSpeed._lookbackward, self)
+  return self
+end
+
+function AcsesTrackSpeed._setstate(self)
+  while true do
+    local speed_mps
+    if self.state._forwardlimit_mps ~= nil then
+      speed_mps = self.state._forwardlimit_mps
+    elseif self.state._backwardlimit_mps ~= nil then
+      speed_mps = self.state._backwardlimit_mps
+    else
+      speed_mps = self.config.gettrackspeed_mps()
+    end
+    self.state.speedlimit_mps = speed_mps
+    self._sched:yield()
+  end
+end
+
+function AcsesTrackSpeed._lookforward(self)
+  while true do
+    local limit
+    self._sched:yielduntil(function ()
+      limit = self.config.getforwardspeedlimits()[1]
+      return limit ~= nil and limit.distance_m < 1
+    end)
+    self.state._forwardlimit_mps = limit.speed_mps
+    self._sched:yielduntil(function ()
+      local nextlimit =
+        self.config.getforwardspeedlimits()[1]
+      local backedout =
+        nextlimit.speed_mps == limit.speed_mps and nextlimit.distance_m >= 1
+      local rearpassed =
+        self.config.gettrackspeed_mps() == limit.speed_mps
+      return backedout or rearpassed
+    end)
+    self.state._forwardlimit_mps = nil
+  end
+end
+
+function AcsesTrackSpeed._lookbackward(self)
+  while true do
+    local limit
+    self._sched:yielduntil(function ()
+      limit = self.config.getbackwardspeedlimits()[1]
+      return limit ~= nil and limit.distance_m < 1
+    end)
+    self.state._backwardlimit_mps = limit.speed_mps
+    self._sched:yielduntil(function ()
+      local nextlimit =
+        self.config.getbackwardspeedlimits()[1]
+      local backedout =
+        nextlimit.speed_mps == limit.speed_mps and nextlimit.distance_m >= 1
+      local rearpassed =
+        self.config.gettrackspeed_mps() == limit.speed_mps
+      return backedout or rearpassed
+    end)
+    self.state._backwardlimit_mps = nil
   end
 end

@@ -33,6 +33,37 @@ function RailWorks.frombool(b)
   end
 end
 
+-- Iterate through up to n upcoming speed posts, with an optional maximum
+-- lookahead distance.
+function RailWorks.getforwardspeedlimits(n, maxdistance_m)
+  return RailWorks._getspeedlimits(0, n, maxdistance_m)
+end
+
+-- Iterate through up to n backward-facing speed posts, with an optional maximum
+-- lookbehind distance.
+function RailWorks.getbackwardspeedlimits(n, maxdistance_m)
+  return RailWorks._getspeedlimits(1, n, maxdistance_m)
+end
+
+function RailWorks._getspeedlimits(direction, n, maxdistance_m)
+  local i = 0
+  local minsearch_m = 0
+  return function (_, _)
+    if i >= n then
+      return nil, nil
+    end
+    i = i + 1
+    local found, speed_mps, distance_m =
+      RailWorks.GetNextSpeedLimit(direction, minsearch_m, maxdistance_m)
+    if found == 1 or found == 3 then
+      minsearch_m = minsearch_m + distance_m + 0.01
+      return speed_mps, distance_m
+    else
+      return nil, nil
+    end
+  end, nil, nil
+end
+
 function RailWorks.BeginUpdate()
   Call("BeginUpdate")
 end
@@ -67,4 +98,8 @@ end
 
 function RailWorks.GetCurrentSpeedLimit(component)
   return Call("GetCurrentSpeedLimit", component)
+end
+
+function RailWorks.GetNextSpeedLimit(direction, minDistance, maxDistance)
+  return Call("GetNextSpeedLimit", direction, minDistance, maxDistance)
 end
