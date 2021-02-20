@@ -64,3 +64,7 @@ end
 function RailWorks.GetAcceleration()
   return Call("GetAcceleration")
 end
+
+function RailWorks.GetCurrentSpeedLimit(component)
+  return Call("GetCurrentSpeedLimit", component)
+end

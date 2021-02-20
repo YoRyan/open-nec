@@ -1,5 +1,6 @@
 sched = Scheduler.new()
 atc = nil
+acses = nil
 state = {
   throttle=0,
   train_brake=0,
@@ -8,6 +9,7 @@ state = {
 
   speed_mps=0,
   acceleration_mps2=0,
+  trackspeed_mps=0,
   
   event_alert=nil,
   beep_alert=false
@@ -30,6 +32,19 @@ Initialise = RailWorks.wraperrors(function ()
     config.doalert =
       function () state.event_alert:trigger() end
     atc = newatc
+  end
+  do
+    local newacses = Acses.new(sched)
+    local config = newacses.config
+    config.getspeed_mps =
+      function () return state.speed_mps end
+    config.gettrackspeed_mps =
+      function () return state.trackspeed_mps end
+    config.getacknowledge =
+      function () return state.acknowledge end
+    config.doalert =
+      function () state.event_alert:trigger() end
+    acses = newacses
   end
   state.event_alert = Event.new(sched)
   sched:run(doalerts)
@@ -56,6 +71,7 @@ Update = RailWorks.wraperrors(function (dt)
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
   state.speed_mps = RailWorks.GetSpeed()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
+  state.trackspeed_mps, _ = RailWorks.GetCurrentSpeedLimit(1)
 
   sched:update(dt)
   for msg in sched:getmessages() do
@@ -63,7 +79,7 @@ Update = RailWorks.wraperrors(function (dt)
   end
   sched:clearmessages()
 
-  local penalty = atc.state.penalty
+  local penalty = atc.state.penalty or acses.state.penalty
   do
     local v
     if penalty then v = 0
@@ -83,9 +99,14 @@ Update = RailWorks.wraperrors(function (dt)
     RailWorks.SetControlValue("DynamicBrake", 0, v)
   end
   RailWorks.SetControlValue(
-    "AWS", 0, RailWorks.frombool(atc.state.alarm))
+    "AWS", 0,
+    RailWorks.frombool(atc.state.alarm or acses.state.alarm))
   RailWorks.SetControlValue(
-    "OverSpeedAlert", 0, RailWorks.frombool(state.beep_alert or atc.state.alarm))
+    "OverSpeedAlert", 0,
+    RailWorks.frombool(state.beep_alert or atc.state.alarm or acses.state.alarm))
+  RailWorks.SetControlValue(
+    "TrackSpeed", 0,
+    math.floor(acses.state.enforcedspeed_mps*2.24 + 0.5))
   showpulsecode(atc.state.pulsecode)
 end)
 
