@@ -97,6 +97,8 @@ function Scheduler.print(self, msg)
 end
 
 
+-- Events are discrete triggers that can be waited on or polled. Doing so
+-- automatically consumes and resets the event.
 Event = {}
 Event.__index = Event
 
