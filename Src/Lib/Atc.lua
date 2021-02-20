@@ -71,15 +71,6 @@ function Atc._setsuppress(self)
 end
 
 function Atc._doenforce(self)
-  local penalty = function ()
-    self.state.alarm = true
-    self.state.penalty = true
-    self._sched:yielduntil(function ()
-      return self.config.getspeed_mps() <= 0 and self.config.getacknowledge()
-    end)
-    self.state.alarm = false
-    self.state.penalty = false
-  end
   while true do
     self._sched:yielduntil(function ()
       return self.state._enforce:poll() or not self:_iscomplying()
@@ -111,10 +102,10 @@ function Atc._doenforce(self)
         -- From here, return to the beginning of the loop, either to wait for
         -- the next enforcement action or to repeat it immediately.
       else
-        penalty()
+        self:_penalty()
       end
     else
-      penalty()
+      self:_penalty()
     end
   end
 end
@@ -150,6 +141,16 @@ function Atc.getpulsecodespeed_mps(self, pulsecode)
   else
     return nil
   end
+end
+
+function Atc._penalty(self)
+  self.state.alarm = true
+  self.state.penalty = true
+  self._sched:yielduntil(function ()
+    return self.config.getspeed_mps() <= 0 and self.config.getacknowledge()
+  end)
+  self.state.alarm = false
+  self.state.penalty = false
 end
 
 function Atc._doupgrade(self)
