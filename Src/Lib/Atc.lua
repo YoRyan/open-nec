@@ -65,8 +65,8 @@ function Atc._setsuppress(self)
       accel_mps2 <= self.config.suppressing_mps2 or self.config.getsuppression()
     self.state.suppression =
       accel_mps2 <= self.config.suppression_mps2 or self.config.getsuppression()
-    -- Sample every third of a second to avoid spurious precision errors.
-    self._sched:sleep(0.3)
+    -- Sample every tenth of a second to avoid spurious precision errors.
+    self._sched:sleep(0.1)
   end
 end
 
