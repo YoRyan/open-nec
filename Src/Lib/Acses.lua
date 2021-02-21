@@ -83,9 +83,11 @@ function Acses._alert(self, limit_mps)
   self.state.alarm = true
   local violation, speed_mps
   local acknowledged = false
+  local reachedlimit = false
   repeat
     violation, speed_mps = self:_getviolation()
     acknowledged = acknowledged or self.config.getacknowledge()
+    reachedlimit = reachedlimit or self.trackspeed.state.speedlimit_mps == limit_mps
     if acknowledged then
       self.state.alarm = false
     end
@@ -95,9 +97,7 @@ function Acses._alert(self, limit_mps)
       acknowledged = true
     end
     self._sched:yield()
-  until self.trackspeed.state.speedlimit_mps == limit_mps
-    and violation == nil
-    and acknowledged
+  until violation == nil and acknowledged and reachedlimit
   self.state._violatedspeed_mps = nil
   self.state.alarm = false
 end
