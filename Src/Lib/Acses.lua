@@ -92,10 +92,11 @@ function Acses._alert(self, limit_mps)
     end
     do
       local matchlimit = function (limit)
-        return limit.speed_mps == speed_mps
+        return limit.speed_mps == limit_mps
       end
-      reachedlimit = not Tables.find(self.config.getforwardspeedlimits(), matchlimit)
-        and not Tables.find(self.config.getbackwardspeedlimits(), matchlimit)
+      reachedlimit = self.config.gettrackspeed_mps() == limit_mps
+        or (not Tables.find(self.config.getforwardspeedlimits(), matchlimit)
+            and not Tables.find(self.config.getbackwardspeedlimits(), matchlimit))
     end
     if violation == "penalty" then
       self:_penalty(speed_mps)
@@ -231,9 +232,6 @@ function AcsesTrackSpeed._look(self, getspeedlimits, setspeed)
     self._sched:yielduntil(function ()
       limit = getspeedlimits()[1]
       return limit ~= nil
-        -- Philadelphia-New York is full of phantom speed limits we can't
-        -- sanely track, so we have to filter for type 2 limits. Unfortunately,
-        -- doing so breaks advance speed post tracking for New York-New Haven.
         and limit.type == 2
         and limit.distance_m < 1
         and limit.speed_mps ~= self.config.gettrackspeed_mps()
