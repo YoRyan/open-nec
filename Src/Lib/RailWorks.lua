@@ -4,7 +4,7 @@ RailWorks = {}
 RailWorks.__index = RailWorks
 
 function RailWorks.showmessage(msg)
-  SysCall("ScenarioManager:ShowMessage", tostring(msg), "", 1)
+  SysCall("ScenarioManager:ShowMessage", tostring(msg), "", 2)
 end
 
 -- Run the provided function and arguments with pcall and report any errors
