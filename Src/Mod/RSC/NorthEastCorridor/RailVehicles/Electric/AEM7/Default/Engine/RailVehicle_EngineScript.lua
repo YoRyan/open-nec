@@ -10,14 +10,14 @@ state = {
   speed_mps=0,
   acceleration_mps2=0,
   trackspeed_mps=0,
-  forwardspeedlimits={}, -- {{speed_mps=..., distance_m=...}, ...}
-  backwardspeedlimits={}, -- {{speed_mps=..., distance_m=...}, ...}
+  forwardspeedlimits={},
+  backwardspeedlimits={},
   
   event_alert=nil,
   beep_alert=false
 }
 onebeep = 0.3
-nspeedlimits = 3
+nspeedlimits = 5
 
 Initialise = RailWorks.wraperrors(function ()
   do

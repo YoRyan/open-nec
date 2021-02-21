@@ -35,12 +35,14 @@ end
 
 -- Iterate through up to n upcoming speed posts, with an optional maximum
 -- lookahead distance.
+-- Speed limits are in the form of {{type=..., speed_mps=..., distance_m=...}, ...}
 function RailWorks.getforwardspeedlimits(n, maxdistance_m)
   return RailWorks._getspeedlimits(0, n, maxdistance_m)
 end
 
 -- Iterate through up to n backward-facing speed posts, with an optional maximum
 -- lookbehind distance.
+-- Speed limits are in the form of {{type=..., speed_mps=..., distance_m=...}, ...}
 function RailWorks.getbackwardspeedlimits(n, maxdistance_m)
   return RailWorks._getspeedlimits(1, n, maxdistance_m)
 end
@@ -49,11 +51,11 @@ function RailWorks._getspeedlimits(direction, n, maxdistance_m)
   local limits = {}
   local minsearch_m = 0
   for _ = 1, n do
-    local found, speed_mps, distance_m =
+    local type, speed_mps, distance_m =
       RailWorks.GetNextSpeedLimit(direction, minsearch_m, maxdistance_m)
-    if found == 2 then
+    if type == 1 or type == 2 or type == 3 then
       minsearch_m = distance_m + 0.01
-      table.insert(limits, {speed_mps=speed_mps, distance_m=distance_m})
+      table.insert(limits, {type=type, speed_mps=speed_mps, distance_m=distance_m})
     else
       break
     end
