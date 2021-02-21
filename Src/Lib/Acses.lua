@@ -230,8 +230,10 @@ function AcsesTrackSpeed._look(self, getspeedlimits, setspeed)
     end)
     setspeed(limit.speed_mps)
     self._sched:yielduntil(function ()
-      local nextlimit =
-        getspeedlimits()[1]
+      local nextlimit = getspeedlimits()[1] 
+      if nextlimit == nil then
+        return false
+      end
       local backedout =
         nextlimit.speed_mps == limit.speed_mps and nextlimit.distance_m >= 1
       local rearpassed =
