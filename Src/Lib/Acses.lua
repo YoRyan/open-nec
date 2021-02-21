@@ -17,9 +17,13 @@ function Acses.new(scheduler)
     getacknowledge=function () return false end,
     doalert=function () end,
     -- 3 mph
-    penaltylimit_mps = 1.34,
+    penaltylimit_mps=1.34,
     -- 1 mph
-    alertlimit_mps = 0.45
+    alertlimit_mps=0.45,
+    -- -2 mph/s
+    penaltycurve_mps2=-0.894,
+    -- 8 s
+    alertcurve_s=8
   }
   self.state = {
     -- The current track speed in effect.
@@ -107,6 +111,21 @@ function Acses._penalty(self, limit_mps)
 end
 
 function Acses._getviolation(self)
+  local type, speed_mps = self:_getspeedviolation()
+  if type ~= nil then
+    return type, speed_mps
+  end
+  type, speed_mps = self:_getlimitviolation(self.config.getforwardspeedlimits)
+  if type ~= nil then
+    return type, speed_mps
+  end
+  type, speed_mps = self:_getlimitviolation(self.config.getbackwardspeedlimits)
+  if type ~= nil then
+    return type, speed_mps
+  end
+end
+
+function Acses._getspeedviolation(self)
   local speed_mps = self.config.getspeed_mps()
   local trackspeed_mps = self.trackspeed.state.speedlimit_mps
   if speed_mps > trackspeed_mps + self.config.penaltylimit_mps then
@@ -114,10 +133,35 @@ function Acses._getviolation(self)
   elseif speed_mps > trackspeed_mps + self.config.alertlimit_mps then
     return "alert", trackspeed_mps
   else
-    return nil
+    return nil, nil
   end
 end
 
+function Acses._getlimitviolation(self, getspeedlimits)
+  local speed_mps = math.abs(self.config.getspeed_mps())
+  for limit in Tables.values(getspeedlimits()) do
+    local penaltydistance_m, alertdistance_m
+    do
+      local v2 = math.pow(limit.speed_mps + self.config.penaltylimit_mps, 2)
+      local v02 = math.pow(speed_mps + self.config.penaltylimit_mps, 2)
+      penaltydistance_m = (v2 - v02)/(2*self.config.penaltycurve_mps2)
+    end
+    do
+      local v2 = math.pow(limit.speed_mps + self.config.alertlimit_mps, 2)
+      local v02 = math.pow(speed_mps + self.config.alertlimit_mps, 2)
+      alertdistance_m = (v2 - v02)/(2*self.config.penaltycurve_mps2)
+        + speed_mps*self.config.alertcurve_s
+    end
+    if speed_mps > limit.speed_mps + self.config.penaltylimit_mps
+        and limit.distance_m < penaltydistance_m then
+      return "penalty", limit.speed_mps
+    elseif speed_mps > limit.speed_mps + self.config.alertlimit_mps
+        and limit.distance_m < alertdistance_m then
+      return "alert", limit.speed_mps
+    end
+  end
+  return nil, nil
+end
 
 -- A speed post tracker that calculates the speed limit in force at the
 -- player's location, irrespective of train length.
