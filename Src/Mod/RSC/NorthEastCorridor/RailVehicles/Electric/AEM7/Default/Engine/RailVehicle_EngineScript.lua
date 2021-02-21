@@ -79,20 +79,8 @@ Update = RailWorks.wraperrors(function (dt)
   state.speed_mps = RailWorks.GetSpeed()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
   state.trackspeed_mps, _ = RailWorks.GetCurrentSpeedLimit(1)
-  do
-    local speedlimits = {}
-    for speed_mps, distance_m in RailWorks.getforwardspeedlimits(nspeedlimits) do
-      table.insert(speedlimits, {speed_mps=speed_mps, distance_m=distance_m})
-    end
-    state.forwardspeedlimits = speedlimits
-  end
-  do
-    local speedlimits = {}
-    for speed_mps, distance_m in RailWorks.getbackwardspeedlimits(nspeedlimits) do
-      table.insert(speedlimits, {speed_mps=speed_mps, distance_m=distance_m})
-    end
-    state.backwardspeedlimits = speedlimits
-  end
+  state.forwardspeedlimits = RailWorks.getforwardspeedlimits(nspeedlimits)
+  state.backwardspeedlimits = RailWorks.getbackwardspeedlimits(nspeedlimits)
 
   sched:update(dt)
   for msg in sched:getmessages() do

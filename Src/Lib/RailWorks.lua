@@ -46,22 +46,19 @@ function RailWorks.getbackwardspeedlimits(n, maxdistance_m)
 end
 
 function RailWorks._getspeedlimits(direction, n, maxdistance_m)
-  local i = 0
+  local limits = {}
   local minsearch_m = 0
-  return function (_, _)
-    if i >= n then
-      return nil, nil
-    end
-    i = i + 1
+  for _ = 1, n do
     local found, speed_mps, distance_m =
       RailWorks.GetNextSpeedLimit(direction, minsearch_m, maxdistance_m)
     if found == 1 or found == 3 then
-      minsearch_m = minsearch_m + distance_m + 0.01
-      return speed_mps, distance_m
+      minsearch_m = distance_m + 0.01
+      table.insert(limits, {speed_mps=speed_mps, distance_m=distance_m})
     else
-      return nil, nil
+      break
     end
-  end, nil, nil
+  end
+  return limits
 end
 
 function RailWorks.BeginUpdate()
