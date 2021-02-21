@@ -95,7 +95,9 @@ function Acses._alert(self, limit_mps)
       acknowledged = true
     end
     self._sched:yield()
-  until violation == nil and acknowledged
+  until self.trackspeed.state.speedlimit_mps == limit_mps
+    and violation == nil
+    and acknowledged
   self.state._violatedspeed_mps = nil
   self.state.alarm = false
 end
