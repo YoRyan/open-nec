@@ -224,7 +224,9 @@ function AcsesTrackSpeed._look(self, getspeedlimits, setspeed)
     local limit
     self._sched:yielduntil(function ()
       limit = getspeedlimits()[1]
-      return limit ~= nil and limit.distance_m < 1
+      return limit ~= nil
+        and limit.distance_m < 1
+        and limit.speed_mps ~= self.config.gettrackspeed_mps()
     end)
     setspeed(limit.speed_mps)
     self._sched:yielduntil(function ()
