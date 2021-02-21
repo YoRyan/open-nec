@@ -96,7 +96,7 @@ function Acses._alert(self, limit_mps)
       end
       reachedlimit = not Tables.find(self.config.getforwardspeedlimits(), matchlimit)
         and not Tables.find(self.config.getbackwardspeedlimits(), matchlimit)
-      end
+    end
     if violation == "penalty" then
       self:_penalty(speed_mps)
       -- You have to have acknowledged to get out of the penalty state.
@@ -237,11 +237,9 @@ function AcsesTrackSpeed._look(self, getspeedlimits, setspeed)
     setspeed(limit.speed_mps)
     self._sched:yielduntil(function ()
       local nextlimit = getspeedlimits()[1] 
-      if nextlimit == nil then
-        return false
-      end
-      local backedout =
-        nextlimit.speed_mps == limit.speed_mps and nextlimit.distance_m >= 1
+      local backedout = nextlimit ~= nil
+        and nextlimit.speed_mps == limit.speed_mps
+        and nextlimit.distance_m >= 1
       local rearpassed =
         self.config.gettrackspeed_mps() == limit.speed_mps
       return backedout or rearpassed

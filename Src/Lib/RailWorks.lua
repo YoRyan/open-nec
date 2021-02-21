@@ -51,7 +51,7 @@ function RailWorks._getspeedlimits(direction, n, maxdistance_m)
   for _ = 1, n do
     local found, speed_mps, distance_m =
       RailWorks.GetNextSpeedLimit(direction, minsearch_m, maxdistance_m)
-    if found == 1 or found == 3 then
+    if found == 2 then
       minsearch_m = distance_m + 0.01
       table.insert(limits, {speed_mps=speed_mps, distance_m=distance_m})
     else
