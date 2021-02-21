@@ -83,14 +83,20 @@ function Acses._alert(self, limit_mps)
   self.state.alarm = true
   local violation, speed_mps
   local acknowledged = false
-  local reachedlimit = false
+  local reachedlimit
   repeat
     violation, speed_mps = self:_getviolation()
     acknowledged = acknowledged or self.config.getacknowledge()
-    reachedlimit = reachedlimit or self.trackspeed.state.speedlimit_mps == limit_mps
     if acknowledged then
       self.state.alarm = false
     end
+    do
+      local matchlimit = function (limit)
+        return limit.speed_mps == speed_mps
+      end
+      reachedlimit = not Tables.find(self.config.getforwardspeedlimits(), matchlimit)
+        and not Tables.find(self.config.getbackwardspeedlimits(), matchlimit)
+      end
     if violation == "penalty" then
       self:_penalty(speed_mps)
       -- You have to have acknowledged to get out of the penalty state.

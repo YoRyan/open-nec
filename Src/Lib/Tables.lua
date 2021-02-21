@@ -17,3 +17,16 @@ function Tables.values(t)
     end
   end, nil, nil
 end
+
+-- Apply fn to all values in a numeric-indexed table and return the index of the
+-- first value for which fn evaluates to true. If no such value exists, find
+-- returns nil.
+function Tables.find(t, fn)
+  return table.foreachi(t, function (i, v)
+    if fn(v) then
+      return i
+    else
+      return nil
+    end
+  end)
+end
