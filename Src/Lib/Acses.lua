@@ -206,43 +206,34 @@ function AcsesTrackSpeed._setstate(self)
 end
 
 function AcsesTrackSpeed._lookforward(self)
-  while true do
-    local limit
-    self._sched:yielduntil(function ()
-      limit = self.config.getforwardspeedlimits()[1]
-      return limit ~= nil and limit.distance_m < 1
-    end)
-    self.state._forwardlimit_mps = limit.speed_mps
-    self._sched:yielduntil(function ()
-      local nextlimit =
-        self.config.getforwardspeedlimits()[1]
-      local backedout =
-        nextlimit.speed_mps == limit.speed_mps and nextlimit.distance_m >= 1
-      local rearpassed =
-        self.config.gettrackspeed_mps() == limit.speed_mps
-      return backedout or rearpassed
-    end)
-    self.state._forwardlimit_mps = nil
-  end
+  self:_look(
+    function () return self.config.getforwardspeedlimits() end,
+    function (speed_mps) self.state._forwardlimit_mps = speed_mps end)
 end
 
 function AcsesTrackSpeed._lookbackward(self)
+  self:_look(
+    function () return self.config.getbackwardspeedlimits() end,
+    function (speed_mps) self.state._backwardlimit_mps = speed_mps end)
+end
+
+function AcsesTrackSpeed._look(self, getspeedlimits, setspeed)
   while true do
     local limit
     self._sched:yielduntil(function ()
-      limit = self.config.getbackwardspeedlimits()[1]
+      limit = getspeedlimits()[1]
       return limit ~= nil and limit.distance_m < 1
     end)
-    self.state._backwardlimit_mps = limit.speed_mps
+    setspeed(limit.speed_mps)
     self._sched:yielduntil(function ()
       local nextlimit =
-        self.config.getbackwardspeedlimits()[1]
+        getspeedlimits()[1]
       local backedout =
         nextlimit.speed_mps == limit.speed_mps and nextlimit.distance_m >= 1
       local rearpassed =
         self.config.gettrackspeed_mps() == limit.speed_mps
       return backedout or rearpassed
     end)
-    self.state._backwardlimit_mps = nil
+    setspeed(nil)
   end
 end
