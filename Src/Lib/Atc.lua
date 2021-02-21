@@ -37,7 +37,7 @@ function Atc.new(scheduler)
   }
   self.state = {
     -- The current pulse code in effect.
-    pulsecode=Atc.pulsecode.restrict,
+    pulsecode=Atc.pulsecode.clear125,
     -- True when the alarm is sounding.
     alarm=false,
     -- True when the suppressing deceleration rate is achieved.
