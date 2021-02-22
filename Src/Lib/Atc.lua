@@ -12,6 +12,7 @@ Atc.pulsecode = {restrict=0,
                  clear100=5,
                  clear125=6,
                  clear150=7}
+Atc.cabspeedflash_s = 0.5
 
 -- From the main coroutine, create a new Atc context. This will add coroutines
 -- to the provided scheduler. The caller should also customize the properties

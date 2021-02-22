@@ -14,7 +14,9 @@ state = {
   backwardspeedlimits={},
   
   event_alert=nil,
-  beep_alert=false
+  beep_alert=false,
+  cs1flash=0, -- 0 = off, 1 = on, 2 = flash
+  cs1light=false
 }
 onebeep = 0.3
 nspeedlimits = 5
@@ -55,6 +57,7 @@ Initialise = RailWorks.wraperrors(function ()
   end
   state.event_alert = Event.new(sched)
   sched:run(doalerts)
+  sched:run(cs1flasher)
   RailWorks.BeginUpdate()
 end)
 
@@ -64,6 +67,30 @@ function doalerts ()
     state.beep_alert = true
     sched:sleep(onebeep)
     state.beep_alert = false
+  end
+end
+
+function cs1flasher ()
+  local waitchange = function (timeout)
+    local start = state.cs1flash
+    return sched:select(timeout, function () return state.cs1flash ~= start end)
+  end
+  while true do
+    if state.cs1flash == 0 then
+      state.cs1light = false
+      waitchange()
+    elseif state.cs1flash == 1 then
+      state.cs1light = true
+      waitchange()
+    elseif state.cs1flash == 2 then
+      local change
+      repeat
+        state.cs1light = not state.cs1light
+        change = waitchange(Atc.cabspeedflash_s)
+      until change ~= nil
+    else
+      waitchange() -- invalid value
+    end
   end
 end
 
@@ -107,6 +134,7 @@ Update = RailWorks.wraperrors(function (dt)
     else v = state.dynamic_brake end
     RailWorks.SetControlValue("DynamicBrake", 0, v)
   end
+
   RailWorks.SetControlValue(
     "AWS", 0,
     RailWorks.frombool(atc.state.alarm or acses.state.alarm))
@@ -116,10 +144,13 @@ Update = RailWorks.wraperrors(function (dt)
   RailWorks.SetControlValue(
     "TrackSpeed", 0,
     math.floor(acses.state.enforcedspeed_mps*2.24 + 0.5))
-  showpulsecode(atc.state.pulsecode)
+
+  setpulsecode()
+  RailWorks.SetControlValue("CabSignal1", 0, RailWorks.frombool(state.cs1light))
 end)
 
-function showpulsecode (code)
+function setpulsecode ()
+  local code = atc.state.pulsecode
   local cs, cs1, cs2
   if code == Atc.pulsecode.restrict then
     cs, cs1, cs2 = 7, 0, 0
@@ -128,9 +159,9 @@ function showpulsecode (code)
   elseif code == Atc.pulsecode.approachmed then
     cs, cs1, cs2 = 4, 0, 1
   elseif code == Atc.pulsecode.cabspeed60 then
-    cs, cs1, cs2 = 3, 1, 0
+    cs, cs1, cs2 = 3, 2, 0
   elseif code == Atc.pulsecode.cabspeed80 then
-    cs, cs1, cs2 = 2, 1, 0
+    cs, cs1, cs2 = 2, 2, 0
   elseif code == Atc.pulsecode.clear100
       or code == Atc.pulsecode.clear125
       or code == Atc.pulsecode.clear150 then
@@ -139,7 +170,7 @@ function showpulsecode (code)
     cs, cs1, cs2 = 8, 0, 0
   end
   RailWorks.SetControlValue("CabSignal", 0, cs)
-  RailWorks.SetControlValue("CabSignal1", 0, cs1)
+  state.cs1flash = cs1
   RailWorks.SetControlValue("CabSignal2", 0, cs2)
 end
 
