@@ -170,7 +170,7 @@ end
 -- Receive a custom signal message.
 function Atc.receivemessage(self, message)
   local newcode = self:_getnewpulsecode(message)
-  if newcode < self.state.pulsecode then
+  if newcode < self.state.pulsecode and self._sched:clock() > 3 then
     self.state._enforce:trigger()
   elseif newcode > self.state.pulsecode then
     self.state._upgrade:trigger()
