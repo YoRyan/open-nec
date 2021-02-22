@@ -72,33 +72,39 @@ end
 
 function Atc._doenforce(self)
   while true do
-    self._sched:yielduntil(function ()
-      return self.state._enforce:poll() or not self:_iscomplying()
-    end)
+    self._sched:select(
+      nil,
+      function () return self.state._enforce:poll() end,
+      function () return not self:_iscomplying() end)
     -- Alarm phase. Acknowledge the alarm and reach the initial suppressing
     -- deceleration rate.
     self.state.alarm = true
     local acknowledged
     do
       local ack = false
-      acknowledged = self._sched:yielduntil(function ()
-        -- The player need only acknowledge the alarm once.
-        ack = ack or self.config.getacknowledge()
-        return ack and (self.state.suppressing or self:_iscomplying())
-      end, self.config.countdown_s)
+      acknowledged = self._sched:select(
+        self.config.countdown_s,
+        function ()
+          -- The player need only acknowledge the alarm once.
+          ack = ack or self.config.getacknowledge()
+          return ack and (self.state.suppressing or self:_iscomplying())
+        end
+      ) == 1
     end
     if acknowledged then
       -- Suppressing phase. Reach the suppression deceleration rate.
       self.state.alarm = false
-      local suppressed = self._sched:yielduntil(function ()
-        return self.state.suppression or self:_iscomplying()
-      end, self.config.countdown_s)
+      local suppressed = self._sched:select(
+        self.config.countdown_s,
+        function () return self.state.suppression or self:_iscomplying() end
+      ) == 1
       if suppressed then
         -- Suppression phase. Maintain the suppression deceleration rate
         -- until the train complies with the speed limit.
-        self._sched:yielduntil(function ()
-          return not self.state.suppression or self:_iscomplying()
-        end)
+        self._sched:select(
+          nil,
+          function () return not self.state.suppression end,
+          function () return self:_iscomplying() end)
         -- From here, return to the beginning of the loop, either to wait for
         -- the next enforcement action or to repeat it immediately.
       else
@@ -146,7 +152,7 @@ end
 function Atc._penalty(self)
   self.state.alarm = true
   self.state.penalty = true
-  self._sched:yielduntil(function ()
+  self._sched:select(nil, function ()
     return self.config.getspeed_mps() <= 0 and self.config.getacknowledge()
   end)
   self.state.alarm = false

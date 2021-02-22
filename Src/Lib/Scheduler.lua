@@ -61,34 +61,28 @@ function Scheduler.yield(self, sleep)
   coroutine.yield()
 end
 
--- Yield control until the provided function returns true, or if the optional
--- timeout is reached. Returns true if the condition became true and false if
--- the timeout was reached.
-function Scheduler.yielduntil(self, cond, timeout)
-  if timeout ~= nil then
-    local start = self:clock()
-    while true do
+-- Yield control until one of the provided functions returns true, or if the
+-- timeout is reached. A nil timeout is infinite. Returns the index of the
+-- condition that became true, or nil if the timeout was reached.
+function Scheduler.select(self, timeout, ...)
+  local start = self:clock()
+  while true do
+    for i, cond in ipairs(arg) do
       if cond() then
-        return true
-      elseif self:clock() >= start + timeout then
-        return false
+        return i
       end
+    end
+    if timeout ~= nil and self:clock() >= start + timeout then
+      return nil
+    else
       self:yield()
     end
-  else
-    while not cond() do
-      self:yield()
-    end
-    return true
   end
 end
 
 -- Freeze execution for the given time.
 function Scheduler.sleep(self, time)
-  local start = self:clock()
-  while self:clock() < start + time do
-    self:yield()
-  end
+  self:select(time)
 end
 
 -- Push a message to the debug message queue.
@@ -117,11 +111,11 @@ end
 
 -- Block until this event is triggered, with an optional timeout.
 function Event.waitfor(self, timeout)
-  local res = self._sched:yielduntil(
-    function () return self._trigger end,
-    timeout)
+  local res = self._sched:select(
+    timeout,
+    function () return self._trigger end)
   self._trigger = false
-  return res
+  return res == 1
 end
 
 -- Check the status of this event without blocking. Returns true if the event

@@ -70,7 +70,7 @@ end
 function Acses._doenforce(self)
   while true do
     local speed_mps
-    self._sched:yielduntil(function ()
+    self._sched:select(nil, function ()
       _, speed_mps = self:_getviolation()
       return speed_mps ~= nil
     end)
@@ -112,7 +112,7 @@ end
 function Acses._penalty(self, limit_mps)
   self.state.alarm = true
   self.state.penalty = true
-  self._sched:yielduntil(function ()
+  self._sched:select(nil, function ()
     return self.config.getspeed_mps() <= limit_mps and self.config.getacknowledge()
   end)
   self.state.penalty = false
@@ -229,7 +229,7 @@ end
 function AcsesTrackSpeed._look(self, getspeedlimits, setspeed)
   while true do
     local limit
-    self._sched:yielduntil(function ()
+    self._sched:select(nil, function ()
       limit = getspeedlimits()[1]
       return limit ~= nil
         -- Philadelphia-New York is full of phantom speed limits we can't
@@ -240,15 +240,17 @@ function AcsesTrackSpeed._look(self, getspeedlimits, setspeed)
         and limit.speed_mps ~= self.config.gettrackspeed_mps()
     end)
     setspeed(limit.speed_mps)
-    self._sched:yielduntil(function ()
-      local nextlimit = getspeedlimits()[1] 
-      local backedout = nextlimit ~= nil
-        and nextlimit.speed_mps == limit.speed_mps
-        and nextlimit.distance_m >= 1
-      local rearpassed =
-        self.config.gettrackspeed_mps() == limit.speed_mps
-      return backedout or rearpassed
-    end)
+    self._sched:select(
+      nil,
+      function ()
+        local nextlimit = getspeedlimits()[1] 
+        return nextlimit ~= nil
+          and nextlimit.speed_mps == limit.speed_mps
+          and nextlimit.distance_m >= 1
+      end,
+      function ()
+        return self.config.gettrackspeed_mps() == limit.speed_mps
+      end)
     setspeed(nil)
   end
 end
