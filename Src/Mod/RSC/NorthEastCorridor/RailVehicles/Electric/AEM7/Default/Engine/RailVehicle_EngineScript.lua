@@ -2,6 +2,7 @@ sched = Scheduler.new()
 atc = nil
 acses = nil
 cruise = nil
+alerter = nil
 state = {
   throttle=0,
   train_brake=0,
@@ -9,6 +10,7 @@ state = {
   acknowledge=false,
   cruisespeed_mps=0,
   cruiseenabled=false,
+  alerterenabled=false,
 
   speed_mps=0,
   acceleration_mps2=0,
@@ -69,6 +71,15 @@ Initialise = RailWorks.wraperrors(function ()
       function () return state.cruiseenabled end
     cruise = newcruise
   end
+  do
+    local newalerter = Alerter.new(sched)
+    local config = newalerter.config
+    config.getspeed_mps =
+      function () return state.speed_mps end
+    config.getenabled =
+      function () return state.alerterenabled end
+    alerter = newalerter
+  end
   state.event_alert = Event.new(sched)
   sched:run(doalerts)
   sched:run(cs1flasher)
@@ -113,12 +124,25 @@ Update = RailWorks.wraperrors(function (dt)
     return
   end
 
-  state.throttle = RailWorks.GetControlValue("VirtualThrottle", 0)
-  state.train_brake = RailWorks.GetControlValue("VirtualBrake", 0)
-  state.dynamic_brake = RailWorks.GetControlValue("VirtualDynamicBrake", 0)
-  state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
+  do
+    local vthrottle = RailWorks.GetControlValue("VirtualThrottle", 0)
+    local vbrake = RailWorks.GetControlValue("VirtualBrake", 0)
+    local vdynamic = RailWorks.GetControlValue("VirtualDynamicBrake", 0)
+    local change = vthrottle ~= state.throttle
+      or vbrake ~= state.train_brake
+      or vdynamic ~= state.dynamic_brake
+    state.throttle = vthrottle
+    state.train_brake = vbrake
+    state.dynamic_brake = vdynamic
+    state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
+    if state.acknowledge or change then
+      alerter.state.acknowledge:trigger()
+    end
+  end
+
   state.cruisespeed_mps = RailWorks.GetControlValue("CruiseSet", 0)*0.447
   state.cruiseenabled = RailWorks.GetControlValue("CruiseSet", 0) > 10
+  state.alerterenabled = RailWorks.GetControlValue("AlertControl", 0) == 1
   state.speed_mps = RailWorks.GetSpeed()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
   state.trackspeed_mps, _ = RailWorks.GetCurrentSpeedLimit(1)
@@ -131,7 +155,7 @@ Update = RailWorks.wraperrors(function (dt)
   end
   sched:clearmessages()
 
-  local penalty = atc.state.penalty or acses.state.penalty
+  local penalty = atc.state.penalty or acses.state.penalty or alerter.state.penalty
   do
     local v
     if penalty then v = 0
@@ -154,7 +178,11 @@ Update = RailWorks.wraperrors(function (dt)
 
   RailWorks.SetControlValue(
     "AWS", 0,
-    RailWorks.frombool(atc.state.alarm or acses.state.alarm))
+    RailWorks.frombool(
+      atc.state.alarm or acses.state.alarm or alerter.state.alarm))
+  RailWorks.SetControlValue(
+    "AWSWarnCount", 0,
+    RailWorks.frombool(alerter.state.alarm))
   RailWorks.SetControlValue(
     "OverSpeedAlert", 0,
     RailWorks.frombool(state.beep_alert or atc.state.alarm or acses.state.alarm))
