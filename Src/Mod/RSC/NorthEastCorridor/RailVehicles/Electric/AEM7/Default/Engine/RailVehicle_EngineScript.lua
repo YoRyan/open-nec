@@ -124,6 +124,7 @@ end
 
 Update = RailWorks.wraperrors(function (dt)
   if not RailWorks.GetIsEngineWithKey() then
+    RailWorks.EndUpdate()
     return
   end
 
