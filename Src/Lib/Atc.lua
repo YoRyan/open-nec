@@ -14,6 +14,7 @@ Atc.pulsecode = {restrict=0,
                  clear150=7}
 Atc.cabspeedflash_s = 0.5
 Atc.inittime_s = 3
+Atc.debugsignals = false
 
 -- From the main coroutine, create a new Atc context. This will add coroutines
 -- to the provided scheduler. The caller should also customize the properties
@@ -175,6 +176,9 @@ function Atc.receivemessage(self, message)
     self.config.doalert()
   end
   self.state.pulsecode = newcode
+  if Atc.debugsignals then
+    self._sched:print(message)
+  end
 end
 
 function Atc._getnewpulsecode(self, message)
