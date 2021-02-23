@@ -4,6 +4,8 @@
 Acses = {}
 Acses.__index = Acses
 
+Acses.debuglimits = false
+
 -- From the main coroutine, create a new Acses context. This will add coroutines
 -- to the provided scheduler. The caller should also customize the properties
 -- in the config table initialized here.
@@ -63,8 +65,26 @@ function Acses._setstate(self)
       end
       self.state.enforcedspeed_mps = newspeed_mps
     end
+    if Acses.debuglimits and self.config.getacknowledge() then
+      self:_printlimits()
+    end
     self._sched:yield()
   end
+end
+
+function Acses._printlimits(self)
+  local dump = function (limits)
+    local res = ""
+    for _, limit in ipairs(limits) do
+      local s = "type=" .. limit.type
+        .. ", speed=" .. string.format("%.2f", limit.speed_mps*2.24) .. "mph"
+        .. ", distance=" .. string.format("%.2f", limit.distance_m*3.28) .. "ft"
+      res = res .. s .. "\n"
+    end
+    return res
+  end
+  self._sched:print("Forward:\n" .. dump(self.config.getforwardspeedlimits())
+    .. "Backward:\n" .. dump(self.config.getbackwardspeedlimits()))
 end
 
 function Acses._doenforce(self)
