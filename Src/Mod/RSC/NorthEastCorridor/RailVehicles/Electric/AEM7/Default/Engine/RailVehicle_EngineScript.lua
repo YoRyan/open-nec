@@ -158,9 +158,13 @@ Update = RailWorks.wraperrors(function (dt)
   local penalty = atc.state.penalty or acses.state.penalty or alerter.state.penalty
   do
     local v
-    if penalty then v = 0
-    elseif state.cruiseenabled then v = state.throttle*cruise.state.throttle
-    else v = state.throttle end
+    if penalty then
+      v = 0
+    elseif state.cruiseenabled then
+      v = math.min(state.throttle, cruise.state.throttle)
+    else
+      v = state.throttle
+    end
     RailWorks.SetControlValue("Regulator", 0, v)
   end
   do
