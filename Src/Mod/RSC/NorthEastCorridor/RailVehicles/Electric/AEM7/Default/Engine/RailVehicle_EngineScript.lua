@@ -150,7 +150,7 @@ Update = RailWorks.wraperrors(function (dt)
   state.backwardspeedlimits = RailWorks.getbackwardspeedlimits(nspeedlimits)
 
   sched:update(dt)
-  for msg in sched:getmessages() do
+  for _, msg in ipairs(sched:getmessages()) do
     RailWorks.showmessage(msg)
   end
   sched:clearmessages()

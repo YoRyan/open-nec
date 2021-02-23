@@ -148,7 +148,7 @@ end
 
 function Acses._getlimitviolation(self, getspeedlimits)
   local speed_mps = math.abs(self.config.getspeed_mps())
-  for limit in Tables.values(getspeedlimits()) do
+  for _, limit in ipairs(getspeedlimits()) do
     local penaltydistance_m, alertdistance_m
     do
       local v2 = math.pow(limit.speed_mps + self.config.penaltylimit_mps, 2)

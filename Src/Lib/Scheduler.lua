@@ -51,10 +51,9 @@ function Scheduler._resume(co, ...)
   return arg
 end
 
--- From the main coroutine, iterate through all debug messages pushed by
--- coroutines since the last update.
+-- Get a table of all debug messages pushed by coroutines since the last update.
 function Scheduler.getmessages(self)
-  return Tables.values(self._messages)
+  return self._messages
 end
 
 -- From the main coroutine, clear the debug message queue.
