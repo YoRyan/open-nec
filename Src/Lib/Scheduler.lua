@@ -57,7 +57,7 @@ function Scheduler.clock(self)
 end
 
 -- Yield control until the next frame.
-function Scheduler.yield(self, sleep)
+function Scheduler.yield(self)
   coroutine.yield()
 end
 
