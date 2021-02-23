@@ -1,11 +1,14 @@
 sched = Scheduler.new()
 atc = nil
 acses = nil
+cruise = nil
 state = {
   throttle=0,
   train_brake=0,
   dynamic_brake=0,
   acknowledge=false,
+  cruisespeed_mps=0,
+  cruiseenabled=false,
 
   speed_mps=0,
   acceleration_mps2=0,
@@ -55,6 +58,17 @@ Initialise = RailWorks.wraperrors(function ()
       function () state.event_alert:trigger() end
     acses = newacses
   end
+  do
+    local newcruise = Cruise.new(sched)
+    local config = newcruise.config
+    config.getspeed_mps =
+      function () return state.speed_mps end
+    config.gettargetspeed_mps =
+      function () return state.cruisespeed_mps end
+    config.getenabled =
+      function () return state.cruiseenabled end
+    cruise = newcruise
+  end
   state.event_alert = Event.new(sched)
   sched:run(doalerts)
   sched:run(cs1flasher)
@@ -103,6 +117,8 @@ Update = RailWorks.wraperrors(function (dt)
   state.train_brake = RailWorks.GetControlValue("VirtualBrake", 0)
   state.dynamic_brake = RailWorks.GetControlValue("VirtualDynamicBrake", 0)
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
+  state.cruisespeed_mps = RailWorks.GetControlValue("CruiseSet", 0)*0.447
+  state.cruiseenabled = RailWorks.GetControlValue("CruiseSet", 0) > 10
   state.speed_mps = RailWorks.GetSpeed()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
   state.trackspeed_mps, _ = RailWorks.GetCurrentSpeedLimit(1)
@@ -119,6 +135,7 @@ Update = RailWorks.wraperrors(function (dt)
   do
     local v
     if penalty then v = 0
+    elseif state.cruiseenabled then v = state.throttle*cruise.state.throttle
     else v = state.throttle end
     RailWorks.SetControlValue("Regulator", 0, v)
   end
