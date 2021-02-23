@@ -91,7 +91,7 @@ function Scheduler.select(self, timeout, ...)
       table.insert(arg, function () return self:clock() >= start + timeout end)
     end
     local which = coroutine.yield(unpack(arg))
-    if which == table.getn(arg) + 1 then
+    if which == table.getn(arg) then
       return nil
     else
       return which
