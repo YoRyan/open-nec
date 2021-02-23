@@ -164,6 +164,12 @@ Update = RailWorks.wraperrors(function (dt)
 
   setpulsecode()
   RailWorks.SetControlValue("CabSignal1", 0, RailWorks.frombool(state.cs1light))
+
+  do
+    local cablight = RailWorks.GetControlValue("CabLightControl", 0)
+    Call("FrontCabLight:Activate", cablight)
+    Call("RearCabLight:Activate", cablight)
+  end
 end)
 
 function setpulsecode ()
