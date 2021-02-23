@@ -16,28 +16,39 @@ end
 -- From the main coroutine, create and start a new coroutine.
 function Scheduler.run(self, fn, ...)
   local co = coroutine.create(fn)
-  table.insert(self._coroutines, co)
-  coroutine.resume(co, unpack(arg))
+  local resume = {coroutine.resume(co, unpack(arg))}
+  if table.remove(resume, 1) then
+    self._coroutines[co] = resume
+  else
+    self:print("ERROR:\n" .. resume[1])
+  end
 end
 
 -- From the main coroutine, update all active coroutines.
 function Scheduler.update(self, dt)
   self._clock = self._clock + dt
-  local next_cos = {}
-  for co in Tables.values(self._coroutines) do
-    if coroutine.status(co) ~= "dead" then
-      self:_resume(co)
-      table.insert(next_cos, co)
+  for co, conds in pairs(self._coroutines) do
+    if coroutine.status(co) == "dead" then
+      self._coroutines[co] = nil
+    else
+      self._coroutines[co] = Scheduler._resume(co, unpack(conds))
     end
   end
-  self._coroutines = next_cos
 end
 
-function Scheduler._resume(self, co)
-  local success, err = coroutine.resume(co)
-  if not success then
-    self:print("ERROR:\n" .. err)
+function Scheduler._resume(co, ...)
+  for i, cond in ipairs(arg) do
+    if cond() then
+      local resume = {coroutine.resume(co, i)}
+      if table.remove(resume, 1) then
+        return resume
+      else
+        self:print("ERROR:\n" .. resume[1])
+        return nil
+      end
+    end
   end
+  return arg
 end
 
 -- From the main coroutine, iterate through all debug messages pushed by
@@ -58,31 +69,34 @@ end
 
 -- Yield control until the next frame.
 function Scheduler.yield(self)
-  coroutine.yield()
+  self:select(0)
+end
+
+-- Freeze execution for the given time.
+function Scheduler.sleep(self, time)
+  self:select(time)
 end
 
 -- Yield control until one of the provided functions returns true, or if the
 -- timeout is reached. A nil timeout is infinite. Returns the index of the
 -- condition that became true, or nil if the timeout was reached.
 function Scheduler.select(self, timeout, ...)
-  local start = self:clock()
-  while true do
-    for i, cond in ipairs(arg) do
-      if cond() then
-        return i
-      end
+  if timeout == nil then
+    return coroutine.yield(unpack(arg))
+  else
+    if timeout == 0 then
+      table.insert(arg, function () return true end)
+    else
+      local start = self:clock()
+      table.insert(arg, function () return self:clock() >= start + timeout end)
     end
-    if timeout ~= nil and self:clock() >= start + timeout then
+    local which = coroutine.yield(unpack(arg))
+    if which == table.getn(arg) + 1 then
       return nil
     else
-      self:yield()
+      return which
     end
   end
-end
-
--- Freeze execution for the given time.
-function Scheduler.sleep(self, time)
-  self:select(time)
 end
 
 -- Push a message to the debug message queue.
