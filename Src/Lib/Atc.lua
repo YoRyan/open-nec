@@ -50,12 +50,10 @@ function Atc.new(scheduler)
     penalty=false,
 
     _enforce=Event.new(scheduler),
-    _upgrade=Event.new(scheduler)
   }
   self._sched = scheduler
   self._sched:run(Atc._setsuppress, self)
   self._sched:run(Atc._doenforce, self)
-  self._sched:run(Atc._doupgrade, self)
   return self
 end
 
@@ -160,20 +158,13 @@ function Atc._penalty(self)
   self.state.penalty = false
 end
 
-function Atc._doupgrade(self)
-  while true do
-    self.state._upgrade:waitfor()
-    self.config.doalert()
-  end
-end
-
 -- Receive a custom signal message.
 function Atc.receivemessage(self, message)
   local newcode = self:_getnewpulsecode(message)
   if newcode < self.state.pulsecode and self._sched:clock() > 3 then
     self.state._enforce:trigger()
   elseif newcode > self.state.pulsecode then
-    self.state._upgrade:trigger()
+    self.config.doalert()
   end
   self.state.pulsecode = newcode
 end
