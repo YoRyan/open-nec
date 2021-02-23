@@ -44,6 +44,5 @@ function Cruise._run(self)
         + self.config.kd*derivative
       preverror = error
     end
-    self._sched:yield()
   end
 end

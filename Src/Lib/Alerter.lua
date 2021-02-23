@@ -50,7 +50,6 @@ function Alerter._run(self)
       end
       self.state.alarm = false
     end
-    self._sched:yield()
   end
 end
 
