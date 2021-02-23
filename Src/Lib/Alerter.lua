@@ -37,6 +37,7 @@ function Alerter._run(self)
     local countdown = self._sched:select(
       self.config.countdown_s,
       function () return self.state.acknowledge:poll() end,
+      function () return self.config.getspeed_mps() < self.config.minspeed_mps end,
       function () return not self.config.getenabled() end)
     if countdown == nil then
       self.state.alarm = true
