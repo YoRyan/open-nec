@@ -142,7 +142,7 @@ Update = RailWorks.wraperrors(function (dt)
 
   state.cruisespeed_mps = RailWorks.GetControlValue("CruiseSet", 0)*0.447
   state.cruiseenabled = RailWorks.GetControlValue("CruiseSet", 0) > 10
-  state.alerterenabled = RailWorks.GetControlValue("AlertControl", 0) == 1
+  state.alerterenabled = RailWorks.GetControlValue("AlertControl", 0) == 0
   state.speed_mps = RailWorks.GetSpeed()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
   state.trackspeed_mps, _ = RailWorks.GetCurrentSpeedLimit(1)
