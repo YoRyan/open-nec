@@ -189,6 +189,7 @@ function AcsesTrackSpeed.new(scheduler)
   }
   self.state = {
     speedlimit_mps=0,
+    _hastype2limits=false,
     _forwardlimit_mps=nil,
     _backwardlimit_mps=nil
   }
@@ -210,7 +211,23 @@ function AcsesTrackSpeed._setstate(self)
       speed_mps = self.config.gettrackspeed_mps()
     end
     self.state.speedlimit_mps = speed_mps
+    self:_sethastype2limits()
     self._sched:yield()
+  end
+end
+
+function AcsesTrackSpeed._sethastype2limits(self)
+  local search = function (limits)
+    self.state._hastype2limits = Tables.find(
+      limits,
+      function (limit) return limit.type == 2 end
+    ) ~= nil
+  end
+  if not self.state._hastype2limits then
+    search(self.config.getforwardspeedlimits())
+  end
+  if not self.state._hastype2limits then
+    search(self.config.getbackwardspeedlimits())
   end
 end
 
@@ -230,14 +247,33 @@ function AcsesTrackSpeed._look(self, getspeedlimits, setspeed)
   while true do
     local limit
     self._sched:select(nil, function ()
-      limit = getspeedlimits()[1]
-      return limit ~= nil
-        -- Philadelphia-New York is full of phantom speed limits we can't
-        -- sanely track, so we have to filter for type 2 limits. Unfortunately,
-        -- doing so breaks advance speed post tracking for New York-New Haven.
-        and limit.type == 2
-        and limit.distance_m < 1
-        and limit.speed_mps ~= self.config.gettrackspeed_mps()
+      local speedlimits = getspeedlimits()
+      local i = Tables.find(speedlimits, function(thislimit)
+        --[[
+          Philadelphia-New York uses type 1 and 3 limits for signal speed and type
+          2 limits for track speed, while other routes use type 1 and 3 limits for
+          track speed.
+
+          To handle this inconsistency, we default to type 1 and 3 limits *unless*
+          we encounter a type 2, at which point we'll search solely for type 2
+          limits.
+        ]]--
+        local righttype
+        if self.state._hastype2limits then
+          righttype = thislimit.type == 2
+        else
+          righttype = thislimit.type == 1 or thislimit.type == 3
+        end
+        return righttype
+          and thislimit.distance_m < 1
+          and thislimit.speed_mps ~= self.config.gettrackspeed_mps()
+      end)
+      if i ~= nil then
+        limit = speedlimits[i]
+        return true
+      else
+        return false
+      end
     end)
     setspeed(limit.speed_mps)
     self._sched:select(
