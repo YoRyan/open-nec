@@ -75,10 +75,10 @@ end
 
 function Acses._printlimits(self)
   local fspeed = function (mps)
-    return string.format("%.2f", mps*2.24) .. "mph"
+    return string.format("%.2f", mps*Units.mps.tomph) .. "mph"
   end
   local fdist = function (m)
-    return string.format("%.2f", m*3.28) .. "ft"
+    return string.format("%.2f", m*Units.m.toft) .. "ft"
   end
   local dump = function (limits)
     local res = ""

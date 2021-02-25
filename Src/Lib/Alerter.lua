@@ -11,8 +11,7 @@ function Alerter.new(scheduler)
   self.config = {
     getspeed_mps=function () return 0 end,
     getenabled=function () return false end,
-    -- 1 mph
-    minspeed_mps=0.447,
+    minspeed_mps=1*Units.mph.tomps,
     -- The time between alerter sounds.
     countdown_s=60,
     -- The time until a penalty brake is applied.

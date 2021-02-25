@@ -143,7 +143,7 @@ Update = RailWorks.wraperrors(function (dt)
     end
   end
 
-  state.cruisespeed_mps = RailWorks.GetControlValue("CruiseSet", 0)*0.447
+  state.cruisespeed_mps = RailWorks.GetControlValue("CruiseSet", 0)*Units.mph.tomps
   state.cruiseenabled = RailWorks.GetControlValue("CruiseSet", 0) > 10
   state.speedcontrolenabled = RailWorks.GetControlValue("SpeedControl", 0) == 0
   state.alerterenabled = RailWorks.GetControlValue("AlertControl", 0) == 0
@@ -196,7 +196,7 @@ Update = RailWorks.wraperrors(function (dt)
     RailWorks.frombool(state.beep_alert or atc.state.alarm or acses.state.alarm))
   RailWorks.SetControlValue(
     "TrackSpeed", 0,
-    math.floor(acses.state.enforcedspeed_mps*2.24 + 0.5))
+    math.floor(acses.state.enforcedspeed_mps*Units.mps.tomph + 0.5))
 
   setpulsecode()
   RailWorks.SetControlValue("CabSignal1", 0, RailWorks.frombool(state.cs1light))

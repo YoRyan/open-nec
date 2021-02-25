@@ -3,6 +3,11 @@
 Units = {}
 Units.__index = Units
 
+-- meters
+Units.m = {
+  toft = 3.28084
+}
+
 -- meters/second
 Units.mps = {
   tomph = 2.23694
