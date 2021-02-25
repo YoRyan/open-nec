@@ -31,12 +31,12 @@ function Scheduler.update(self, dt)
     if coroutine.status(co) == "dead" then
       self._coroutines[co] = nil
     else
-      self._coroutines[co] = Scheduler._resume(co, unpack(conds))
+      self._coroutines[co] = self:_resume(co, unpack(conds))
     end
   end
 end
 
-function Scheduler._resume(co, ...)
+function Scheduler._resume(self, co, ...)
   for i, cond in ipairs(arg) do
     if cond() then
       local resume = {coroutine.resume(co, i)}

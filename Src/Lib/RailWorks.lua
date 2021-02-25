@@ -10,7 +10,7 @@ end
 -- Run the provided function and arguments with pcall and report any errors
 -- to the player.
 function RailWorks.catcherrors(...)
-  success, err = pcall(unpack(arg))
+  local success, err = pcall(unpack(arg))
   if not success then
     RailWorks.showmessage("ERROR:\n" .. err)
   end

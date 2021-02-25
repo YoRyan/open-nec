@@ -251,7 +251,7 @@ function AcsesTrackSpeed._look(self)
     self._sched:select(
       nil,
       function ()
-        local nextlimit = self._getupcomingspeedlimits()[1] 
+        local nextlimit = self._getupcomingspeedlimits()[1]
         return nextlimit ~= nil
           and nextlimit.speed_mps == limit.speed_mps
           and nextlimit.distance_m >= 1

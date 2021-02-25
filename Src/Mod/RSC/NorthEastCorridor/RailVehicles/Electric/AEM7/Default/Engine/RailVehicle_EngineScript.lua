@@ -17,7 +17,7 @@ state = {
   trackspeed_mps=0,
   forwardspeedlimits={},
   backwardspeedlimits={},
-  
+
   event_alert=nil,
   beep_alert=false,
   cs1flash=0, -- 0 = off, 1 = on, 2 = flash
@@ -145,7 +145,7 @@ Update = RailWorks.wraperrors(function (dt)
   state.alerterenabled = RailWorks.GetControlValue("AlertControl", 0) == 0
   state.speed_mps = RailWorks.GetSpeed()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
-  state.trackspeed_mps, _ = RailWorks.GetCurrentSpeedLimit(1)
+  state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
   state.forwardspeedlimits = RailWorks.getforwardspeedlimits(Acses.nlimitlookahead)
   state.backwardspeedlimits = RailWorks.getbackwardspeedlimits(Acses.nlimitlookahead)
 

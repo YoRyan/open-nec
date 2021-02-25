@@ -18,6 +18,7 @@
   <Target Name="Build" DependsOnTargets="Lua" />
   <Target Name="Lua" Inputs="@(LuaLibrary);%(LuaBinary.Identity)" Outputs="$(OutputPath)\%(LuaBinary.RelativeDir)%(LuaBinary.Filename).out">
     <MakeDir Directories="$(OutputPath)\%(LuaBinary.RelativeDir)" Condition="!Exists('$(OutputPath)\%(LuaBinary.RelativeDir)')" />
+    <Exec Command="luacheck.exe --allow-defined-top --no-unused-args @(LuaLibrary->'&quot;%(Identity)&quot;', ' ') &quot;%(LuaBinary.Identity)&quot; --read-globals=Call SysCall" IgnoreExitCode="true" />
     <Exec Command="luac50.exe -s -o &quot;$(OutputPath)\%(LuaBinary.RelativeDir)%(LuaBinary.Filename).out&quot; @(LuaLibrary->'&quot;%(Identity)&quot;', ' ') &quot;%(LuaBinary.Identity)&quot;" />
   </Target>
 </Project>
