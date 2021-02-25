@@ -143,7 +143,7 @@ function Acses._penalty(self, limit_mps)
   self.state.alarm = true
   self.state.penalty = true
   self._sched:select(nil, function ()
-    return self.config.getspeed_mps() <= limit_mps and self.config.getacknowledge()
+    return math.abs(self.config.getspeed_mps()) <= limit_mps and self.config.getacknowledge()
   end)
   self.state.penalty = false
   self.state.alarm = false
@@ -154,18 +154,15 @@ function Acses._getviolation(self)
   if type ~= nil then
     return type, speed_mps
   end
-  type, speed_mps = self:_getlimitviolation(self.config.getforwardspeedlimits)
-  if type ~= nil then
-    return type, speed_mps
-  end
-  type, speed_mps = self:_getlimitviolation(self.config.getbackwardspeedlimits)
-  if type ~= nil then
-    return type, speed_mps
+  if self.config.getspeed_mps() >= 0 then
+    return self:_getlimitviolation(self.config.getforwardspeedlimits)
+  else
+    return self:_getlimitviolation(self.config.getbackwardspeedlimits)
   end
 end
 
 function Acses._getspeedviolation(self)
-  local speed_mps = self.config.getspeed_mps()
+  local speed_mps = math.abs(self.config.getspeed_mps())
   local trackspeed_mps = self.trackspeed.state.speedlimit_mps
   if speed_mps > trackspeed_mps + self.config.penaltylimit_mps then
     return "penalty", trackspeed_mps
