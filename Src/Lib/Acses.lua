@@ -276,19 +276,15 @@ function AcsesTrackSpeed._look(self, getspeedlimits, setspeed)
       local speedlimits = getspeedlimits()
       local i = Tables.find(speedlimits, function(thislimit)
         --[[
-          Philadelphia-New York uses type 1 and 3 limits for signal speed and type
-          2 limits for track speed, while other routes use type 1 and 3 limits for
-          track speed.
-
-          To handle this inconsistency, we default to type 1 and 3 limits *unless*
-          we encounter a type 2, at which point we'll search solely for type 2
+          Default to type 1 and 3 limits *unless* we encounter a type 2
+          (Philadelphia-New York), at which point we'll search solely for type 2
           limits.
         ]]--
         local righttype
         if self.state._hastype2limits then
           righttype = thislimit.type == 2
         else
-          righttype = thislimit.type == 1 or thislimit.type == 3
+          righttype = thislimit.type == 1
         end
         return righttype
           and thislimit.distance_m < 1
