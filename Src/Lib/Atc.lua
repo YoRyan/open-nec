@@ -4,6 +4,7 @@
 Atc = {}
 Atc.__index = Atc
 
+Atc.debugsignals = false
 Atc.pulsecode = {restrict=0,
                  approach=1,
                  approachmed=2,
@@ -14,7 +15,6 @@ Atc.pulsecode = {restrict=0,
                  clear150=7}
 Atc.cabspeedflash_s = 0.5
 Atc.inittime_s = 3
-Atc.debugsignals = false
 
 -- From the main coroutine, create a new Atc context. This will add coroutines
 -- to the provided scheduler. The caller should also customize the properties
