@@ -51,8 +51,14 @@ function RailWorks._getspeedlimits(direction, n, maxdistance_m)
   local limits = {}
   local minsearch_m = 0
   for _ = 1, n do
-    local type, speed_mps, distance_m =
-      RailWorks.GetNextSpeedLimit(direction, minsearch_m, maxdistance_m)
+    local type, speed_mps, distance_m
+    if maxdistance_m == nil then
+      type, speed_mps, distance_m =
+        RailWorks.GetNextSpeedLimit(direction, minsearch_m)
+    else
+      type, speed_mps, distance_m =
+        RailWorks.GetNextSpeedLimit(direction, minsearch_m, maxdistance_m)
+    end
     if type == 1 or type == 2 or type == 3 then
       minsearch_m = distance_m + 0.01
       table.insert(limits, {type=type, speed_mps=speed_mps, distance_m=distance_m})
@@ -95,10 +101,10 @@ function RailWorks.GetAcceleration()
   return Call("GetAcceleration")
 end
 
-function RailWorks.GetCurrentSpeedLimit(component)
-  return Call("GetCurrentSpeedLimit", component)
+function RailWorks.GetCurrentSpeedLimit(...)
+  return Call("GetCurrentSpeedLimit", unpack(arg))
 end
 
-function RailWorks.GetNextSpeedLimit(direction, minDistance, maxDistance)
-  return Call("GetNextSpeedLimit", direction, minDistance, maxDistance)
+function RailWorks.GetNextSpeedLimit(...)
+  return Call("GetNextSpeedLimit", unpack(arg))
 end

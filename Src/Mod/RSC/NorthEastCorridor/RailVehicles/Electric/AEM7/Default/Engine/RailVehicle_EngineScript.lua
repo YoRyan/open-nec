@@ -56,7 +56,7 @@ Initialise = RailWorks.wraperrors(function ()
     config.getforwardspeedlimits =
       function () return state.forwardspeedlimits end
     config.getbackwardspeedlimits =
-      function () return state.forwardspeedlimits end
+      function () return state.backwardspeedlimits end
     config.getacknowledge =
       function () return state.acknowledge end
     config.doalert =
