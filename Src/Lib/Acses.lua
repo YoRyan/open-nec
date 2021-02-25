@@ -73,18 +73,26 @@ function Acses._setstate(self)
 end
 
 function Acses._printlimits(self)
+  local fspeed = function (mps)
+    return string.format("%.2f", mps*2.24) .. "mph"
+  end
+  local fdist = function (m)
+    return string.format("%.2f", m*3.28) .. "ft"
+  end
   local dump = function (limits)
     local res = ""
     for _, limit in ipairs(limits) do
       local s = "type=" .. limit.type
-        .. ", speed=" .. string.format("%.2f", limit.speed_mps*2.24) .. "mph"
-        .. ", distance=" .. string.format("%.2f", limit.distance_m*3.28) .. "ft"
+        .. ", speed=" .. fspeed(limit.speed_mps)
+        .. ", distance=" .. fdist(limit.distance_m)
       res = res .. s .. "\n"
     end
     return res
   end
-  self._sched:print("Forward:\n" .. dump(self.config.getforwardspeedlimits())
-    .. "Backward:\n" .. dump(self.config.getbackwardspeedlimits()))
+  self._sched:print(
+    "Current: " .. fspeed(self.config.gettrackspeed_mps()) .. "\n"
+      .. "Forward: " .. dump(self.config.getforwardspeedlimits())
+      .. "Backward: " .. dump(self.config.getbackwardspeedlimits()))
 end
 
 function Acses._doenforce(self)
