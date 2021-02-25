@@ -34,9 +34,9 @@ function Atc.new(scheduler)
     -- gameplay, so also let the locomotive supply its own suppression condition.
     getsuppression=function () return false end,
     -- 20 mph
-    restrictspeed_mps=8.94,
+    restrictspeed_mps=20*Units.mph.tomps,
     -- 3 mph
-    speedmargin_mps=1.34
+    speedmargin_mps=3*Units.mph.tomps
   }
   self.state = {
     -- The current pulse code in effect.

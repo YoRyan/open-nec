@@ -19,12 +19,10 @@ function Acses.new(scheduler)
     getbackwardspeedlimits=function () return {} end,
     getacknowledge=function () return false end,
     doalert=function () end,
-    -- 3 mph
-    penaltylimit_mps=1.34,
-    -- 1 mph
-    alertlimit_mps=0.45,
+    penaltylimit_mps=3*Units.mph.tomps,
+    alertlimit_mps=1*Units.mph.tomps,
     -- -2 mph/s
-    penaltycurve_mps2=-0.894,
+    penaltycurve_mps2=-2*Units.mph.tomps,
     -- 8 s
     alertcurve_s=8
   }
