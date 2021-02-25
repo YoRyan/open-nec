@@ -97,7 +97,8 @@ function Atc._doenforce(self)
       self.state.alarm = false
       local suppressed = self._sched:select(
         self.config.countdown_s,
-        function () return self.state.suppression or self:_iscomplying() end
+        function () return self.state.suppression end,
+        function () return self:_iscomplying() end
       ) == 1
       if suppressed then
         -- Suppression phase. Maintain the suppression deceleration rate
