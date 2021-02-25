@@ -117,13 +117,18 @@ function Acses._alert(self, limit_mps)
       self.state.alarm = false
     end
     do
-      local matchlimit = function (limit)
-        return limit.speed_mps == limit_mps
+      local speed_mps = self.config.getspeed_mps()
+      local speedlimits
+      if speed_mps >= 0 then
+        speedlimits = self.config.getforwardspeedlimits()
+      else
+        speedlimits = self.config.getbackwardspeedlimits()
       end
       reachedlimit = self.config.gettrackspeed_mps() == limit_mps
-        or (not Tables.find(self.config.getforwardspeedlimits(), matchlimit)
-            and not Tables.find(self.config.getbackwardspeedlimits(), matchlimit))
-      stopped = math.abs(self.config.getspeed_mps()) <= 1*Units.mph.tomps
+        or not Tables.find(speedlimits, function (limit)
+          return limit.speed_mps == limit_mps
+        end)
+      stopped = math.abs(speed_mps) <= 1*Units.mph.tomps
     end
     if violation == "penalty" then
       self:_penalty(speed_mps)
