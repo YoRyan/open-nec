@@ -91,7 +91,8 @@ function Acses._printlimits(self)
     return res
   end
   self._sched:print(
-    "Current: " .. fspeed(self.config.gettrackspeed_mps()) .. "\n"
+    "Track: " .. fspeed(self.config.gettrackspeed_mps()) .. " "
+      .. "Sensed: " .. fspeed(self.trackspeed.state.speedlimit_mps) .. "\n"
       .. "Forward: " .. dump(self.config.getforwardspeedlimits())
       .. "Backward: " .. dump(self.config.getbackwardspeedlimits()))
 end
