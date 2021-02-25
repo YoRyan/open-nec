@@ -10,7 +10,6 @@ state = {
   acknowledge=false,
   cruisespeed_mps=0,
   cruiseenabled=false,
-  speedcontrolenabled=false,
   alerterenabled=false,
 
   speed_mps=0,
@@ -36,8 +35,6 @@ Initialise = RailWorks.wraperrors(function ()
       function () return state.acceleration_mps2 end
     config.getacknowledge =
       function () return state.acknowledge end
-    config.getspeedcontrolenabled =
-      function () return state.speedcontrolenabled end
     config.getsuppression =
       -- Brake in the "Full Service" range.
       function () return state.train_brake >= 0.5 and state.throttle == 0 end
@@ -145,7 +142,6 @@ Update = RailWorks.wraperrors(function (dt)
 
   state.cruisespeed_mps = RailWorks.GetControlValue("CruiseSet", 0)*Units.mph.tomps
   state.cruiseenabled = RailWorks.GetControlValue("CruiseSet", 0) > 10
-  state.speedcontrolenabled = RailWorks.GetControlValue("SpeedControl", 0) == 0
   state.alerterenabled = RailWorks.GetControlValue("AlertControl", 0) == 0
   state.speed_mps = RailWorks.GetSpeed()
   state.acceleration_mps2 = RailWorks.GetAcceleration()

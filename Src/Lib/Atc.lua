@@ -25,7 +25,6 @@ function Atc.new(scheduler)
     getspeed_mps=function () return 0 end,
     getacceleration_mps2=function () return 0 end,
     getacknowledge=function () return false end,
-    getspeedcontrolenabled=function () return true end,
     doalert=function () end,
     countdown_s=6,
     -- Rates fom the Train Sim World: Northeast Corridor New York manual.
@@ -77,8 +76,7 @@ function Atc._doenforce(self)
     self._sched:select(
       nil,
       function () return self.state._enforce:poll() end,
-      function () return not self:_iscomplying()
-        and self.config.getspeedcontrolenabled() end)
+      function () return not self:_iscomplying() end)
     -- Alarm phase. Acknowledge the alarm and reach the initial suppressing
     -- deceleration rate.
     self.state.alarm = true
@@ -92,16 +90,15 @@ function Atc._doenforce(self)
           ack = ack or self.config.getacknowledge()
           return ack and (self.state.suppressing or self:_iscomplying())
         end
-      ) ~= nil
+      ) == 1
     end
     if acknowledged then
       -- Suppressing phase. Reach the suppression deceleration rate.
       self.state.alarm = false
       local suppressed = self._sched:select(
         self.config.countdown_s,
-        function () return self.state.suppression end,
-        function () return self:_iscomplying() end
-      ) ~= nil
+        function () return self.state.suppression or self:_iscomplying() end
+      ) == 1
       if suppressed then
         -- Suppression phase. Maintain the suppression deceleration rate
         -- until the train complies with the speed limit.
@@ -166,12 +163,8 @@ end
 -- Receive a custom signal message.
 function Atc.receivemessage(self, message)
   local newcode = self:_getnewpulsecode(message)
-  if newcode < self.state.pulsecode then
-    if not self.config.getspeedcontrolenabled() then
-      self.config.doalert()
-    elseif self._sched:clock() > Atc.inittime_s then
-      self.state._enforce:trigger()
-    end
+  if newcode < self.state.pulsecode and self._sched:clock() > 3 then
+    self.state._enforce:trigger()
   elseif newcode > self.state.pulsecode then
     self.config.doalert()
   end
