@@ -25,7 +25,6 @@ state = {
   cs1light=false
 }
 onebeep = 0.3
-nspeedlimits = 5
 
 Initialise = RailWorks.wraperrors(function ()
   do
@@ -151,8 +150,8 @@ Update = RailWorks.wraperrors(function (dt)
   state.speed_mps = RailWorks.GetSpeed()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
   state.trackspeed_mps, _ = RailWorks.GetCurrentSpeedLimit(1)
-  state.forwardspeedlimits = RailWorks.getforwardspeedlimits(nspeedlimits)
-  state.backwardspeedlimits = RailWorks.getbackwardspeedlimits(nspeedlimits)
+  state.forwardspeedlimits = RailWorks.getforwardspeedlimits(Acses.nlimitlookahead)
+  state.backwardspeedlimits = RailWorks.getbackwardspeedlimits(Acses.nlimitlookahead)
 
   sched:update(dt)
   for _, msg in ipairs(sched:getmessages()) do

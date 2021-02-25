@@ -4,7 +4,7 @@
 Acses = {}
 Acses.__index = Acses
 
-Acses.debuglimits = false
+Acses.nlimitlookahead = 5
 
 -- From the main coroutine, create a new Acses context. This will add coroutines
 -- to the provided scheduler. The caller should also customize the properties
