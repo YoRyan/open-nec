@@ -21,8 +21,8 @@ function Acses.new(scheduler)
     doalert=function () end,
     penaltylimit_mps=3*Units.mph.tomps,
     alertlimit_mps=1*Units.mph.tomps,
-    -- -2 mph/s
-    penaltycurve_mps2=-2*Units.mph.tomps,
+    -- -1.3 mph/s
+    penaltycurve_mps2=-1.3*Units.mph.tomps,
     alertcurve_s=8
   }
   self.state = {
