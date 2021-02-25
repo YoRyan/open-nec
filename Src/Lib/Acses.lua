@@ -275,11 +275,8 @@ function AcsesTrackSpeed._look(self, getspeedlimits, setspeed)
     self._sched:select(nil, function ()
       local speedlimits = getspeedlimits()
       local i = Tables.find(speedlimits, function(thislimit)
-        --[[
-          Default to type 1 and 3 limits *unless* we encounter a type 2
-          (Philadelphia-New York), at which point we'll search solely for type 2
-          limits.
-        ]]--
+        -- Default to type 1 limits *unless* we encounter a type 2 (Philadelphia-
+        -- New York), at which point we'll search solely for type 2 limits.
         local righttype
         if self.state._hastype2limits then
           righttype = thislimit.type == 2
