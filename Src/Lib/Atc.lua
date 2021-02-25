@@ -90,7 +90,7 @@ function Atc._doenforce(self)
           ack = ack or self.config.getacknowledge()
           return ack and (self.state.suppressing or self:_iscomplying())
         end
-      ) == 1
+      ) ~= nil
     end
     if acknowledged then
       -- Suppressing phase. Reach the suppression deceleration rate.
@@ -99,7 +99,7 @@ function Atc._doenforce(self)
         self.config.countdown_s,
         function () return self.state.suppression end,
         function () return self:_iscomplying() end
-      ) == 1
+      ) ~= nil
       if suppressed then
         -- Suppression phase. Maintain the suppression deceleration rate
         -- until the train complies with the speed limit.
