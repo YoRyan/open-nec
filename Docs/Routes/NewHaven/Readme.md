@@ -36,3 +36,7 @@ To simulate power changeovers, Dovetail marked the end points of the route's thi
 | `P-ThirdRailEnd` | Third rail end |
 | `P-AIOverheadToThirdNow` | AI overhead to third rail switch |
 | `P-AIThirdToOverheadNow` | AI third rail to overhead switch |
+
+## Speed Limits
+
+Type 1 speed limits represent visible speed posts. Type 3 limits represent signal speeds. There are no type 2 limits.
