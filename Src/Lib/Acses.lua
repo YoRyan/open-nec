@@ -111,9 +111,8 @@ end
 function Acses._alert(self, limit_mps)
   self.state._violatedspeed_mps = limit_mps
   self.state.alarm = true
-  local violation, speed_mps
+  local violation, speed_mps, reachedlimit, stopped
   local acknowledged = false
-  local reachedlimit
   repeat
     violation, speed_mps = self:_getviolation()
     acknowledged = acknowledged or self.config.getacknowledge()
@@ -127,6 +126,7 @@ function Acses._alert(self, limit_mps)
       reachedlimit = self.config.gettrackspeed_mps() == limit_mps
         or (not Tables.find(self.config.getforwardspeedlimits(), matchlimit)
             and not Tables.find(self.config.getbackwardspeedlimits(), matchlimit))
+      stopped = math.abs(self.config.getspeed_mps()) <= 1*Units.mph.tomps
     end
     if violation == "penalty" then
       self:_penalty(speed_mps)
@@ -134,7 +134,7 @@ function Acses._alert(self, limit_mps)
       acknowledged = true
     end
     self._sched:yield()
-  until violation == nil and acknowledged and reachedlimit
+  until violation == nil and acknowledged and (reachedlimit or stopped)
   self.state._violatedspeed_mps = nil
   self.state.alarm = false
 end
