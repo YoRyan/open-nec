@@ -107,7 +107,9 @@ function Acses._getspeedlimitcurves(self, speedlimit)
   local calcspeed = function(vf, t)
     local a = self.config.penaltycurve_mps2
     local d = speedlimit.distance_m
-    return math.pow(math.pow(a*t, 2) - 2*a*d + math.pow(vf, 2), 0.5) + a*t
+    return math.max(
+      math.pow(math.pow(a*t, 2) - 2*a*d + math.pow(vf, 2), 0.5) + a*t,
+      vf)
   end
   return {
     limit_mps=speedlimit.speed_mps,
