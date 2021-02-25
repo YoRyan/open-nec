@@ -41,15 +41,19 @@ function Acses.new(scheduler)
     _violation=nil,
     _enforcingspeed_mps=nil
   }
+  self.speedlimits = AcsesLimits.new(
+    function () return self.config.getspeed_mps() end,
+    function () return self.config.getforwardspeedlimits() end,
+    function () return self.config.getbackwardspeedlimits() end)
   do
     local newtrackspeed = AcsesTrackSpeed.new(scheduler)
     local config = newtrackspeed.config
     config.gettrackspeed_mps =
       function () return self.config.gettrackspeed_mps() end
     config.getforwardspeedlimits =
-      function () return self.config.getforwardspeedlimits() end
+      function () return self.speedlimits:getforwardspeedlimits() end
     config.getbackwardspeedlimits =
-      function () return self.config.getforwardspeedlimits() end
+      function () return self.speedlimits:getbackwardspeedlimits() end
     self.trackspeed = newtrackspeed
   end
   self._sched = scheduler
@@ -83,7 +87,7 @@ end
 
 function Acses._getbrakecurves(self)
   local curves = {self:_gettrackspeedcurves()}
-  for _, limit in ipairs(self:_getupcomingspeedlimits()) do
+  for _, limit in ipairs(self.speedlimits:getupcomingspeedlimits()) do
     table.insert(curves, self:_getspeedlimitcurves(limit))
   end
   return curves
@@ -190,7 +194,7 @@ function Acses._alert(self, violation)
       acknowledged = true
     end
     reachedlimit = self.config.gettrackspeed_mps() == violation.limit_mps
-      or not Tables.find(self:_getupcomingspeedlimits(), function (limit)
+      or not Tables.find(self.speedlimits:getupcomingspeedlimits(), function (limit)
         return limit.speed_mps == violation.limit_mps
       end)
     stopped = math.abs(self.config.getspeed_mps()) <= 1*Units.mph.tomps
@@ -207,14 +211,6 @@ function Acses._penalty(self, violation)
       and self.config.getacknowledge()
   end)
   self.state.penalty = false
-end
-
-function Acses._getupcomingspeedlimits(self)
-  if self.config.getspeed_mps() >= 0 then
-    return self.config.getforwardspeedlimits()
-  else
-    return self.config.getbackwardspeedlimits()
-  end
 end
 
 
@@ -235,7 +231,6 @@ function AcsesTrackSpeed.new(scheduler)
   }
   self.state = {
     speedlimit_mps=0,
-    _hastype2limits=false,
     _forwardlimit_mps=nil,
     _backwardlimit_mps=nil
   }
@@ -257,23 +252,7 @@ function AcsesTrackSpeed._setstate(self)
       speed_mps = self.config.gettrackspeed_mps()
     end
     self.state.speedlimit_mps = speed_mps
-    self:_sethastype2limits()
     self._sched:yield()
-  end
-end
-
-function AcsesTrackSpeed._sethastype2limits(self)
-  local search = function (limits)
-    self.state._hastype2limits = Tables.find(
-      limits,
-      function (limit) return limit.type == 2 end
-    ) ~= nil
-  end
-  if not self.state._hastype2limits then
-    search(self.config.getforwardspeedlimits())
-  end
-  if not self.state._hastype2limits then
-    search(self.config.getbackwardspeedlimits())
   end
 end
 
@@ -295,25 +274,11 @@ function AcsesTrackSpeed._look(self, getspeedlimits, setspeed)
     self._sched:select(nil, function ()
       local speedlimits = getspeedlimits()
       local i = Tables.find(speedlimits, function(thislimit)
-        -- Default to type 1 limits *unless* we encounter a type 2 (Philadelphia-
-        -- New York), at which point we'll search solely for type 2 limits.
-        local righttype
-        if self.state._hastype2limits then
-          righttype = thislimit.type == 2
-        else
-          righttype = thislimit.type == 1
-        end
-        return righttype
-          and thislimit.distance_m < 1
-          and AcsesTrackSpeed._isvalid(thislimit.speed_mps)
+        return thislimit.distance_m < 1
           and thislimit.speed_mps ~= self.config.gettrackspeed_mps()
       end)
-      if i ~= nil then
-        limit = speedlimits[i]
-        return true
-      else
-        return false
-      end
+      limit = speedlimits[i]
+      return i ~= nil
     end)
     setspeed(limit.speed_mps)
     self._sched:select(
@@ -331,6 +296,69 @@ function AcsesTrackSpeed._look(self, getspeedlimits, setspeed)
   end
 end
 
-function AcsesTrackSpeed._isvalid(v)
-  return v < 1e9 and v > -1e9
+
+-- A speed limits filter that selects posts with valid speeds and with the
+-- appropriate speed limit type.
+AcsesLimits = {}
+AcsesLimits.__index = AcsesLimits
+
+-- From the main coroutine, create a new speed limit filter context.
+function AcsesLimits.new(
+    getspeed_mps, getforwardspeedlimits, getbackwardspeedlimits)
+  local self = setmetatable({}, AcsesLimits)
+  self._getspeed_mps = getspeed_mps
+  self._getforwardspeedlimits = getforwardspeedlimits
+  self._getbackwardspeedlimits = getbackwardspeedlimits
+  self._hastype2limits = false
+  return self
+end
+
+-- Get forward speed limits if the train is running in forward, or backward
+-- speed limits if the train is running in reverse.
+function AcsesLimits.getupcomingspeedlimits(self)
+  if self._getspeed_mps() >= 0 then
+    return self:getforwardspeedlimits()
+  else
+    return self:getbackwardspeedlimits()
+  end
+end
+
+-- Get forward-facing speed limits.
+function AcsesLimits.getforwardspeedlimits(self)
+  return self:_filterspeedlimits(self._getforwardspeedlimits())
+end
+
+-- Get backward-facing speed limits.
+function AcsesLimits.getbackwardspeedlimits(self)
+  return self:_filterspeedlimits(self._getbackwardspeedlimits())
+end
+
+function AcsesLimits._filterspeedlimits(self, speedlimits)
+  if not self._hastype2limits then
+    for _, limit in ipairs(speedlimits) do
+      -- Default to type 1 limits *unless* we encounter a type 2 (Philadelphia-
+      -- New York), at which point we'll search solely for type 2 limits.
+      if limit.type == 2 then
+        self._hastype2limits = true
+        break
+      end
+    end
+  end
+  local filtered = {}
+  for _, limit in ipairs(speedlimits) do
+    local righttype
+    if self._hastype2limits then
+      righttype = limit.type == 2
+    else
+      righttype = limit.type == 1
+    end
+    if AcsesLimits._isvalid(limit) and righttype then
+      table.insert(filtered, limit)
+    end
+  end
+  return filtered
+end
+
+function AcsesLimits._isvalid(speedlimit)
+  return speedlimit.speed_mps < 1e9 and speedlimit.speed_mps > -1e9
 end
