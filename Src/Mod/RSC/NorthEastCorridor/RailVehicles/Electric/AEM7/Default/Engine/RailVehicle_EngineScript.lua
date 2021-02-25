@@ -192,7 +192,7 @@ Update = RailWorks.wraperrors(function (dt)
     RailWorks.frombool(state.beep_alert or atc.state.alarm or acses.state.alarm))
   RailWorks.SetControlValue(
     "TrackSpeed", 0,
-    math.floor(acses.state.enforcedspeed_mps*Units.mps.tomph + 0.5))
+    math.floor(acses.state.inforcespeed_mps*Units.mps.tomph + 0.5))
 
   setpulsecode()
   RailWorks.SetControlValue("CabSignal1", 0, RailWorks.frombool(state.cs1light))

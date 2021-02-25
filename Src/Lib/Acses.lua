@@ -23,18 +23,23 @@ function Acses.new(scheduler)
     alertlimit_mps=1*Units.mph.tomps,
     -- -2 mph/s
     penaltycurve_mps2=-2*Units.mph.tomps,
-    -- 8 s
     alertcurve_s=8
   }
   self.state = {
-    -- The current track speed in effect.
-    enforcedspeed_mps=0,
+    -- The current track speed in force. In the alert and penalty states, this
+    -- communicates the limit that was violated.
+    inforcespeed_mps=0,
+    -- The current track speed in force, taking into account the advance alert
+    -- and penalty braking curves. This value "counts down" to an approaching
+    -- speed limit.
+    curvespeed_mps=0,
     -- True when the alarm is sounding continuously.
     alarm=false,
     -- True when a penalty brake is applied.
     penalty=false,
 
-    _violatedspeed_mps=nil
+    _violation=nil,
+    _enforcingspeed_mps=nil
   }
   do
     local newtrackspeed = AcsesTrackSpeed.new(scheduler)
@@ -55,20 +60,87 @@ end
 
 function Acses._setstate(self)
   while true do
-    if self.state._violatedspeed_mps ~= nil then
-      self.state.enforcedspeed_mps = self.state._violatedspeed_mps
+    if self.state._enforcingspeed_mps ~= nil then
+      self.state.inforcespeed_mps = self.state._enforcingspeed_mps
     else
       local newspeed_mps = self.trackspeed.state.speedlimit_mps
-      if newspeed_mps ~= self.state.enforcedspeed_mps then
+      if newspeed_mps ~= self.state.inforcespeed_mps then
         self.config.doalert()
       end
-      self.state.enforcedspeed_mps = newspeed_mps
+      self.state.inforcespeed_mps = newspeed_mps
+    end
+    do
+      local curves = self:_getbrakecurves()
+      self.state.curvespeed_mps = Acses._getcurvespeed(curves)
+      self.state._violation = self:_getviolation(curves)
     end
     if Acses.debuglimits and self.config.getacknowledge() then
       self:_printlimits()
     end
     self._sched:yield()
   end
+end
+
+function Acses._getbrakecurves(self)
+  local curves = {self:_gettrackspeedcurves()}
+  for _, limit in ipairs(self:_getupcomingspeedlimits()) do
+    table.insert(curves, self:_getspeedlimitcurves(limit))
+  end
+  return curves
+end
+
+function Acses._gettrackspeedcurves(self)
+  local limit_mps = self.trackspeed.state.speedlimit_mps
+  return {
+    limit_mps=limit_mps,
+    penalty_mps=limit_mps + self.config.penaltylimit_mps,
+    alert_mps=limit_mps + self.config.alertlimit_mps,
+    curve_mps=limit_mps
+  }
+end
+
+function Acses._getspeedlimitcurves(self, speedlimit)
+  local calcspeed = function(vf, t)
+    local a = self.config.penaltycurve_mps2
+    local d = speedlimit.distance_m
+    return math.pow(math.pow(a*t, 2) - 2*a*d + math.pow(vf, 2), 0.5) + a*t
+  end
+  return {
+    limit_mps=speedlimit.speed_mps,
+    penalty_mps=calcspeed(
+      speedlimit.speed_mps + self.config.penaltylimit_mps, 0),
+    alert_mps=calcspeed(
+      speedlimit.speed_mps + self.config.alertlimit_mps, self.config.alertcurve_s),
+    curve_mps=calcspeed(
+      speedlimit.speed_mps, self.config.alertcurve_s),
+  }
+end
+
+function Acses._getcurvespeed(brakecurves)
+  local speed_mps = nil
+  for _, t in ipairs(brakecurves) do
+    if speed_mps == nil then
+      speed_mps = t.curve_mps
+    elseif t.curve_mps < speed_mps then
+      speed_mps = t.curve_mps
+    end
+  end
+  return speed_mps
+end
+
+function Acses._getviolation(self, brakecurves)
+  local aspeed_mps = math.abs(self.config.getspeed_mps())
+  local violation = nil
+  for _, t in ipairs(brakecurves) do
+    if aspeed_mps > t.penalty_mps then
+      violation = {type="penalty", limit_mps=t.limit_mps}
+      break
+    elseif aspeed_mps > t.alert_mps then
+      violation = {type="alert", limit_mps=t.limit_mps}
+      break
+    end
+  end
+  return violation
 end
 
 function Acses._printlimits(self)
@@ -96,110 +168,55 @@ end
 
 function Acses._doenforce(self)
   while true do
-    local speed_mps
-    self._sched:select(nil, function ()
-      _, speed_mps = self:_getviolation()
-      return speed_mps ~= nil
-    end)
-    self:_alert(speed_mps)
+    self._sched:select(nil, function () return self.state._violation ~= nil end)
+    self:_alert(self.state._violation)
   end
 end
 
-function Acses._alert(self, limit_mps)
-  self.state._violatedspeed_mps = limit_mps
+function Acses._alert(self, violation)
+  self.state._enforcingspeed_mps = self.state._violation.limit_mps
   self.state.alarm = true
-  local violation, speed_mps, reachedlimit, stopped
+  local curviolation, reachedlimit, stopped
   local acknowledged = false
   repeat
-    violation, speed_mps = self:_getviolation()
     acknowledged = acknowledged or self.config.getacknowledge()
     if acknowledged then
       self.state.alarm = false
     end
-    do
-      local speed_mps = self.config.getspeed_mps()
-      local speedlimits
-      if speed_mps >= 0 then
-        speedlimits = self.config.getforwardspeedlimits()
-      else
-        speedlimits = self.config.getbackwardspeedlimits()
-      end
-      reachedlimit = self.config.gettrackspeed_mps() == limit_mps
-        or not Tables.find(speedlimits, function (limit)
-          return limit.speed_mps == limit_mps
-        end)
-      stopped = math.abs(speed_mps) <= 1*Units.mph.tomps
-    end
-    if violation == "penalty" then
-      self:_penalty(speed_mps)
-      -- You have to have acknowledged to get out of the penalty state.
+    curviolation = self.state._violation
+    if curviolation ~= nil and curviolation.type == "penalty" then
+      self:_penalty(curviolation)
+      -- You have to have acknowledged to have left the penalty state.
       acknowledged = true
     end
+    reachedlimit = self.config.gettrackspeed_mps() == violation.limit_mps
+      or not Tables.find(self:_getupcomingspeedlimits(), function (limit)
+        return limit.speed_mps == violation.limit_mps
+      end)
+    stopped = math.abs(self.config.getspeed_mps()) <= 1*Units.mph.tomps
     self._sched:yield()
-  until violation == nil and acknowledged and (reachedlimit or stopped)
-  self.state._violatedspeed_mps = nil
+  until curviolation == nil and acknowledged and (reachedlimit or stopped)
+  self.state._enforcingspeed_mps = nil
   self.state.alarm = false
 end
 
-function Acses._penalty(self, limit_mps)
-  self.state.alarm = true
+function Acses._penalty(self, violation)
   self.state.penalty = true
   self._sched:select(nil, function ()
-    return math.abs(self.config.getspeed_mps()) <= limit_mps and self.config.getacknowledge()
+    return math.abs(self.config.getspeed_mps()) <= violation.limit_mps
+      and self.config.getacknowledge()
   end)
   self.state.penalty = false
-  self.state.alarm = false
 end
 
-function Acses._getviolation(self)
-  local type, speed_mps = self:_getspeedviolation()
-  if type ~= nil then
-    return type, speed_mps
-  end
+function Acses._getupcomingspeedlimits(self)
   if self.config.getspeed_mps() >= 0 then
-    return self:_getlimitviolation(self.config.getforwardspeedlimits)
+    return self.config.getforwardspeedlimits()
   else
-    return self:_getlimitviolation(self.config.getbackwardspeedlimits)
+    return self.config.getbackwardspeedlimits()
   end
 end
 
-function Acses._getspeedviolation(self)
-  local speed_mps = math.abs(self.config.getspeed_mps())
-  local trackspeed_mps = self.trackspeed.state.speedlimit_mps
-  if speed_mps > trackspeed_mps + self.config.penaltylimit_mps then
-    return "penalty", trackspeed_mps
-  elseif speed_mps > trackspeed_mps + self.config.alertlimit_mps then
-    return "alert", trackspeed_mps
-  else
-    return nil, nil
-  end
-end
-
-function Acses._getlimitviolation(self, getspeedlimits)
-  local speed_mps = math.abs(self.config.getspeed_mps())
-  for _, limit in ipairs(getspeedlimits()) do
-    local penaltydistance_m, alertdistance_m
-    do
-      local v2 = math.pow(limit.speed_mps + self.config.penaltylimit_mps, 2)
-      local v02 = math.pow(speed_mps + self.config.penaltylimit_mps, 2)
-      penaltydistance_m = (v2 - v02)/(2*self.config.penaltycurve_mps2)
-    end
-    do
-      local v2 = math.pow(limit.speed_mps + self.config.alertlimit_mps, 2)
-      local v02 = math.pow(speed_mps + self.config.alertlimit_mps, 2)
-      alertdistance_m = (v2 - v02)/(2*self.config.penaltycurve_mps2)
-        + speed_mps*self.config.alertcurve_s
-    end
-    if speed_mps > limit.speed_mps + self.config.penaltylimit_mps
-        and limit.distance_m < penaltydistance_m then
-      return "penalty", limit.speed_mps
-    elseif speed_mps > limit.speed_mps + self.config.alertlimit_mps
-        and limit.distance_m < alertdistance_m then
-      return "alert", limit.speed_mps
-    end
-  end
-  return nil, nil
-end
 
 -- A speed post tracker that calculates the speed limit in force at the
 -- player's location, irrespective of train length.
