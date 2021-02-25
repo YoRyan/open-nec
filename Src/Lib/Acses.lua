@@ -288,6 +288,7 @@ function AcsesTrackSpeed._look(self, getspeedlimits, setspeed)
         end
         return righttype
           and thislimit.distance_m < 1
+          and AcsesTrackSpeed._isvalid(thislimit.speed_mps)
           and thislimit.speed_mps ~= self.config.gettrackspeed_mps()
       end)
       if i ~= nil then
@@ -311,4 +312,8 @@ function AcsesTrackSpeed._look(self, getspeedlimits, setspeed)
       end)
     setspeed(nil)
   end
+end
+
+function AcsesTrackSpeed._isvalid(v)
+  return v < 1e9 and v > -1e9
 end
