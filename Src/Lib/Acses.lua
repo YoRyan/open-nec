@@ -45,17 +45,9 @@ function Acses.new(scheduler)
     function () return self.config.getspeed_mps() end,
     function () return self.config.getforwardspeedlimits() end,
     function () return self.config.getbackwardspeedlimits() end)
-  do
-    local newtrackspeed = AcsesTrackSpeed.new(scheduler)
-    local config = newtrackspeed.config
-    config.gettrackspeed_mps =
-      function () return self.config.gettrackspeed_mps() end
-    config.getforwardspeedlimits =
-      function () return self.speedlimits:getforwardspeedlimits() end
-    config.getbackwardspeedlimits =
-      function () return self.speedlimits:getbackwardspeedlimits() end
-    self.trackspeed = newtrackspeed
-  end
+  self.trackspeed = AcsesTrackSpeed.new(scheduler,
+    function () return self.config.gettrackspeed_mps() end,
+    function () return self.speedlimits:getupcomingspeedlimits() end)
   self._sched = scheduler
   self._sched:run(Acses._setstate, self)
   self._sched:run(Acses._doenforce, self)
@@ -64,15 +56,12 @@ end
 
 function Acses._setstate(self)
   while true do
-    if self.state._enforcingspeed_mps ~= nil then
-      self.state.inforcespeed_mps = self.state._enforcingspeed_mps
-    else
-      local newspeed_mps = self.trackspeed.state.speedlimit_mps
-      if newspeed_mps ~= self.state.inforcespeed_mps then
-        self.config.doalert()
-      end
-      self.state.inforcespeed_mps = newspeed_mps
+    local inforce_mps =
+      self.state._enforcingspeed_mps or self.trackspeed.state.speedlimit_mps
+    if inforce_mps ~= self.state.inforcespeed_mps then
+      self.config.doalert()
     end
+    self.state.inforcespeed_mps = inforce_mps
     do
       local curves = self:_getbrakecurves()
       self.state.curvespeed_mps = Acses._getcurvespeed(curves)
@@ -224,77 +213,53 @@ AcsesTrackSpeed.__index = AcsesTrackSpeed
 -- From the main coroutine, create a new speed post tracker context. This will
 -- add coroutines to the provided scheduler. The caller should also customize
 -- the properties in the config table initialized here.
-function AcsesTrackSpeed.new(scheduler)
+function AcsesTrackSpeed.new(scheduler, gettrackspeed_mps, getupcomingspeedlimits)
   local self = setmetatable({}, AcsesTrackSpeed)
-  self.config = {
-    gettrackspeed_mps=function () return 0 end,
-    getforwardspeedlimits=function () return {} end,
-    getbackwardspeedlimits=function () return {} end
-  }
   self.state = {
     speedlimit_mps=0,
-    _forwardlimit_mps=nil,
-    _backwardlimit_mps=nil
+    _sensedlimit_mps=nil
   }
+  self._gettrackspeed_mps = gettrackspeed_mps
+  self._getupcomingspeedlimits = getupcomingspeedlimits
   self._sched = scheduler
   self._sched:run(AcsesTrackSpeed._setstate, self)
-  self._sched:run(AcsesTrackSpeed._lookforward, self)
-  self._sched:run(AcsesTrackSpeed._lookbackward, self)
+  self._sched:run(AcsesTrackSpeed._look, self)
   return self
 end
 
 function AcsesTrackSpeed._setstate(self)
   while true do
-    local speed_mps
-    if self.state._forwardlimit_mps ~= nil then
-      speed_mps = self.state._forwardlimit_mps
-    elseif self.state._backwardlimit_mps ~= nil then
-      speed_mps = self.state._backwardlimit_mps
-    else
-      speed_mps = self.config.gettrackspeed_mps()
-    end
-    self.state.speedlimit_mps = speed_mps
+    self.state.speedlimit_mps =
+      self.state._sensedlimit_mps or self._gettrackspeed_mps()
     self._sched:yield()
   end
 end
 
-function AcsesTrackSpeed._lookforward(self)
-  self:_look(
-    function () return self.config.getforwardspeedlimits() end,
-    function (speed_mps) self.state._forwardlimit_mps = speed_mps end)
-end
-
-function AcsesTrackSpeed._lookbackward(self)
-  self:_look(
-    function () return self.config.getbackwardspeedlimits() end,
-    function (speed_mps) self.state._backwardlimit_mps = speed_mps end)
-end
-
-function AcsesTrackSpeed._look(self, getspeedlimits, setspeed)
+function AcsesTrackSpeed._look(self)
   while true do
     local limit
     self._sched:select(nil, function ()
-      local speedlimits = getspeedlimits()
+      local speedlimits = self._getupcomingspeedlimits()
       local i = Tables.find(speedlimits, function(thislimit)
         return thislimit.distance_m < 1
-          and thislimit.speed_mps ~= self.config.gettrackspeed_mps()
+          and thislimit.speed_mps ~= self._gettrackspeed_mps()
       end)
       limit = speedlimits[i]
       return i ~= nil
     end)
-    setspeed(limit.speed_mps)
+    self.state._sensedlimit_mps = limit.speed_mps
     self._sched:select(
       nil,
       function ()
-        local nextlimit = getspeedlimits()[1] 
+        local nextlimit = self._getupcomingspeedlimits()[1] 
         return nextlimit ~= nil
           and nextlimit.speed_mps == limit.speed_mps
           and nextlimit.distance_m >= 1
       end,
       function ()
-        return self.config.gettrackspeed_mps() == limit.speed_mps
+        return self._gettrackspeed_mps() == limit.speed_mps
       end)
-    setspeed(nil)
+    self.state._sensedlimit_mps = nil
   end
 end
 
