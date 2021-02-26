@@ -139,6 +139,7 @@ Update = RailWorks.wraperrors(function (dt)
     end
   end
   do
+    -- Reverse the polarity so that the button is activated by default.
     local alerteron = RailWorks.GetControlValue("AlertControl", 0) == 0
     if not alerteron and alerter.running then
       alerter:stop()
@@ -147,6 +148,7 @@ Update = RailWorks.wraperrors(function (dt)
     end
   end
   do
+    -- Reverse the polarity so that the button is activated by default.
     local speedcontrolon = RailWorks.GetControlValue("SpeedControl", 0) == 0
     if speedcontrolon then
       if not atc.running then
