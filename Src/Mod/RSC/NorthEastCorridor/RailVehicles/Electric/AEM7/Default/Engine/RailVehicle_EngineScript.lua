@@ -155,10 +155,14 @@ Update = RailWorks.wraperrors(function (dt)
   state.backwardspeedlimits = RailWorks.getbackwardspeedlimits(Acses.nlimitlookahead)
 
   sched:update(dt)
-  for _, msg in ipairs(sched:getmessages()) do
-    RailWorks.showmessage(msg)
+  for _, msg in ipairs(sched:getinfomessages()) do
+    RailWorks.showinfo(msg)
   end
-  sched:clearmessages()
+  sched:clearinfomessages()
+  for _, msg in ipairs(sched:getalertmessages()) do
+    RailWorks.showalert(msg)
+  end
+  sched:clearalertmessages()
 
   local penalty = atc.state.penalty or acses.state.penalty or alerter.state.penalty
   do

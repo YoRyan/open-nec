@@ -9,7 +9,8 @@ function Scheduler.new()
   local self = setmetatable({}, Scheduler)
   self._clock = 0
   self._coroutines = {}
-  self._messages = {}
+  self._infomessages = {}
+  self._alertmessages = {}
   return self
 end
 
@@ -20,7 +21,7 @@ function Scheduler.run(self, fn, ...)
   if table.remove(resume, 1) then
     self._coroutines[co] = resume
   else
-    self:print("ERROR:\n" .. resume[1])
+    self:info("ERROR:\n" .. resume[1])
   end
   return co
 end
@@ -44,7 +45,7 @@ function Scheduler._resume(self, co, ...)
       if table.remove(resume, 1) then
         return resume
       else
-        self:print("ERROR:\n" .. resume[1])
+        self:info("ERROR:\n" .. resume[1])
         return nil
       end
     end
@@ -52,14 +53,24 @@ function Scheduler._resume(self, co, ...)
   return arg
 end
 
--- Get a table of all debug messages pushed by coroutines since the last update.
-function Scheduler.getmessages(self)
-  return self._messages
+-- Get a table of all info messages pushed by coroutines since the last update.
+function Scheduler.getinfomessages(self)
+  return self._infomessages
 end
 
--- From the main coroutine, clear the debug message queue.
-function Scheduler.clearmessages(self)
-  self._messages = {}
+-- From the main coroutine, clear the info message queue.
+function Scheduler.clearinfomessages(self)
+  self._infomessages = {}
+end
+
+-- Get a table of all info messages pushed by coroutines since the last update.
+function Scheduler.getalertmessages(self)
+  return self._alertmessages
+end
+
+-- From the main coroutine, clear the info message queue.
+function Scheduler.clearalertmessages(self)
+  self._alertmessages = {}
 end
 
 -- Delete a coroutine from the scheduler.
@@ -104,9 +115,14 @@ function Scheduler.select(self, timeout, ...)
   end
 end
 
--- Push a message to the debug message queue.
-function Scheduler.print(self, msg)
-  table.insert(self._messages, msg)
+-- Push a message to the info message queue.
+function Scheduler.info(self, msg)
+  table.insert(self._infomessages, msg)
+end
+
+-- Push a message to the alert message queue.
+function Scheduler.alert(self, msg)
+  table.insert(self._alertmessages, msg)
 end
 
 

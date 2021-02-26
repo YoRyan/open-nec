@@ -171,7 +171,7 @@ function Atc.receivemessage(self, message)
   end
   self.state.pulsecode = newcode
   if Atc.debugsignals then
-    self._sched:print(message)
+    self._sched:info(message)
   end
 end
 
@@ -185,7 +185,7 @@ function Atc._getnewpulsecode(self, message)
     -- Power switch signal. No change.
     return self.state.pulsecode
   end
-  self._sched:print("WARNING:\nUnknown signal '" .. message .. "'")
+  self._sched:info("WARNING:\nUnknown signal '" .. message .. "'")
   return Atc.pulsecode.restrict
 end
 
