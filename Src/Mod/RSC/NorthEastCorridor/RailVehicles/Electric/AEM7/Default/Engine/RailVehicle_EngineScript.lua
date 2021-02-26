@@ -3,6 +3,7 @@ atc = nil
 acses = nil
 cruise = nil
 alerter = nil
+power = nil
 state = {
   throttle=0,
   train_brake=0,
@@ -79,6 +80,7 @@ Initialise = RailWorks.wraperrors(function ()
     alerter = newalerter
     alerter:start()
   end
+  power = Power.new(Power.types.overhead)
   state.event_alert = Event.new(sched)
   sched:run(doalerts)
   sched:run(cs1flasher)
@@ -169,8 +171,14 @@ Update = RailWorks.wraperrors(function (dt)
 
   local penalty = atc.state.penalty or acses.state.penalty or alerter.state.penalty
   do
+    local powertypes = {}
+    if RailWorks.GetControlValue("PantographControl", 0) == 1 then
+      table.insert(powertypes, Power.types.overhead)
+    end
     local v
-    if penalty then
+    if not power:haspower(unpack(powertypes)) then
+      v = 0
+    elseif penalty then
       v = 0
     elseif state.cruiseenabled then
       v = math.min(state.throttle, cruise.state.throttle)
@@ -244,5 +252,6 @@ end
 OnControlValueChange = RailWorks.SetControlValue
 
 OnCustomSignalMessage = RailWorks.wraperrors(function (message)
+  power:receivemessage(message)
   atc:receivemessage(message)
 end)
