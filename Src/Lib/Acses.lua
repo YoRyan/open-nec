@@ -57,7 +57,7 @@ function Acses.start(self)
       self._sched:run(Acses._doenforce, self)
     }
     if not self._sched:isstartup() then
-      self._sched:alert("ACSES cut in")
+      self._sched:alert("ACSES Cut In")
     end
   end
 end
@@ -71,7 +71,7 @@ function Acses.stop(self)
     end
     self.trackspeed:kill()
     self:_initstate()
-    self._sched:alert("ACSES cut out")
+    self._sched:alert("ACSES Cut Out")
   end
 end
 

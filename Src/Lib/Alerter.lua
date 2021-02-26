@@ -38,7 +38,7 @@ function Alerter.start(self)
     self.running = true
     self._coroutines = {self._sched:run(Alerter._run, self)}
     if not self._sched:isstartup() then
-      self._sched:alert("Alerter cut in")
+      self._sched:alert("Alerter Cut In")
     end
   end
 end
@@ -51,7 +51,7 @@ function Alerter.stop(self)
       self._sched:kill(co)
     end
     self:_initstate()
-    self._sched:alert("Alerter cut out")
+    self._sched:alert("Alerter Cut Out")
   end
 end
 
