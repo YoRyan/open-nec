@@ -22,6 +22,7 @@ function Scheduler.run(self, fn, ...)
   else
     self:print("ERROR:\n" .. resume[1])
   end
+  return co
 end
 
 -- From the main coroutine, update all active coroutines.
@@ -59,6 +60,11 @@ end
 -- From the main coroutine, clear the debug message queue.
 function Scheduler.clearmessages(self)
   self._messages = {}
+end
+
+-- Delete a coroutine from the scheduler.
+function Scheduler.kill(self, co)
+  self._coroutines[co] = nil
 end
 
 -- Get the clock time of the current update.

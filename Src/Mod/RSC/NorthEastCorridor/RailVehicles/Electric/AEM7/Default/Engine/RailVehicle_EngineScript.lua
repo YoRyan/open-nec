@@ -10,7 +10,6 @@ state = {
   acknowledge=false,
   cruisespeed_mps=0,
   cruiseenabled=false,
-  alerterenabled=false,
 
   speed_mps=0,
   acceleration_mps2=0,
@@ -75,9 +74,8 @@ Initialise = RailWorks.wraperrors(function ()
     local config = newalerter.config
     config.getspeed_mps =
       function () return state.speed_mps end
-    config.getenabled =
-      function () return state.alerterenabled end
     alerter = newalerter
+    alerter:start()
   end
   state.event_alert = Event.new(sched)
   sched:run(doalerts)
@@ -139,10 +137,17 @@ Update = RailWorks.wraperrors(function (dt)
       alerter.state.acknowledge:trigger()
     end
   end
+  do
+    local alerteron = RailWorks.GetControlValue("AlertControl", 0) == 0
+    if not alerteron and alerter.running then
+      alerter:stop()
+    elseif alerteron and not alerter.running then
+      alerter:start()
+    end
+  end
 
   state.cruisespeed_mps = RailWorks.GetControlValue("CruiseSet", 0)*Units.mph.tomps
   state.cruiseenabled = RailWorks.GetControlValue("CruiseSet", 0) > 10
-  state.alerterenabled = RailWorks.GetControlValue("AlertControl", 0) == 0
   state.speed_mps = RailWorks.GetSpeed()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
   state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
