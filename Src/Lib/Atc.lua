@@ -33,9 +33,6 @@ function Atc.new(scheduler)
     -- The suppression deceleration rate is in practice impossible to achieve in
     -- gameplay, so also let the locomotive supply its own suppression condition.
     getsuppression=function () return false end,
-    -- 20 mph
-    restrictspeed_mps=20*Units.mph.tomps,
-    -- 3 mph
     speedmargin_mps=3*Units.mph.tomps
   }
   self.running = false
@@ -159,33 +156,33 @@ function Atc._doenforce(self)
 end
 
 function Atc._iscomplying(self)
-  local limit_mps = self:getpulsecodespeed_mps(self.state.pulsecode)
+  local limit_mps = Atc.getpulsecodespeed_mps(self.state.pulsecode)
   return self.config.getspeed_mps() <= limit_mps + self.config.speedmargin_mps
 end
 
 function Atc._iscomplyingstrict(self)
-  local limit_mps = self:getpulsecodespeed_mps(self.state.pulsecode)
+  local limit_mps = Atc.getpulsecodespeed_mps(self.state.pulsecode)
   return self.config.getspeed_mps() <= limit_mps
 end
 
 -- Get the speed limit, in m/s, that corresponds to a pulse code.
-function Atc.getpulsecodespeed_mps(self, pulsecode)
+function Atc.getpulsecodespeed_mps(pulsecode)
   if pulsecode == Atc.pulsecode.restrict then
-    return self.config.restrictspeed_mps
+    return 20*Units.mph.tomps
   elseif pulsecode == Atc.pulsecode.approach then
-    return 13.4 -- 30 mph
+    return 30*Units.mph.tomps
   elseif pulsecode == Atc.pulsecode.approachmed then
-    return 20.1 -- 45 mph
+    return 45*Units.mph.tomps
   elseif pulsecode == Atc.pulsecode.cabspeed60 then
-    return 26.8 -- 60 mph
+    return 60*Units.mph.tomps
   elseif pulsecode == Atc.pulsecode.cabspeed80 then
-    return 35.8 -- 80 mph
+    return 80*Units.mph.tomps
   elseif pulsecode == Atc.pulsecode.clear100 then
-    return 44.7 -- 100 mph
+    return 100*Units.mph.tomps
   elseif pulsecode == Atc.pulsecode.clear125 then
-    return 55.9 -- 125 mph
+    return 125*Units.mph.tomps
   elseif pulsecode == Atc.pulsecode.clear150 then
-    return 67.1 -- 150 mph
+    return 150*Units.mph.tomps
   else
     return nil
   end
