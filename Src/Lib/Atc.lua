@@ -73,7 +73,7 @@ end
 function Atc._initstate(self)
   self.state = {
     -- The current pulse code in effect.
-    pulsecode=Atc.pulsecode.clear125,
+    pulsecode=Atc.pulsecode.restrict,
     -- True when the alarm is sounding.
     alarm=false,
     -- True when the suppressing deceleration rate is achieved.
