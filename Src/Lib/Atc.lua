@@ -38,6 +38,39 @@ function Atc.new(scheduler)
     -- 3 mph
     speedmargin_mps=3*Units.mph.tomps
   }
+  self.running = false
+  self._sched = scheduler
+  self:_initstate()
+  return self
+end
+
+-- From the main coroutine, initialize this subsystem.
+function Atc.start(self)
+  if not self.running then
+    self.running = true
+    self._coroutines = {
+      self._sched:run(Atc._setsuppress, self),
+      self._sched:run(Atc._doenforce, self)
+    }
+    if not self._sched:isstartup() then
+      self._sched:alert("ATC cut in")
+    end
+  end
+end
+
+-- From the main coroutine, halt and reset this subsystem.
+function Atc.stop(self)
+  if self.running then
+    self.running = false
+    for _, co in ipairs(self._coroutines) do
+      self._sched:kill(co)
+    end
+    self:_initstate()
+    self._sched:alert("ATC cut out")
+  end
+end
+
+function Atc._initstate(self)
   self.state = {
     -- The current pulse code in effect.
     pulsecode=Atc.pulsecode.clear125,
@@ -51,12 +84,9 @@ function Atc.new(scheduler)
     -- True when a penalty brake is applied.
     penalty=false,
 
-    _enforce=Event.new(scheduler),
+    _enforce=Event.new(self._sched),
   }
-  self._sched = scheduler
-  self._sched:run(Atc._setsuppress, self)
-  self._sched:run(Atc._doenforce, self)
-  return self
+  self._coroutines = {}
 end
 
 function Atc._setsuppress(self)

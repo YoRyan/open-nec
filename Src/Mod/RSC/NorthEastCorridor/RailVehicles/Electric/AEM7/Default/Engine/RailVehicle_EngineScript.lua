@@ -40,6 +40,7 @@ Initialise = RailWorks.wraperrors(function ()
     config.doalert =
       function () state.event_alert:trigger() end
     atc = newatc
+    atc:start()
   end
   do
     local newacses = Acses.new(sched)
@@ -143,6 +144,18 @@ Update = RailWorks.wraperrors(function (dt)
       alerter:stop()
     elseif alerteron and not alerter.running then
       alerter:start()
+    end
+  end
+  do
+    local speedcontrolon = RailWorks.GetControlValue("SpeedControl", 0) == 0
+    if speedcontrolon then
+      if not atc.running then
+        atc:start()
+      end
+    else
+      if atc.running then
+        atc:stop()
+      end
     end
   end
 
