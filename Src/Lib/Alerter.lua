@@ -22,6 +22,16 @@ function Alerter.new(scheduler)
   return self
 end
 
+-- From the main coroutine, start or stop the subsystem based on the provided
+-- condition.
+function Alerter.setrunstate(self, cond)
+  if cond and not self.running then
+    self:start()
+  elseif not cond and self.running then
+    self:stop()
+  end
+end
+
 -- From the main coroutine, initialize this subsystem.
 function Alerter.start(self)
   if not self.running then

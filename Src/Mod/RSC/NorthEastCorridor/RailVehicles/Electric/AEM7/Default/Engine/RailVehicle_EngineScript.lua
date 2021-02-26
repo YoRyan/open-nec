@@ -138,27 +138,13 @@ Update = RailWorks.wraperrors(function (dt)
       alerter.state.acknowledge:trigger()
     end
   end
+
+  -- Reverse the polarities of the safety systems buttons so they are activated
+  -- by default.
+  alerter:setrunstate(RailWorks.GetControlValue("AlertControl", 0) == 0)
   do
-    -- Reverse the polarity so that the button is activated by default.
-    local alerteron = RailWorks.GetControlValue("AlertControl", 0) == 0
-    if not alerteron and alerter.running then
-      alerter:stop()
-    elseif alerteron and not alerter.running then
-      alerter:start()
-    end
-  end
-  do
-    -- Reverse the polarity so that the button is activated by default.
-    local speedcontrolon = RailWorks.GetControlValue("SpeedControl", 0) == 0
-    if speedcontrolon then
-      if not atc.running then
-        atc:start()
-      end
-    else
-      if atc.running then
-        atc:stop()
-      end
-    end
+    local speedcontrol = RailWorks.GetControlValue("SpeedControl", 0) == 0
+    atc:setrunstate(speedcontrol)
   end
 
   state.cruisespeed_mps = RailWorks.GetControlValue("CruiseSet", 0)*Units.mph.tomps
