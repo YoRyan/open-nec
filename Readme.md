@@ -21,6 +21,7 @@ Amtrak's ATC and ACSES safety systems have been implemented with a high degree o
 The following locomotives have been successfully overhauled:
 
 - [Amtrak EMD AEM-7](https://store.steampowered.com/app/65232/Train_Simulator_Northeast_Corridor_New_York__Philadelphia_Route_AddOn/)
+  - Has been fully tested in conjunction with Fan Railer's AEM-7 overhaul mod.
   - Fixed cruise control functionality. Turn the dial to your desired speed and set throttle to activate.
   - Fixed the cab signals to display 30 mph for Medium Clear, not 45 mph.
 
