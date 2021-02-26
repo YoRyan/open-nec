@@ -10,7 +10,8 @@ Power.changepoint = {thirdrailstart="ThirdRailStart",
                      overheadstart="OverheadStart",
                      overheadend="OverheadEnd",
                      ai_to_thirdrail="AIToThirdRail",
-                     ai_to_overhead="AIToOverhead"}
+                     ai_to_overhead="AIToOverhead",
+                     ai_to_diesel="AIToDiesel"}
 
 -- From the main coroutine, create a new Power context. Arguments are the
 -- currently available power supply types (third rail, overhead...).
@@ -67,6 +68,10 @@ function Power.getchangepoint(message)
     elseif point == "AIOverheadToThirdNow" then
       return Power.changepoint.ai_to_thirdrail
     elseif point == "AIThirdToOverheadNow" then
+      return Power.changepoint.ai_to_overhead
+    elseif point == "AIOverheadToDieselNow" then
+      return Power.changepoint.ai_to_diesel
+    elseif point == "AIDieselToOverheadNow" then
       return Power.changepoint.ai_to_overhead
     else
       return nil
