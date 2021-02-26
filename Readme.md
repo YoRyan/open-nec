@@ -27,6 +27,7 @@ The following locomotives have been successfully overhauled:
 
 To-do list:
 - [ ] ACSES positive stop functionality
+- [ ] Test with AI trains
 
 ## Build Instructions
 
