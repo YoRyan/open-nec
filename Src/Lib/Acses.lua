@@ -25,6 +25,57 @@ function Acses.new(scheduler)
     penaltycurve_mps2=-1.3*Units.mph.tomps,
     alertcurve_s=8
   }
+  self.running = false
+  self._sched = scheduler
+  self:_initstate()
+  return self
+end
+
+-- From the main coroutine, start or stop the subsystem based on the provided
+-- condition.
+function Acses.setrunstate(self, cond)
+  if cond and not self.running then
+    self:start()
+  elseif not cond and self.running then
+    self:stop()
+  end
+end
+
+-- From the main coroutine, initialize this subsystem.
+function Acses.start(self)
+  if not self.running then
+    self.running = true
+    self.speedlimits = AcsesLimits.new(
+      function () return self.config.getspeed_mps() end,
+      function () return self.config.getforwardspeedlimits() end,
+      function () return self.config.getbackwardspeedlimits() end)
+    self.trackspeed = AcsesTrackSpeed.new(self._sched,
+      function () return self.config.gettrackspeed_mps() end,
+      function () return self.speedlimits:getupcomingspeedlimits() end)
+    self._coroutines = {
+      self._sched:run(Acses._setstate, self),
+      self._sched:run(Acses._doenforce, self)
+    }
+    if not self._sched:isstartup() then
+      self._sched:alert("ACSES cut in")
+    end
+  end
+end
+
+-- From the main coroutine, halt and reset this subsystem.
+function Acses.stop(self)
+  if self.running then
+    self.running = false
+    for _, co in ipairs(self._coroutines) do
+      self._sched:kill(co)
+    end
+    self.trackspeed:kill()
+    self:_initstate()
+    self._sched:alert("ACSES cut out")
+  end
+end
+
+function Acses._initstate(self)
   self.state = {
     -- The current track speed in force. In the alert and penalty states, this
     -- communicates the limit that was violated.
@@ -41,17 +92,9 @@ function Acses.new(scheduler)
     _violation=nil,
     _enforcingspeed_mps=nil
   }
-  self.speedlimits = AcsesLimits.new(
-    function () return self.config.getspeed_mps() end,
-    function () return self.config.getforwardspeedlimits() end,
-    function () return self.config.getbackwardspeedlimits() end)
-  self.trackspeed = AcsesTrackSpeed.new(scheduler,
-    function () return self.config.gettrackspeed_mps() end,
-    function () return self.speedlimits:getupcomingspeedlimits() end)
-  self._sched = scheduler
-  self._sched:run(Acses._setstate, self)
-  self._sched:run(Acses._doenforce, self)
-  return self
+  self.speedlimits = nil
+  self.trackspeed = nil
+  self._coroutines = {}
 end
 
 function Acses._setstate(self)
@@ -222,9 +265,18 @@ function AcsesTrackSpeed.new(scheduler, gettrackspeed_mps, getupcomingspeedlimit
   self._gettrackspeed_mps = gettrackspeed_mps
   self._getupcomingspeedlimits = getupcomingspeedlimits
   self._sched = scheduler
-  self._sched:run(AcsesTrackSpeed._setstate, self)
-  self._sched:run(AcsesTrackSpeed._look, self)
+  self._coroutines = {
+    self._sched:run(AcsesTrackSpeed._setstate, self),
+    self._sched:run(AcsesTrackSpeed._look, self)
+  }
   return self
+end
+
+-- From the main coroutine, kill this subsystem's coroutines.
+function AcsesTrackSpeed.kill(self)
+  for _, co in ipairs(self._coroutines) do
+    self._sched:kill(co)
+  end
 end
 
 function AcsesTrackSpeed._setstate(self)

@@ -58,6 +58,7 @@ Initialise = RailWorks.wraperrors(function ()
     config.doalert =
       function () state.event_alert:trigger() end
     acses = newacses
+    acses:start()
   end
   do
     local newcruise = Cruise.new(sched)
@@ -145,6 +146,7 @@ Update = RailWorks.wraperrors(function (dt)
   do
     local speedcontrol = RailWorks.GetControlValue("SpeedControl", 0) == 0
     atc:setrunstate(speedcontrol)
+    acses:setrunstate(speedcontrol)
   end
 
   state.cruisespeed_mps = RailWorks.GetControlValue("CruiseSet", 0)*Units.mph.tomps
