@@ -78,6 +78,12 @@ function Scheduler.kill(self, co)
   self._coroutines[co] = nil
 end
 
+-- Determine whether the simulator was just initialized a few seconds ago, so as
+-- not to nag the player with annoying alerts.
+function Scheduler.isstartup(self)
+  return self:clock() < 3
+end
+
 -- Get the clock time of the current update.
 function Scheduler.clock(self)
   return self._clock
