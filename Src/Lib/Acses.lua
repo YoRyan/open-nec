@@ -406,7 +406,7 @@ function Acses._stopsignalalert(self, violation)
         return self.config.getacknowledge()
       end,
       function ()
-        return self:_noimminentstopsignal(violation.hazard.direction)
+        return self:_nextsignalnotstop(violation.hazard.direction)
           and acknowledged
       end)
     if event == 1 then
@@ -456,7 +456,7 @@ function Acses._stopsignalpenalty(self, violation)
         return self.config.getacknowledge()
       end,
       function ()
-        return self:_noimminentstopsignal(violation.hazard.direction)
+        return self:_nextsignalnotstop(violation.hazard.direction)
           and self.config.getacknowledge()
       end)
     if event == 1 then
@@ -470,7 +470,7 @@ function Acses._stopsignalpenalty(self, violation)
   self.state.alarm = false
 end
 
-function Acses._noimminentstopsignal(self, direction)
+function Acses._nextsignalnotstop(self, direction)
   local signal
   if direction == Acses._direction.forward then
     signal = self.config.getforwardrestrictsignals()[1]
