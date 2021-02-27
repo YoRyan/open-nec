@@ -54,12 +54,17 @@ function Acses.start(self)
   if not self.running then
     self.running = true
     self.speedlimits = AcsesLimits.new(
-      function () return self.config.getspeed_mps() end,
       function () return self.config.getforwardspeedlimits() end,
       function () return self.config.getbackwardspeedlimits() end)
     self.trackspeed = AcsesTrackSpeed.new(self._sched,
       function () return self.config.gettrackspeed_mps() end,
-      function () return self.speedlimits:getupcomingspeedlimits() end)
+      function ()
+        if self.config.getspeed_mps() >= 0 then
+          return self.speedlimits:getforwardspeedlimits()
+        else
+          return self.speedlimits:getbackwardspeedlimits()
+        end
+      end)
     self._coroutines = {
       self._sched:run(Acses._setstate, self),
       self._sched:run(Acses._doenforce, self)
@@ -137,14 +142,20 @@ function Acses._getbrakecurves(self)
     direction = Acses._direction.backward
   end
 
-  for _, limit in ipairs(self.speedlimits:getupcomingspeedlimits()) do
-    table.insert(curves, self:_getspeedlimitcurves(limit))
+  local limits = {}
+  if direction == Acses._direction.forward then
+    limits = self.speedlimits:getforwardspeedlimits()
+  elseif direction == Acses._direction.backward then
+    limits = self.speedlimits:getbackwardspeedlimits()
+  end
+  for _, limit in ipairs(limits) do
+    table.insert(curves, self:_getspeedlimitcurves(direction, limit))
   end
 
-  local signals
+  local signals = {}
   if direction == Acses._direction.forward then
     signals = self.config.getforwardrestrictsignals()
-  else
+  elseif direction == Acses._direction.backward then
     signals = self.config.getbackwardrestrictsignals()
   end
   for _, signal in ipairs(signals) do
@@ -167,11 +178,12 @@ function Acses._gettrackspeedcurves(self)
   }
 end
 
-function Acses._getspeedlimitcurves(self, speedlimit)
+function Acses._getspeedlimitcurves(self, direction, speedlimit)
   local speed_mps = speedlimit.speed_mps
   local distance_m = speedlimit.distance_m
   return {
     type="advancelimit",
+    direction=direction,
     limit_mps=speedlimit.speed_mps,
     penalty_mps=self:_calcbrakecurve(
       speed_mps + self.config.penaltylimit_mps, distance_m, 0),
@@ -352,8 +364,15 @@ function Acses._advancelimitalert(self, violation)
           and acknowledged
       end,
       function ()
+        local direction = violation.hazard.direction
+        local speedlimits = {}
+        if direction == Acses._direction.forward then
+          speedlimits = self.speedlimits:getforwardspeedlimits()
+        elseif direction == Acses._direction.backward then
+          speedlimits = self.speedlimits:getbackwardspeedlimits()
+        end
         local canseelimit = Tables.find(
-          self.speedlimits:getupcomingspeedlimits(),
+          speedlimits,
           function (limit) return limit.speed_mps == violation.hazard.limit_mps end)
         return not canseelimit and acknowledged
       end)
@@ -533,24 +552,12 @@ AcsesLimits = {}
 AcsesLimits.__index = AcsesLimits
 
 -- From the main coroutine, create a new speed limit filter context.
-function AcsesLimits.new(
-    getspeed_mps, getforwardspeedlimits, getbackwardspeedlimits)
+function AcsesLimits.new(getforwardspeedlimits, getbackwardspeedlimits)
   local self = setmetatable({}, AcsesLimits)
-  self._getspeed_mps = getspeed_mps
   self._getforwardspeedlimits = getforwardspeedlimits
   self._getbackwardspeedlimits = getbackwardspeedlimits
   self._hastype2limits = false
   return self
-end
-
--- Get forward speed limits if the train is running in forward, or backward
--- speed limits if the train is running in reverse.
-function AcsesLimits.getupcomingspeedlimits(self)
-  if self._getspeed_mps() >= 0 then
-    return self:getforwardspeedlimits()
-  else
-    return self:getbackwardspeedlimits()
-  end
 end
 
 -- Get forward-facing speed limits.
