@@ -5,7 +5,9 @@ Acses = {}
 Acses.__index = Acses
 
 Acses.debuglimits = false
+Acses.debugsignals = false
 Acses.nlimitlookahead = 5
+Acses.nsignallookahead = 3
 
 -- From the main coroutine, create a new Acses context. This will add coroutines
 -- to the provided scheduler. The caller should also customize the properties
@@ -17,6 +19,8 @@ function Acses.new(scheduler)
     gettrackspeed_mps=function () return 0 end,
     getforwardspeedlimits=function () return {} end,
     getbackwardspeedlimits=function () return {} end,
+    getforwardrestrictsignals=function () return {} end,
+    getbackwardrestrictsignals=function () return {} end,
     getacknowledge=function () return false end,
     doalert=function () end,
     penaltylimit_mps=3*Units.mph.tomps,
@@ -111,7 +115,10 @@ function Acses._setstate(self)
       self.state._violation = self:_getviolation(curves)
     end
     if Acses.debuglimits and self.config.getacknowledge() then
-      self:_printlimits()
+      self:_showlimits()
+    end
+    if Acses.debugsignals and self.config.getacknowledge() then
+      self:_showsignals()
     end
     self._sched:yield()
   end
@@ -181,7 +188,7 @@ function Acses._getviolation(self, brakecurves)
   return violation
 end
 
-function Acses._printlimits(self)
+function Acses._showlimits(self)
   local fspeed = function (mps)
     return string.format("%.2f", mps*Units.mps.tomph) .. "mph"
   end
@@ -202,6 +209,38 @@ function Acses._printlimits(self)
     .. "Sensed: " .. fspeed(self.trackspeed.state.speedlimit_mps) .. "\n"
     .. "Forward: " .. dump(self.config.getforwardspeedlimits())
     .. "Backward: " .. dump(self.config.getbackwardspeedlimits()))
+end
+
+function Acses._showsignals(self)
+  local faspect = function (ps)
+    if ps == -1 then
+      return "invalid"
+    elseif ps == 1 then
+      return "yellow"
+    elseif ps == 2 then
+      return "dbl yellow"
+    elseif ps == 3 then
+      return "red"
+    elseif ps == 10 then
+      return "flsh yellow"
+    elseif ps == 11 then
+      return "flsh dbl yellow"
+    end
+  end
+  local fdist = function (m)
+    return string.format("%.2f", m*Units.m.toft) .. "ft"
+  end
+  local dump = function (signals)
+    local res = ""
+    for _, signal in ipairs(signals) do
+      local s = "state=" .. faspect(signal.prostate)
+        .. ", distance=" .. fdist(signal.distance_m)
+      res = res .. s .. "\n"
+    end
+    return res
+  end
+  self._sched:info("Forward: " .. dump(self.config.getforwardrestrictsignals())
+    .. "Backward: " .. dump(self.config.getbackwardrestrictsignals()))
 end
 
 function Acses._doenforce(self)

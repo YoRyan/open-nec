@@ -17,6 +17,8 @@ state = {
   trackspeed_mps=0,
   forwardspeedlimits={},
   backwardspeedlimits={},
+  forwardrestrictsignals={},
+  backwardrestrictsignals={},
 
   event_alert=nil,
   beep_alert=false,
@@ -54,6 +56,10 @@ Initialise = RailWorks.wraperrors(function ()
       function () return state.forwardspeedlimits end
     config.getbackwardspeedlimits =
       function () return state.backwardspeedlimits end
+    config.getforwardrestrictsignals =
+      function () return state.forwardrestrictsignals end
+    config.getbackwardrestrictsignals =
+      function () return state.backwardrestrictsignals end
     config.getacknowledge =
       function () return state.acknowledge end
     config.doalert =
@@ -156,8 +162,14 @@ Update = RailWorks.wraperrors(function (dt)
   state.speed_mps = RailWorks.GetSpeed()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
   state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
-  state.forwardspeedlimits = RailWorks.getforwardspeedlimits(Acses.nlimitlookahead)
-  state.backwardspeedlimits = RailWorks.getbackwardspeedlimits(Acses.nlimitlookahead)
+  state.forwardspeedlimits =
+    RailWorks.getforwardspeedlimits(Acses.nlimitlookahead)
+  state.backwardspeedlimits =
+    RailWorks.getbackwardspeedlimits(Acses.nlimitlookahead)
+  state.forwardrestrictsignals =
+    RailWorks.getforwardrestrictsignals(Acses.nsignallookahead)
+  state.backwardrestrictsignals =
+    RailWorks.getbackwardrestrictsignals(Acses.nsignallookahead)
 
   sched:update(dt)
   for _, msg in ipairs(sched:getinfomessages()) do

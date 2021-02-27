@@ -73,6 +73,43 @@ function RailWorks._getspeedlimits(direction, n, maxdistance_m)
   return limits
 end
 
+-- Iterate through up to n upcoming restrictive signals, with an optional maximum
+-- lookahead distance.
+-- Signals are in the form of {{basicstate=..., prostate=..., distance_m=...}, ...}
+function RailWorks.getforwardrestrictsignals(n, maxdistance_m)
+  return RailWorks._getrestrictsignals(0, n, maxdistance_m)
+end
+
+-- Iterate through up to n backward-facing restrictive signals, with an optional
+-- maximum lookahead distance.
+-- Signals are in the form of {{basicstate=..., prostate=..., distance_m=...}, ...}
+function RailWorks.getbackwardrestrictsignals(n, maxdistance_m)
+  return RailWorks._getrestrictsignals(1, n, maxdistance_m)
+end
+
+function RailWorks._getrestrictsignals(direction, n, maxdistance_m)
+  local signals = {}
+  local minsearch_m = 0
+  for _ = 1, n do
+    local found, basicstate, distance_m, prostate
+    if maxdistance_m == nil then
+      found, basicstate, distance_m, prostate =
+        RailWorks.GetNextRestrictiveSignal(direction, minsearch_m)
+    else
+      found, basicstate, distance_m, prostate =
+        RailWorks.GetNextRestrictiveSignal(direction, minsearch_m, maxdistance_m)
+    end
+    if found > 0 then
+      minsearch_m = distance_m + 0.01
+      table.insert(
+        signals, {basicstate=basicstate, distance_m=distance_m, prostate=prostate})
+    else
+      break
+    end
+  end
+  return signals
+end
+
 function RailWorks.BeginUpdate()
   Call("BeginUpdate")
 end
@@ -111,4 +148,8 @@ end
 
 function RailWorks.GetNextSpeedLimit(...)
   return Call("GetNextSpeedLimit", unpack(arg))
+end
+
+function RailWorks.GetNextRestrictiveSignal(...)
+  return Call("GetNextRestrictiveSignal", unpack(arg))
 end
