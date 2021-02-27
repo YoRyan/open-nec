@@ -37,9 +37,6 @@ Initialise = RailWorks.wraperrors(function ()
       function () return state.acceleration_mps2 end
     config.getacknowledge =
       function () return state.acknowledge end
-    config.getsuppression =
-      -- Brake in the "Full Service" range.
-      function () return state.train_brake >= 0.5 and state.throttle == 0 end
     config.doalert =
       function () state.event_alert:trigger() end
     atc = newatc

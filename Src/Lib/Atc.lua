@@ -27,12 +27,11 @@ function Atc.new(scheduler)
     getacknowledge=function () return false end,
     doalert=function () end,
     countdown_s=6,
-    -- Rates fom the Train Sim World: Northeast Corridor New York manual.
-    suppressing_mps2=-0.5,
-    suppression_mps2=-1.5,
-    -- The suppression deceleration rate is in practice impossible to achieve in
-    -- gameplay, so also let the locomotive supply its own suppression condition.
-    getsuppression=function () return false end,
+    -- Rates fom the Train Sim World: Northeast Corridor New York manual--the
+    -- units are given as m/s/s, but such rates would be impossible to achieve,
+    -- so I suspect they are supposed to be mph/s.
+    suppressing_mps2=-0.5*Units.mph.tomps,
+    suppression_mps2=-1.5*Units.mph.tomps,
     speedmargin_mps=3*Units.mph.tomps
   }
   self.running = false
@@ -99,10 +98,8 @@ end
 function Atc._setsuppress(self)
   while true do
     local accel_mps2 = self.config.getacceleration_mps2()
-    self.state.suppressing =
-      accel_mps2 <= self.config.suppressing_mps2 or self.config.getsuppression()
-    self.state.suppression =
-      accel_mps2 <= self.config.suppression_mps2 or self.config.getsuppression()
+    self.state.suppressing = accel_mps2 <= self.config.suppressing_mps2
+    self.state.suppression = accel_mps2 <= self.config.suppression_mps2
     -- Sample every tenth of a second to avoid spurious precision errors.
     self._sched:sleep(0.1)
   end
