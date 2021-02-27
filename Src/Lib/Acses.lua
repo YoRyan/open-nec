@@ -152,16 +152,14 @@ function Acses._getbrakecurves(self)
     table.insert(curves, self:_getspeedlimitcurves(direction, limit))
   end
 
-  local signals = {}
+  local signal = {}
   if direction == Acses._direction.forward then
-    signals = self.config.getforwardrestrictsignals()
+    signal = self.config.getforwardrestrictsignals()[1]
   elseif direction == Acses._direction.backward then
-    signals = self.config.getbackwardrestrictsignals()
+    signal = self.config.getbackwardrestrictsignals()[1]
   end
-  for _, signal in ipairs(signals) do
-    if signal.prostate == 3 then
-      table.insert(curves, self:_getsignalstopcurves(direction, signal))
-    end
+  if signal ~= nil and signal.prostate == 3 then
+    table.insert(curves, self:_getsignalstopcurves(direction, signal))
   end
 
   return curves
