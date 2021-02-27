@@ -214,8 +214,7 @@ Update = RailWorks.wraperrors(function (dt)
 
   RailWorks.SetControlValue(
     "AWS", 0,
-    RailWorks.frombool(
-      atc.state.alarm or acses.state.alarm or alerter.state.alarm))
+    RailWorks.frombool(atc.state.alarm or acses.state.alarm or alerter.state.alarm))
   RailWorks.SetControlValue(
     "AWSWarnCount", 0,
     RailWorks.frombool(alerter.state.alarm))
