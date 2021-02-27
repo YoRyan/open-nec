@@ -8,7 +8,10 @@ Acses.debuglimits = false
 Acses.debugsignals = false
 Acses.nlimitlookahead = 5
 Acses.nsignallookahead = 3
+
 Acses._direction = {forward=0, backward=1}
+Acses._hazardtype = {currentlimit=0, advancelimit=1, stopsignal=2}
+Acses._violationtype = {alert=0, penalty=1}
 
 -- From the main coroutine, create a new Acses context. This will add coroutines
 -- to the provided scheduler. The caller should also customize the properties
@@ -168,7 +171,7 @@ end
 function Acses._gettrackspeedcurves(self)
   local limit_mps = self.trackspeed.state.speedlimit_mps
   return {
-    type="currentlimit",
+    type=Acses._hazardtype.currentlimit,
     limit_mps=limit_mps,
     penalty_mps=limit_mps + self.config.penaltylimit_mps,
     alert_mps=limit_mps + self.config.alertlimit_mps,
@@ -180,7 +183,7 @@ function Acses._getspeedlimitcurves(self, direction, speedlimit)
   local speed_mps = speedlimit.speed_mps
   local distance_m = speedlimit.distance_m
   return {
-    type="advancelimit",
+    type=Acses._hazardtype.advancelimit,
     direction=direction,
     limit_mps=speedlimit.speed_mps,
     penalty_mps=self:_calcbrakecurve(
@@ -196,7 +199,7 @@ function Acses._getsignalstopcurves(self, direction, signal)
   local distance_m = signal.distance_m - self.config.positivestop_m
   local alert_mps = self:_calcbrakecurve(0, distance_m, self.config.alertcurve_s)
   return {
-    type="stopsignal",
+    type=Acses._hazardtype.stopsignal,
     direction=direction,
     penalty_mps=self:_calcbrakecurve(0, distance_m, 0),
     alert_mps=alert_mps,
@@ -227,10 +230,10 @@ function Acses._getviolation(self, brakecurves)
   local violation = nil
   for _, hazard in ipairs(brakecurves) do
     if aspeed_mps > hazard.penalty_mps then
-      violation = {type="penalty", hazard=hazard}
+      violation = {type=Acses._violationtype.penalty, hazard=hazard}
       break
     elseif aspeed_mps > hazard.alert_mps then
-      violation = {type="alert", hazard=hazard}
+      violation = {type=Acses._violationtype.alert, hazard=hazard}
       break
     end
   end
@@ -297,11 +300,11 @@ function Acses._doenforce(self)
     self._sched:select(nil, function () return self.state._violation ~= nil end)
     local violation = self.state._violation
     local type = violation.hazard.type
-    if type == "currentlimit" then
+    if type == Acses._hazardtype.currentlimit then
       self:_currentlimitalert(violation)
-    elseif type == "advancelimit" then
+    elseif type == Acses._hazardtype.advancelimit then
       self:_advancelimitalert(violation)
-    elseif type == "stopsignal" then
+    elseif type == Acses._hazardtype.stopsignal then
       self:_stopsignalalert(violation)
     end
   end
@@ -316,7 +319,7 @@ function Acses._currentlimitalert(self, violation)
       nil,
       function ()
         return self.state._violation ~= nil
-          and self.state._violation.type == "penalty"
+          and self.state._violation.type == Acses._violationtype.penalty
       end,
       function ()
         return self.config.getacknowledge()
@@ -352,7 +355,7 @@ function Acses._advancelimitalert(self, violation)
       nil,
       function ()
         return self.state._violation ~= nil
-          and self.state._violation.type == "penalty"
+          and self.state._violation.type == Acses._violationtype.penalty
       end,
       function ()
         return self.config.getacknowledge()
@@ -397,7 +400,7 @@ function Acses._stopsignalalert(self, violation)
       nil,
       function ()
         return self.state._violation ~= nil
-          and self.state._violation.type == "penalty"
+          and self.state._violation.type == Acses._violationtype.penalty
       end,
       function ()
         return self.config.getacknowledge()
@@ -422,9 +425,10 @@ end
 
 function Acses._penalty(self, violation)
   local type = violation.hazard.type
-  if type == "currentlimit" or type == "advancelimit" then
+  if type == Acses._hazardtype.currentlimit
+      or type == Acses._hazardtype.advancelimit then
     self:_limitpenalty(violation)
-  elseif type == "stopsignal" then
+  elseif type == Acses._hazardtype.stopsignal then
     self:_stopsignalpenalty(violation)
   end
 end
