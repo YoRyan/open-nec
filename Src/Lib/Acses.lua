@@ -530,21 +530,21 @@ end
 function AcsesTrackSpeed._look(self, getspeedlimits, report)
   while true do
     local startlimit = getspeedlimits()[1]
-    if startlimit ~= nil then
+    if startlimit ~= nil and startlimit.distance_m > self._sensedistance_m then
       local cmpdistance_m = startlimit.distance_m
       local startspeed_mps = startlimit.speed_mps
       while true do
         self._sched:yield()
         local newlimit = getspeedlimits()[1]
         local newdistance_m = newlimit.distance_m
-        if newdistance_m < self._sensedistance_m then
+        if newdistance_m > cmpdistance_m then
+          break
+        elseif newlimit.speed_mps ~= startspeed_mps then
+          break
+        elseif newdistance_m < self._sensedistance_m then
           report(startspeed_mps)
           self:_sensejustpassed(getspeedlimits, startspeed_mps)
           report(nil)
-          break
-        elseif newdistance_m > cmpdistance_m then
-          break
-        elseif newlimit.speed_mps ~= startspeed_mps then
           break
         else
           cmpdistance_m = newdistance_m
