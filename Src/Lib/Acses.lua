@@ -122,9 +122,9 @@ function Acses._setstate(self)
     end
     self.state.inforcespeed_mps = inforce_mps
     do
-      local curves = self:_getbrakecurves()
-      self.state.curvespeed_mps = Acses._getcurvespeed(curves)
-      self.state._violation = self:_getviolation(curves)
+      local hazards = self:_gethazards()
+      self.state.curvespeed_mps = Acses._getcurvespeed(hazards)
+      self.state._violation = self:_getviolation(hazards)
     end
     if Acses.debuglimits and self.config.getacknowledge() then
       self:_showlimits()
@@ -136,8 +136,8 @@ function Acses._setstate(self)
   end
 end
 
-function Acses._getbrakecurves(self)
-  local curves = {self:_gettrackspeedcurves()}
+function Acses._gethazards(self)
+  local hazards = {self:_gettrackspeedhazard()}
   local direction
   if self.config.getspeed_mps() >= 0 then
     direction = Acses._direction.forward
@@ -152,7 +152,7 @@ function Acses._getbrakecurves(self)
     limits = self.speedlimits:getbackwardspeedlimits()
   end
   for _, limit in ipairs(limits) do
-    table.insert(curves, self:_getspeedlimitcurves(direction, limit))
+    table.insert(hazards, self:_getspeedlimithazard(direction, limit))
   end
 
   local signal = {}
@@ -162,13 +162,13 @@ function Acses._getbrakecurves(self)
     signal = self.config.getbackwardrestrictsignals()[1]
   end
   if signal ~= nil and signal.prostate == 3 then
-    table.insert(curves, self:_getsignalstopcurves(direction, signal))
+    table.insert(hazards, self:_getsignalstophazard(direction, signal))
   end
 
-  return curves
+  return hazards
 end
 
-function Acses._gettrackspeedcurves(self)
+function Acses._gettrackspeedhazard(self)
   local limit_mps = self.trackspeed.state.speedlimit_mps
   return {
     type=Acses._hazardtype.currentlimit,
@@ -179,7 +179,7 @@ function Acses._gettrackspeedcurves(self)
   }
 end
 
-function Acses._getspeedlimitcurves(self, direction, speedlimit)
+function Acses._getspeedlimithazard(self, direction, speedlimit)
   local speed_mps = speedlimit.speed_mps
   local distance_m = speedlimit.distance_m
   return {
@@ -195,7 +195,7 @@ function Acses._getspeedlimitcurves(self, direction, speedlimit)
   }
 end
 
-function Acses._getsignalstopcurves(self, direction, signal)
+function Acses._getsignalstophazard(self, direction, signal)
   local distance_m = signal.distance_m - self.config.positivestop_m
   local alert_mps = self:_calcbrakecurve(0, distance_m, self.config.alertcurve_s)
   return {
@@ -213,22 +213,22 @@ function Acses._calcbrakecurve(self, vf, d, t)
     math.pow(math.pow(a*t, 2) - 2*a*d + math.pow(vf, 2), 0.5) + a*t, vf)
 end
 
-function Acses._getcurvespeed(brakecurves)
+function Acses._getcurvespeed(hazards)
   local speed_mps = nil
-  for _, t in ipairs(brakecurves) do
+  for _, hazard in ipairs(hazards) do
     if speed_mps == nil then
-      speed_mps = t.curve_mps
-    elseif t.curve_mps < speed_mps then
-      speed_mps = t.curve_mps
+      speed_mps = hazard.curve_mps
+    elseif hazard.curve_mps < speed_mps then
+      speed_mps = hazard.curve_mps
     end
   end
   return speed_mps
 end
 
-function Acses._getviolation(self, brakecurves)
+function Acses._getviolation(self, hazards)
   local aspeed_mps = math.abs(self.config.getspeed_mps())
   local violation = nil
-  for _, hazard in ipairs(brakecurves) do
+  for _, hazard in ipairs(hazards) do
     if aspeed_mps > hazard.penalty_mps then
       violation = {type=Acses._violationtype.penalty, hazard=hazard}
       break
