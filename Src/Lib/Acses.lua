@@ -8,6 +8,7 @@ Acses.debuglimits = false
 Acses.debugsignals = false
 Acses.nlimitlookahead = 5
 Acses.nsignallookahead = 3
+Acses._direction = {forward=0, backward=1}
 
 -- From the main coroutine, create a new Acses context. This will add coroutines
 -- to the provided scheduler. The caller should also customize the properties
@@ -27,6 +28,9 @@ function Acses.new(scheduler)
     alertlimit_mps=1*Units.mph.tomps,
     -- -1.3 mph/s
     penaltycurve_mps2=-1.3*Units.mph.tomps,
+    -- Keep the distance small (not very prototypical) to handle those pesky
+    -- shunting signals.
+    positivestop_m=10*Units.m.toft,
     alertcurve_s=8
   }
   self.running = false
@@ -126,9 +130,29 @@ end
 
 function Acses._getbrakecurves(self)
   local curves = {self:_gettrackspeedcurves()}
+  local direction
+  if self.config.getspeed_mps() >= 0 then
+    direction = Acses._direction.forward
+  else
+    direction = Acses._direction.backward
+  end
+
   for _, limit in ipairs(self.speedlimits:getupcomingspeedlimits()) do
     table.insert(curves, self:_getspeedlimitcurves(limit))
   end
+
+  local signals
+  if direction == Acses._direction.forward then
+    signals = self.config.getforwardrestrictsignals()
+  else
+    signals = self.config.getbackwardrestrictsignals()
+  end
+  for _, signal in ipairs(signals) do
+    if signal.prostate == 3 then
+      table.insert(curves, self:_getsignalstopcurves(direction, signal))
+    end
+  end
+
   return curves
 end
 
@@ -144,23 +168,36 @@ function Acses._gettrackspeedcurves(self)
 end
 
 function Acses._getspeedlimitcurves(self, speedlimit)
-  local calcspeed = function(vf, t)
-    local a = self.config.penaltycurve_mps2
-    local d = speedlimit.distance_m
-    return math.max(
-      math.pow(math.pow(a*t, 2) - 2*a*d + math.pow(vf, 2), 0.5) + a*t,
-      vf)
-  end
+  local speed_mps = speedlimit.speed_mps
+  local distance_m = speedlimit.distance_m
   return {
     type="advancelimit",
     limit_mps=speedlimit.speed_mps,
-    penalty_mps=calcspeed(
-      speedlimit.speed_mps + self.config.penaltylimit_mps, 0),
-    alert_mps=calcspeed(
-      speedlimit.speed_mps + self.config.alertlimit_mps, self.config.alertcurve_s),
-    curve_mps=calcspeed(
-      speedlimit.speed_mps, self.config.alertcurve_s),
+    penalty_mps=self:_calcbrakecurve(
+      speed_mps + self.config.penaltylimit_mps, distance_m, 0),
+    alert_mps=self:_calcbrakecurve(
+      speed_mps + self.config.alertlimit_mps, distance_m, self.config.alertcurve_s),
+    curve_mps=self:_calcbrakecurve(
+      speed_mps, distance_m, self.config.alertcurve_s),
   }
+end
+
+function Acses._getsignalstopcurves(self, direction, signal)
+  local distance_m = signal.distance_m - self.config.positivestop_m
+  local alert_mps = self:_calcbrakecurve(0, distance_m, self.config.alertcurve_s)
+  return {
+    type="stopsignal",
+    direction=direction,
+    penalty_mps=self:_calcbrakecurve(0, distance_m, 0),
+    alert_mps=alert_mps,
+    curve_mps=alert_mps
+  }
+end
+
+function Acses._calcbrakecurve(self, vf, d, t)
+  local a = self.config.penaltycurve_mps2
+  return math.max(
+    math.pow(math.pow(a*t, 2) - 2*a*d + math.pow(vf, 2), 0.5) + a*t, vf)
 end
 
 function Acses._getcurvespeed(brakecurves)
@@ -254,12 +291,14 @@ function Acses._doenforce(self)
       self:_currentlimitalert(violation)
     elseif type == "advancelimit" then
       self:_advancelimitalert(violation)
+    elseif type == "stopsignal" then
+      self:_stopsignalalert(violation)
     end
   end
 end
 
 function Acses._currentlimitalert(self, violation)
-  self.state._enforcingspeed_mps = self.state._violation.hazard.limit_mps
+  self.state._enforcingspeed_mps = violation.hazard.limit_mps
   self.state.alarm = true
   local acknowledged = false
   while true do
@@ -295,7 +334,7 @@ function Acses._currentlimitalert(self, violation)
 end
 
 function Acses._advancelimitalert(self, violation)
-  self.state._enforcingspeed_mps = self.state._violation.hazard.limit_mps
+  self.state._enforcingspeed_mps = violation.hazard.limit_mps
   self.state.alarm = true
   local acknowledged = false
   while true do
@@ -319,7 +358,7 @@ function Acses._advancelimitalert(self, violation)
         return not canseelimit and acknowledged
       end)
     if event == 1 then
-      self:_limitpenalty(self.state._violation)
+      self:_penalty(self.state._violation)
       break
     elseif event == 2 then
       self.state.alarm = false
@@ -329,6 +368,47 @@ function Acses._advancelimitalert(self, violation)
       self.state.alarm = false
       break
     end
+  end
+end
+
+function Acses._stopsignalalert(self, violation)
+  self.state._enforcingspeed_mps = 0
+  self.state.alarm = true
+  local acknowledged = false
+  while true do
+    local event = self._sched:select(
+      nil,
+      function ()
+        return self.state._violation ~= nil
+          and self.state._violation.type == "penalty"
+      end,
+      function ()
+        return self.config.getacknowledge()
+      end,
+      function ()
+        return self:_noimminentstopsignal(violation.hazard.direction)
+          and acknowledged
+      end)
+    if event == 1 then
+      self:_penalty(self.state._violation)
+      break
+    elseif event == 2 then
+      self.state.alarm = false
+      acknowledged = true
+    elseif event == 3 then
+      self.state._enforcingspeed_mps = nil
+      self.state.alarm = false
+      break
+    end
+  end
+end
+
+function Acses._penalty(self, violation)
+  local type = violation.hazard.type
+  if type == "currentlimit" or type == "advancelimit" then
+    self:_limitpenalty(violation)
+  elseif type == "stopsignal" then
+    self:_stopsignalpenalty(violation)
   end
 end
 
@@ -343,6 +423,39 @@ function Acses._limitpenalty(self, violation)
   self.state._enforcingspeed_mps = nil
   self.state.penalty = false
   self.state.alarm = false
+end
+
+function Acses._stopsignalpenalty(self, violation)
+  self.state._enforcingspeed_mps = 0
+  self.state.penalty = true
+  while true do
+    local event = self._sched:select(
+      nil,
+      function ()
+        return self.config.getacknowledge()
+      end,
+      function ()
+        return self:_noimminentstopsignal(violation.hazard.direction)
+      end)
+    if event == 1 then
+      self.state.alarm = false
+    elseif event == 2 then
+      break
+    end
+  end
+  self.state._enforcingspeed_mps = nil
+  self.state.penalty = false
+  self.state.alarm = false
+end
+
+function Acses._noimminentstopsignal(self, direction)
+  local signal
+  if direction == Acses._direction.forward then
+    signal = self.config.getforwardrestrictsignals()[1]
+  elseif direction == Acses._direction.reverse then
+    signal = self.config.getbackwardrestrictsignals()[1]
+  end
+  return signal == nil or signal.prostate ~= 3
 end
 
 
