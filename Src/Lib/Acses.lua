@@ -29,8 +29,8 @@ function Acses.new(scheduler)
     -- -1.3 mph/s
     penaltycurve_mps2=-1.3*Units.mph.tomps,
     -- Keep the distance small (not very prototypical) to handle those pesky
-    -- shunting signals.
-    positivestop_m=10*Units.m.toft,
+    -- closely spaced shunting signals.
+    positivestop_m=20*Units.m.toft,
     alertcurve_s=8
   }
   self.running = false
