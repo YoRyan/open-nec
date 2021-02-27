@@ -372,10 +372,10 @@ function Acses._advancelimitalert(self, violation)
         elseif direction == Acses._direction.backward then
           speedlimits = self.speedlimits:getbackwardspeedlimits()
         end
-        local canseelimit = Tables.find(
+        local limitgone = not Tables.find(
           speedlimits,
           function (limit) return limit.speed_mps == violation.hazard.limit_mps end)
-        return not canseelimit and acknowledged
+        return limitgone and acknowledged
       end)
     if event == 1 then
       self:_penalty(self.state._violation)
