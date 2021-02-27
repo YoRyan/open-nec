@@ -135,6 +135,7 @@ end
 function Acses._gettrackspeedcurves(self)
   local limit_mps = self.trackspeed.state.speedlimit_mps
   return {
+    type="currentlimit",
     limit_mps=limit_mps,
     penalty_mps=limit_mps + self.config.penaltylimit_mps,
     alert_mps=limit_mps + self.config.alertlimit_mps,
@@ -151,6 +152,7 @@ function Acses._getspeedlimitcurves(self, speedlimit)
       vf)
   end
   return {
+    type="advancelimit",
     limit_mps=speedlimit.speed_mps,
     penalty_mps=calcspeed(
       speedlimit.speed_mps + self.config.penaltylimit_mps, 0),
@@ -176,12 +178,12 @@ end
 function Acses._getviolation(self, brakecurves)
   local aspeed_mps = math.abs(self.config.getspeed_mps())
   local violation = nil
-  for _, t in ipairs(brakecurves) do
-    if aspeed_mps > t.penalty_mps then
-      violation = {type="penalty", limit_mps=t.limit_mps}
+  for _, hazard in ipairs(brakecurves) do
+    if aspeed_mps > hazard.penalty_mps then
+      violation = {type="penalty", hazard=hazard}
       break
-    elseif aspeed_mps > t.alert_mps then
-      violation = {type="alert", limit_mps=t.limit_mps}
+    elseif aspeed_mps > hazard.alert_mps then
+      violation = {type="alert", hazard=hazard}
       break
     end
   end
@@ -246,44 +248,101 @@ end
 function Acses._doenforce(self)
   while true do
     self._sched:select(nil, function () return self.state._violation ~= nil end)
-    self:_alert(self.state._violation)
+    local violation = self.state._violation
+    local type = violation.hazard.type
+    if type == "currentlimit" then
+      self:_currentlimitalert(violation)
+    elseif type == "advancelimit" then
+      self:_advancelimitalert(violation)
+    end
   end
 end
 
-function Acses._alert(self, violation)
-  self.state._enforcingspeed_mps = self.state._violation.limit_mps
+function Acses._currentlimitalert(self, violation)
+  self.state._enforcingspeed_mps = self.state._violation.hazard.limit_mps
   self.state.alarm = true
-  local curviolation, reachedlimit, stopped
   local acknowledged = false
-  repeat
-    acknowledged = acknowledged or self.config.getacknowledge()
-    if acknowledged then
-      self.state.alarm = false
-    end
-    curviolation = self.state._violation
-    if curviolation ~= nil and curviolation.type == "penalty" then
-      self:_penalty(curviolation)
-      -- You have to have acknowledged to have left the penalty state.
-      acknowledged = true
-    end
-    reachedlimit = self.config.gettrackspeed_mps() == violation.limit_mps
-      or not Tables.find(self.speedlimits:getupcomingspeedlimits(), function (limit)
-        return limit.speed_mps == violation.limit_mps
+  while true do
+    local event = self._sched:select(
+      nil,
+      function ()
+        return self.state._violation ~= nil
+          and self.state._violation.type == "penalty"
+      end,
+      function ()
+        return self.config.getacknowledge()
+      end,
+      function ()
+        return math.abs(self.config.getspeed_mps()) <= violation.hazard.limit_mps
+          and acknowledged
+      end,
+      function ()
+        return self.trackspeed.state.speedlimit_mps ~= violation.hazard.limit_mps
+          and acknowledged
       end)
-    stopped = math.abs(self.config.getspeed_mps()) <= 1*Units.mph.tomps
-    self._sched:yield()
-  until curviolation == nil and acknowledged and (reachedlimit or stopped)
-  self.state._enforcingspeed_mps = nil
-  self.state.alarm = false
+    if event == 1 then
+      self:_limitpenalty(self.state._violation)
+      break
+    elseif event == 2 then
+      self.state.alarm = false
+      acknowledged = true
+    elseif event == 3 or event == 4 then
+      self.state._enforcingspeed_mps = nil
+      self.state.alarm = false
+      break
+    end
+  end
 end
 
-function Acses._penalty(self, violation)
+function Acses._advancelimitalert(self, violation)
+  self.state._enforcingspeed_mps = self.state._violation.hazard.limit_mps
+  self.state.alarm = true
+  local acknowledged = false
+  while true do
+    local event = self._sched:select(
+      nil,
+      function ()
+        return self.state._violation ~= nil
+          and self.state._violation.type == "penalty"
+      end,
+      function ()
+        return self.config.getacknowledge()
+      end,
+      function ()
+        return self.trackspeed.state.speedlimit_mps == violation.hazard.limit_mps
+          and acknowledged
+      end,
+      function ()
+        local canseelimit = Tables.find(
+          self.speedlimits:getupcomingspeedlimits(),
+          function (limit) return limit.speed_mps == violation.hazard.limit_mps end)
+        return not canseelimit and acknowledged
+      end)
+    if event == 1 then
+      self:_limitpenalty(self.state._violation)
+      break
+    elseif event == 2 then
+      self.state.alarm = false
+      acknowledged = true
+    elseif event == 3 or event == 4 then
+      self.state._enforcingspeed_mps = nil
+      self.state.alarm = false
+      break
+    end
+  end
+end
+
+function Acses._limitpenalty(self, violation)
+  self.state._enforcingspeed_mps = violation.hazard.limit_mps
   self.state.penalty = true
+  self.state.alarm = true
   self._sched:select(nil, function ()
-    return math.abs(self.config.getspeed_mps()) <= violation.limit_mps
+    return math.abs(self.config.getspeed_mps()) <= violation.hazard.limit_mps
       and self.config.getacknowledge()
   end)
+  self.state._enforcingspeed_mps = nil
   self.state.penalty = false
+  self.state.alarm = false
 end
 
 
