@@ -457,6 +457,7 @@ function Acses._stopsignalpenalty(self, violation)
       end,
       function ()
         return self:_noimminentstopsignal(violation.hazard.direction)
+          and self.config.getacknowledge()
       end)
     if event == 1 then
       self.state.alarm = false
