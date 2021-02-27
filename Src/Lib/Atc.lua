@@ -200,6 +200,9 @@ end
 
 -- Receive a custom signal message.
 function Atc.receivemessage(self, message)
+  if not self.running then
+    return
+  end
   local newcode = self:_getnewpulsecode(message)
   if newcode < self.state.pulsecode and not self._sched:isstartup() then
     self.state._enforce:trigger()
