@@ -17,7 +17,7 @@ Acses._equaldistance_m = 0.1
 -- From the main coroutine, create a new Acses context. This will add coroutines
 -- to the provided scheduler. The caller should also customize the properties
 -- in the config table initialized here.
-function Acses.new(scheduler)
+function Acses.new(scheduler, atc)
   local self = setmetatable({}, Acses)
   self.config = {
     getspeed_mps=function () return 0 end,
@@ -39,6 +39,7 @@ function Acses.new(scheduler)
   }
   self.running = false
   self._sched = scheduler
+  self._atc = atc
   self:_initstate()
   return self
 end
@@ -151,9 +152,12 @@ function Acses._gethazards(self)
     table.insert(hazards, self:_getspeedlimithazard(direction, limit))
   end
 
-  local signal = self:_nextstopsignal(direction)
-  if signal ~= nil then
-    table.insert(hazards, self:_getsignalstophazard(direction, signal))
+  if self._atc.state.pulsecode == Atc.pulsecode.restrict
+      or self._atc.state.pulsecode == Atc.pulsecode.approach then
+    local signal = self:_nextstopsignal(direction)
+    if signal ~= nil then
+      table.insert(hazards, self:_getsignalstophazard(direction, signal))
+    end
   end
 
   return hazards

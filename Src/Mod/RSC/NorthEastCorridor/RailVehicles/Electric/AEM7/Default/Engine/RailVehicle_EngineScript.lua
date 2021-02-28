@@ -43,7 +43,7 @@ Initialise = RailWorks.wraperrors(function ()
     atc:start()
   end
   do
-    local newacses = Acses.new(sched)
+    local newacses = Acses.new(sched, atc)
     local config = newacses.config
     config.getspeed_mps =
       function () return state.speed_mps end
