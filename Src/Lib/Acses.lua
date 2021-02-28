@@ -559,7 +559,7 @@ function AcsesTrackSpeed._look(self, getspeedlimits, report)
         local newlimit = getspeedlimits()[1]
         if newlimit ~= nil then
           local newdistance_m = newlimit.distance_m
-          if newdistance_m > cmpdistance_m then
+          if Acses._softgt(newdistance_m, cmpdistance_m) then
             break
           elseif newlimit.speed_mps ~= startspeed_mps then
             break
