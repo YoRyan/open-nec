@@ -7,7 +7,6 @@ power = nil
 state = {
   throttle=0,
   train_brake=0,
-  dynamic_brake=0,
   acknowledge=false,
   cruisespeed_mps=0,
   cruiseenabled=false,
@@ -132,13 +131,9 @@ Update = RailWorks.wraperrors(function (dt)
   do
     local vthrottle = RailWorks.GetControlValue("VirtualThrottle", 0)
     local vbrake = RailWorks.GetControlValue("VirtualBrake", 0)
-    local vdynamic = RailWorks.GetControlValue("VirtualDynamicBrake", 0)
-    local change = vthrottle ~= state.throttle
-      or vbrake ~= state.train_brake
-      or vdynamic ~= state.dynamic_brake
+    local change = vthrottle ~= state.throttle or vbrake ~= state.train_brake
     state.throttle = vthrottle
     state.train_brake = vbrake
-    state.dynamic_brake = vdynamic
     state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
     if state.acknowledge or change then
       alerter.state.acknowledge:trigger()
@@ -204,10 +199,14 @@ Update = RailWorks.wraperrors(function (dt)
   end
   do
     local v
-    if penalty then v = 0
-    else v = state.dynamic_brake end
+    if penalty then v = 0.5
+    else v = state.train_brake/2 end -- "blended braking"
     RailWorks.SetControlValue("DynamicBrake", 0, v)
   end
+
+  -- Used for the dynamic brake sound?
+  RailWorks.SetControlValue(
+    "DynamicCurrent", 0, math.abs(RailWorks.GetControlValue("Ammeter", 0)))
 
   RailWorks.SetControlValue(
     "AWS", 0,
