@@ -447,28 +447,18 @@ end
 function Acses._stopsignalpenalty(self, violation)
   self.state._enforcingspeed_mps = 0
   self.state.penalty = true
-  local acknowledged = false
   local cmpdistance_m = violation.hazard.distance_m
   while true do
     local nextstop = self:_nextstopsignal(violation.hazard.direction)
     if nextstop == nil or Acses._softgt(nextstop.distance_m, cmpdistance_m) then
       -- Distance has increased, so the player has reversed direction or the
       -- signal has upgraded to Clear.
-      if not acknowledged then
-        self._sched:select(nil, function () return self.config.getacknowledge() end)
-      end
       break
     end
     cmpdistance_m = nextstop.distance_m
-
-    if not acknowledged then
-      if self.config.getacknowledge() then
-        self.state.alarm = false
-        acknowledged = true
-      end
-    end
     self._sched:yield()
   end
+  self._sched:select(nil, function () return self.config.getacknowledge() end)
   self.state._enforcingspeed_mps = nil
   self.state.penalty = false
   self.state.alarm = false
