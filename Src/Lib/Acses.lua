@@ -150,13 +150,8 @@ function Acses._gethazards(self)
     table.insert(hazards, self:_getspeedlimithazard(direction, limit))
   end
 
-  local signal = {}
-  if direction == Acses._direction.forward then
-    signal = self.config.getforwardrestrictsignals()[1]
-  elseif direction == Acses._direction.backward then
-    signal = self.config.getbackwardrestrictsignals()[1]
-  end
-  if signal ~= nil and signal.prostate == 3 then
+  local signal = self:_nextstopsignal(direction)
+  if signal ~= nil then
     table.insert(hazards, self:_getsignalstophazard(direction, signal))
   end
 
@@ -196,6 +191,7 @@ function Acses._getsignalstophazard(self, direction, signal)
   return {
     type=Acses._hazardtype.stopsignal,
     direction=direction,
+    distance_m=signal.distance_m,
     penalty_mps=self:_calcbrakecurve(0, distance_m, 0),
     alert_mps=alert_mps,
     curve_mps=alert_mps
@@ -390,19 +386,29 @@ function Acses._stopsignalalert(self, violation)
   self.state._enforcingspeed_mps = 0
   self.state.alarm = true
   local acknowledged = false
+  local cmpdistance_m = violation.hazard.distance_m
   while true do
+    local nextstop = self:_nextstopsignal(violation.hazard.direction)
+    if nextstop == nil or Acses._softgt(nextstop.distance_m, cmpdistance_m) then
+      -- Distance has increased, so the player has reversed direction or the
+      -- signal has upgraded to Clear.
+      if not acknowledged then
+        self._sched:select(nil, function () return self.config.getacknowledge() end)
+        self.state.alarm = false
+      end
+      self.state._enforcingspeed_mps = nil
+      break
+    end
+    cmpdistance_m = nextstop.distance_m
+
     local event = self._sched:select(
-      nil,
+      0,
       function ()
         return self.state._violation ~= nil
           and self.state._violation.type == Acses._violationtype.penalty
       end,
       function ()
         return self.config.getacknowledge()
-      end,
-      function ()
-        return self:_nextsignalnotstop(violation.hazard.direction)
-          and acknowledged
       end)
     if event == 1 then
       self:_penalty(self.state._violation)
@@ -410,10 +416,6 @@ function Acses._stopsignalalert(self, violation)
     elseif event == 2 then
       self.state.alarm = false
       acknowledged = true
-    elseif event == 3 then
-      self.state._enforcingspeed_mps = nil
-      self.state.alarm = false
-      break
     end
   end
 end
@@ -444,35 +446,54 @@ end
 function Acses._stopsignalpenalty(self, violation)
   self.state._enforcingspeed_mps = 0
   self.state.penalty = true
+  local acknowledged = false
+  local cmpdistance_m = violation.hazard.distance_m
   while true do
-    local event = self._sched:select(
-      nil,
-      function ()
-        return self.config.getacknowledge()
-      end,
-      function ()
-        return self:_nextsignalnotstop(violation.hazard.direction)
-          and self.config.getacknowledge()
-      end)
-    if event == 1 then
-      self.state.alarm = false
-    elseif event == 2 then
+    local nextstop = self:_nextstopsignal(violation.hazard.direction)
+    if nextstop == nil or Acses._softgt(nextstop.distance_m, cmpdistance_m) then
+      -- Distance has increased, so the player has reversed direction or the
+      -- signal has upgraded to Clear.
+      if not acknowledged then
+        self._sched:select(nil, function () return self.config.getacknowledge() end)
+      end
       break
     end
+    cmpdistance_m = nextstop.distance_m
+
+    if not acknowledged then
+      if self.config.getacknowledge() then
+        self.state.alarm = false
+        acknowledged = true
+      end
+    end
+    self._sched:yield()
   end
   self.state._enforcingspeed_mps = nil
   self.state.penalty = false
   self.state.alarm = false
 end
 
-function Acses._nextsignalnotstop(self, direction)
-  local signal
+function Acses._nextstopsignal(self, direction)
+  local signals = {}
   if direction == Acses._direction.forward then
-    signal = self.config.getforwardrestrictsignals()[1]
-  elseif direction == Acses._direction.reverse then
-    signal = self.config.getbackwardrestrictsignals()[1]
+    signals = self.config.getforwardrestrictsignals()
+  elseif direction == Acses._direction.backward then
+    signals = self.config.getbackwardrestrictsignals()
   end
-  return signal == nil or signal.prostate ~= 3
+  for _, signal in ipairs(signals) do
+    if signal.prostate == 3 then
+      return signal
+    end
+  end
+  return nil
+end
+
+function Acses._softgt(a, b)
+  if math.abs(a - b) < 0.1 then
+    return false
+  else
+    return a > b
+  end
 end
 
 
