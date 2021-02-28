@@ -12,6 +12,7 @@ Acses.nsignallookahead = 3
 Acses._direction = {forward=0, backward=1}
 Acses._hazardtype = {currentlimit=0, advancelimit=1, stopsignal=2}
 Acses._violationtype = {alert=0, penalty=1}
+Acses._equaldistance_m = 0.1
 
 -- From the main coroutine, create a new Acses context. This will add coroutines
 -- to the provided scheduler. The caller should also customize the properties
@@ -489,7 +490,7 @@ function Acses._nextstopsignal(self, direction)
 end
 
 function Acses._softgt(a, b)
-  if math.abs(a - b) < 0.1 then
+  if math.abs(a - b) < Acses._equaldistance_m then
     return false
   else
     return a > b
