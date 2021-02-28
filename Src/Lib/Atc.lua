@@ -16,6 +16,8 @@ Atc.pulsecode = {restrict=0,
 Atc.cabspeedflash_s = 0.5
 Atc.inittime_s = 3
 
+Atc._naccelsamples = 24
+
 -- From the main coroutine, create a new Atc context. This will add coroutines
 -- to the provided scheduler. The caller should also customize the properties
 -- in the config table initialized here.
@@ -90,6 +92,7 @@ function Atc._initstate(self)
     -- True when a penalty brake is applied.
     penalty=false,
 
+    _accelaverage_mps2=Average.new(Atc._naccelsamples),
     _enforce=Event.new(self._sched),
   }
   self._coroutines = {}
@@ -97,11 +100,11 @@ end
 
 function Atc._setsuppress(self)
   while true do
-    local accel_mps2 = self.config.getacceleration_mps2()
+    self.state._accelaverage_mps2:sample(self.config.getacceleration_mps2())
+    local accel_mps2 = self.state._accelaverage_mps2:get()
     self.state.suppressing = accel_mps2 <= self.config.suppressing_mps2
     self.state.suppression = accel_mps2 <= self.config.suppression_mps2
-    -- Sample every tenth of a second to avoid spurious precision errors.
-    self._sched:sleep(0.1)
+    self._sched:yield()
   end
 end
 
