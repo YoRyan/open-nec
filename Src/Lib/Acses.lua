@@ -559,9 +559,7 @@ function AcsesTrackSpeed._look(self, getspeedlimits, report)
           elseif newlimit.speed_mps ~= startspeed_mps then
             break
           elseif newdistance_m < self._sensedistance_m then
-            report(startspeed_mps)
-            self:_sensejustpassed(getspeedlimits, startspeed_mps)
-            report(nil)
+            self:_sensejustpassed(getspeedlimits, startspeed_mps, report)
             break
           else
             cmpdistance_m = newdistance_m
@@ -573,18 +571,25 @@ function AcsesTrackSpeed._look(self, getspeedlimits, report)
   end
 end
 
-function AcsesTrackSpeed._sensejustpassed(self, getspeedlimits, limit_mps)
-  self._sched:select(
-    nil,
-    function ()
+function AcsesTrackSpeed._sensejustpassed(self, getspeedlimits, limit_mps, report)
+  local backedout = function ()
+    local nextlimit = getspeedlimits()[1]
+    return nextlimit ~= nil
+      and nextlimit.speed_mps == limit_mps
+      and nextlimit.distance_m >= self._sensedistance_m
+  end
+  local event = self._sched:select(nil, backedout, function ()
+    local nextlimit = getspeedlimits()[1]
+    return nextlimit == nil
+      or nextlimit.speed_mps ~= limit_mps
+  end)
+  if event == 2 then
+    report(limit_mps)
+    self._sched:select(nil, backedout, function ()
       return self._gettrackspeed_mps() == limit_mps
-    end,
-    function ()
-      local nextlimit = getspeedlimits()[1]
-      return nextlimit ~= nil
-        and nextlimit.speed_mps == limit_mps
-        and nextlimit.distance_m >= self._sensedistance_m
     end)
+    report(nil)
+  end
 end
 
 
