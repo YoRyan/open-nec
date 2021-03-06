@@ -118,6 +118,10 @@ function RailWorks.EndUpdate()
   Call("EndUpdate")
 end
 
+function RailWorks.GetSimulationTime()
+  return Call("GetSimulationTime")
+end
+
 function RailWorks.GetIsPlayer()
   return Call("GetIsPlayer") == 1
 end
