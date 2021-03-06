@@ -38,27 +38,41 @@ function Acses.new(scheduler, atc)
     positivestop_m=20*Units.m.toft,
     alertcurve_s=8
   }
-  self.running = false
   self._sched = scheduler
   self._atc = atc
   self:_initstate()
   return self
 end
 
+function Acses._initstate(self)
+  self._running = false
+  self._inforcespeed_mps = 0
+  self._curvespeed_mps = 0
+  self._isalarm = false
+  self._ispenalty = false
+  self._violation = nil
+  self._enforcingspeed_mps = nil
+  self._speedlimits = nil
+  self.trackspeed = nil
+  self._limittracker = nil
+  self._signaltracker = nil
+  self._coroutines = {}
+end
+
 -- From the main coroutine, start or stop the subsystem based on the provided
 -- condition.
 function Acses.setrunstate(self, cond)
-  if cond and not self.running then
+  if cond and not self._running then
     self:start()
-  elseif not cond and self.running then
+  elseif not cond and self._running then
     self:stop()
   end
 end
 
 -- From the main coroutine, initialize this subsystem.
 function Acses.start(self)
-  if not self.running then
-    self.running = true
+  if not self._running then
+    self._running = true
     self._speedlimits = AcsesLimits.new(
       function () return self.config.iterforwardspeedlimits() end,
       function () return self.config.iterbackwardspeedlimits() end)
@@ -102,8 +116,8 @@ end
 
 -- From the main coroutine, halt and reset this subsystem.
 function Acses.stop(self)
-  if self.running then
-    self.running = false
+  if self._running then
+    self._running = false
     for _, co in ipairs(self._coroutines) do
       self._sched:kill(co)
     end
@@ -115,42 +129,41 @@ function Acses.stop(self)
   end
 end
 
-function Acses._initstate(self)
-  self.state = {
-    -- The current track speed in force. In the alert and penalty states, this
-    -- communicates the limit that was violated.
-    inforcespeed_mps=0,
-    -- The current track speed in force, taking into account the advance alert
-    -- and penalty braking curves. This value "counts down" to an approaching
-    -- speed limit.
-    curvespeed_mps=0,
-    -- True when the alarm is sounding continuously.
-    alarm=false,
-    -- True when a penalty brake is applied.
-    penalty=false,
+-- Returns the current track speed in force. In the alert and penalty states,
+-- this communicates the limit that was violated.
+function Acses.getinforcespeed_mps(self)
+  return self._inforcespeed_mps
+end
 
-    _violation=nil,
-    _enforcingspeed_mps=nil
-  }
-  self._speedlimits = nil
-  self.trackspeed = nil
-  self._limittracker = nil
-  self._signaltracker = nil
-  self._coroutines = {}
+-- Returns the current track speed in force, taking into account the advance
+-- alert and penalty braking curves. This value "counts down" to an
+-- approaching speed limit.
+function Acses.getcurvespeed_mps(self)
+  return self._curvespeed_mps
+end
+
+-- Returns true when the alarm is sounding.
+function Acses.isalarm(self)
+  return self._isalarm
+end
+
+-- Returns true when a penalty brake is applied.
+function Acses.ispenalty(self)
+  return self._ispenalty
 end
 
 function Acses._setstate(self)
   while true do
     local inforce_mps =
-      self.state._enforcingspeed_mps or self.trackspeed.state.speedlimit_mps
-    if inforce_mps ~= self.state.inforcespeed_mps then
+      self._enforcingspeed_mps or self.trackspeed.state.speedlimit_mps
+    if inforce_mps ~= self._inforcespeed_mps then
       self.config.doalert()
     end
-    self.state.inforcespeed_mps = inforce_mps
+    self._inforcespeed_mps = inforce_mps
     do
       local hazards = self:_gethazards()
-      self.state.curvespeed_mps = Acses._getcurvespeed(hazards)
-      self.state._violation = self:_getviolation(hazards)
+      self._curvespeed_mps = Acses._getcurvespeed(hazards)
+      self._violation = self:_getviolation(hazards)
     end
     if Acses.debuglimits and self.config.getacknowledge() then
       self:_showlimits()
@@ -355,8 +368,8 @@ end
 
 function Acses._doenforce(self)
   while true do
-    self._sched:select(nil, function () return self.state._violation ~= nil end)
-    local violation = self.state._violation
+    self._sched:select(nil, function () return self._violation ~= nil end)
+    local violation = self._violation
     local type = violation.hazard.type
     if type == Acses._hazardtype.currentlimit then
       self:_currentlimitalert()
@@ -370,15 +383,15 @@ end
 
 function Acses._currentlimitalert(self)
   local limit_mps = self.trackspeed.state.speedlimit_mps
-  self.state._enforcingspeed_mps = limit_mps
-  self.state.alarm = true
+  self._enforcingspeed_mps = limit_mps
+  self._isalarm = true
   local acknowledged = false
   while true do
     local event = self._sched:select(
       nil,
       function ()
-        return self.state._violation ~= nil
-          and self.state._violation.type == Acses._violationtype.penalty
+        return self._violation ~= nil
+          and self._violation.type == Acses._violationtype.penalty
       end,
       function ()
         return self.config.getacknowledge()
@@ -392,14 +405,14 @@ function Acses._currentlimitalert(self)
           and acknowledged
       end)
     if event == 1 then
-      self:_penalty(self.state._violation)
+      self:_penalty(self._violation)
       break
     elseif event == 2 then
-      self.state.alarm = false
+      self._isalarm = false
       acknowledged = true
     elseif event == 3 or event == 4 then
-      self.state._enforcingspeed_mps = nil
-      self.state.alarm = false
+      self._enforcingspeed_mps = nil
+      self._isalarm = false
       break
     end
   end
@@ -410,16 +423,16 @@ function Acses._advancelimitalert(self, violation)
   if limit == nil then
     return
   end
-  self.state._enforcingspeed_mps = limit.speed_mps
-  self.state.alarm = true
+  self._enforcingspeed_mps = limit.speed_mps
+  self._isalarm = true
   local acknowledged = false
   local initdirection = self:_getdirection()
   while true do
     local event = self._sched:select(
       nil,
       function ()
-        return self.state._violation ~= nil
-          and self.state._violation.type == Acses._violationtype.penalty
+        return self._violation ~= nil
+          and self._violation.type == Acses._violationtype.penalty
       end,
       function ()
         return self.config.getacknowledge()
@@ -446,22 +459,22 @@ function Acses._advancelimitalert(self, violation)
         return (pastlimit or reversed) and acknowledged
       end)
     if event == 1 then
-      self:_penalty(self.state._violation)
+      self:_penalty(self._violation)
       break
     elseif event == 2 then
-      self.state.alarm = false
+      self._isalarm = false
       acknowledged = true
     elseif event == 3 then
-      self.state._enforcingspeed_mps = nil
-      self.state.alarm = false
+      self._enforcingspeed_mps = nil
+      self._isalarm = false
       break
     end
   end
 end
 
 function Acses._stopsignalalert(self, violation)
-  self.state._enforcingspeed_mps = 0
-  self.state.alarm = true
+  self._enforcingspeed_mps = 0
+  self._isalarm = true
   local acknowledged = false
   local initdirection = self:_getdirection()
   while true do
@@ -476,26 +489,26 @@ function Acses._stopsignalalert(self, violation)
     if upgraded or reversed then
       if not acknowledged then
         self._sched:select(nil, function () return self.config.getacknowledge() end)
-        self.state.alarm = false
+        self._isalarm = false
       end
-      self.state._enforcingspeed_mps = nil
+      self._enforcingspeed_mps = nil
       break
     end
 
     local event = self._sched:select(
       0,
       function ()
-        return self.state._violation ~= nil
-          and self.state._violation.type == Acses._violationtype.penalty
+        return self._violation ~= nil
+          and self._violation.type == Acses._violationtype.penalty
       end,
       function ()
         return self.config.getacknowledge()
       end)
     if event == 1 then
-      self:_penalty(self.state._violation)
+      self:_penalty(self._violation)
       break
     elseif event == 2 then
-      self.state.alarm = false
+      self._isalarm = false
       acknowledged = true
     end
   end
@@ -514,16 +527,16 @@ end
 
 function Acses._currentlimitpenalty(self)
   local limit_mps = self.trackspeed.state.speedlimit_mps
-  self.state._enforcingspeed_mps = limit_mps
-  self.state.penalty = true
-  self.state.alarm = true
+  self._enforcingspeed_mps = limit_mps
+  self._ispenalty = true
+  self._isalarm = true
   self._sched:select(nil, function ()
     return math.abs(self.config.getspeed_mps()) <= limit_mps
       and self.config.getacknowledge()
   end)
-  self.state._enforcingspeed_mps = nil
-  self.state.penalty = false
-  self.state.alarm = false
+  self._enforcingspeed_mps = nil
+  self._ispenalty = false
+  self._isalarm = false
 end
 
 function Acses._advancelimitpenalty(self, violation)
@@ -531,21 +544,21 @@ function Acses._advancelimitpenalty(self, violation)
   if limit == nil then
     return
   end
-  self.state._enforcingspeed_mps = limit.speed_mps
-  self.state.penalty = true
-  self.state.alarm = true
+  self._enforcingspeed_mps = limit.speed_mps
+  self._ispenalty = true
+  self._isalarm = true
   self._sched:select(nil, function ()
     return math.abs(self.config.getspeed_mps()) <= limit.speed_mps
       and self.config.getacknowledge()
   end)
-  self.state._enforcingspeed_mps = nil
-  self.state.penalty = false
-  self.state.alarm = false
+  self._enforcingspeed_mps = nil
+  self._ispenalty = false
+  self._isalarm = false
 end
 
 function Acses._stopsignalpenalty(self, violation)
-  self.state._enforcingspeed_mps = 0
-  self.state.penalty = true
+  self._enforcingspeed_mps = 0
+  self._ispenalty = true
   self._sched:select(nil, function ()
     local signal = self._signaltracker:getobject(violation.hazard.id)
     local upgraded = signal == nil or signal.prostate ~= 3
@@ -554,9 +567,9 @@ function Acses._stopsignalpenalty(self, violation)
   self._sched:select(nil, function ()
     return self.config.getacknowledge()
   end)
-  self.state._enforcingspeed_mps = nil
-  self.state.penalty = false
-  self.state.alarm = false
+  self._enforcingspeed_mps = nil
+  self._ispenalty = false
+  self._isalarm = false
 end
 
 function Acses._getdirection(self)
