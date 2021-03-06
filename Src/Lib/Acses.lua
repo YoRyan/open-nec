@@ -65,6 +65,18 @@ function Acses.start(self)
       function () return self.config.gettrackspeed_mps() end,
       function () return self.speedlimits:getforwardspeedlimits() end,
       function () return self.speedlimits:getbackwardspeedlimits() end)
+    self.limittracker = AcsesTracker.new(self._sched,
+      function () return self.config.getspeed_mps() end,
+      function ()
+        local limits = {}
+        for _, limit in ipairs(self.config.getforwardspeedlimits()) do
+          limits[limit.distance_m] = limit
+        end
+        for _, limit in ipairs(self.config.getbackwardspeedlimits()) do
+          limits[-limit.distance_m] = limit
+        end
+        return limits
+      end)
     self.signaltracker = AcsesTracker.new(self._sched,
       function () return self.config.getspeed_mps() end,
       function ()
@@ -120,6 +132,8 @@ function Acses._initstate(self)
   }
   self.speedlimits = nil
   self.trackspeed = nil
+  self.limittracker = nil
+  self.signaltracker = nil
   self._coroutines = {}
 end
 
@@ -150,19 +164,13 @@ function Acses._gethazards(self)
   local hazards = {self:_gettrackspeedhazard()}
   local direction = self:_getdirection()
 
-  local limits = {}
-  if direction == Acses._direction.forward then
-    limits = self.speedlimits:getforwardspeedlimits()
-  elseif direction == Acses._direction.backward then
-    limits = self.speedlimits:getbackwardspeedlimits()
-  end
-  for _, limit in ipairs(limits) do
-    table.insert(hazards, self:_getspeedlimithazard(direction, limit))
+  for _, id in ipairs(self:_getupcomingspeedlimits(direction)) do
+    table.insert(hazards, self:_getspeedlimithazard(id))
   end
 
   if self._atc.state.pulsecode == Atc.pulsecode.restrict
       or self._atc.state.pulsecode == Atc.pulsecode.approach then
-    local id = self:_nextstopsignal(direction)
+    local id = self:_getnextstopsignal(direction)
     if id ~= nil then
       table.insert(hazards, self:_getsignalstophazard(id))
     end
@@ -171,24 +179,66 @@ function Acses._gethazards(self)
   return hazards
 end
 
+function Acses._getupcomingspeedlimits(self, direction)
+  if direction == Acses._direction.stopped then
+    return {}
+  end
+  local ids = {}
+  for id, distance_m in pairs(self.limittracker.state.distances_m) do
+    local distok
+    if direction == Acses._direction.forward then
+      distok = distance_m >= 0
+    elseif direction == Acses._direction.backward then
+      distok = distance_m < 0
+    end
+    if distok then
+      table.insert(ids, id)
+    end
+  end
+  return ids
+end
+
+function Acses._getnextstopsignal(self, direction)
+  if direction == Acses._direction.stopped then
+    return nil
+  end
+  local closestid = nil
+  for id, signal in pairs(self.signaltracker.state.objects) do
+    if signal.prostate == 3 then
+      local distance_m = self.signaltracker.state.distances_m[id]
+      if closestid == nil
+          or distance_m < self.signaltracker.state.distances_m[closestid] then
+        local distok
+        if direction == Acses._direction.forward then
+          distok = distance_m >= 0
+        elseif direction == Acses._direction.backward then
+          distok = distance_m < 0
+        end
+        if distok then
+          closestid = id
+        end
+      end
+    end
+  end
+  return closestid
+end
+
 function Acses._gettrackspeedhazard(self)
   local limit_mps = self.trackspeed.state.speedlimit_mps
   return {
     type=Acses._hazardtype.currentlimit,
-    limit_mps=limit_mps,
     penalty_mps=limit_mps + self.config.penaltylimit_mps,
     alert_mps=limit_mps + self.config.alertlimit_mps,
     curve_mps=limit_mps
   }
 end
 
-function Acses._getspeedlimithazard(self, direction, speedlimit)
-  local speed_mps = speedlimit.speed_mps
-  local distance_m = speedlimit.distance_m
+function Acses._getspeedlimithazard(self, id)
+  local speed_mps = self.limittracker.state.objects[id].speed_mps
+  local distance_m = self.limittracker.state.distances_m[id]
   return {
     type=Acses._hazardtype.advancelimit,
-    direction=direction,
-    limit_mps=speedlimit.speed_mps,
+    id=id,
     penalty_mps=self:_calcbrakecurve(
       speed_mps + self.config.penaltylimit_mps, distance_m, 0),
     alert_mps=self:_calcbrakecurve(
@@ -306,7 +356,7 @@ function Acses._doenforce(self)
     local violation = self.state._violation
     local type = violation.hazard.type
     if type == Acses._hazardtype.currentlimit then
-      self:_currentlimitalert(violation)
+      self:_currentlimitalert()
     elseif type == Acses._hazardtype.advancelimit then
       self:_advancelimitalert(violation)
     elseif type == Acses._hazardtype.stopsignal then
@@ -315,8 +365,9 @@ function Acses._doenforce(self)
   end
 end
 
-function Acses._currentlimitalert(self, violation)
-  self.state._enforcingspeed_mps = violation.hazard.limit_mps
+function Acses._currentlimitalert(self)
+  local limit_mps = self.trackspeed.state.speedlimit_mps
+  self.state._enforcingspeed_mps = limit_mps
   self.state.alarm = true
   local acknowledged = false
   while true do
@@ -330,11 +381,11 @@ function Acses._currentlimitalert(self, violation)
         return self.config.getacknowledge()
       end,
       function ()
-        return math.abs(self.config.getspeed_mps()) <= violation.hazard.limit_mps
+        return math.abs(self.config.getspeed_mps()) <= limit_mps
           and acknowledged
       end,
       function ()
-        return self.trackspeed.state.speedlimit_mps ~= violation.hazard.limit_mps
+        return self.trackspeed.state.speedlimit_mps ~= limit_mps
           and acknowledged
       end)
     if event == 1 then
@@ -352,9 +403,14 @@ function Acses._currentlimitalert(self, violation)
 end
 
 function Acses._advancelimitalert(self, violation)
-  self.state._enforcingspeed_mps = violation.hazard.limit_mps
+  local limit = self.limittracker.state.objects[violation.hazard.id]
+  if limit == nil then
+    return
+  end
+  self.state._enforcingspeed_mps = limit.speed_mps
   self.state.alarm = true
   local acknowledged = false
+  local initdirection = self:_getdirection()
   while true do
     local event = self._sched:select(
       nil,
@@ -366,21 +422,25 @@ function Acses._advancelimitalert(self, violation)
         return self.config.getacknowledge()
       end,
       function ()
-        return self.trackspeed.state.speedlimit_mps == violation.hazard.limit_mps
-          and acknowledged
-      end,
-      function ()
-        local direction = violation.hazard.direction
-        local speedlimits = {}
-        if direction == Acses._direction.forward then
-          speedlimits = self.speedlimits:getforwardspeedlimits()
-        elseif direction == Acses._direction.backward then
-          speedlimits = self.speedlimits:getbackwardspeedlimits()
+        local pastlimit
+        local distanceto_m =
+          self.limittracker.state.distances_m[violation.hazard.id]
+        if distanceto_m == nil then
+          pastlimit = true
+        elseif initdirection == Acses._direction.forward and distanceto_m < 0 then
+          pastlimit = true
+        elseif initdirection == Acses._direction.backward and distanceto_m > 0 then
+          pastlimit = true
+        else
+          pastlimit = false
         end
-        local limitgone = not Tables.find(
-          speedlimits,
-          function (limit) return limit.speed_mps == violation.hazard.limit_mps end)
-        return limitgone and acknowledged
+
+        local direction =
+          self:_getdirection()
+        local reversed =
+          direction ~= initdirection and direction ~= Acses._direction.stopped
+
+        return (pastlimit or reversed) and acknowledged
       end)
     if event == 1 then
       self:_penalty(self.state._violation)
@@ -388,7 +448,7 @@ function Acses._advancelimitalert(self, violation)
     elseif event == 2 then
       self.state.alarm = false
       acknowledged = true
-    elseif event == 3 or event == 4 then
+    elseif event == 3 then
       self.state._enforcingspeed_mps = nil
       self.state.alarm = false
       break
@@ -440,20 +500,39 @@ end
 
 function Acses._penalty(self, violation)
   local type = violation.hazard.type
-  if type == Acses._hazardtype.currentlimit
-      or type == Acses._hazardtype.advancelimit then
-    self:_limitpenalty(violation)
+  if type == Acses._hazardtype.currentlimit then
+    self:_currentlimitpenalty()
+  elseif type == Acses._hazardtype.advancelimit then
+    self:_advancelimitpenalty(violation)
   elseif type == Acses._hazardtype.stopsignal then
     self:_stopsignalpenalty(violation)
   end
 end
 
-function Acses._limitpenalty(self, violation)
-  self.state._enforcingspeed_mps = violation.hazard.limit_mps
+function Acses._currentlimitpenalty(self)
+  local limit_mps = self.trackspeed.state.speedlimit_mps
+  self.state._enforcingspeed_mps = limit_mps
   self.state.penalty = true
   self.state.alarm = true
   self._sched:select(nil, function ()
-    return math.abs(self.config.getspeed_mps()) <= violation.hazard.limit_mps
+    return math.abs(self.config.getspeed_mps()) <= limit_mps
+      and self.config.getacknowledge()
+  end)
+  self.state._enforcingspeed_mps = nil
+  self.state.penalty = false
+  self.state.alarm = false
+end
+
+function Acses._advancelimitpenalty(self, violation)
+  local limit =  self.limittracker.state.objects[violation.hazard.id]
+  if limit == nil then
+    return
+  end
+  self.state._enforcingspeed_mps = limit.speed_mps
+  self.state.penalty = true
+  self.state.alarm = true
+  self._sched:select(nil, function ()
+    return math.abs(self.config.getspeed_mps()) <= limit.speed_mps
       and self.config.getacknowledge()
   end)
   self.state._enforcingspeed_mps = nil
@@ -475,30 +554,6 @@ function Acses._stopsignalpenalty(self, violation)
   self.state._enforcingspeed_mps = nil
   self.state.penalty = false
   self.state.alarm = false
-end
-
-function Acses._nextstopsignal(self, direction)
-  local disttest
-  if direction == Acses._direction.forward then
-    disttest = function (d) return d >= 0 end
-  elseif direction == Acses._direction.stopped then
-    return nil
-  elseif direction == Acses._direction.backward then
-    disttest = function (d) return d < 0 end
-  end
-  local closestid = nil
-  for id, signal in pairs(self.signaltracker.state.objects) do
-    if signal.prostate == 3 then
-      local distance_m = self.signaltracker.state.distances_m[id]
-      if closestid == nil
-          or distance_m < self.signaltracker.state.distances_m[closestid] then
-        if disttest(distance_m) then
-          closestid = id
-        end
-      end
-    end
-  end
-  return closestid
 end
 
 function Acses._getdirection(self)
