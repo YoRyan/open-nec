@@ -25,8 +25,8 @@ function Acses.new(scheduler, atc)
     gettrackspeed_mps=function () return 0 end,
     getforwardspeedlimits=function () return {} end,
     getbackwardspeedlimits=function () return {} end,
-    getforwardrestrictsignals=function () return {} end,
-    getbackwardrestrictsignals=function () return {} end,
+    iterforwardrestrictsignals=function () return ipairs({}) end,
+    iterbackwardrestrictsignals=function () return ipairs({}) end,
     getacknowledge=function () return false end,
     doalert=function () end,
     penaltylimit_mps=3*Units.mph.tomps,
@@ -82,10 +82,10 @@ function Acses.start(self)
       function () return self.config.getspeed_mps() end,
       function ()
         local signals = {}
-        for _, signal in ipairs(self.config.getforwardrestrictsignals()) do
+        for _, signal in self.config.iterforwardrestrictsignals() do
           signals[signal.distance_m] = signal
         end
-        for _, signal in ipairs(self.config.getbackwardrestrictsignals()) do
+        for _, signal in self.config.iterbackwardrestrictsignals() do
           signals[-signal.distance_m] = signal
         end
         return signals
@@ -339,17 +339,17 @@ function Acses._showsignals(self)
   local fdist = function (m)
     return string.format("%.2f", m*Units.m.toft) .. "ft"
   end
-  local dump = function (signals)
+  local dump = function (itersignals)
     local res = ""
-    for _, signal in ipairs(signals) do
+    for _, signal in itersignals do
       local s = "state=" .. faspect(signal.prostate)
         .. ", distance=" .. fdist(signal.distance_m)
       res = res .. s .. "\n"
     end
     return res
   end
-  self._sched:info("Forward: " .. dump(self.config.getforwardrestrictsignals())
-    .. "Backward: " .. dump(self.config.getbackwardrestrictsignals()))
+  self._sched:info("Forward: " .. dump(self.config.iterforwardrestrictsignals())
+    .. "Backward: " .. dump(self.config.iterbackwardrestrictsignals()))
 end
 
 function Acses._doenforce(self)

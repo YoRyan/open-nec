@@ -52,10 +52,10 @@ Initialise = RailWorks.wraperrors(function ()
       function () return state.forwardspeedlimits end
     config.getbackwardspeedlimits =
       function () return state.backwardspeedlimits end
-    config.getforwardrestrictsignals =
-      function () return state.forwardrestrictsignals end
-    config.getbackwardrestrictsignals =
-      function () return state.backwardrestrictsignals end
+    config.iterforwardrestrictsignals =
+      function () return ipairs(state.forwardrestrictsignals) end
+    config.iterbackwardrestrictsignals =
+      function () return ipairs(state.backwardrestrictsignals) end
     config.getacknowledge =
       function () return state.acknowledge end
     config.doalert =
