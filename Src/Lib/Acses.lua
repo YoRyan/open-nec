@@ -13,6 +13,7 @@ Acses._direction = {forward=0, stopped=1, backward=2}
 Acses._hazardtype = {currentlimit=0, advancelimit=1, stopsignal=2}
 Acses._violationtype = {alert=0, penalty=1}
 Acses._equaldistance_m = 0.1
+Acses._stopspeed_mps = 0.01
 
 -- From the main coroutine, create a new Acses context. This will add coroutines
 -- to the provided scheduler. The caller should also customize the properties
@@ -168,8 +169,9 @@ function Acses._gethazards(self)
     table.insert(hazards, self:_getspeedlimithazard(id))
   end
 
-  if self._atc.state.pulsecode == Atc.pulsecode.restrict
-      or self._atc.state.pulsecode == Atc.pulsecode.approach then
+  local pulsecode = self._atc:getpulsecode()
+  if pulsecode == Atc.pulsecode.restrict
+      or pulsecode == Atc.pulsecode.approach then
     local id = self:_getnextstopsignal(direction)
     if id ~= nil then
       table.insert(hazards, self:_getsignalstophazard(id))
@@ -558,7 +560,7 @@ end
 
 function Acses._getdirection(self)
   local speed_mps = self.config.getspeed_mps()
-  if math.abs(speed_mps) < 0.01 then
+  if math.abs(speed_mps) < Acses._stopspeed_mps then
     return Acses._direction.stopped
   elseif speed_mps > 0 then
     return Acses._direction.forward
