@@ -391,7 +391,7 @@ function Acses._currentlimitalert(self)
           and acknowledged
       end)
     if event == 1 then
-      self:_limitpenalty(self.state._violation)
+      self:_penalty(self.state._violation)
       break
     elseif event == 2 then
       self.state.alarm = false
