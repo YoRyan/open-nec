@@ -3,10 +3,12 @@
 RailWorks = {}
 RailWorks.__index = RailWorks
 
+-- Flash an info (middle of screen) message.
 function RailWorks.showinfo(msg)
   SysCall("ScenarioManager:ShowMessage", "", tostring(msg), 0)
 end
 
+-- Flash an alert (top-right corner) message.
 function RailWorks.showalert(msg)
   SysCall("ScenarioManager:ShowMessage", tostring(msg), "", 1)
 end
