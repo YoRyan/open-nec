@@ -36,26 +36,37 @@ function Atc.new(scheduler)
     suppression_mps2=-1.5*Units.mph.tomps,
     speedmargin_mps=3*Units.mph.tomps
   }
-  self.running = false
   self._sched = scheduler
   self:_initstate()
   return self
 end
 
+function Atc._initstate(self)
+  self._running = false
+  self._isalarm = false
+  self._issuppressing = false
+  self._issuppression = false
+  self._ispenalty = false
+  self._pulsecode = Atc.pulsecode.restrict
+  self._accelaverage_mps2 = Average.new(Atc._naccelsamples)
+  self._enforce = Event.new(self._sched)
+  self._coroutines = {}
+end
+
 -- From the main coroutine, start or stop the subsystem based on the provided
 -- condition.
 function Atc.setrunstate(self, cond)
-  if cond and not self.running then
+  if cond and not self._running then
     self:start()
-  elseif not cond and self.running then
+  elseif not cond and self._running then
     self:stop()
   end
 end
 
 -- From the main coroutine, initialize this subsystem.
 function Atc.start(self)
-  if not self.running then
-    self.running = true
+  if not self._running then
+    self._running = true
     self._coroutines = {
       self._sched:run(Atc._setsuppress, self),
       self._sched:run(Atc._doenforce, self)
@@ -68,8 +79,8 @@ end
 
 -- From the main coroutine, halt and reset this subsystem.
 function Atc.stop(self)
-  if self.running then
-    self.running = false
+  if self._running then
+    self._running = false
     for _, co in ipairs(self._coroutines) do
       self._sched:kill(co)
     end
@@ -78,32 +89,37 @@ function Atc.stop(self)
   end
 end
 
-function Atc._initstate(self)
-  self.state = {
-    -- The current pulse code in effect.
-    pulsecode=Atc.pulsecode.restrict,
-    -- True when the alarm is sounding.
-    alarm=false,
-    -- True when the suppressing deceleration rate is achieved.
-    suppressing=false,
-    -- True when the suppression condition is achieved.
-    -- 'suppression' implies 'suppressing'.
-    suppression=false,
-    -- True when a penalty brake is applied.
-    penalty=false,
+-- Get the current pulse code in effect.
+function Atc.getpulsecode(self)
+  return self._pulsecode
+end
 
-    _accelaverage_mps2=Average.new(Atc._naccelsamples),
-    _enforce=Event.new(self._sched),
-  }
-  self._coroutines = {}
+-- Returns true when the alarm is sounding.
+function Atc.isalarm(self)
+  return self._isalarm
+end
+
+-- Returns true when the suppressing deceleration rate is achieved.
+function Atc.issuppressing(self)
+  return self._issuppressing
+end
+
+-- Returns true when the suppression deceleration rate is achieved.
+function Atc.issuppression(self)
+  return self._issuppression
+end
+
+-- Returns true when a penalty brake is applied.
+function Atc.ispenalty(self)
+  return self._ispenalty
 end
 
 function Atc._setsuppress(self)
   while true do
-    self.state._accelaverage_mps2:sample(self.config.getacceleration_mps2())
-    local accel_mps2 = self.state._accelaverage_mps2:get()
-    self.state.suppressing = accel_mps2 <= self.config.suppressing_mps2
-    self.state.suppression = accel_mps2 <= self.config.suppression_mps2
+    self._accelaverage_mps2:sample(self.config.getacceleration_mps2())
+    local accel_mps2 = self._accelaverage_mps2:get()
+    self._issuppressing = accel_mps2 <= self.config.suppressing_mps2
+    self._issuppression = accel_mps2 <= self.config.suppression_mps2
     self._sched:yield()
   end
 end
@@ -112,11 +128,11 @@ function Atc._doenforce(self)
   while true do
     self._sched:select(
       nil,
-      function () return self.state._enforce:poll() end,
+      function () return self._enforce:poll() end,
       function () return not self:_iscomplying() end)
     -- Alarm phase. Acknowledge the alarm and reach the initial suppressing
     -- deceleration rate.
-    self.state.alarm = true
+    self._isalarm = true
     local acknowledged
     do
       local ack = false
@@ -125,16 +141,16 @@ function Atc._doenforce(self)
         function ()
           -- The player need only acknowledge the alarm once.
           ack = ack or self.config.getacknowledge()
-          return ack and (self.state.suppressing or self:_iscomplying())
+          return ack and (self._issuppressing or self:_iscomplying())
         end
       ) ~= nil
     end
     if acknowledged then
       -- Suppressing phase. Reach the suppression deceleration rate.
-      self.state.alarm = false
+      self._isalarm = false
       local suppressed = self._sched:select(
         self.config.countdown_s,
-        function () return self.state.suppression end,
+        function () return self._issuppression end,
         function () return self:_iscomplying() end
       ) ~= nil
       if suppressed then
@@ -142,7 +158,7 @@ function Atc._doenforce(self)
         -- until the train complies with the speed limit.
         self._sched:select(
           nil,
-          function () return not self.state.suppression end,
+          function () return not self._issuppression end,
           function () return self:_iscomplying() end)
         -- From here, return to the beginning of the loop, either to wait for
         -- the next enforcement action or to repeat it immediately.
@@ -156,12 +172,12 @@ function Atc._doenforce(self)
 end
 
 function Atc._iscomplying(self)
-  local limit_mps = Atc.getpulsecodespeed_mps(self.state.pulsecode)
+  local limit_mps = Atc.getpulsecodespeed_mps(self._pulsecode)
   return self.config.getspeed_mps() <= limit_mps + self.config.speedmargin_mps
 end
 
 function Atc._iscomplyingstrict(self)
-  local limit_mps = Atc.getpulsecodespeed_mps(self.state.pulsecode)
+  local limit_mps = Atc.getpulsecodespeed_mps(self._pulsecode)
   return self.config.getspeed_mps() <= limit_mps
 end
 
@@ -189,49 +205,47 @@ function Atc.getpulsecodespeed_mps(pulsecode)
 end
 
 function Atc._penalty(self)
-  self.state.alarm = true
-  self.state.penalty = true
+  self._isalarm = true
+  self._ispenalty = true
   self._sched:select(nil, function ()
     return self.config.getspeed_mps() <= 0 and self.config.getacknowledge()
   end)
-  self.state.alarm = false
-  self.state.penalty = false
+  self._isalarm = false
+  self._ispenalty = false
 end
 
 -- Receive a custom signal message.
 function Atc.receivemessage(self, message)
-  if not self.running then
+  if not self._running then
     return
   end
   local newcode = self:_getnewpulsecode(message)
-  if newcode < self.state.pulsecode and not self._sched:isstartup() then
-    self.state._enforce:trigger()
-  elseif newcode > self.state.pulsecode then
+  if newcode < self._pulsecode and not self._sched:isstartup() then
+    self._enforce:trigger()
+  elseif newcode > self._pulsecode then
     self.config.doalert()
   end
-  self.state.pulsecode = newcode
+  self._pulsecode = newcode
   if Atc.debugsignals then
     self._sched:info(message)
   end
 end
 
 function Atc._getnewpulsecode(self, message)
-  local code = self:getpulsecode(message)
+  local code = self:_messagepulsecode(message)
   if code ~= nil then
     return code
   end
   local power = Power.getchangepoint(message)
   if power ~= nil then
     -- Power switch signal. No change.
-    return self.state.pulsecode
+    return self._pulsecode
   end
   self._sched:info("WARNING:\nUnknown signal '" .. message .. "'")
   return Atc.pulsecode.restrict
 end
 
--- Get the pulse code that corresponds to a signal message. If nil, then the
--- message is of an unknown format.
-function Atc.getpulsecode(self, message)
+function Atc._messagepulsecode(self, message)
   -- Amtrak/NJ Transit signals
   if string.sub(message, 1, 3) == "sig" then
     local code = string.sub(message, 4, 4)
@@ -255,7 +269,7 @@ function Atc.getpulsecode(self, message)
       return Atc.pulsecode.restrict
     -- DTG "Ignore"
     elseif code == "8" then
-      return self.state.pulsecode
+      return self._pulsecode
     else
       return nil
     end

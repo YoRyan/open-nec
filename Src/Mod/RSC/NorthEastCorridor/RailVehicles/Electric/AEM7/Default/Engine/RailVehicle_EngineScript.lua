@@ -179,7 +179,7 @@ Update = RailWorks.wraperrors(function (dt)
   end
   sched:clearalertmessages()
 
-  local penalty = atc.state.penalty or acses.state.penalty or alerter:ispenalty()
+  local penalty = atc:ispenalty() or acses.state.penalty or alerter:ispenalty()
   do
     local powertypes = {}
     if RailWorks.GetControlValue("PantographControl", 0) == 1 then
@@ -216,13 +216,13 @@ Update = RailWorks.wraperrors(function (dt)
 
   RailWorks.SetControlValue(
     "AWS", 0,
-    RailWorks.frombool(atc.state.alarm or acses.state.alarm or alerter:isalarm()))
+    RailWorks.frombool(atc:isalarm() or acses.state.alarm or alerter:isalarm()))
   RailWorks.SetControlValue(
     "AWSWarnCount", 0,
     RailWorks.frombool(alerter:isalarm()))
   RailWorks.SetControlValue(
     "OverSpeedAlert", 0,
-    RailWorks.frombool(state.beep_alert or atc.state.alarm or acses.state.alarm))
+    RailWorks.frombool(state.beep_alert or atc:isalarm() or acses.state.alarm))
   RailWorks.SetControlValue(
     "TrackSpeed", 0,
     math.floor(acses.state.inforcespeed_mps*Units.mps.tomph + 0.5))
@@ -238,7 +238,7 @@ Update = RailWorks.wraperrors(function (dt)
 end)
 
 function setpulsecode ()
-  local code = atc.state.pulsecode
+  local code = atc:getpulsecode()
   local cs, cs1, cs2
   if code == Atc.pulsecode.restrict then
     cs, cs1, cs2 = 7, 0, 0
