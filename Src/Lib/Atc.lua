@@ -17,6 +17,7 @@ Atc.cabspeedflash_s = 0.5
 Atc.inittime_s = 3
 
 Atc._naccelsamples = 24
+Atc._stopspeed_mps = 0.01
 
 -- From the main coroutine, create a new Atc context. This will add coroutines
 -- to the provided scheduler. The caller should also customize the properties
@@ -208,7 +209,8 @@ function Atc._penalty(self)
   self._isalarm = true
   self._ispenalty = true
   self._sched:select(nil, function ()
-    return self.config.getspeed_mps() <= 0 and self.config.getacknowledge()
+    return self.config.getspeed_mps() <= Atc._stopspeed_mps
+      and self.config.getacknowledge()
   end)
   self._isalarm = false
   self._ispenalty = false
