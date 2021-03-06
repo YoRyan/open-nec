@@ -9,7 +9,7 @@ Acses.debugsignals = false
 Acses.nlimitlookahead = 5
 Acses.nsignallookahead = 3
 
-Acses._direction = {forward=0, backward=1}
+Acses._direction = {forward=0, stopped=1, backward=2}
 Acses._hazardtype = {currentlimit=0, advancelimit=1, stopsignal=2}
 Acses._violationtype = {alert=0, penalty=1}
 Acses._equaldistance_m = 0.1
@@ -65,6 +65,18 @@ function Acses.start(self)
       function () return self.config.gettrackspeed_mps() end,
       function () return self.speedlimits:getforwardspeedlimits() end,
       function () return self.speedlimits:getbackwardspeedlimits() end)
+    self.signaltracker = AcsesTracker.new(self._sched,
+      function () return self.config.getspeed_mps() end,
+      function ()
+        local signals = {}
+        for _, signal in ipairs(self.config.getforwardrestrictsignals()) do
+          signals[signal.distance_m] = signal
+        end
+        for _, signal in ipairs(self.config.getbackwardrestrictsignals()) do
+          signals[-signal.distance_m] = signal
+        end
+        return signals
+      end)
     self._coroutines = {
       self._sched:run(Acses._setstate, self),
       self._sched:run(Acses._doenforce, self)
@@ -83,6 +95,7 @@ function Acses.stop(self)
       self._sched:kill(co)
     end
     self.trackspeed:kill()
+    self.signaltracker:kill()
     self:_initstate()
     self._sched:alert("ACSES Cut Out")
   end
@@ -135,12 +148,7 @@ end
 
 function Acses._gethazards(self)
   local hazards = {self:_gettrackspeedhazard()}
-  local direction
-  if self.config.getspeed_mps() >= 0 then
-    direction = Acses._direction.forward
-  else
-    direction = Acses._direction.backward
-  end
+  local direction = self:_getdirection()
 
   local limits = {}
   if direction == Acses._direction.forward then
@@ -154,9 +162,9 @@ function Acses._gethazards(self)
 
   if self._atc.state.pulsecode == Atc.pulsecode.restrict
       or self._atc.state.pulsecode == Atc.pulsecode.approach then
-    local signal = self:_nextstopsignal(direction)
-    if signal ~= nil then
-      table.insert(hazards, self:_getsignalstophazard(direction, signal))
+    local id = self:_nextstopsignal(direction)
+    if id ~= nil then
+      table.insert(hazards, self:_getsignalstophazard(id))
     end
   end
 
@@ -190,13 +198,14 @@ function Acses._getspeedlimithazard(self, direction, speedlimit)
   }
 end
 
-function Acses._getsignalstophazard(self, direction, signal)
-  local distance_m = signal.distance_m - self.config.positivestop_m
-  local alert_mps = self:_calcbrakecurve(0, distance_m, self.config.alertcurve_s)
+function Acses._getsignalstophazard(self, id)
+  local distance_m =
+    self.signaltracker.state.distances_m[id] - self.config.positivestop_m
+  local alert_mps =
+    self:_calcbrakecurve(0, distance_m, self.config.alertcurve_s)
   return {
     type=Acses._hazardtype.stopsignal,
-    direction=direction,
-    distance_m=signal.distance_m,
+    id=id,
     penalty_mps=self:_calcbrakecurve(0, distance_m, 0),
     alert_mps=alert_mps,
     curve_mps=alert_mps
@@ -391,12 +400,17 @@ function Acses._stopsignalalert(self, violation)
   self.state._enforcingspeed_mps = 0
   self.state.alarm = true
   local acknowledged = false
-  local cmpdistance_m = violation.hazard.distance_m
+  local initdirection = self:_getdirection()
   while true do
-    local nextstop = self:_nextstopsignal(violation.hazard.direction)
-    if nextstop == nil or Acses._softgt(nextstop.distance_m, cmpdistance_m) then
-      -- Distance has increased, so the player has reversed direction or the
-      -- signal has upgraded to Clear.
+    local signal =
+      self.signaltracker.state.objects[violation.hazard.id]
+    local upgraded =
+      signal == nil or signal.prostate ~= 3
+    local direction =
+      self:_getdirection()
+    local reversed =
+      direction ~= initdirection and direction ~= Acses._direction.stopped
+    if upgraded or reversed then
       if not acknowledged then
         self._sched:select(nil, function () return self.config.getacknowledge() end)
         self.state.alarm = false
@@ -404,7 +418,6 @@ function Acses._stopsignalalert(self, violation)
       self.state._enforcingspeed_mps = nil
       break
     end
-    cmpdistance_m = nextstop.distance_m
 
     local event = self._sched:select(
       0,
@@ -451,36 +464,52 @@ end
 function Acses._stopsignalpenalty(self, violation)
   self.state._enforcingspeed_mps = 0
   self.state.penalty = true
-  local cmpdistance_m = violation.hazard.distance_m
-  while true do
-    local nextstop = self:_nextstopsignal(violation.hazard.direction)
-    if nextstop == nil or Acses._softgt(nextstop.distance_m, cmpdistance_m) then
-      -- Distance has increased, so the player has reversed direction or the
-      -- signal has upgraded to Clear.
-      break
-    end
-    cmpdistance_m = nextstop.distance_m
-    self._sched:yield()
-  end
-  self._sched:select(nil, function () return self.config.getacknowledge() end)
+  self._sched:select(nil, function ()
+    local signal = self.signaltracker.state.objects[violation.hazard.id]
+    local upgraded = signal == nil or signal.prostate ~= 3
+    return upgraded
+  end)
+  self._sched:select(nil, function ()
+    return self.config.getacknowledge()
+  end)
   self.state._enforcingspeed_mps = nil
   self.state.penalty = false
   self.state.alarm = false
 end
 
 function Acses._nextstopsignal(self, direction)
-  local signals = {}
+  local disttest
   if direction == Acses._direction.forward then
-    signals = self.config.getforwardrestrictsignals()
+    disttest = function (d) return d >= 0 end
+  elseif direction == Acses._direction.stopped then
+    return nil
   elseif direction == Acses._direction.backward then
-    signals = self.config.getbackwardrestrictsignals()
+    disttest = function (d) return d < 0 end
   end
-  for _, signal in ipairs(signals) do
+  local closestid = nil
+  for id, signal in pairs(self.signaltracker.state.objects) do
     if signal.prostate == 3 then
-      return signal
+      local distance_m = self.signaltracker.state.distances_m[id]
+      if closestid == nil
+          or distance_m < self.signaltracker.state.distances_m[closestid] then
+        if disttest(distance_m) then
+          closestid = id
+        end
+      end
     end
   end
-  return nil
+  return closestid
+end
+
+function Acses._getdirection(self)
+  local speed_mps = self.config.getspeed_mps()
+  if math.abs(speed_mps) < 0.01 then
+    return Acses._direction.stopped
+  elseif speed_mps > 0 then
+    return Acses._direction.forward
+  else
+    return Acses._direction.backward
+  end
 end
 
 function Acses._softgt(a, b)
@@ -589,6 +618,93 @@ function AcsesTrackSpeed._sensejustpassed(self, getspeedlimits, limit_mps, repor
       return self._gettrackspeed_mps() == limit_mps
     end)
     report(nil)
+  end
+end
+
+
+-- Assigns persistent unique identifiers to trackside objects that are sensed by
+-- their relative distances from the player.
+AcsesTracker = {}
+AcsesTracker.__index = AcsesTracker
+
+--[[
+  From the main coroutine, create a new track object tracker context. This will
+  add coroutines to the provided scheduler.
+
+  getbydistance should return a dictionary that maps distances to tracked objects.
+]]--
+function AcsesTracker.new(scheduler, getspeed_mps, getbydistance)
+  local self = setmetatable({}, AcsesTracker)
+  self.state = {
+    -- id -> tracked object
+    objects = {},
+    -- id -> distance (m)
+    distances_m = {}
+  }
+  self._minretain_m = 1
+  self._matchmargin_m = 2
+  self._sched = scheduler
+  self._coroutines = {
+    self._sched:run(AcsesTracker._run, self, getspeed_mps, getbydistance)
+  }
+  return self
+end
+
+-- From the main coroutine, kill this subsystem's coroutines.
+function AcsesTracker.kill(self)
+  for _, co in ipairs(self._coroutines) do
+    self._sched:kill(co)
+  end
+end
+
+function AcsesTracker._run(self, getspeed_mps, getbydistance)
+  local ctr = 1
+  local lasttime = self._sched:clock()
+  while true do
+    self._sched:yield()
+    local time = self._sched:clock()
+    local speed_mps = getspeed_mps()
+    local travel_m = speed_mps*(time - lasttime)
+    lasttime = time
+
+    local newobjects = {}
+    local newdistances = {}
+
+    -- Match sensed objects to tracked objects, taking into consideration the
+    -- anticipated travel distance.
+    for sensedist_m, obj in pairs(getbydistance()) do
+      local match = false
+      for id, trackdist_m in pairs(self.state.distances_m) do
+        -- Update matched objects.
+        if math.abs(trackdist_m + travel_m - sensedist_m)
+            < self._matchmargin_m/2 then
+          match = true
+          newobjects[id] = obj
+          newdistances[id] = sensedist_m
+          break
+        end
+      end
+      -- Add unmatched objects.
+      if not match then
+        newobjects[ctr] = obj
+        newdistances[ctr] = sensedist_m
+        ctr = ctr + 1
+      end
+    end
+
+    -- Add back objects that are no longer sensed, but are within the minimum
+    -- distance retention zone.
+    for id, dist_m in pairs(self.state.distances_m) do
+      if newdistances[id] == nil then
+        if math.abs(dist_m + travel_m) < self._minretain_m then
+          newobjects[id] = self.state.objects[id]
+          newdistances[id] = dist_m + travel_m
+        end
+      end
+    end
+
+    self.state.objects = newobjects
+    self.state.distances_m = newdistances
   end
 end
 
