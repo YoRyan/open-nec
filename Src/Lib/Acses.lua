@@ -59,26 +59,26 @@ end
 function Acses.start(self)
   if not self.running then
     self.running = true
-    self.speedlimits = AcsesLimits.new(
+    self._speedlimits = AcsesLimits.new(
       function () return self.config.iterforwardspeedlimits() end,
       function () return self.config.iterbackwardspeedlimits() end)
     self.trackspeed = AcsesTrackSpeed.new(self._sched,
       function () return self.config.gettrackspeed_mps() end,
-      function () return Tables.fromiterator(self.speedlimits:iterforwardspeedlimits()) end,
-      function () return Tables.fromiterator(self.speedlimits:iterbackwardspeedlimits()) end)
-    self.limittracker = AcsesTracker.new(self._sched,
+      function () return Tables.fromiterator(self._speedlimits:iterforwardspeedlimits()) end,
+      function () return Tables.fromiterator(self._speedlimits:iterbackwardspeedlimits()) end)
+    self._limittracker = AcsesTracker.new(self._sched,
       function () return self.config.getspeed_mps() end,
       function ()
         local limits = {}
-        for _, limit in self.speedlimits:iterforwardspeedlimits() do
+        for _, limit in self._speedlimits:iterforwardspeedlimits() do
           limits[limit.distance_m] = limit
         end
-        for _, limit in self.speedlimits:iterbackwardspeedlimits() do
+        for _, limit in self._speedlimits:iterbackwardspeedlimits() do
           limits[-limit.distance_m] = limit
         end
         return limits
       end)
-    self.signaltracker = AcsesTracker.new(self._sched,
+    self._signaltracker = AcsesTracker.new(self._sched,
       function () return self.config.getspeed_mps() end,
       function ()
         local signals = {}
@@ -108,7 +108,8 @@ function Acses.stop(self)
       self._sched:kill(co)
     end
     self.trackspeed:kill()
-    self.signaltracker:kill()
+    self._limittracker:kill()
+    self._signaltracker:kill()
     self:_initstate()
     self._sched:alert("ACSES Cut Out")
   end
@@ -131,10 +132,10 @@ function Acses._initstate(self)
     _violation=nil,
     _enforcingspeed_mps=nil
   }
-  self.speedlimits = nil
+  self._speedlimits = nil
   self.trackspeed = nil
-  self.limittracker = nil
-  self.signaltracker = nil
+  self._limittracker = nil
+  self._signaltracker = nil
   self._coroutines = {}
 end
 
@@ -186,7 +187,7 @@ function Acses._getupcomingspeedlimits(self, direction)
     return {}
   end
   local ids = {}
-  for id, distance_m in pairs(self.limittracker.state.distances_m) do
+  for id, distance_m in self._limittracker:iterdistances_m() do
     local distok
     if direction == Acses._direction.forward then
       distok = distance_m >= 0
@@ -205,11 +206,11 @@ function Acses._getnextstopsignal(self, direction)
     return nil
   end
   local closestid = nil
-  for id, signal in pairs(self.signaltracker.state.objects) do
+  for id, signal in self._signaltracker:iterobjects() do
     if signal.prostate == 3 then
-      local distance_m = self.signaltracker.state.distances_m[id]
+      local distance_m = self._signaltracker:getdistance_m(id)
       if closestid == nil
-          or distance_m < self.signaltracker.state.distances_m[closestid] then
+          or distance_m < self._signaltracker:getdistance_m(closestid) then
         local distok
         if direction == Acses._direction.forward then
           distok = distance_m >= 0
@@ -236,8 +237,8 @@ function Acses._gettrackspeedhazard(self)
 end
 
 function Acses._getspeedlimithazard(self, id)
-  local speed_mps = self.limittracker.state.objects[id].speed_mps
-  local distance_m = self.limittracker.state.distances_m[id]
+  local speed_mps = self._limittracker:getobject(id).speed_mps
+  local distance_m = self._limittracker:getdistance_m(id)
   return {
     type=Acses._hazardtype.advancelimit,
     id=id,
@@ -252,7 +253,7 @@ end
 
 function Acses._getsignalstophazard(self, id)
   local distance_m =
-    self.signaltracker.state.distances_m[id] - self.config.positivestop_m
+    self._signaltracker:getdistance_m(id) - self.config.positivestop_m
   local alert_mps =
     self:_calcbrakecurve(0, distance_m, self.config.alertcurve_s)
   return {
@@ -405,7 +406,7 @@ function Acses._currentlimitalert(self)
 end
 
 function Acses._advancelimitalert(self, violation)
-  local limit = self.limittracker.state.objects[violation.hazard.id]
+  local limit = self._limittracker:getobject(violation.hazard.id)
   if limit == nil then
     return
   end
@@ -426,7 +427,7 @@ function Acses._advancelimitalert(self, violation)
       function ()
         local pastlimit
         local distanceto_m =
-          self.limittracker.state.distances_m[violation.hazard.id]
+          self._limittracker:getdistance_m(violation.hazard.id)
         if distanceto_m == nil then
           pastlimit = true
         elseif initdirection == Acses._direction.forward and distanceto_m < 0 then
@@ -465,7 +466,7 @@ function Acses._stopsignalalert(self, violation)
   local initdirection = self:_getdirection()
   while true do
     local signal =
-      self.signaltracker.state.objects[violation.hazard.id]
+      self._signaltracker:getobject(violation.hazard.id)
     local upgraded =
       signal == nil or signal.prostate ~= 3
     local direction =
@@ -526,7 +527,7 @@ function Acses._currentlimitpenalty(self)
 end
 
 function Acses._advancelimitpenalty(self, violation)
-  local limit =  self.limittracker.state.objects[violation.hazard.id]
+  local limit = self._limittracker.getobject(violation.hazard.id)
   if limit == nil then
     return
   end
@@ -546,7 +547,7 @@ function Acses._stopsignalpenalty(self, violation)
   self.state._enforcingspeed_mps = 0
   self.state.penalty = true
   self._sched:select(nil, function ()
-    local signal = self.signaltracker.state.objects[violation.hazard.id]
+    local signal = self._signaltracker:getobject(violation.hazard.id)
     local upgraded = signal == nil or signal.prostate ~= 3
     return upgraded
   end)
@@ -692,14 +693,10 @@ AcsesTracker.__index = AcsesTracker
 ]]--
 function AcsesTracker.new(scheduler, getspeed_mps, getbydistance)
   local self = setmetatable({}, AcsesTracker)
-  self.state = {
-    -- id -> tracked object
-    objects = {},
-    -- id -> distance (m)
-    distances_m = {}
-  }
   self._minretain_m = 1
   self._matchmargin_m = 1
+  self._objects = {}
+  self._distances_m = {}
   self._sched = scheduler
   self._coroutines = {
     self._sched:run(AcsesTracker._run, self, getspeed_mps, getbydistance)
@@ -712,6 +709,26 @@ function AcsesTracker.kill(self)
   for _, co in ipairs(self._coroutines) do
     self._sched:kill(co)
   end
+end
+
+-- Iterate through all tracked objects by their identifiers.
+function AcsesTracker.iterobjects(self)
+  return ipairs(self._objects)
+end
+
+-- Get a tracked object by identifier.
+function AcsesTracker.getobject(self, id)
+  return self._objects[id]
+end
+
+-- Iterate through all relative distances by identifier.
+function AcsesTracker.iterdistances_m(self)
+  return ipairs(self._distances_m)
+end
+
+-- Get a relative distance by identifier.
+function AcsesTracker.getdistance_m(self, id)
+  return self._distances_m[id]
 end
 
 function AcsesTracker._run(self, getspeed_mps, getbydistance)
@@ -730,7 +747,7 @@ function AcsesTracker._run(self, getspeed_mps, getbydistance)
     -- anticipated travel distance.
     for sensedist_m, obj in pairs(getbydistance()) do
       local match = false
-      for id, trackdist_m in pairs(self.state.distances_m) do
+      for id, trackdist_m in pairs(self._distances_m) do
         -- Update matched objects.
         if math.abs(trackdist_m - travel_m - sensedist_m)
             < self._matchmargin_m/2 then
@@ -750,17 +767,17 @@ function AcsesTracker._run(self, getspeed_mps, getbydistance)
 
     -- Add back objects that are no longer sensed, but are within the minimum
     -- distance retention zone.
-    for id, dist_m in pairs(self.state.distances_m) do
+    for id, dist_m in pairs(self._distances_m) do
       if newdistances[id] == nil then
         if math.abs(dist_m + travel_m) < self._minretain_m then
-          newobjects[id] = self.state.objects[id]
+          newobjects[id] = self._objects[id]
           newdistances[id] = dist_m + travel_m
         end
       end
     end
 
-    self.state.objects = newobjects
-    self.state.distances_m = newdistances
+    self._objects = newobjects
+    self._distances_m = newdistances
   end
 end
 
@@ -779,12 +796,12 @@ function AcsesLimits.new(iterforwardspeedlimits, iterbackwardspeedlimits)
   return self
 end
 
--- Get forward-facing speed limits.
+-- Iterate through forward-facing speed limits.
 function AcsesLimits.iterforwardspeedlimits(self)
   return self:_filterspeedlimits(self._iterforwardspeedlimits)
 end
 
--- Get backward-facing speed limits.
+-- Iterate through backward-facing speed limits.
 function AcsesLimits.iterbackwardspeedlimits(self)
   return self:_filterspeedlimits(self._iterbackwardspeedlimits)
 end
