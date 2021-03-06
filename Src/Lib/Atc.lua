@@ -119,8 +119,13 @@ function Atc._setsuppress(self)
   while true do
     self._accelaverage_mps2:sample(self.config.getacceleration_mps2())
     local accel_mps2 = self._accelaverage_mps2:get()
-    self._issuppressing = accel_mps2 <= self.config.suppressing_mps2
-    self._issuppression = accel_mps2 <= self.config.suppression_mps2
+    if self.config.getspeed_mps() >= 0 then
+      self._issuppressing = accel_mps2 <= self.config.suppressing_mps2
+      self._issuppression = accel_mps2 <= self.config.suppression_mps2
+    else
+      self._issuppressing = accel_mps2 >= -self.config.suppressing_mps2
+      self._issuppression = accel_mps2 >= -self.config.suppression_mps2
+    end
     self._sched:yield()
   end
 end
