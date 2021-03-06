@@ -16,13 +16,15 @@ function Cruise.new(scheduler)
     ki=0,
     kd=0
   }
-  self.state = {
-    -- The amount of throttle applied, from 0 to 1.
-    throttle=0
-  }
+  self._throttle = 0
   self._sched = scheduler
   self._sched:run(Cruise._run, self)
   return self
+end
+
+-- Get the amount of throttle applied by the cruise control, from 0 to 1.
+function Cruise.getthrottle(self)
+  return self._throttle
 end
 
 function Cruise._run(self)
@@ -39,7 +41,7 @@ function Cruise._run(self)
       local error = self.config.gettargetspeed_mps() - self.config.getspeed_mps()
       integral = integral + error*dt
       local derivative = (error - preverror)/dt
-      self.state.throttle = self.config.kp*error
+      self._throttle = self.config.kp*error
         + self.config.ki*integral
         + self.config.kd*derivative
       preverror = error

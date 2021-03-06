@@ -53,9 +53,9 @@ function Scheduler._resume(self, co, ...)
   return arg
 end
 
--- Get a table of all info messages pushed by coroutines since the last update.
-function Scheduler.getinfomessages(self)
-  return self._infomessages
+-- Get an iterator of all info messages pushed by coroutines since the last update.
+function Scheduler.iterinfomessages(self)
+  return ipairs(self._infomessages)
 end
 
 -- From the main coroutine, clear the info message queue.
@@ -63,9 +63,9 @@ function Scheduler.clearinfomessages(self)
   self._infomessages = {}
 end
 
--- Get a table of all info messages pushed by coroutines since the last update.
-function Scheduler.getalertmessages(self)
-  return self._alertmessages
+-- Get an iterator of all info messages pushed by coroutines since the last update.
+function Scheduler.iteralertmessages(self)
+  return ipairs(self._alertmessages)
 end
 
 -- From the main coroutine, clear the info message queue.

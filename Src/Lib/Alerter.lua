@@ -16,26 +16,33 @@ function Alerter.new(scheduler)
     -- The time until a penalty brake is applied.
     alarm_s=6
   }
-  self.running = false
   self._sched = scheduler
   self:_initstate()
   return self
 end
 
+function Alerter._initstate(self)
+  self._running = false
+  self._ispenalty = false
+  self._isalarm = false
+  self._acknowledge = Event.new(self._sched)
+  self._coroutines = {}
+end
+
 -- From the main coroutine, start or stop the subsystem based on the provided
 -- condition.
 function Alerter.setrunstate(self, cond)
-  if cond and not self.running then
+  if cond and not self._running then
     self:start()
-  elseif not cond and self.running then
+  elseif not cond and self._running then
     self:stop()
   end
 end
 
 -- From the main coroutine, initialize this subsystem.
 function Alerter.start(self)
-  if not self.running then
-    self.running = true
+  if not self._running then
+    self._running = true
     self._coroutines = {self._sched:run(Alerter._run, self)}
     if not self._sched:isstartup() then
       self._sched:alert("Alerter Cut In")
@@ -45,8 +52,8 @@ end
 
 -- From the main coroutine, halt and reset this subsystem.
 function Alerter.stop(self)
-  if self.running then
-    self.running = false
+  if self._running then
+    self._running = false
     for _, co in ipairs(self._coroutines) do
       self._sched:kill(co)
     end
@@ -55,42 +62,45 @@ function Alerter.stop(self)
   end
 end
 
-function Alerter._initstate(self)
-  self.state = {
-    -- True when a penalty brake is applied.
-    penalty=false,
-    -- True when the alarm is sounding.
-    alarm=false,
-    -- Trigger to acknowledge the alerter.
-    acknowledge=Event.new(self._sched)
-  }
-  self._coroutines = {}
+-- Returns true when a penalty brake is applied.
+function Alerter.ispenalty(self)
+  return self._ispenalty
+end
+
+-- Returns true when the alarm is applied.
+function Alerter.isalarm(self)
+  return self._isalarm
+end
+
+-- Call to acknowledge the alerter.
+function Alerter.acknowledge(self)
+  self._acknowledge:trigger()
 end
 
 function Alerter._run(self)
   while true do
     local countdown = self._sched:select(
       self.config.countdown_s,
-      function () return self.state.acknowledge:poll() end,
+      function () return self._acknowledge:poll() end,
       function () return self.config.getspeed_mps() < self.config.minspeed_mps end)
     if countdown == nil then
-      self.state.alarm = true
+      self._isalarm = true
       local warning = self._sched:select(
         self.config.alarm_s,
-        function () return self.state.acknowledge:poll() end)
+        function () return self._acknowledge:poll() end)
       if warning == nil then
         self:_penalty()
       end
-      self.state.alarm = false
+      self._isalarm = false
     end
   end
 end
 
 function Alerter._penalty(self)
-  self.state.penalty = true
+  self._ispenalty = true
   self._sched:select(nil, function ()
-    return self.state.acknowledge:poll()
+    return self._acknowledge:poll()
       and self.config.getspeed_mps() < self.config.minspeed_mps
   end)
-  self.state.penalty = false
+  self._ispenalty = false
 end

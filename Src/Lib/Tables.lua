@@ -14,3 +14,12 @@ function Tables.find(t, fn)
     end
   end)
 end
+
+-- Copy the provided iterator expression list into a table.
+function Tables.fromiterator(...)
+  local t = {}
+  for k, v in unpack(arg) do
+    t[k] = v
+  end
+  return t
+end

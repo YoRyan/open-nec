@@ -136,7 +136,7 @@ Update = RailWorks.wraperrors(function (dt)
     state.train_brake = vbrake
     state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
     if state.acknowledge or change then
-      alerter.state.acknowledge:trigger()
+      alerter:acknowledge()
     end
   end
 
@@ -154,26 +154,32 @@ Update = RailWorks.wraperrors(function (dt)
   state.speed_mps = RailWorks.GetSpeed()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
   state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
-  state.forwardspeedlimits =
-    RailWorks.getforwardspeedlimits(Acses.nlimitlookahead)
-  state.backwardspeedlimits =
-    RailWorks.getbackwardspeedlimits(Acses.nlimitlookahead)
-  state.forwardrestrictsignals =
-    RailWorks.getforwardrestrictsignals(Acses.nsignallookahead)
-  state.backwardrestrictsignals =
-    RailWorks.getbackwardrestrictsignals(Acses.nsignallookahead)
+  do
+    local lookahead = Acses.nlimitlookahead
+    state.forwardspeedlimits =
+      Tables.fromiterator(RailWorks.iterforwardspeedlimits(lookahead))
+    state.backwardspeedlimits =
+      Tables.fromiterator(RailWorks.iterbackwardspeedlimits(lookahead))
+  end
+  do
+    local lookahead = Acses.nsignallookahead
+    state.forwardrestrictsignals =
+      Tables.fromiterator(RailWorks.iterforwardrestrictsignals(lookahead))
+    state.backwardrestrictsignals =
+      Tables.fromiterator(RailWorks.iterbackwardrestrictsignals(lookahead))
+  end
 
   sched:update(dt)
-  for _, msg in ipairs(sched:getinfomessages()) do
+  for _, msg in sched:iterinfomessages() do
     RailWorks.showinfo(msg)
   end
   sched:clearinfomessages()
-  for _, msg in ipairs(sched:getalertmessages()) do
+  for _, msg in sched:iteralertmessages() do
     RailWorks.showalert(msg)
   end
   sched:clearalertmessages()
 
-  local penalty = atc.state.penalty or acses.state.penalty or alerter.state.penalty
+  local penalty = atc.state.penalty or acses.state.penalty or alerter:ispenalty()
   do
     local powertypes = {}
     if RailWorks.GetControlValue("PantographControl", 0) == 1 then
@@ -185,7 +191,7 @@ Update = RailWorks.wraperrors(function (dt)
     elseif penalty then
       v = 0
     elseif state.cruiseenabled then
-      v = math.min(state.throttle, cruise.state.throttle)
+      v = math.min(state.throttle, cruise:getthrottle())
     else
       v = state.throttle
     end
@@ -210,10 +216,10 @@ Update = RailWorks.wraperrors(function (dt)
 
   RailWorks.SetControlValue(
     "AWS", 0,
-    RailWorks.frombool(atc.state.alarm or acses.state.alarm or alerter.state.alarm))
+    RailWorks.frombool(atc.state.alarm or acses.state.alarm or alerter:isalarm()))
   RailWorks.SetControlValue(
     "AWSWarnCount", 0,
-    RailWorks.frombool(alerter.state.alarm))
+    RailWorks.frombool(alerter:isalarm()))
   RailWorks.SetControlValue(
     "OverSpeedAlert", 0,
     RailWorks.frombool(state.beep_alert or atc.state.alarm or acses.state.alarm))

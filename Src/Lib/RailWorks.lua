@@ -42,21 +42,25 @@ end
 -- Iterate through up to n upcoming speed posts, with an optional maximum
 -- lookahead distance.
 -- Speed limits are in the form of {{type=..., speed_mps=..., distance_m=...}, ...}
-function RailWorks.getforwardspeedlimits(n, maxdistance_m)
-  return RailWorks._getspeedlimits(0, n, maxdistance_m)
+function RailWorks.iterforwardspeedlimits(n, maxdistance_m)
+  return RailWorks._iterspeedlimits(0, n, maxdistance_m)
 end
 
 -- Iterate through up to n backward-facing speed posts, with an optional maximum
 -- lookbehind distance.
 -- Speed limits are in the form of {{type=..., speed_mps=..., distance_m=...}, ...}
-function RailWorks.getbackwardspeedlimits(n, maxdistance_m)
-  return RailWorks._getspeedlimits(1, n, maxdistance_m)
+function RailWorks.iterbackwardspeedlimits(n, maxdistance_m)
+  return RailWorks._iterspeedlimits(1, n, maxdistance_m)
 end
 
-function RailWorks._getspeedlimits(direction, n, maxdistance_m)
-  local limits = {}
+function RailWorks._iterspeedlimits(direction, n, maxdistance_m)
+  local i = 0
   local minsearch_m = 0
-  for _ = 1, n do
+  return function ()
+    i = i + 1
+    if i > n then
+      return nil, nil
+    end
     local type, speed_mps, distance_m
     if maxdistance_m == nil then
       type, speed_mps, distance_m =
@@ -67,32 +71,35 @@ function RailWorks._getspeedlimits(direction, n, maxdistance_m)
     end
     if type == 1 or type == 2 or type == 3 then
       minsearch_m = distance_m + 0.01
-      table.insert(limits, {type=type, speed_mps=speed_mps, distance_m=distance_m})
+      return i, {type=type, speed_mps=speed_mps, distance_m=distance_m}
     else
-      break
+      return nil, nil
     end
-  end
-  return limits
+  end, nil, nil
 end
 
 -- Iterate through up to n upcoming restrictive signals, with an optional maximum
 -- lookahead distance.
 -- Signals are in the form of {{basicstate=..., prostate=..., distance_m=...}, ...}
-function RailWorks.getforwardrestrictsignals(n, maxdistance_m)
-  return RailWorks._getrestrictsignals(0, n, maxdistance_m)
+function RailWorks.iterforwardrestrictsignals(n, maxdistance_m)
+  return RailWorks._iterrestrictsignals(0, n, maxdistance_m)
 end
 
 -- Iterate through up to n backward-facing restrictive signals, with an optional
 -- maximum lookahead distance.
 -- Signals are in the form of {{basicstate=..., prostate=..., distance_m=...}, ...}
-function RailWorks.getbackwardrestrictsignals(n, maxdistance_m)
-  return RailWorks._getrestrictsignals(1, n, maxdistance_m)
+function RailWorks.iterbackwardrestrictsignals(n, maxdistance_m)
+  return RailWorks._iterrestrictsignals(1, n, maxdistance_m)
 end
 
-function RailWorks._getrestrictsignals(direction, n, maxdistance_m)
-  local signals = {}
+function RailWorks._iterrestrictsignals(direction, n, maxdistance_m)
+  local i = 0
   local minsearch_m = 0
-  for _ = 1, n do
+  return function ()
+    i = i + 1
+    if i > n then
+      return nil, nil
+    end
     local found, basicstate, distance_m, prostate
     if maxdistance_m == nil then
       found, basicstate, distance_m, prostate =
@@ -103,13 +110,11 @@ function RailWorks._getrestrictsignals(direction, n, maxdistance_m)
     end
     if found > 0 then
       minsearch_m = distance_m + 0.01
-      table.insert(
-        signals, {basicstate=basicstate, distance_m=distance_m, prostate=prostate})
+      return i, {basicstate=basicstate, distance_m=distance_m, prostate=prostate}
     else
-      break
+      return nil, nil
     end
-  end
-  return signals
+  end, nil, nil
 end
 
 function RailWorks.BeginUpdate()
