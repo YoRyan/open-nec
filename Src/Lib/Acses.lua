@@ -642,7 +642,7 @@ function AcsesTracker.new(scheduler, getspeed_mps, getbydistance)
     distances_m = {}
   }
   self._minretain_m = 1
-  self._matchmargin_m = 2
+  self._matchmargin_m = 1
   self._sched = scheduler
   self._coroutines = {
     self._sched:run(AcsesTracker._run, self, getspeed_mps, getbydistance)
@@ -663,8 +663,7 @@ function AcsesTracker._run(self, getspeed_mps, getbydistance)
   while true do
     self._sched:yield()
     local time = self._sched:clock()
-    local speed_mps = getspeed_mps()
-    local travel_m = speed_mps*(time - lasttime)
+    local travel_m = getspeed_mps()*(time - lasttime)
     lasttime = time
 
     local newobjects = {}
@@ -676,7 +675,7 @@ function AcsesTracker._run(self, getspeed_mps, getbydistance)
       local match = false
       for id, trackdist_m in pairs(self.state.distances_m) do
         -- Update matched objects.
-        if math.abs(trackdist_m + travel_m - sensedist_m)
+        if math.abs(trackdist_m - travel_m - sensedist_m)
             < self._matchmargin_m/2 then
           match = true
           newobjects[id] = obj
