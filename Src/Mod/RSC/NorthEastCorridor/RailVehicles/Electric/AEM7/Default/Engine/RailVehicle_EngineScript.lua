@@ -48,10 +48,10 @@ Initialise = RailWorks.wraperrors(function ()
       function () return state.speed_mps end
     config.gettrackspeed_mps =
       function () return state.trackspeed_mps end
-    config.getforwardspeedlimits =
-      function () return state.forwardspeedlimits end
-    config.getbackwardspeedlimits =
-      function () return state.backwardspeedlimits end
+    config.iterforwardspeedlimits =
+      function () return ipairs(state.forwardspeedlimits) end
+    config.iterbackwardspeedlimits =
+      function () return ipairs(state.backwardspeedlimits) end
     config.iterforwardrestrictsignals =
       function () return ipairs(state.forwardrestrictsignals) end
     config.iterbackwardrestrictsignals =

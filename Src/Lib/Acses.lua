@@ -23,8 +23,8 @@ function Acses.new(scheduler, atc)
   self.config = {
     getspeed_mps=function () return 0 end,
     gettrackspeed_mps=function () return 0 end,
-    getforwardspeedlimits=function () return {} end,
-    getbackwardspeedlimits=function () return {} end,
+    iterforwardspeedlimits=function () return ipairs({}) end,
+    iterbackwardspeedlimits=function () return ipairs({}) end,
     iterforwardrestrictsignals=function () return ipairs({}) end,
     iterbackwardrestrictsignals=function () return ipairs({}) end,
     getacknowledge=function () return false end,
@@ -60,20 +60,20 @@ function Acses.start(self)
   if not self.running then
     self.running = true
     self.speedlimits = AcsesLimits.new(
-      function () return self.config.getforwardspeedlimits() end,
-      function () return self.config.getbackwardspeedlimits() end)
+      function () return self.config.iterforwardspeedlimits() end,
+      function () return self.config.iterbackwardspeedlimits() end)
     self.trackspeed = AcsesTrackSpeed.new(self._sched,
       function () return self.config.gettrackspeed_mps() end,
-      function () return self.speedlimits:getforwardspeedlimits() end,
-      function () return self.speedlimits:getbackwardspeedlimits() end)
+      function () return Tables.fromiterator(self.speedlimits:iterforwardspeedlimits()) end,
+      function () return Tables.fromiterator(self.speedlimits:iterbackwardspeedlimits()) end)
     self.limittracker = AcsesTracker.new(self._sched,
       function () return self.config.getspeed_mps() end,
       function ()
         local limits = {}
-        for _, limit in ipairs(self.config.getforwardspeedlimits()) do
+        for _, limit in self.speedlimits:iterforwardspeedlimits() do
           limits[limit.distance_m] = limit
         end
-        for _, limit in ipairs(self.config.getbackwardspeedlimits()) do
+        for _, limit in self.speedlimits:iterbackwardspeedlimits() do
           limits[-limit.distance_m] = limit
         end
         return limits
@@ -304,9 +304,9 @@ function Acses._showlimits(self)
   local fdist = function (m)
     return string.format("%.2f", m*Units.m.toft) .. "ft"
   end
-  local dump = function (limits)
+  local dump = function (iterlimits)
     local res = ""
-    for _, limit in ipairs(limits) do
+    for _, limit in iterlimits do
       local s = "type=" .. limit.type
         .. ", speed=" .. fspeed(limit.speed_mps)
         .. ", distance=" .. fdist(limit.distance_m)
@@ -316,8 +316,8 @@ function Acses._showlimits(self)
   end
   self._sched:info("Track: " .. fspeed(self.config.gettrackspeed_mps()) .. " "
     .. "Sensed: " .. fspeed(self.trackspeed.state.speedlimit_mps) .. "\n"
-    .. "Forward: " .. dump(self.config.getforwardspeedlimits())
-    .. "Backward: " .. dump(self.config.getbackwardspeedlimits()))
+    .. "Forward: " .. dump(self.config.iterforwardspeedlimits())
+    .. "Backward: " .. dump(self.config.iterbackwardspeedlimits()))
 end
 
 function Acses._showsignals(self)
@@ -771,27 +771,27 @@ AcsesLimits = {}
 AcsesLimits.__index = AcsesLimits
 
 -- From the main coroutine, create a new speed limit filter context.
-function AcsesLimits.new(getforwardspeedlimits, getbackwardspeedlimits)
+function AcsesLimits.new(iterforwardspeedlimits, iterbackwardspeedlimits)
   local self = setmetatable({}, AcsesLimits)
-  self._getforwardspeedlimits = getforwardspeedlimits
-  self._getbackwardspeedlimits = getbackwardspeedlimits
+  self._iterforwardspeedlimits = iterforwardspeedlimits
+  self._iterbackwardspeedlimits = iterbackwardspeedlimits
   self._hastype2limits = false
   return self
 end
 
 -- Get forward-facing speed limits.
-function AcsesLimits.getforwardspeedlimits(self)
-  return self:_filterspeedlimits(self._getforwardspeedlimits())
+function AcsesLimits.iterforwardspeedlimits(self)
+  return self:_filterspeedlimits(self._iterforwardspeedlimits)
 end
 
 -- Get backward-facing speed limits.
-function AcsesLimits.getbackwardspeedlimits(self)
-  return self:_filterspeedlimits(self._getbackwardspeedlimits())
+function AcsesLimits.iterbackwardspeedlimits(self)
+  return self:_filterspeedlimits(self._iterbackwardspeedlimits)
 end
 
-function AcsesLimits._filterspeedlimits(self, speedlimits)
+function AcsesLimits._filterspeedlimits(self, iterspeedlimits)
   if not self._hastype2limits then
-    for _, limit in ipairs(speedlimits) do
+    for _, limit in iterspeedlimits() do
       -- Default to type 1 limits *unless* we encounter a type 2 (Philadelphia-
       -- New York), at which point we'll search solely for type 2 limits.
       if limit.type == 2 then
@@ -800,19 +800,28 @@ function AcsesLimits._filterspeedlimits(self, speedlimits)
       end
     end
   end
-  local filtered = {}
-  for _, limit in ipairs(speedlimits) do
-    local righttype
-    if self._hastype2limits then
-      righttype = limit.type == 2
-    else
-      righttype = limit.type == 1
+  local fn, s, i = iterspeedlimits()
+  local j = 0
+  local limit
+  return function ()
+    while true do
+      i, limit = fn(s, i)
+      if i == nil then
+        return nil, nil
+      else
+        local righttype
+        if self._hastype2limits then
+          righttype = limit.type == 2
+        else
+          righttype = limit.type == 1
+        end
+        if AcsesLimits._isvalid(limit) and righttype then
+          j = j + 1
+          return j, limit
+        end
+      end
     end
-    if AcsesLimits._isvalid(limit) and righttype then
-      table.insert(filtered, limit)
-    end
-  end
-  return filtered
+  end, nil, nil
 end
 
 function AcsesLimits._isvalid(speedlimit)
