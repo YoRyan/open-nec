@@ -1,3 +1,5 @@
+-- Engine script for the EMD AEM-7 operated by Amtrak.
+
 sched = Scheduler.new()
 atc = nil
 acses = nil
@@ -24,7 +26,7 @@ state = {
   cs1flash=0, -- 0 = off, 1 = on, 2 = flash
   cs1light=false
 }
-onebeep = 0.3
+onebeep_s = 0.3
 
 Initialise = RailWorks.wraperrors(function ()
   do
@@ -89,15 +91,17 @@ Initialise = RailWorks.wraperrors(function ()
   RailWorks.BeginUpdate()
 end)
 
+-- Play a beep sound when alerts sound.
 function doalerts ()
   while true do
     state.event_alert:waitfor()
     state.beep_alert = true
-    sched:sleep(onebeep)
+    sched:sleep(onebeep_s)
     state.beep_alert = false
   end
 end
 
+-- Flash the upper green head to show a cab speed aspect.
 function cs1flasher ()
   local waitchange = function (timeout)
     local start = state.cs1flash
@@ -227,7 +231,7 @@ Update = RailWorks.wraperrors(function (dt)
     "TrackSpeed", 0,
     math.floor(acses:getinforcespeed_mps()*Units.mps.tomph + 0.5))
 
-  setpulsecode()
+  setcabsignal()
   RailWorks.SetControlValue("CabSignal1", 0, RailWorks.frombool(state.cs1light))
 
   do
@@ -237,7 +241,8 @@ Update = RailWorks.wraperrors(function (dt)
   end
 end)
 
-function setpulsecode ()
+-- Set the state of the cab signal display.
+function setcabsignal ()
   local code = atc:getpulsecode()
   local cs, cs1, cs2
   if code == Atc.pulsecode.restrict then
