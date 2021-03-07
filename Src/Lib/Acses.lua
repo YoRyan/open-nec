@@ -192,6 +192,10 @@ function Acses._setstate(self)
   end
 end
 
+--[[
+  Speed limit and stop signal hazard acquisition
+]]
+
 function Acses._iterhazards(self)
   local direction = self:_getdirection()
   local hazards = {self:_gettrackspeedhazard()}
@@ -313,6 +317,10 @@ function Acses._getviolation(self, ...)
   return violation
 end
 
+--[[
+  Debugging views
+]]
+
 function Acses._showlimits(self)
   local fspeed = function (mps)
     return string.format("%.2f", mps*Units.mps.tomph) .. "mph"
@@ -419,6 +427,10 @@ function Acses._doenforce(self)
     end
   end
 end
+
+--[[
+  Alert and penalty states
+]]
 
 function Acses._currentlimitalert(self)
   local limit_mps = self.trackspeed.state.speedlimit_mps
@@ -742,7 +754,7 @@ AcsesTracker.__index = AcsesTracker
   add coroutines to the provided scheduler.
 
   iterbydistance should return an iterator of (distance (m), tracked object) pairs.
-]]--
+]]
 function AcsesTracker.new(scheduler, getspeed_mps, iterbydistance)
   local self = setmetatable({}, AcsesTracker)
   self._minretain_m = 2
