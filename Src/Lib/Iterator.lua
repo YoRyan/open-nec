@@ -191,3 +191,19 @@ function Iterator.max(comp, ...)
   end
   return maxk
 end
+
+-- Joins the values of the iterator together with the provided separator, like
+-- table.concat(t, sep).
+function Iterator.join(sep, ...)
+  local f, s, v = unpack(arg)
+  local k
+  k, v = f(s, v)
+  if k == nil then
+    return ""
+  end
+  local res = tostring(v)
+  for k2, v2 in f, s, v do
+    res = res .. sep .. tostring(v2)
+  end
+  return res
+end

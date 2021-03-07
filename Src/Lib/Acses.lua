@@ -319,20 +319,39 @@ function Acses._showlimits(self)
   local fdist = function (m)
     return string.format("%.2f", m*Units.m.toft) .. "ft"
   end
-  local dump = function (iterlimits)
-    local res = ""
-    for _, limit in iterlimits do
-      local s = "type=" .. limit.type
-        .. ", speed=" .. fspeed(limit.speed_mps)
-        .. ", distance=" .. fdist(limit.distance_m)
-      res = res .. s .. "\n"
+  if Acses.debugtrackers then
+    local ids = {}
+    for id, _ in self._limittracker:iterobjects() do
+      table.insert(ids, id)
     end
-    return res
+    table.sort(ids, function (ida, idb)
+      return self._limittracker:getdistance_m(ida)
+        < self._limittracker:getdistance_m(idb)
+    end)
+    local dumpid = function (i, id)
+      local limit = self._limittracker:getobject(id)
+      local distance_m = self._limittracker:getdistance_m(id)
+      return tostring(id) .. ": type=" .. limit.type
+        .. ", speed=" .. fspeed(limit.speed_mps)
+        .. ", distance=" .. fdist(distance_m)
+    end
+    self._sched:info(Iterator.join("\n", Iterator.imap(dumpid, ipairs(ids))))
+  else
+    local dump = function (iterlimits)
+      local res = ""
+      for _, limit in iterlimits do
+        local s = "type=" .. limit.type
+          .. ", speed=" .. fspeed(limit.speed_mps)
+          .. ", distance=" .. fdist(limit.distance_m)
+        res = res .. s .. "\n"
+      end
+      return res
+    end
+    self._sched:info("Track: " .. fspeed(self.config.gettrackspeed_mps()) .. " "
+      .. "Sensed: " .. fspeed(self.trackspeed.state.speedlimit_mps) .. "\n"
+      .. "Forward: " .. dump(self.config.iterforwardspeedlimits())
+      .. "Backward: " .. dump(self.config.iterbackwardspeedlimits()))
   end
-  self._sched:info("Track: " .. fspeed(self.config.gettrackspeed_mps()) .. " "
-    .. "Sensed: " .. fspeed(self.trackspeed.state.speedlimit_mps) .. "\n"
-    .. "Forward: " .. dump(self.config.iterforwardspeedlimits())
-    .. "Backward: " .. dump(self.config.iterbackwardspeedlimits()))
 end
 
 function Acses._showsignals(self)
@@ -354,17 +373,35 @@ function Acses._showsignals(self)
   local fdist = function (m)
     return string.format("%.2f", m*Units.m.toft) .. "ft"
   end
-  local dump = function (itersignals)
-    local res = ""
-    for _, signal in itersignals do
-      local s = "state=" .. faspect(signal.prostate)
-        .. ", distance=" .. fdist(signal.distance_m)
-      res = res .. s .. "\n"
+  if Acses.debugtrackers then
+    local ids = {}
+    for id, _ in self._signaltracker:iterobjects() do
+      table.insert(ids, id)
     end
-    return res
+    table.sort(ids, function (ida, idb)
+      return self._signaltracker:getdistance_m(ida)
+        < self._signaltracker:getdistance_m(idb)
+    end)
+    local dumpid = function (i, id)
+      local signal = self._signaltracker:getobject(id)
+      local distance_m = self._signaltracker:getdistance_m(id)
+      return tostring(id) .. ": state=" .. faspect(signal.prostate)
+        .. ", distance=" .. fdist(distance_m)
+    end
+    self._sched:info(Iterator.join("\n", Iterator.imap(dumpid, ipairs(ids))))
+  else
+    local dump = function (itersignals)
+      local res = ""
+      for _, signal in itersignals do
+        local s = "state=" .. faspect(signal.prostate)
+          .. ", distance=" .. fdist(signal.distance_m)
+        res = res .. s .. "\n"
+      end
+      return res
+    end
+    self._sched:info("Forward: " .. dump(self.config.iterforwardrestrictsignals())
+      .. "Backward: " .. dump(self.config.iterbackwardrestrictsignals()))
   end
-  self._sched:info("Forward: " .. dump(self.config.iterforwardrestrictsignals())
-    .. "Backward: " .. dump(self.config.iterbackwardrestrictsignals()))
 end
 
 function Acses._doenforce(self)
