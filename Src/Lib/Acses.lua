@@ -173,9 +173,13 @@ function Acses._setstate(self)
     end
     self._inforcespeed_mps = inforce_mps
     do
-      local hazards = self:_gethazards()
-      self._curvespeed_mps = Acses._getcurvespeed(hazards)
-      self._violation = self:_getviolation(hazards)
+      local hazards = Iterator.totable(self:_iterhazards())
+      local lowestcurve = Iterator.min(
+        function (hazarda, hazardb)
+          return hazarda.curve_mps < hazardb.curve_mps
+        end, ipairs(hazards))
+      self._curvespeed_mps = hazards[lowestcurve]
+      self._violation = self:_getviolation(ipairs(hazards))
     end
     if Acses.debuglimits and self.config.getacknowledge() then
       self:_showlimits()
@@ -187,68 +191,27 @@ function Acses._setstate(self)
   end
 end
 
-function Acses._gethazards(self)
-  local hazards = {self:_gettrackspeedhazard()}
+function Acses._iterhazards(self)
   local direction = self:_getdirection()
-
-  for _, id in ipairs(self:_getupcomingspeedlimits(direction)) do
-    table.insert(hazards, self:_getspeedlimithazard(id))
-  end
+  local hazards = {self:_gettrackspeedhazard()}
 
   local pulsecode = self._atc:getpulsecode()
   if pulsecode == Atc.pulsecode.restrict
       or pulsecode == Atc.pulsecode.approach then
-    local id = self:_getnextstopsignal(direction)
+    local id = self:_getnextstopsignalid(direction)
     if id ~= nil then
       table.insert(hazards, self:_getsignalstophazard(id))
     end
   end
 
-  return hazards
-end
-
-function Acses._getupcomingspeedlimits(self, direction)
-  if direction == Acses._direction.stopped then
-    return {}
-  end
-  local ids = {}
-  for id, distance_m in self._limittracker:iterdistances_m() do
-    local distok
-    if direction == Acses._direction.forward then
-      distok = distance_m >= 0
-    elseif direction == Acses._direction.backward then
-      distok = distance_m < 0
-    end
-    if distok then
-      table.insert(ids, id)
-    end
-  end
-  return ids
-end
-
-function Acses._getnextstopsignal(self, direction)
-  if direction == Acses._direction.stopped then
-    return nil
-  end
-  local closestid = nil
-  for id, signal in self._signaltracker:iterobjects() do
-    if signal.prostate == 3 then
-      local distance_m = self._signaltracker:getdistance_m(id)
-      if closestid == nil
-          or distance_m < self._signaltracker:getdistance_m(closestid) then
-        local distok
-        if direction == Acses._direction.forward then
-          distok = distance_m >= 0
-        elseif direction == Acses._direction.backward then
-          distok = distance_m < 0
-        end
-        if distok then
-          closestid = id
-        end
-      end
-    end
-  end
-  return closestid
+  return Iterator.iconcat(
+    {ipairs(hazards)},
+    {
+      Iterator.map(
+        function (i, id) return i, self:_getspeedlimithazard(id) end,
+        self:_iterupcomingspeedlimitids(direction))
+    }
+  )
 end
 
 function Acses._gettrackspeedhazard(self)
@@ -259,6 +222,58 @@ function Acses._gettrackspeedhazard(self)
     alert_mps=limit_mps + self.config.alertlimit_mps,
     curve_mps=limit_mps
   }
+end
+
+function Acses._getnextstopsignalid(self, direction)
+  local rightdirection = function (id, distance_m)
+    if direction == Acses._direction.forward then
+      return distance_m >= 0
+    elseif direction == Acses._direction.backward then
+      return distance_m < 0
+    else
+      return false
+    end
+  end
+  local isstop = function (id, distance_m)
+    local signal = self._signaltracker:getobject(id)
+    return signal ~= nil and signal.prostate == 3
+  end
+  return Iterator.min(
+    function (a, b) return a < b end,
+    Iterator.filter(
+      isstop,
+      Iterator.filter(rightdirection, self._signaltracker:iterdistances_m())
+    )
+  )
+end
+
+function Acses._getsignalstophazard(self, id)
+  local distance_m =
+    self._signaltracker:getdistance_m(id) - self.config.positivestop_m
+  local alert_mps =
+    self:_calcbrakecurve(0, distance_m, self.config.alertcurve_s)
+  return {
+    type=Acses._hazardtype.stopsignal,
+    id=id,
+    penalty_mps=self:_calcbrakecurve(0, distance_m, 0),
+    alert_mps=alert_mps,
+    curve_mps=alert_mps
+  }
+end
+
+function Acses._iterupcomingspeedlimitids(self, direction)
+  local rightdirection = function (id, distance_m)
+    if direction == Acses._direction.forward then
+      return distance_m >= 0
+    elseif direction == Acses._direction.backward then
+      return distance_m < 0
+    else
+      return false
+    end
+  end
+  local toid = function (id, distance_m) return id end
+  return Iterator.imap(
+    toid, Iterator.filter(rightdirection, self._limittracker:iterdistances_m()))
 end
 
 function Acses._getspeedlimithazard(self, id)
@@ -276,42 +291,16 @@ function Acses._getspeedlimithazard(self, id)
   }
 end
 
-function Acses._getsignalstophazard(self, id)
-  local distance_m =
-    self._signaltracker:getdistance_m(id) - self.config.positivestop_m
-  local alert_mps =
-    self:_calcbrakecurve(0, distance_m, self.config.alertcurve_s)
-  return {
-    type=Acses._hazardtype.stopsignal,
-    id=id,
-    penalty_mps=self:_calcbrakecurve(0, distance_m, 0),
-    alert_mps=alert_mps,
-    curve_mps=alert_mps
-  }
-end
-
 function Acses._calcbrakecurve(self, vf, d, t)
   local a = self.config.penaltycurve_mps2
   return math.max(
     math.pow(math.pow(a*t, 2) - 2*a*d + math.pow(vf, 2), 0.5) + a*t, vf)
 end
 
-function Acses._getcurvespeed(hazards)
-  local speed_mps = nil
-  for _, hazard in ipairs(hazards) do
-    if speed_mps == nil then
-      speed_mps = hazard.curve_mps
-    elseif hazard.curve_mps < speed_mps then
-      speed_mps = hazard.curve_mps
-    end
-  end
-  return speed_mps
-end
-
-function Acses._getviolation(self, hazards)
+function Acses._getviolation(self, ...)
   local aspeed_mps = math.abs(self.config.getspeed_mps())
   local violation = nil
-  for _, hazard in ipairs(hazards) do
+  for _, hazard in unpack(arg) do
     if aspeed_mps > hazard.penalty_mps then
       violation = {type=Acses._violationtype.penalty, hazard=hazard}
       break
@@ -766,42 +755,42 @@ function AcsesTracker._run(self, getspeed_mps, iterbydistance)
     lasttime = time
 
     local newobjects = {}
-    local newdistances = {}
+    local newdistances_m = {}
 
     -- Match sensed objects to tracked objects, taking into consideration the
     -- anticipated travel distance.
-    for sensedist_m, obj in iterbydistance() do
-      local match = false
-      for id, trackdist_m in pairs(self._distances_m) do
-        -- Update matched objects.
-        if math.abs(trackdist_m - travel_m - sensedist_m)
-            < self._matchmargin_m/2 then
-          match = true
-          newobjects[id] = obj
-          newdistances[id] = sensedist_m
-          break
-        end
-      end
-      -- Add unmatched objects.
-      if not match then
+    for sensedistance_m, obj in iterbydistance() do
+      local match = Iterator.findfirst(
+        function (id, trackdistance_m)
+          return math.abs(trackdistance_m - travel_m - sensedistance_m)
+            < self._matchmargin_m/2
+        end,
+        pairs(self._distances_m))
+      if match == nil then
+        -- Add unmatched objects.
         newobjects[ctr] = obj
-        newdistances[ctr] = sensedist_m
+        newdistances_m[ctr] = sensedistance_m
         ctr = ctr + 1
+      else
+        -- Update matched objects.
+        newobjects[match] = obj
+        newdistances_m[match] = sensedistance_m
       end
     end
 
     -- Add back objects that are no longer sensed, but are within the minimum
     -- distance retention zone.
-    for id, dist_m in pairs(self._distances_m) do
-      if newdistances[id] == nil
-          and math.abs(dist_m - travel_m) < self._minretain_m/2 then
-        newobjects[id] = self._objects[id]
-        newdistances[id] = dist_m - travel_m
-      end
+    local isretained = function (id, distance_m)
+      return newdistances_m[id] == nil
+        and math.abs(distance_m - travel_m) < self._minretain_m/2
+    end
+    for id, distance_m in Iterator.filter(isretained, pairs(self._distances_m)) do
+      newobjects[id] = self._objects[id]
+      newdistances_m[id] = distance_m - travel_m
     end
 
     self._objects = newobjects
-    self._distances_m = newdistances
+    self._distances_m = newdistances_m
   end
 end
 
@@ -832,37 +821,23 @@ end
 
 function AcsesLimits._filterspeedlimits(self, iterspeedlimits)
   if not self._hastype2limits then
-    for _, limit in iterspeedlimits() do
-      -- Default to type 1 limits *unless* we encounter a type 2 (Philadelphia-
-      -- New York), at which point we'll search solely for type 2 limits.
-      if limit.type == 2 then
-        self._hastype2limits = true
-        break
-      end
-    end
+    -- Default to type 1 limits *unless* we encounter a type 2 (Philadelphia-
+    -- New York), at which point we'll search solely for type 2 limits.
+    self._hastype2limits = Iterator.hasone(
+      function (i, limit) return limit.type == 2 end,
+      iterspeedlimits())
   end
-  local fn, s, i = iterspeedlimits()
-  local j = 0
-  local limit
-  return function ()
-    while true do
-      i, limit = fn(s, i)
-      if i == nil then
-        return nil, nil
+  return Iterator.ifilter(
+    function (i, limit)
+      local righttype
+      if self._hastype2limits then
+        righttype = limit.type == 2
       else
-        local righttype
-        if self._hastype2limits then
-          righttype = limit.type == 2
-        else
-          righttype = limit.type == 1
-        end
-        if AcsesLimits._isvalid(limit) and righttype then
-          j = j + 1
-          return j, limit
-        end
+        righttype = limit.type == 1
       end
-    end
-  end, nil, nil
+      return AcsesLimits._isvalid(limit) and righttype
+    end,
+    iterspeedlimits())
 end
 
 function AcsesLimits._isvalid(speedlimit)
