@@ -727,7 +727,7 @@ end
 
 -- Iterate through all tracked objects by their identifiers.
 function AcsesTracker.iterobjects(self)
-  return ipairs(self._objects)
+  return pairs(self._objects)
 end
 
 -- Get a tracked object by identifier.
@@ -737,7 +737,7 @@ end
 
 -- Iterate through all relative distances by identifier.
 function AcsesTracker.iterdistances_m(self)
-  return ipairs(self._distances_m)
+  return pairs(self._distances_m)
 end
 
 -- Get a relative distance by identifier.
