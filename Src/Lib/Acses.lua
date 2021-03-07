@@ -579,7 +579,7 @@ function Acses._currentlimitpenalty(self)
 end
 
 function Acses._advancelimitpenalty(self, violation)
-  local limit = self._limittracker.getobject(violation.hazard.id)
+  local limit = self._limittracker:getobject(violation.hazard.id)
   if limit == nil then
     return
   end
