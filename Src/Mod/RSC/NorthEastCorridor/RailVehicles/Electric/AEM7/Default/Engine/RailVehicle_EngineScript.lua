@@ -161,16 +161,16 @@ Update = RailWorks.wraperrors(function (dt)
   do
     local lookahead = Acses.nlimitlookahead
     state.forwardspeedlimits =
-      Tables.fromiterator(RailWorks.iterforwardspeedlimits(lookahead))
+      Iterator.totable(RailWorks.iterforwardspeedlimits(lookahead))
     state.backwardspeedlimits =
-      Tables.fromiterator(RailWorks.iterbackwardspeedlimits(lookahead))
+      Iterator.totable(RailWorks.iterbackwardspeedlimits(lookahead))
   end
   do
     local lookahead = Acses.nsignallookahead
     state.forwardrestrictsignals =
-      Tables.fromiterator(RailWorks.iterforwardrestrictsignals(lookahead))
+      Iterator.totable(RailWorks.iterforwardrestrictsignals(lookahead))
     state.backwardrestrictsignals =
-      Tables.fromiterator(RailWorks.iterbackwardrestrictsignals(lookahead))
+      Iterator.totable(RailWorks.iterbackwardrestrictsignals(lookahead))
   end
 
   sched:update(dt)

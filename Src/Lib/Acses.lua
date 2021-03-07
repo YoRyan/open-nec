@@ -78,31 +78,39 @@ function Acses.start(self)
       function () return self.config.iterbackwardspeedlimits() end)
     self.trackspeed = AcsesTrackSpeed.new(self._sched,
       function () return self.config.gettrackspeed_mps() end,
-      function () return Tables.fromiterator(self._speedlimits:iterforwardspeedlimits()) end,
-      function () return Tables.fromiterator(self._speedlimits:iterbackwardspeedlimits()) end)
+      function () return Iterator.totable(self._speedlimits:iterforwardspeedlimits()) end,
+      function () return Iterator.totable(self._speedlimits:iterbackwardspeedlimits()) end)
     self._limittracker = AcsesTracker.new(self._sched,
       function () return self.config.getspeed_mps() end,
       function ()
-        local limits = {}
-        for _, limit in self._speedlimits:iterforwardspeedlimits() do
-          limits[limit.distance_m] = limit
-        end
-        for _, limit in self._speedlimits:iterbackwardspeedlimits() do
-          limits[-limit.distance_m] = limit
-        end
-        return limits
+        return Iterator.concat(
+          {
+            Iterator.map(
+              function (i, limit) return limit.distance_m, limit end,
+              self._speedlimits:iterforwardspeedlimits())
+          },
+          {
+            Iterator.map(
+              function (i, limit) return -limit.distance_m, limit end,
+              self._speedlimits:iterbackwardspeedlimits())
+          }
+        )
       end)
     self._signaltracker = AcsesTracker.new(self._sched,
       function () return self.config.getspeed_mps() end,
       function ()
-        local signals = {}
-        for _, signal in self.config.iterforwardrestrictsignals() do
-          signals[signal.distance_m] = signal
-        end
-        for _, signal in self.config.iterbackwardrestrictsignals() do
-          signals[-signal.distance_m] = signal
-        end
-        return signals
+        return Iterator.concat(
+          {
+            Iterator.map(
+              function (i, signal) return signal.distance_m, signal end,
+              self.config.iterforwardrestrictsignals())
+          },
+          {
+            Iterator.map(
+              function (i, signal) return -signal.distance_m, signal end,
+              self.config.iterbackwardrestrictsignals())
+          }
+        )
       end)
     self._coroutines = {
       self._sched:run(Acses._setstate, self),
@@ -702,9 +710,9 @@ AcsesTracker.__index = AcsesTracker
   From the main coroutine, create a new track object tracker context. This will
   add coroutines to the provided scheduler.
 
-  getbydistance should return a dictionary that maps distances to tracked objects.
+  iterbydistance should return an iterator of (distance (m), tracked object) pairs.
 ]]--
-function AcsesTracker.new(scheduler, getspeed_mps, getbydistance)
+function AcsesTracker.new(scheduler, getspeed_mps, iterbydistance)
   local self = setmetatable({}, AcsesTracker)
   self._minretain_m = 1
   self._matchmargin_m = 1
@@ -712,7 +720,7 @@ function AcsesTracker.new(scheduler, getspeed_mps, getbydistance)
   self._distances_m = {}
   self._sched = scheduler
   self._coroutines = {
-    self._sched:run(AcsesTracker._run, self, getspeed_mps, getbydistance)
+    self._sched:run(AcsesTracker._run, self, getspeed_mps, iterbydistance)
   }
   return self
 end
@@ -744,7 +752,7 @@ function AcsesTracker.getdistance_m(self, id)
   return self._distances_m[id]
 end
 
-function AcsesTracker._run(self, getspeed_mps, getbydistance)
+function AcsesTracker._run(self, getspeed_mps, iterbydistance)
   local ctr = 1
   local lasttime = self._sched:clock()
   while true do
@@ -758,7 +766,7 @@ function AcsesTracker._run(self, getspeed_mps, getbydistance)
 
     -- Match sensed objects to tracked objects, taking into consideration the
     -- anticipated travel distance.
-    for sensedist_m, obj in pairs(getbydistance()) do
+    for sensedist_m, obj in iterbydistance() do
       local match = false
       for id, trackdist_m in pairs(self._distances_m) do
         -- Update matched objects.
