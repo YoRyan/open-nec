@@ -714,7 +714,7 @@ AcsesTracker.__index = AcsesTracker
 ]]--
 function AcsesTracker.new(scheduler, getspeed_mps, iterbydistance)
   local self = setmetatable({}, AcsesTracker)
-  self._minretain_m = 1
+  self._minretain_m = 2
   self._matchmargin_m = 1
   self._objects = {}
   self._distances_m = {}
@@ -789,11 +789,10 @@ function AcsesTracker._run(self, getspeed_mps, iterbydistance)
     -- Add back objects that are no longer sensed, but are within the minimum
     -- distance retention zone.
     for id, dist_m in pairs(self._distances_m) do
-      if newdistances[id] == nil then
-        if math.abs(dist_m + travel_m) < self._minretain_m then
-          newobjects[id] = self._objects[id]
-          newdistances[id] = dist_m + travel_m
-        end
+      if newdistances[id] == nil
+          and math.abs(dist_m - travel_m) < self._minretain_m/2 then
+        newobjects[id] = self._objects[id]
+        newdistances[id] = dist_m - travel_m
       end
     end
 
