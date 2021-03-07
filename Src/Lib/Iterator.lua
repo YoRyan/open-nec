@@ -57,25 +57,25 @@ end
 -- be supplied as function/invariant/value triplets packed into tables --
 -- e.g., {pairs({ ... })} .
 function Iterator.concat(...)
-  local f = {}
-  local s = {}
-  local k = {}
-  for i, iter in ipairs(arg) do
-    f[i] = iter[1]
-    s[i] = iter[2]
-    k[i] = iter[3]
+  if arg.n < 1 then
+    return pairs({})
   end
-  local v
   local i = 1
+  local f, s, k = unpack(arg[i])
   return function ()
-    while f[i] ~= nil do
-      k[i], v = f[i](s[i], k[i])
-      if k[i] == nil then
+    while true do
+      local v
+      k, v = f(s, k)
+      if k == nil then
         i = i + 1
+        if arg[i] == nil then
+          return nil, nil
+        else
+          f, s, k = unpack(arg[i])
+        end
       else
-        return k[i], v
+        return k, v
       end
     end
-    return nil, nil
   end, nil, nil
 end
