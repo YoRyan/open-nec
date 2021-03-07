@@ -16,9 +16,9 @@ end
 -- key-value pairs. Any keys mapped to nil will be deleted.
 function Iterator.map(fn, ...)
   local f, s, k = unpack(arg)
-  local v
   return function ()
     while true do
+      local v
       k, v = f(s, k)
       if k == nil then
         return nil, nil
@@ -35,11 +35,11 @@ end
 -- Return a new iterator with all key-value pairs filtered such that fn(k, v) is
 -- true. This iterator will have positive, continguous integers as keys.
 function Iterator.ifilter(fn, ...)
-  local f, s, k = unpack(arg)
-  local v
   local i = 0
+  local f, s, k = unpack(arg)
   return function ()
     while true do
+      local v
       k, v = f(s, k)
       if k == nil then
         return nil, nil
