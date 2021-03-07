@@ -83,7 +83,7 @@ function Acses.start(self)
     self._limittracker = AcsesTracker.new(self._sched,
       function () return self.config.getspeed_mps() end,
       function ()
-        return Iterator.concat(
+        local f, s, v = Iterator.concat(
           {
             Iterator.map(
               function (i, limit) return limit.distance_m, limit end,
@@ -95,11 +95,13 @@ function Acses.start(self)
               self._speedlimits:iterbackwardspeedlimits())
           }
         )
+        -- Have to copy to a table first. No idea why.
+        return pairs(Iterator.totable(f, s, v))
       end)
     self._signaltracker = AcsesTracker.new(self._sched,
       function () return self.config.getspeed_mps() end,
       function ()
-        return Iterator.concat(
+        local f, s, v = Iterator.concat(
           {
             Iterator.map(
               function (i, signal) return signal.distance_m, signal end,
@@ -111,6 +113,8 @@ function Acses.start(self)
               self.config.iterbackwardrestrictsignals())
           }
         )
+        -- Have to copy to a table first. No idea why.
+        return pairs(Iterator.totable(f, s, v))
       end)
     self._coroutines = {
       self._sched:run(Acses._setstate, self),
