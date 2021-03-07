@@ -32,7 +32,7 @@ function Iterator.map(fn, ...)
   end, nil, nil
 end
 
--- Return a new iterator with the function fn(k, v) -> k2, v2 applied to all
+-- Return a new iterator with the function fn(k, v) -> v2 applied to all
 -- key-value pairs. Keys will be renumbered with positive, continguous integers.
 function Iterator.imap(fn, ...)
   local i = 0
