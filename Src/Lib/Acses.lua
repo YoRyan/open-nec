@@ -6,6 +6,7 @@ Acses.__index = Acses
 
 Acses.debuglimits = false
 Acses.debugsignals = false
+Acses.debugtrackers = false
 Acses.nlimitlookahead = 5
 Acses.nsignallookahead = 3
 
