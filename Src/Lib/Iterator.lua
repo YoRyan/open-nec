@@ -121,7 +121,7 @@ end
   renumbered with positive, continguous integers. The iterators should
   be supplied as function/invariant/value triplets packed into tables --
   e.g., {pairs({ ... })} .
-]]--
+]]
 function Iterator.iconcat(...)
   if arg.n < 1 then
     return pairs({})
