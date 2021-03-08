@@ -54,7 +54,7 @@ function Acses._initstate(self)
   self._violation = nil
   self._enforcingspeed_mps = nil
   self._speedlimits = nil
-  self.trackspeed = nil
+  self._trackspeed = nil
   self._limittracker = nil
   self._signaltracker = nil
   self._coroutines = {}
