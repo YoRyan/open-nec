@@ -77,11 +77,8 @@ function Acses.start(self)
     self._speedlimits = AcsesLimits.new(
       function () return self.config.iterforwardspeedlimits() end,
       function () return self.config.iterbackwardspeedlimits() end)
-    self.trackspeed = AcsesTrackSpeed.new(self._sched,
-      function () return self.config.gettrackspeed_mps() end,
-      function () return Iterator.totable(self._speedlimits:iterforwardspeedlimits()) end,
-      function () return Iterator.totable(self._speedlimits:iterbackwardspeedlimits()) end)
-    self._limittracker = AcsesTracker.new(self._sched,
+    self._limittracker = AcsesTracker.new(
+      self._sched,
       function () return self.config.getspeed_mps() end,
       function ()
         return Iterator.concat(
@@ -113,6 +110,10 @@ function Acses.start(self)
           }
         )
       end)
+    self._trackspeed = AcsesTrackSpeed.new(
+      self._sched,
+      self._limittracker,
+      function () return self.config.gettrackspeed_mps() end)
     self._coroutines = {
       self._sched:run(Acses._setstate, self),
       self._sched:run(Acses._doenforce, self)
@@ -130,9 +131,9 @@ function Acses.stop(self)
     for _, co in ipairs(self._coroutines) do
       self._sched:kill(co)
     end
-    self.trackspeed:kill()
     self._limittracker:kill()
     self._signaltracker:kill()
+    self._trackspeed:kill()
     self:_initstate()
     self._sched:alert("ACSES Cut Out")
   end
@@ -164,7 +165,7 @@ end
 function Acses._setstate(self)
   while true do
     local inforce_mps =
-      self._enforcingspeed_mps or self.trackspeed.state.speedlimit_mps
+      self._enforcingspeed_mps or self._trackspeed:gettrackspeed_mps()
     if inforce_mps ~= self._inforcespeed_mps then
       self.config.doalert()
     end
@@ -216,7 +217,7 @@ function Acses._iterhazards(self)
 end
 
 function Acses._gettrackspeedhazard(self)
-  local limit_mps = self.trackspeed.state.speedlimit_mps
+  local limit_mps = self._trackspeed:gettrackspeed_mps()
   return {
     type=Acses._hazardtype.currentlimit,
     penalty_mps=limit_mps + self.config.penaltylimit_mps,
@@ -353,7 +354,7 @@ function Acses._showlimits(self)
       return res
     end
     self._sched:info("Track: " .. fspeed(self.config.gettrackspeed_mps()) .. " "
-      .. "Sensed: " .. fspeed(self.trackspeed.state.speedlimit_mps) .. "\n"
+      .. "Sensed: " .. fspeed(self._trackspeed:gettrackspeed_mps()) .. "\n"
       .. "Forward: " .. dump(self.config.iterforwardspeedlimits())
       .. "Backward: " .. dump(self.config.iterbackwardspeedlimits()))
   end
@@ -429,7 +430,7 @@ end
 ]]
 
 function Acses._currentlimitalert(self)
-  local limit_mps = self.trackspeed.state.speedlimit_mps
+  local limit_mps = self._trackspeed:gettrackspeed_mps()
   self._enforcingspeed_mps = limit_mps
   self._isalarm = true
   local acknowledged = false
@@ -448,7 +449,7 @@ function Acses._currentlimitalert(self)
           and acknowledged
       end,
       function ()
-        return self.trackspeed.state.speedlimit_mps ~= limit_mps
+        return self._trackspeed:gettrackspeed_mps() ~= limit_mps
           and acknowledged
       end)
     if event == 1 then
@@ -573,7 +574,7 @@ function Acses._penalty(self, violation)
 end
 
 function Acses._currentlimitpenalty(self)
-  local limit_mps = self.trackspeed.state.speedlimit_mps
+  local limit_mps = self._trackspeed:gettrackspeed_mps()
   self._enforcingspeed_mps = limit_mps
   self._ispenalty = true
   self._isalarm = true
@@ -630,14 +631,6 @@ function Acses._getdirection(self)
   end
 end
 
-function Acses._softgt(a, b)
-  if math.abs(a - b) < Acses._equaldistance_m then
-    return false
-  else
-    return a > b
-  end
-end
-
 
 -- A speed post tracker that calculates the speed limit in force at the
 -- player's location, irrespective of train length.
@@ -647,29 +640,13 @@ AcsesTrackSpeed.__index = AcsesTrackSpeed
 -- From the main coroutine, create a new speed post tracker context. This will
 -- add coroutines to the provided scheduler.
 function AcsesTrackSpeed.new(
-    scheduler, gettrackspeed_mps, getforwardspeedlimits, getbackwardspeedlimits)
+    scheduler, speedlimittracker, gettrackspeed_mps)
   local self = setmetatable({}, AcsesTrackSpeed)
-  self.state = {
-    speedlimit_mps=0,
-
-    _sensedforwardlimit_mps=nil,
-    _sensedbackwardlimit_mps=nil
-  }
-  self._sensedistance_m = 10*Units.m.toft
+  self._trackspeed_mps = 0
   self._sched = scheduler
-  self._gettrackspeed_mps = gettrackspeed_mps
   self._coroutines = {
-    self._sched:run(AcsesTrackSpeed._setstate, self),
     self._sched:run(
-      AcsesTrackSpeed._look,
-      self,
-      getforwardspeedlimits,
-      function (limit_mps) self.state._sensedforwardlimit_mps = limit_mps end),
-    self._sched:run(
-      AcsesTrackSpeed._look,
-      self,
-      getbackwardspeedlimits,
-      function (limit_mps) self.state._sensedbackwardlimit_mps = limit_mps end)
+      AcsesTrackSpeed._run, self, speedlimittracker, gettrackspeed_mps)
   }
   return self
 end
@@ -681,62 +658,61 @@ function AcsesTrackSpeed.kill(self)
   end
 end
 
-function AcsesTrackSpeed._setstate(self)
-  while true do
-    self.state.speedlimit_mps = self.state._sensedforwardlimit_mps
-      or self.state._sensedbackwardlimit_mps
-      or self._gettrackspeed_mps()
-    self._sched:yield()
-  end
+-- Get the current sensed track speed.
+function AcsesTrackSpeed.gettrackspeed_mps(self)
+  return self._trackspeed_mps
 end
 
-function AcsesTrackSpeed._look(self, getspeedlimits, report)
+function AcsesTrackSpeed._run(self, limittracker, gettrackspeed_mps)
+  local before_mps = {}
+  local after_mps = {}
+  local sensed_mps = nil
   while true do
-    local startlimit = getspeedlimits()[1]
-    if startlimit ~= nil and startlimit.distance_m > self._sensedistance_m then
-      local cmpdistance_m = startlimit.distance_m
-      local startspeed_mps = startlimit.speed_mps
-      while true do
-        self._sched:yield()
-        local newlimit = getspeedlimits()[1]
-        if newlimit ~= nil then
-          local newdistance_m = newlimit.distance_m
-          if Acses._softgt(newdistance_m, cmpdistance_m) then
-            break
-          elseif newlimit.speed_mps ~= startspeed_mps then
-            break
-          elseif newdistance_m < self._sensedistance_m then
-            self:_sensejustpassed(getspeedlimits, startspeed_mps, report)
-            break
-          else
-            cmpdistance_m = newdistance_m
-          end
+    self._sched:yield()
+    do
+      local newbefore_mps = {}
+      local newafter_mps = {}
+      for id, distance_m in limittracker:iterdistances_m() do
+        local limit = limittracker:getobject(id)
+        if distance_m > 0 then
+          newbefore_mps[id] = before_mps[id]
+          newafter_mps[id] = limit.speed_mps
+        elseif distance_m < 0 then
+          newbefore_mps[id] = limit.speed_mps
+          newafter_mps[id] = after_mps[id]
+        else
+          newbefore_mps[id] = before_mps[id]
+          newafter_mps[id] = after_mps[id]
         end
       end
+      before_mps = newbefore_mps
+      after_mps = newafter_mps
     end
-    self._sched:yield()
+    do
+      local lastid = Iterator.max(
+        AcsesTrackSpeed._comparedistances_m,
+        Iterator.filter(
+          function (id, distance_m) return distance_m < 0 end,
+          limittracker:iterdistances_m()
+        )
+      )
+      local nextid = Iterator.min(
+        AcsesTrackSpeed._comparedistances_m,
+        Iterator.filter(
+          function (id, distance_m) return distance_m > 0 end,
+          limittracker:iterdistances_m()
+        )
+      )
+      -- Retain the deduced speed limit even if the original speed post is more
+      -- than 10km away.
+      sensed_mps = after_mps[lastid] or before_mps[nextid] or sensed_mps
+      self._trackspeed_mps = sensed_mps or gettrackspeed_mps()
+    end
   end
 end
 
-function AcsesTrackSpeed._sensejustpassed(self, getspeedlimits, limit_mps, report)
-  local backedout = function ()
-    local nextlimit = getspeedlimits()[1]
-    return nextlimit ~= nil
-      and nextlimit.speed_mps == limit_mps
-      and nextlimit.distance_m >= self._sensedistance_m
-  end
-  local event = self._sched:select(nil, backedout, function ()
-    local nextlimit = getspeedlimits()[1]
-    return nextlimit == nil
-      or nextlimit.speed_mps ~= limit_mps
-  end)
-  if event == 2 then
-    report(limit_mps)
-    self._sched:select(nil, backedout, function ()
-      return self._gettrackspeed_mps() == limit_mps
-    end)
-    report(nil)
-  end
+function AcsesTrackSpeed._comparedistances_m(dista_m, distb_m)
+  return dista_m < distb_m
 end
 
 
