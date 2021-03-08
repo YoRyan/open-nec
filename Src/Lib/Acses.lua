@@ -706,7 +706,14 @@ function AcsesTrackSpeed._run(self, limittracker, gettrackspeed_mps)
       -- Retain the deduced speed limit even if the original speed post is more
       -- than 10km away.
       sensed_mps = after_mps[lastid] or before_mps[nextid] or sensed_mps
-      self._trackspeed_mps = sensed_mps or gettrackspeed_mps()
+      local gamespeed_mps = gettrackspeed_mps()
+      if sensed_mps == nil then
+        self._trackspeed_mps = gamespeed_mps
+      else
+        -- The game-calculated speed limit is strictly lower than the track
+        -- speed limit we want, so if that is higher, then we should use it.
+        self._trackspeed_mps = math.max(sensed_mps, gamespeed_mps)
+      end
     end
   end
 end
