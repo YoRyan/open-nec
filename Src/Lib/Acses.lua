@@ -753,8 +753,8 @@ AcsesTracker.__index = AcsesTracker
 ]]
 function AcsesTracker.new(scheduler, getspeed_mps, iterbydistance)
   local self = setmetatable({}, AcsesTracker)
-  self._minretain_m = 2
-  self._matchmargin_m = 1
+  self._passing_m = 16
+  self._trackmargin_m = 1
   self._objects = {}
   self._distances_m = {}
   self._sched = scheduler
@@ -783,12 +783,27 @@ end
 
 -- Iterate through all relative distances by identifier.
 function AcsesTracker.iterdistances_m(self)
-  return pairs(self._distances_m)
+  return Iterator.map(
+    function (id, distance_m) return id, self:_getcorrectdistance_m(id) end,
+    pairs(self._distances_m))
 end
 
 -- Get a relative distance by identifier.
 function AcsesTracker.getdistance_m(self, id)
-  return self._distances_m[id]
+  return self:_getcorrectdistance_m(id)
+end
+
+function AcsesTracker._getcorrectdistance_m(self, id)
+  local distance_m = self._distances_m[id]
+  if distance_m == nil then
+    return nil
+  elseif distance_m < -self._passing_m/2 then
+    return distance_m + self._passing_m/2
+  elseif distance_m > self._passing_m/2 then
+    return distance_m - self._passing_m/2
+  else
+    return 0
+  end
 end
 
 function AcsesTracker._run(self, getspeed_mps, iterbydistance)
@@ -805,11 +820,17 @@ function AcsesTracker._run(self, getspeed_mps, iterbydistance)
 
     -- Match sensed objects to tracked objects, taking into consideration the
     -- anticipated travel distance.
-    for sensedistance_m, obj in iterbydistance() do
+    for rawdistance_m, obj in iterbydistance() do
+      local sensedistance_m
+      if rawdistance_m >= 0 then
+        sensedistance_m = rawdistance_m + self._passing_m/2
+      else
+        sensedistance_m = rawdistance_m - self._passing_m/2
+      end
       local match = Iterator.findfirst(
         function (id, trackdistance_m)
           return math.abs(trackdistance_m - travel_m - sensedistance_m)
-            < self._matchmargin_m/2
+            < self._trackmargin_m/2
         end,
         pairs(self._distances_m))
       if match == nil then
@@ -824,13 +845,21 @@ function AcsesTracker._run(self, getspeed_mps, iterbydistance)
       end
     end
 
-    -- Add back objects that are no longer sensed, but are within the minimum
-    -- distance retention zone.
-    local isretained = function (id, distance_m)
-      return newdistances_m[id] == nil
-        and math.abs(distance_m - travel_m) < self._minretain_m/2
+    --[[
+      Track objects will briefly disappear for about 16 m of travel before they
+      reappear in the reverse direction. We call this area the "passing" zone.
+
+      d < 0|invisible|d > 0
+      ---->|__~16_m__|<----
+
+      Here, we add back objects that are no longer detected, but are within the
+      passing zone.
+    ]]
+    local ispassing = function (id, distance_m)
+      return newdistances_m[id] == nil and math.abs(distance_m - travel_m)
+        < self._passing_m/2 + self._trackmargin_m/2
     end
-    for id, distance_m in Iterator.filter(isretained, pairs(self._distances_m)) do
+    for id, distance_m in Iterator.filter(ispassing, pairs(self._distances_m)) do
       newobjects[id] = self._objects[id]
       newdistances_m[id] = distance_m - travel_m
     end
