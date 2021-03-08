@@ -730,7 +730,7 @@ AcsesTracker.__index = AcsesTracker
 function AcsesTracker.new(scheduler, getspeed_mps, iterbydistance)
   local self = setmetatable({}, AcsesTracker)
   self._passing_m = 16
-  self._trackmargin_m = 1
+  self._trackmargin_m = 2
   self._objects = {}
   self._distances_m = {}
   self._sched = scheduler
@@ -832,8 +832,11 @@ function AcsesTracker._run(self, getspeed_mps, iterbydistance)
       passing zone.
     ]]
     local ispassing = function (id, distance_m)
+      -- Use a generous retention margin here so that users will be notified
+      -- with a positive or negative distance if an object cannot be tracked
+      -- in the reverse direction.
       return newdistances_m[id] == nil and math.abs(distance_m - travel_m)
-        < self._passing_m/2 + self._trackmargin_m/2
+        < self._passing_m/2 + self._trackmargin_m
     end
     for id, distance_m in Iterator.filter(ispassing, pairs(self._distances_m)) do
       newobjects[id] = self._objects[id]
