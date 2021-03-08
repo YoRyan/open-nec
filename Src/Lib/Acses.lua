@@ -84,12 +84,12 @@ function Acses.start(self)
         return Iterator.concat(
           {
             Iterator.map(
-              function (i, limit) return limit.distance_m, limit end,
+              function (_, limit) return limit.distance_m, limit end,
               self._speedlimits:iterforwardspeedlimits())
           },
           {
             Iterator.map(
-              function (i, limit) return -limit.distance_m, limit end,
+              function (_, limit) return -limit.distance_m, limit end,
               self._speedlimits:iterbackwardspeedlimits())
           }
         )
@@ -100,12 +100,12 @@ function Acses.start(self)
         return Iterator.concat(
           {
             Iterator.map(
-              function (i, signal) return signal.distance_m, signal end,
+              function (_, signal) return signal.distance_m, signal end,
               self.config.iterforwardrestrictsignals())
           },
           {
             Iterator.map(
-              function (i, signal) return -signal.distance_m, signal end,
+              function (_, signal) return -signal.distance_m, signal end,
               self.config.iterbackwardrestrictsignals())
           }
         )
@@ -227,7 +227,7 @@ function Acses._gettrackspeedhazard(self)
 end
 
 function Acses._getnextstopsignalid(self, direction)
-  local rightdirection = function (id, distance_m)
+  local rightdirection = function (_, distance_m)
     if direction == Acses._direction.forward then
       return distance_m >= 0
     elseif direction == Acses._direction.backward then
@@ -236,7 +236,7 @@ function Acses._getnextstopsignalid(self, direction)
       return false
     end
   end
-  local isstop = function (id, distance_m)
+  local isstop = function (id, _)
     local signal = self._signaltracker:getobject(id)
     return signal ~= nil and signal.prostate == 3
   end
@@ -264,7 +264,7 @@ function Acses._getsignalstophazard(self, id)
 end
 
 function Acses._iterupcomingspeedlimitids(self, direction)
-  local rightdirection = function (id, distance_m)
+  local rightdirection = function (_, distance_m)
     if direction == Acses._direction.forward then
       return distance_m >= 0
     elseif direction == Acses._direction.backward then
@@ -273,7 +273,7 @@ function Acses._iterupcomingspeedlimitids(self, direction)
       return false
     end
   end
-  local toid = function (id, distance_m) return id end
+  local toid = function (id, _) return id end
   return Iterator.imap(
     toid, Iterator.filter(rightdirection, self._limittracker:iterdistances_m()))
 end
@@ -334,7 +334,7 @@ function Acses._showlimits(self)
       return self._limittracker:getdistance_m(ida)
         < self._limittracker:getdistance_m(idb)
     end)
-    local dumpid = function (i, id)
+    local dumpid = function (_, id)
       local limit = self._limittracker:getobject(id)
       local distance_m = self._limittracker:getdistance_m(id)
       return tostring(id) .. ": type=" .. limit.type
@@ -388,7 +388,7 @@ function Acses._showsignals(self)
       return self._signaltracker:getdistance_m(ida)
         < self._signaltracker:getdistance_m(idb)
     end)
-    local dumpid = function (i, id)
+    local dumpid = function (_, id)
       local signal = self._signaltracker:getobject(id)
       local distance_m = self._signaltracker:getdistance_m(id)
       return tostring(id) .. ": state=" .. faspect(signal.prostate)
@@ -692,14 +692,14 @@ function AcsesTrackSpeed._run(self, limittracker, gettrackspeed_mps)
       local lastid = Iterator.max(
         AcsesTrackSpeed._comparedistances_m,
         Iterator.filter(
-          function (id, distance_m) return distance_m < 0 end,
+          function (_, distance_m) return distance_m < 0 end,
           limittracker:iterdistances_m()
         )
       )
       local nextid = Iterator.min(
         AcsesTrackSpeed._comparedistances_m,
         Iterator.filter(
-          function (id, distance_m) return distance_m > 0 end,
+          function (_, distance_m) return distance_m > 0 end,
           limittracker:iterdistances_m()
         )
       )
@@ -767,7 +767,7 @@ end
 -- Iterate through all relative distances by identifier.
 function AcsesTracker.iterdistances_m(self)
   return Iterator.map(
-    function (id, distance_m) return id, self:_getcorrectdistance_m(id) end,
+    function (id, _) return id, self:_getcorrectdistance_m(id) end,
     pairs(self._distances_m))
 end
 
@@ -811,7 +811,7 @@ function AcsesTracker._run(self, getspeed_mps, iterbydistance)
         sensedistance_m = rawdistance_m - self._passing_m/2
       end
       local match = Iterator.findfirst(
-        function (id, trackdistance_m)
+        function (_, trackdistance_m)
           return math.abs(trackdistance_m - travel_m - sensedistance_m)
             < self._trackmargin_m/2
         end,
@@ -885,11 +885,11 @@ function AcsesLimits._filterspeedlimits(self, iterspeedlimits)
     -- Default to type 1 limits *unless* we encounter a type 2 (Philadelphia-
     -- New York), at which point we'll search solely for type 2 limits.
     self._hastype2limits = Iterator.hasone(
-      function (i, limit) return limit.type == 2 end,
+      function (_, limit) return limit.type == 2 end,
       iterspeedlimits())
   end
   return Iterator.ifilter(
-    function (i, limit)
+    function (_, limit)
       local righttype
       if self._hastype2limits then
         righttype = limit.type == 2

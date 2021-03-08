@@ -27,7 +27,7 @@ function Scheduler.run(self, fn, ...)
 end
 
 -- From the main coroutine, update all active coroutines.
-function Scheduler.update(self, dt)
+function Scheduler.update(self, _)
   self._clock = RailWorks.GetSimulationTime()
   for co, conds in pairs(self._coroutines) do
     if coroutine.status(co) == "dead" then

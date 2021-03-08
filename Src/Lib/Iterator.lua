@@ -202,7 +202,7 @@ function Iterator.join(sep, ...)
     return ""
   end
   local res = tostring(v)
-  for k2, v2 in f, s, v do
+  for _, v2 in f, s, v do
     res = res .. sep .. tostring(v2)
   end
   return res
