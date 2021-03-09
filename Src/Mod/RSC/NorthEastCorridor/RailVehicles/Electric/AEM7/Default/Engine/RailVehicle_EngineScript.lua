@@ -211,6 +211,11 @@ Update = RailWorks.wraperrors(function (dt)
     Call("FrontCabLight:Activate", cablight)
     Call("RearCabLight:Activate", cablight)
   end
+
+  -- Prevent the acknowledge button from sticking if the button on the HUD is clicked.
+  if state.acknowledge then
+    RailWorks.SetControlValue("AWSReset", 0, 0)
+  end
 end)
 
 -- Set the state of the cab signal display.
