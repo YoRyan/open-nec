@@ -152,7 +152,7 @@ local function showsignals (self)
     elseif ps == 11 then
       return "flsh dbl yellow"
     else
-      return "?"
+      return tostring(ps) .. "(?)"
     end
   end
   local fdist = function (m)
