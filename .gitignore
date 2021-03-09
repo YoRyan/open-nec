@@ -4,6 +4,7 @@
 # Output directory
 /Mod/
 /Release/
+/Mod.zip
 /site/
 
 # Luac binaries
