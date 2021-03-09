@@ -1,6 +1,8 @@
 # Driving on the NEC
 
-All locomotives upgraded by the Open NEC Project include fully functional safety systems that are turned *on* by default. In addition, locomotives will permanently cut their power if they enter a section of track incompatible with their source of power—for example, in the event that an AEM-7 enters a section without overhead catenary.
+All locomotives upgraded by the Open NEC Project include fully functional safety systems that are turned *on* by default. These systems are fully compatible with any of the various renditions of the Northeast Corridor, so a modded AEM-7, for example, can drive on the New Haven Line and the North Jersey Coast Line with fully functional ATC and ACSES.
+
+Power change signals have also been implemented across the board, so locomotives will permanently cut their power if they enter a section of track incompatible with their source of power—for example, in the event that an AEM-7 enters a section without overhead catenary.
 
 To operate a train safely on the Northeast Corridor, you need to be familiar with the following systems:
 
