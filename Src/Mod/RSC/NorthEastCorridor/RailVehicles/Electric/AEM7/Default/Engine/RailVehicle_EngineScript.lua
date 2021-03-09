@@ -1,12 +1,12 @@
 -- Engine script for the EMD AEM-7 operated by Amtrak.
 
-sched = nil
-atc = nil
-acses = nil
-cruise = nil
-alerter = nil
-power = nil
-state = {
+local sched = nil
+local atc = nil
+local acses = nil
+local cruise = nil
+local alerter = nil
+local power = nil
+local state = {
   throttle=0,
   train_brake=0,
   acknowledge=false,
@@ -26,7 +26,7 @@ state = {
   cs1flash=0, -- 0 = off, 1 = on, 2 = flash
   cs1light=false
 }
-onebeep_s = 0.3
+local onebeep_s = 0.3
 
 Initialise = RailWorks.wraperrors(function ()
   sched = Scheduler:new{}
