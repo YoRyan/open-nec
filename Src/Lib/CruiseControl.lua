@@ -1,50 +1,49 @@
 -- PID-based cruise control implementation. For now, it only handles throttle.
+local P = {}
+Cruise = P
 
-Cruise = {}
-Cruise.__index = Cruise
-
--- From the main coroutine, create a new CruiseControl context. This will add
--- coroutines to the provided scheduler. The caller should also customize the
--- properties in the config table initialized here.
-function Cruise.new(scheduler)
-  local self = setmetatable({}, Cruise)
-  self.config = {
-    getspeed_mps=function () return 0 end,
-    gettargetspeed_mps=function () return 0 end,
-    getenabled=function () return false end,
-    kp=1,
-    ki=0,
-    kd=0
-  }
-  self._throttle = 0
-  self._sched = scheduler
-  self._sched:run(Cruise._run, self)
-  return self
-end
-
--- Get the amount of throttle applied by the cruise control, from 0 to 1.
-function Cruise.getthrottle(self)
-  return self._throttle
-end
-
-function Cruise._run(self)
+local function run (self)
   -- https://en.wikipedia.org/wiki/PID_controller#Pseudocode
   local prevtime = self._sched:clock()
   local preverror = 0
   local integral = 0
   while true do
-    self._sched:select(nil, function () return self.config.getenabled() end)
+    self._sched:select(nil, function () return self._getenabled() end)
     local time = self._sched:clock()
     local dt = time - prevtime
     prevtime = time
     if dt > 0 then
-      local error = self.config.gettargetspeed_mps() - self.config.getspeed_mps()
+      local error = self._gettargetspeed_mps() - self._getspeed_mps()
       integral = integral + error*dt
       local derivative = (error - preverror)/dt
-      self._throttle = self.config.kp*error
-        + self.config.ki*integral
-        + self.config.kd*derivative
+      self._throttle = self._kp*error + self._ki*integral + self._kd*derivative
       preverror = error
     end
   end
 end
+
+-- From the main coroutine, create a new CruiseControl context. This will add
+-- coroutines to the provided scheduler.
+function P:new (conf)
+  local o = {
+    _sched = conf.scheduler,
+    _getspeed_mps = conf.getspeed_mps or function () return 0 end,
+    _gettargetspeed_mps = conf.gettargetspeed_mps or function () return 0 end,
+    _getenabled = conf.getenabled or function () return false end,
+    _kp = conf.kp or 1,
+    _ki = conf.ki or 0,
+    _kd = conf.kd or 0,
+    _throttle = 0
+  }
+  setmetatable(o, self)
+  self.__index = self
+  o._sched:run(run, o)
+  return o
+end
+
+-- Get the amount of throttle applied by the cruise control, from 0 to 1.
+function P:getthrottle ()
+  return self._throttle
+end
+
+return P

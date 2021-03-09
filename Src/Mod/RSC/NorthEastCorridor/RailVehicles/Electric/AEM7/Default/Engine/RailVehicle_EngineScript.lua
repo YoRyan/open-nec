@@ -66,17 +66,12 @@ Initialise = RailWorks.wraperrors(function ()
     acses = newacses
     acses:start()
   end
-  do
-    local newcruise = Cruise.new(sched)
-    local config = newcruise.config
-    config.getspeed_mps =
-      function () return state.speed_mps end
-    config.gettargetspeed_mps =
-      function () return state.cruisespeed_mps end
-    config.getenabled =
-      function () return state.cruiseenabled end
-    cruise = newcruise
-  end
+  cruise = Cruise:new{
+    scheduler = sched,
+    getspeed_mps = function () return state.speed_mps end,
+    gettargetspeed_mps = function () return state.cruisespeed_mps end,
+    getenabled = function () return state.cruiseenabled end
+  }
   do
     local newalerter = Alerter.new(sched)
     local config = newalerter.config
