@@ -24,6 +24,7 @@ To compile the mod, you will need the following tools in your `%PATH%`:
 
 It also helps to have the following tools handy:
 
+- [unluac](https://sourceforge.net/projects/unluac) to decompile and study (to varying degrees of success) Dovetail's Lua bytecode.
 - [MkDocs](https://www.mkdocs.org/) to build and maintain this manual's Markdown text.
 - My [Rail Sim Remote](https://github.com/yoryan/railsim-remote) program, which exposes Train Simulator's RailDriver interface via a REST API. You can use this in conjunction with cURL or a browser developer console to experiment with a locomotive's controls.
 - Discord so you can join the Train Simulator community for modding tips, street cred, and comradery.
