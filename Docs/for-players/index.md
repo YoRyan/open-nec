@@ -4,9 +4,9 @@ All locomotives upgraded by the Open NEC Project include fully functional safety
 
 To operate a train safely on the Northeast Corridor, you need to be familiar with the following systems:
 
-* The pulse code cab signaling system (CSS) in use on the corridor, which is derived from the original system deployed by the Pennsylvania Railroad.
-* The Automatic Train Control (ATC) system, which enforces aspects and speed limits sent by the cab signaling system.
-* The Advanced Civil Speed Enforcement System (ACSES), which enforces permanent track speed limits and can also bring the train to a halt in advance of a stop signal.
+- The pulse code cab signaling system (CSS) in use on the corridor, which is derived from the original system deployed by the Pennsylvania Railroad.
+- The Automatic Train Control (ATC) system, which enforces aspects and speed limits sent by the cab signaling system.
+- The Advanced Civil Speed Enforcement System (ACSES), which enforces permanent track speed limits and can also bring the train to a halt in advance of a stop signal.
 
 You also need to be familiar with the controls used to interact with them.
 
