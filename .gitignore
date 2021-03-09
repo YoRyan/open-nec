@@ -4,6 +4,7 @@
 # Output directory
 /Mod/
 /Release/
+/site/
 
 # Luac binaries
 *.out
