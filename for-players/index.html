@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Driving on the NEC - Open NEC Project</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
+
+        <script src="../js/jquery-1.10.2.min.js" defer></script>
+        <script src="../js/bootstrap.min.js" defer></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+        <script>hljs.initHighlightingOnLoad();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">Open NEC Project</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href=".." class="nav-link">Introduction</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../installation/" class="nav-link">Installation</a>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">For contributors <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../for-contributors/" class="dropdown-item">Developing for the project</a>
+</li>
+                                    
+  <li class="dropdown-submenu">
+    <a href="#" class="dropdown-item">Rolling stock</a>
+    <ul class="dropdown-menu">
+            
+<li>
+    <a href="../for-contributors/rolling-stock/amtrak-aem7/" class="dropdown-item">Amtrak AEM-7</a>
+</li>
+    </ul>
+  </li>
+                                    
+  <li class="dropdown-submenu">
+    <a href="#" class="dropdown-item">Routes</a>
+    <ul class="dropdown-menu">
+            
+<li>
+    <a href="../for-contributors/routes/newhaven/" class="dropdown-item">Northeast Corridor - New York to New Haven</a>
+</li>
+            
+<li>
+    <a href="../for-contributors/routes/njcl-morristown/" class="dropdown-item">NJ Transit North Jersey Coast and Morristown-Essex Lines</a>
+</li>
+            
+<li>
+    <a href="../for-contributors/routes/northeastcorridor/" class="dropdown-item">Northeast Corridor - New York to Philadelphia</a>
+</li>
+    </ul>
+  </li>
+                                </ul>
+                            </li>
+                            <li class="dropdown active">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">For players <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="./" class="dropdown-item active">Driving on the NEC</a>
+</li>
+                                    
+<li>
+    <a href="amtrak-aem7/" class="dropdown-item">Notes for the Amtrak AEM-7</a>
+</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../for-contributors/routes/northeastcorridor/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="amtrak-aem7/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#driving-on-the-nec" class="nav-link">Driving on the NEC</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#aspect-display-unit-adu" class="nav-link">Aspect Display Unit (ADU)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#cab-signaling-system-css" class="nav-link">Cab Signaling System (CSS)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#automatic-train-control-atc" class="nav-link">Automatic Train Control (ATC)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#advanced-civil-speed-enforcement-system-acses" class="nav-link">Advanced Civil Speed Enforcement System (ACSES)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="driving-on-the-nec">Driving on the NEC</h1>
+<p>All locomotives upgraded by the Open NEC Project include fully functional safety systems that are turned <em>on</em> by default. These systems are fully compatible with any of the various renditions of the Northeast Corridor, so a modded AEM-7, for example, can drive on the New Haven Line and the North Jersey Coast Line with fully functional ATC and ACSES.</p>
+<p>Power change signals have also been implemented across the board, so locomotives will permanently cut their power if they enter a section of track incompatible with their source of power—for example, in the event that an AEM-7 enters a section without overhead catenary.</p>
+<p>To operate a train safely on the Northeast Corridor, you need to be familiar with the following systems:</p>
+<ul>
+<li>The pulse code cab signaling system (CSS) in use on the corridor, which is derived from the original system deployed by the Pennsylvania Railroad.</li>
+<li>The Automatic Train Control (ATC) system, which enforces aspects and speed limits sent by the cab signaling system.</li>
+<li>The Advanced Civil Speed Enforcement System (ACSES), which enforces permanent track speed limits and can also bring the train to a halt in advance of a stop signal.</li>
+</ul>
+<p>You also need to be familiar with the controls used to interact with them.</p>
+<h2 id="aspect-display-unit-adu">Aspect Display Unit (ADU)</h2>
+<p>The ADU is the cockpit display that shows the states of the CSS, ATC, and ACSES systems.</p>
+<p>There are several styles of ADU in use on the Northeast Corridor, but they all have common elements. The cab signal display, which resembles a PRR-style circular signal head, communicates the current cab signal aspect in force. The "signal speed" display communicates the ATC-enforced speed limit. The "track speed" display communicates the ACSES-enforced speed limit. (Some ADU's combine the latter two displays.)</p>
+<p>Dovetail's models impose some limitations on the information that the ADU's can be programmed to display—for example, the track speed display on the AEM-7 cannot display certain numbers—so each locomotive has its own quirks. Please see the locomotive notes pages for specific information.</p>
+<h2 id="cab-signaling-system-css">Cab Signaling System (CSS)</h2>
+<p>The cab signal display communicates the signal aspect in force for the block the train is currently occupying. In other words—contrary to the behavior implemented by the classic Microsoft Train Simulator—it reflects the state of the signal last passed.</p>
+<p>Cab signals on the modern Northeast Corridor communicate the following aspects:</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Speed (mph)</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Clear/150</td>
+<td>150</td>
+<td>Clear to proceed up to 150 mph.</td>
+</tr>
+<tr>
+<td>Clear/125</td>
+<td>125</td>
+<td>Clear to proceed up to 125 mph.</td>
+</tr>
+<tr>
+<td>Clear/100</td>
+<td>100</td>
+<td>Clear to proceed up to 100 mph. Used for high-density signaling around New York.</td>
+</tr>
+<tr>
+<td>Cab Speed/80</td>
+<td>80</td>
+<td>Clear to proceed up to 80 mph.</td>
+</tr>
+<tr>
+<td>Cab Speed/60</td>
+<td>60</td>
+<td>Clear to proceed up to 60 mph.</td>
+</tr>
+<tr>
+<td>Approach Limited</td>
+<td>45</td>
+<td>Slow to 45 mph, then slow to 30 mph before the next signal.</td>
+</tr>
+<tr>
+<td>Approach</td>
+<td>30</td>
+<td>Slow to 30 mph, then prepare to stop at the next signal.</td>
+</tr>
+<tr>
+<td>Restricting</td>
+<td>20</td>
+<td>Slow to 20 mph, then prepare to stop. Also the failsafe state.</td>
+</tr>
+</tbody>
+</table>
+<p>Cab signals inform the ATC system of the current signal speed limit to enforce. In addition, if the current cab signal is "Approach" or "Restricting," ACSES will detect and enforce a stop in advance of a signal head reading "Danger."</p>
+<h2 id="automatic-train-control-atc">Automatic Train Control (ATC)</h2>
+<p>ATC enforces the speed limit imposed by the cab signal aspect in force.</p>
+<p>When the current cab signal aspect changes, if the new aspect is less restrictive than the previous one (an "upgrade"), then an informational tone will sound that you do not need to acknowledge.</p>
+<p>If the new aspect is more restrictive than the last one in force (a "downgrade"), an alarm will sound, even if you are not violating the newly imposed speed limit. You must acknowledge (Q) this alarm within 6 seconds, or else a penalty brake will be applied.</p>
+<p>If you are above the downgraded aspect's speed limit, then in addition to acknowledging the alarm, you must also begin to slow the train and reach the -0.5 miles/hour/second rate within the 6 second countdown. Once the alarm is acknowledged and this rate is reached, the alarm will extinguish. You then have another 6 seconds to reach and maintain the -1.5 miles/hour/second deceleration rate, which is called the "suppression" rate. Failure to perform any of these steps will result in a penalty brake application.</p>
+<p>If you face a penalty brake application imposed by ATC, you must wait until the train comes to a complete stop. Then you can acknowledge the penalty and release the brakes.</p>
+<h2 id="advanced-civil-speed-enforcement-system-acses">Advanced Civil Speed Enforcement System (ACSES)</h2>
+<p>ACSES enforces permanent track speed limits. It uses the positions of upcoming speed limits to calculate a continuous braking curve that keeps the train within safe limits at all times.</p>
+<p>Once your locomotive passes a posted speed limit increase, you may be surprised to find that ACSES upgrades the displayed track speed limit immediately. This is because—unlike Train Simulator itself—ACSES does <em>not</em> take into account the length of your train. It is your responsibility not to increase your speed until the rear of your train has cleared the previous speed restriction.</p>
+<p>As your train approaches a posted speed limit decrease, ACSES will calculate the last possible moment at which it can apply a penalty brake application and still keep the train within safe limits. This trigger speed, which resembles a line that slopes <em>down</em> to the upcoming speed restriction if graphed over time, is called the "penalty curve." In addition, ACSES calculates a braking curve approximately 8 seconds in advance of the penalty curve called the "alert curve."</p>
+<p>If you violate the alert curve, ACSES will display the upcoming speed limit on the track speed display and sound an alarm (that you can extinguish by acknowledging it), prompting you to slow down. If you violate the penalty curve, ACSES will apply a penalty brake that you can release once you are in compliance with the lower speed limit.</p>
+<p>If the track speed limit changes, but you are already in compliance with the new limit, ACSES will sound an informational tone that does not need to be acknowledged.</p>
+<p>ACSES will also halt the train in advance of any "Danger" signal, an act that is called a "positive stop." The positive stop functionality is activated whenever the cab signaling system reads "Approach" or "Restricting." When ACSES imposes a positive stop, you will receive alert and penalty curves that read "0 mph." You can release the positive stop once the signal upgrades from "Danger."</p></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js" defer></script>
+        <script src="../search/main.js" defer></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>
+                    From here you can search these documents. Enter
+                    your search terms below.
+                </p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
