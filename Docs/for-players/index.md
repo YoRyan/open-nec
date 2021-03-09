@@ -60,3 +60,5 @@ As your train approaches a posted speed limit decrease, ACSES will calculate the
 If you violate the alert curve, ACSES will display the upcoming speed limit on the track speed display and sound an alarm (that you can extinguish by acknowledging it), prompting you to slow down. If you violate the penalty curve, ACSES will apply a penalty brake that you can release once you are in compliance with the lower speed limit.
 
 If the track speed limit changes, but you are already in compliance with the new limit, ACSES will sound an informational tone that does not need to be acknowledged.
+
+ACSES will also halt the train in advance of any "Danger" signal, an act that is called a "positive stop." The positive stop functionality is activated whenever the cab signaling system reads "Approach" or "Restricting." When ACSES imposes a positive stop, you will receive alert and penalty curves that read "0 mph." You can release the positive stop once the signal upgrades from "Danger."
