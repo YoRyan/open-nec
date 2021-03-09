@@ -1,6 +1,6 @@
 -- Engine script for the EMD AEM-7 operated by Amtrak.
 
-sched = Scheduler.new()
+sched = nil
 atc = nil
 acses = nil
 cruise = nil
@@ -29,6 +29,7 @@ state = {
 onebeep_s = 0.3
 
 Initialise = RailWorks.wraperrors(function ()
+  sched = Scheduler:new{}
   do
     local newatc = Atc.new(sched)
     local config = newatc.config

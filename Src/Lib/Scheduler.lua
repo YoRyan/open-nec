@@ -1,21 +1,23 @@
 -- Library for managing concurrent coroutines that are updated from a single
 -- update loop.
-
-Scheduler = {}
-Scheduler.__index = Scheduler
+local P = {}
+Scheduler = P
 
 -- From the main coroutine, create a new Scheduler context.
-function Scheduler.new()
-  local self = setmetatable({}, Scheduler)
-  self._clock = 0
-  self._coroutines = {}
-  self._infomessages = {}
-  self._alertmessages = {}
-  return self
+function P:new (conf)
+  local o = {
+    _clock = 0,
+    _infomessages = {},
+    _alertmessages = {},
+    _coroutines = {}
+  }
+  setmetatable(o, self)
+  self.__index = self
+  return o
 end
 
 -- From the main coroutine, create and start a new coroutine.
-function Scheduler.run(self, fn, ...)
+function P:run (fn, ...)
   local co = coroutine.create(fn)
   local resume = {coroutine.resume(co, unpack(arg))}
   if table.remove(resume, 1) then
@@ -26,19 +28,7 @@ function Scheduler.run(self, fn, ...)
   return co
 end
 
--- From the main coroutine, update all active coroutines.
-function Scheduler.update(self, _)
-  self._clock = RailWorks.GetSimulationTime()
-  for co, conds in pairs(self._coroutines) do
-    if coroutine.status(co) == "dead" then
-      self._coroutines[co] = nil
-    else
-      self._coroutines[co] = self:_resume(co, unpack(conds))
-    end
-  end
-end
-
-function Scheduler._resume(self, co, ...)
+local function restart (self, co, ...)
   for i, cond in ipairs(arg) do
     if cond() then
       local resume = {coroutine.resume(co, i)}
@@ -53,56 +43,68 @@ function Scheduler._resume(self, co, ...)
   return arg
 end
 
+-- From the main coroutine, update all active coroutines.
+function P:update (_)
+  self._clock = RailWorks.GetSimulationTime()
+  for co, conds in pairs(self._coroutines) do
+    if coroutine.status(co) == "dead" then
+      self._coroutines[co] = nil
+    else
+      self._coroutines[co] = restart(self, co, unpack(conds))
+    end
+  end
+end
+
 -- Get an iterator of all info messages pushed by coroutines since the last update.
-function Scheduler.iterinfomessages(self)
+function P:iterinfomessages ()
   return ipairs(self._infomessages)
 end
 
 -- From the main coroutine, clear the info message queue.
-function Scheduler.clearinfomessages(self)
+function P:clearinfomessages ()
   self._infomessages = {}
 end
 
 -- Get an iterator of all info messages pushed by coroutines since the last update.
-function Scheduler.iteralertmessages(self)
+function P:iteralertmessages ()
   return ipairs(self._alertmessages)
 end
 
 -- From the main coroutine, clear the info message queue.
-function Scheduler.clearalertmessages(self)
+function P:clearalertmessages ()
   self._alertmessages = {}
 end
 
 -- Delete a coroutine from the scheduler.
-function Scheduler.kill(self, co)
+function P:kill (co)
   self._coroutines[co] = nil
 end
 
 -- Determine whether the simulator was just initialized a few seconds ago, so as
 -- not to nag the player with annoying alerts.
-function Scheduler.isstartup(self)
+function P:isstartup ()
   return self:clock() < 3
 end
 
 -- Get the clock time of the current update.
-function Scheduler.clock(self)
+function P:clock ()
   return self._clock
 end
 
 -- Yield control until the next frame.
-function Scheduler.yield(self)
+function P:yield ()
   self:select(0)
 end
 
 -- Freeze execution for the given time.
-function Scheduler.sleep(self, time)
+function P:sleep (time)
   self:select(time)
 end
 
 -- Yield control until one of the provided functions returns true, or if the
 -- timeout is reached. A nil timeout is infinite. Returns the index of the
 -- condition that became true, or nil if the timeout was reached.
-function Scheduler.select(self, timeout, ...)
+function P:select (timeout, ...)
   if timeout == nil then
     return coroutine.yield(unpack(arg))
   else
@@ -122,11 +124,13 @@ function Scheduler.select(self, timeout, ...)
 end
 
 -- Push a message to the info message queue.
-function Scheduler.info(self, msg)
+function P:info (msg)
   table.insert(self._infomessages, msg)
 end
 
 -- Push a message to the alert message queue.
-function Scheduler.alert(self, msg)
+function P:alert (msg)
   table.insert(self._alertmessages, msg)
 end
+
+return P
