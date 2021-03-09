@@ -267,7 +267,7 @@ local function getsignalstophazard (self, id)
   }
 end
 
-local function iterupcomingspeedlimitids (self, dir)
+local function iteradvancespeedlimithazards (self, dir)
   local rightdirection = function (_, distance_m)
     if dir == direction.forward then
       return distance_m >= 0
@@ -277,9 +277,9 @@ local function iterupcomingspeedlimitids (self, dir)
       return false
     end
   end
-  local toid = function (id, _) return id end
   return Iterator.imap(
-    toid, Iterator.filter(rightdirection, self._limittracker:iterdistances_m()))
+    function (id, _) return getspeedlimithazard(self, id) end,
+    Iterator.filter(rightdirection, self._limittracker:iterdistances_m()))
 end
 
 local function iterhazards (self)
@@ -296,13 +296,7 @@ local function iterhazards (self)
   end
 
   return Iterator.iconcat(
-    {ipairs(hazards)},
-    {
-      Iterator.map(
-        function (i, id) return i, getspeedlimithazard(self, id) end,
-        iterupcomingspeedlimitids(self, dir))
-    }
-  )
+    {ipairs(hazards)}, {iteradvancespeedlimithazards(self, dir)})
 end
 
 local function getviolation (self, ...)
