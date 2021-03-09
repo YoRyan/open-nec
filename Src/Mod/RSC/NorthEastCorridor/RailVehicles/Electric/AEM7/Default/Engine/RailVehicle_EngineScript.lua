@@ -72,14 +72,13 @@ Initialise = RailWorks.wraperrors(function ()
     gettargetspeed_mps = function () return state.cruisespeed_mps end,
     getenabled = function () return state.cruiseenabled end
   }
-  do
-    local newalerter = Alerter.new(sched)
-    local config = newalerter.config
-    config.getspeed_mps =
-      function () return state.speed_mps end
-    alerter = newalerter
-    alerter:start()
-  end
+
+  alerter = Alerter:new{
+    scheduler = sched,
+    getspeed_mps = function () return state.speed_mps end
+  }
+  alerter:start()
+
   power = Power:new{available={Power.types.overhead}}
   state.event_alert = Event:new{scheduler=sched}
   sched:run(doalerts)
