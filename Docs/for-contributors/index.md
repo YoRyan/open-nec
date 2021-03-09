@@ -65,3 +65,12 @@ to build the project. The compiled files will output to the Mod\ folder, from wh
     ]
 }
 ```
+
+## Coding style
+
+- Please follow the standard Lua style. That means 2-space indents.
+- Dovetail's programmers don't take full advantage of the language's features, so don't use their source files as a reference.
+- For programming tips, see the [Lua 5.0 Reference Manual](https://www.lua.org/manual/5.0/manual.html) as well as the first edition of [Programming in Lua](https://www.lua.org/pil/contents.html).
+- Write packages using PiL's suggested "privacy" [style](https://www.lua.org/pil/15.2.html), and classes using PiL's suggested "basic" [style](https://www.lua.org/pil/16.1.html). You should also check out Dovetail's own [Train Simulator SDK](https://sites.google.com/a/railsimdev.com/dtgts1sdk/reference-manual) docs—even if they are, unfortunately, incomplete.
+- I use coroutines to keep the modeling of many independent subsystems down to a manageable level of complexity. They work perfectly in Train Simulator, with the exception of `Call()` and `SysCall()`, which only work from the main coroutine. I've created the `Scheduler` package to centralize the management of coroutines. Please do learn to use it, especially its `:select()` method.
+- Lua places heavy emphasis on tables and their `pairs()` and `ipairs()` iterators. I've created the `Iterator` package to introduce useful transformations and compositions for such key-value iterators.
