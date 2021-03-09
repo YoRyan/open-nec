@@ -1,10 +1,9 @@
 -- Library for manipulating key-value iterators.
-
-Iterator = {}
-Iterator.__index = Iterator
+local P = {}
+Iterator = P
 
 -- Copy the keys and values from the provided iterator into a table.
-function Iterator.totable(...)
+function P.totable (...)
   local t = {}
   for k, v in unpack(arg) do
     t[k] = v
@@ -14,7 +13,7 @@ end
 
 -- Return a new iterator with the function fn(k, v) -> k2, v2 applied to all
 -- key-value pairs. Any keys mapped to nil will be deleted.
-function Iterator.map(fn, ...)
+function P.map (fn, ...)
   local f, s, k = unpack(arg)
   return function ()
     while true do
@@ -34,7 +33,7 @@ end
 
 -- Return a new iterator with the function fn(k, v) -> v2 applied to all
 -- key-value pairs. Keys will be renumbered with positive, continguous integers.
-function Iterator.imap(fn, ...)
+function P.imap (fn, ...)
   local i = 0
   local f, s, k = unpack(arg)
   return function ()
@@ -51,7 +50,7 @@ end
 
 -- Return a new iterator with all key-value pairs filtered such that fn(k, v) is
 -- true.
-function Iterator.filter(fn, ...)
+function P.filter (fn, ...)
   local f, s, k = unpack(arg)
   return function ()
     while true do
@@ -70,7 +69,7 @@ end
 
 -- Return a new iterator with all key-value pairs filtered such that fn(k, v) is
 -- true. Keys will be renumbered with positive, continguous integers.
-function Iterator.ifilter(fn, ...)
+function P.ifilter (fn, ...)
   local i = 0
   local f, s, k = unpack(arg)
   return function ()
@@ -92,7 +91,7 @@ end
 -- Combine the provided iterators into a single iterator. The iterators should
 -- be supplied as function/invariant/value triplets packed into tables --
 -- e.g., {pairs({ ... })} .
-function Iterator.concat(...)
+function P.concat (...)
   if arg.n < 1 then
     return pairs({})
   end
@@ -122,7 +121,7 @@ end
   be supplied as function/invariant/value triplets packed into tables --
   e.g., {pairs({ ... })} .
 ]]
-function Iterator.iconcat(...)
+function P.iconcat (...)
   if arg.n < 1 then
     return pairs({})
   end
@@ -149,13 +148,13 @@ function Iterator.iconcat(...)
 end
 
 -- Returns true if fn(k, v) is true for one key-value pair in the iterator.
-function Iterator.hasone(fn, ...)
-  return Iterator.findfirst(fn, unpack(arg)) ~= nil
+function P.hasone (fn, ...)
+  return P.findfirst(fn, unpack(arg)) ~= nil
 end
 
 -- Returns the key of the first key-value pair in the iterator such that
 -- fn(k, v) is true.
-function Iterator.findfirst(fn, ...)
+function P.findfirst (fn, ...)
   for k, v in unpack(arg) do
     if fn(k, v) then
       return k
@@ -167,7 +166,7 @@ end
 -- Returns the key of the minimum key-value pair in the iterator given comp,
 -- a comparison function that returns true if the first argument is less than
 -- the second.
-function Iterator.min(comp, ...)
+function P.min (comp, ...)
   local mink = nil
   local minv
   for k, v in unpack(arg) do
@@ -181,7 +180,7 @@ end
 -- Returns the key of the maximum key-value pair in the iterator given comp,
 -- a comparison function that returns true if the first argument is less than
 -- the second.
-function Iterator.max(comp, ...)
+function P.max (comp, ...)
   local maxk = nil
   local maxv
   for k, v in unpack(arg) do
@@ -194,7 +193,7 @@ end
 
 -- Joins the values of the iterator together with the provided separator, like
 -- table.concat(t, sep).
-function Iterator.join(sep, ...)
+function P.join (sep, ...)
   local f, s, v = unpack(arg)
   local k
   k, v = f(s, v)
@@ -207,3 +206,5 @@ function Iterator.join(sep, ...)
   end
   return res
 end
+
+return P
