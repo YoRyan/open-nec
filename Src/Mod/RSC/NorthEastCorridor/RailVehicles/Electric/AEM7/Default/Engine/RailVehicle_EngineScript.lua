@@ -30,20 +30,15 @@ onebeep_s = 0.3
 
 Initialise = RailWorks.wraperrors(function ()
   sched = Scheduler:new{}
-  do
-    local newatc = Atc.new(sched)
-    local config = newatc.config
-    config.getspeed_mps =
-      function () return state.speed_mps end
-    config.getacceleration_mps2 =
-      function () return state.acceleration_mps2 end
-    config.getacknowledge =
-      function () return state.acknowledge end
-    config.doalert =
-      function () state.event_alert:trigger() end
-    atc = newatc
-    atc:start()
-  end
+
+  atc = Atc:new{
+    scheduler = sched,
+    getspeed_mps = function () return state.speed_mps end,
+    getacceleration_mps2 = function () return state.acceleration_mps2 end,
+    getacknowledge = function () return state.acknowledge end,
+    doalert = function () state.event_alert:trigger() end
+  }
+  atc:start()
   do
     local newacses = Acses.new(sched, atc)
     local config = newacses.config
