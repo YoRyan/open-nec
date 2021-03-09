@@ -46,13 +46,13 @@ end
 function P:receivemessage (message)
   local cp = P.getchangepoint(message)
   if cp == P.changepoint.thirdrailstart then
-    connect(P.types.thirdrail)
+    connect(self, P.types.thirdrail)
   elseif cp == P.changepoint.thirdrailend then
-    disconnect(P.types.thirdrail)
+    disconnect(self, P.types.thirdrail)
   elseif cp == P.changepoint.overheadstart then
-    connect(P.types.overhead)
+    connect(self, P.types.overhead)
   elseif cp == P.changepoint.overheadend then
-    disconnect(P.types.overhead)
+    disconnect(self, P.types.overhead)
   end
 end
 

@@ -4,7 +4,7 @@ local P = {}
 Scheduler = P
 
 -- From the main coroutine, create a new Scheduler context.
-function P:new (conf)
+function P:new (_)
   local o = {
     _clock = 0,
     _infomessages = {},
