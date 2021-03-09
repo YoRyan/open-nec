@@ -41,14 +41,10 @@ function P:new (conf)
       conf.getspeed_mps or function () return 0 end,
     _gettrackspeed_mps =
       conf.gettrackspeed_mps or function () return 0 end,
-    _iterforwardspeedlimits =
-      conf.iterforwardspeedlimits or function () return ipairs({}) end,
-    _iterbackwardspeedlimits =
-      conf.iterbackwardspeedlimits or function () return ipairs({}) end,
-    _iterforwardrestrictsignals =
-      conf.iterforwardrestrictsignals or function () return ipairs({}) end,
-    _iterbackwardrestrictsignals =
-      conf.iterbackwardrestrictsignals or function () return ipairs({}) end,
+    _iterspeedlimits =
+      conf.iterspeedlimits or function () return pairs({}) end,
+    _iterrestrictsignals =
+      conf.iterrestrictsignals or function () return pairs({}) end,
     _getacknowledge =
       conf.getacknowledge or function () return false end,
     _doalert =
@@ -106,34 +102,33 @@ local function showlimits (self)
     return string.format("%.2f", m*Units.m.toft) .. "ft"
   end
   if debugtrackers then
-    local ids = {}
-    for id, _ in self._limittracker:iterobjects() do
-      table.insert(ids, id)
-    end
+    local ids = Iterator.totable(Iterator.keys(self._limittracker:iterobjects()))
     table.sort(ids, function (ida, idb)
       return self._limittracker:getdistance_m(ida)
         < self._limittracker:getdistance_m(idb)
     end)
-    local dumpid = function (_, id)
+    local show = function (_, id)
       local limit = self._limittracker:getobject(id)
       local distance_m = self._limittracker:getdistance_m(id)
       return tostring(id) .. ": type=" .. limit.type
         .. ", speed=" .. fspeed(limit.speed_mps)
         .. ", distance=" .. fdist(distance_m)
     end
-    self._sched:info(Iterator.join("\n", Iterator.imap(dumpid, ipairs(ids))))
+    self._sched:info(Iterator.join("\n", Iterator.imap(show, ipairs(ids))))
   else
-    local dump = function (...)
-      return Iterator.join("\n", Iterator.imap(function (_, limit)
-        return "type=" .. limit.type
-          .. ", speed=" .. fspeed(limit.speed_mps)
-          .. ", distance=" .. fdist(limit.distance_m)
-      end, unpack(arg)))
+    local speedlimits = Iterator.totable(self._iterspeedlimits())
+    local distances_m = Iterator.totable(Iterator.keys(pairs(speedlimits)))
+    table.sort(distances_m)
+    local show = function (_, distance_m)
+      local limit = speedlimits[distance_m]
+      return "type=" .. limit.type
+        .. ", speed=" .. fspeed(limit.speed_mps)
+        .. ", distance=" .. fdist(distance_m)
     end
+    local posts = Iterator.join("\n", Iterator.imap(show, ipairs(distances_m)))
     self._sched:info("Track: " .. fspeed(self._gettrackspeed_mps()) .. " "
       .. "Sensed: " .. fspeed(self._trackspeed:gettrackspeed_mps()) .. "\n"
-      .. "Forward: " .. dump(self._iterforwardspeedlimits()) .. "\n"
-      .. "Backward: " .. dump(self._iterbackwardspeedlimits()))
+      .. "Posts: " .. posts)
   end
 end
 
@@ -159,30 +154,28 @@ local function showsignals (self)
     return string.format("%.2f", m*Units.m.toft) .. "ft"
   end
   if debugtrackers then
-    local ids = {}
-    for id, _ in self._signaltracker:iterobjects() do
-      table.insert(ids, id)
-    end
+    local ids = Iterator.totable(Iterator.keys(self._signaltracker:iterobjects()))
     table.sort(ids, function (ida, idb)
       return self._signaltracker:getdistance_m(ida)
         < self._signaltracker:getdistance_m(idb)
     end)
-    local dumpid = function (_, id)
+    local show = function (_, id)
       local signal = self._signaltracker:getobject(id)
       local distance_m = self._signaltracker:getdistance_m(id)
       return tostring(id) .. ": state=" .. faspect(signal.prostate)
         .. ", distance=" .. fdist(distance_m)
     end
-    self._sched:info(Iterator.join("\n", Iterator.imap(dumpid, ipairs(ids))))
+    self._sched:info(Iterator.join("\n", Iterator.imap(show, ipairs(ids))))
   else
-    local dump = function (...)
-      return Iterator.join("\n", Iterator.imap(function (_, signal)
-        return "state=" .. faspect(signal.prostate)
-          .. ", distance=" .. fdist(signal.distance_m)
-      end, unpack(arg)))
+    local restrictsignals = Iterator.totable(self._iterrestrictsignals())
+    local distances_m = Iterator.totable(Iterator.keys(pairs(restrictsignals)))
+    table.sort(distances_m)
+    local show = function (_, distance_m)
+      local signal = restrictsignals[distance_m]
+      return "state=" .. faspect(signal.prostate)
+        .. ", distance=" .. fdist(distance_m)
     end
-    self._sched:info("Forward: " .. dump(self._iterforwardrestrictsignals()) .. "\n"
-      .. "Backward: " .. dump(self._iterbackwardrestrictsignals()))
+    self._sched:info(Iterator.join("\n", Iterator.imap(show, ipairs(distances_m))))
   end
 end
 
@@ -550,45 +543,17 @@ end
 function P:start ()
   if not self._running then
     self._running = true
-    self._limitfilter = AcsesLimits:new{
-      iterforwardspeedlimits = self._iterforwardspeedlimits,
-      iterbackwardspeedlimits = self._iterbackwardspeedlimits
-    }
+
+    self._limitfilter = AcsesLimits:new{iterspeedlimits = self._iterspeedlimits}
     self._limittracker = AcsesTracker:new{
       scheduler = self._sched,
       getspeed_mps = self._getspeed_mps,
-      iterbydistance = function ()
-        return Iterator.concat(
-          {
-            Iterator.map(
-              function (_, limit) return limit.distance_m, limit end,
-              self._limitfilter:iterforwardspeedlimits())
-          },
-          {
-            Iterator.map(
-              function (_, limit) return -limit.distance_m, limit end,
-              self._limitfilter:iterbackwardspeedlimits())
-          }
-        )
-      end
+      iterbydistance = function () return self._limitfilter:iterspeedlimits() end
     }
     self._signaltracker = AcsesTracker:new{
       scheduler = self._sched,
       getspeed_mps = self._getspeed_mps,
-      iterbydistance = function ()
-        return Iterator.concat(
-          {
-            Iterator.map(
-              function (_, signal) return signal.distance_m, signal end,
-              self._iterforwardrestrictsignals())
-          },
-          {
-            Iterator.map(
-              function (_, signal) return -signal.distance_m, signal end,
-              self._iterbackwardrestrictsignals())
-          }
-        )
-      end
+      iterbydistance = self._iterrestrictsignals
     }
     self._trackspeed = AcsesTrackSpeed:new{
       scheduler = self._sched,

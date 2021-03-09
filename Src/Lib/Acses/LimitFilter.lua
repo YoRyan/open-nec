@@ -6,12 +6,8 @@ AcsesLimits = P
 -- From the main coroutine, create a new speed limit filter context.
 function P:new (conf)
   local o = {
-    _iterforwardspeedlimits =
-      conf.iterforwardspeedlimits or function () return ipairs({}) end,
-    _iterbackwardspeedlimits =
-      conf.iterbackwardspeedlimits or function () return ipairs({}) end,
-    _hastype2limits =
-      false
+    _iterspeedlimits = conf.iterspeedlimits or function () return pairs({}) end,
+    _hastype2limits = false
   }
   setmetatable(o, self)
   self.__index = self
@@ -22,15 +18,16 @@ local function isvalid (speedlimit)
   return speedlimit.speed_mps < 1e9 and speedlimit.speed_mps > -1e9
 end
 
-local function filter (self, iterspeedlimits)
+-- Iterate through filtered speed limits by distance.
+function P:iterspeedlimits ()
   if not self._hastype2limits then
     -- Default to type 1 limits *unless* we encounter a type 2 (Philadelphia-
     -- New York), at which point we'll search solely for type 2 limits.
     self._hastype2limits = Iterator.hasone(
       function (_, limit) return limit.type == 2 end,
-      iterspeedlimits())
+      self._iterspeedlimits())
   end
-  return Iterator.ifilter(
+  return Iterator.filter(
     function (_, limit)
       local righttype
       if self._hastype2limits then
@@ -40,17 +37,7 @@ local function filter (self, iterspeedlimits)
       end
       return isvalid(limit) and righttype
     end,
-    iterspeedlimits())
-end
-
--- Iterate through forward-facing speed limits.
-function P:iterforwardspeedlimits ()
-  return filter(self, self._iterforwardspeedlimits)
-end
-
--- Iterate through backward-facing speed limits.
-function P:iterbackwardspeedlimits ()
-  return filter(self, self._iterbackwardspeedlimits)
+    self._iterspeedlimits())
 end
 
 return P

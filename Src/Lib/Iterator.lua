@@ -194,6 +194,16 @@ end
 -- A simple a less than b comparer.
 function P.ltcomp (a, b) return a < b end
 
+local function getkey (k, _) return k end
+
+-- Iterate through all of the keys in the provided key-value iterator.
+function P.keys (...) return P.imap(getkey, unpack(arg)) end
+
+local function getvalue (_, v) return v end
+
+-- Iterate through all of the values in the provided key-value iterator.
+function P.values (...) return P.imap(getvalue, unpack(arg)) end
+
 -- Joins the values of the iterator together with the provided separator, like
 -- table.concat(t, sep).
 function P.join (sep, ...)

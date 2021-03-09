@@ -16,10 +16,8 @@ local state = {
   speed_mps=0,
   acceleration_mps2=0,
   trackspeed_mps=0,
-  forwardspeedlimits={},
-  backwardspeedlimits={},
-  forwardrestrictsignals={},
-  backwardrestrictsignals={},
+  speedlimits={},
+  restrictsignals={},
 
   event_alert=nil,
   beep_alert=false,
@@ -45,18 +43,8 @@ Initialise = RailWorks.wraperrors(function ()
     atc = atc,
     getspeed_mps = function () return state.speed_mps end,
     gettrackspeed_mps = function () return state.trackspeed_mps end,
-    iterforwardspeedlimits = function ()
-      return ipairs(state.forwardspeedlimits)
-    end,
-    iterbackwardspeedlimits = function ()
-      return ipairs(state.backwardspeedlimits)
-    end,
-    iterforwardrestrictsignals = function ()
-      return ipairs(state.forwardrestrictsignals)
-    end,
-    iterbackwardrestrictsignals = function ()
-      return ipairs(state.backwardrestrictsignals)
-    end,
+    iterspeedlimits = function () return pairs(state.speedlimits) end,
+    iterrestrictsignals = function () return pairs(state.restrictsignals) end,
     getacknowledge = function () return state.acknowledge end,
     doalert = function () state.event_alert:trigger() end
   }
@@ -152,20 +140,10 @@ Update = RailWorks.wraperrors(function (dt)
   state.speed_mps = RailWorks.GetSpeed()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
   state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
-  do
-    local lookahead = Acses.nlimitlookahead
-    state.forwardspeedlimits =
-      Iterator.totable(RailWorks.iterforwardspeedlimits(lookahead))
-    state.backwardspeedlimits =
-      Iterator.totable(RailWorks.iterbackwardspeedlimits(lookahead))
-  end
-  do
-    local lookahead = Acses.nsignallookahead
-    state.forwardrestrictsignals =
-      Iterator.totable(RailWorks.iterforwardrestrictsignals(lookahead))
-    state.backwardrestrictsignals =
-      Iterator.totable(RailWorks.iterbackwardrestrictsignals(lookahead))
-  end
+  state.speedlimits = Iterator.totable(
+    RailWorks.iterspeedlimits(Acses.nlimitlookahead))
+  state.restrictsignals = Iterator.totable(
+    RailWorks.iterrestrictsignals(Acses.nsignallookahead))
 
   sched:update(dt)
   for _, msg in sched:iterinfomessages() do

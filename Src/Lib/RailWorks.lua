@@ -38,7 +38,9 @@ function P.frombool (b)
   end
 end
 
-local function iterspeedlimits (direction, n, maxdistance_m)
+local function negatedistance (distance_m, obj) return -distance_m, obj end
+
+local function speedlimitsbydistance (direction, n, maxdistance_m)
   local i = 0
   local minsearch_m = 0
   return function ()
@@ -56,28 +58,23 @@ local function iterspeedlimits (direction, n, maxdistance_m)
     end
     if type == 1 or type == 2 or type == 3 then
       minsearch_m = distance_m + 0.01
-      return i, {type=type, speed_mps=speed_mps, distance_m=distance_m}
+      return distance_m, {type=type, speed_mps=speed_mps}
     else
       return nil, nil
     end
   end, nil, nil
 end
 
--- Iterate through up to n upcoming speed posts, with an optional maximum
--- lookahead distance.
--- Speed limits are in the form of {{type=..., speed_mps=..., distance_m=...}, ...}
-function P.iterforwardspeedlimits (n, maxdistance_m)
-  return iterspeedlimits(0, n, maxdistance_m)
+-- Iterate through up to n speed posts in both directions, with an optional
+-- maximum lookahead/lookbehind distance. Speed limits are in the form of
+-- {type=..., speed_mps=...} and the key is the distance in m.
+function P.iterspeedlimits (n, maxdistance_m)
+  return Iterator.concat(
+    {Iterator.map(negatedistance, speedlimitsbydistance(1, n, maxdistance_m))},
+    {speedlimitsbydistance(0, n, maxdistance_m)})
 end
 
--- Iterate through up to n backward-facing speed posts, with an optional maximum
--- lookbehind distance.
--- Speed limits are in the form of {{type=..., speed_mps=..., distance_m=...}, ...}
-function P.iterbackwardspeedlimits (n, maxdistance_m)
-  return iterspeedlimits(1, n, maxdistance_m)
-end
-
-local function iterrestrictsignals (direction, n, maxdistance_m)
+local function restrictsignalsbydistance (direction, n, maxdistance_m)
   local i = 0
   local minsearch_m = 0
   return function ()
@@ -95,25 +92,20 @@ local function iterrestrictsignals (direction, n, maxdistance_m)
     end
     if found > 0 then
       minsearch_m = distance_m + 0.01
-      return i, {basicstate=basicstate, distance_m=distance_m, prostate=prostate}
+      return distance_m, {basicstate=basicstate, prostate=prostate}
     else
       return nil, nil
     end
   end, nil, nil
 end
 
--- Iterate through up to n upcoming restrictive signals, with an optional maximum
--- lookahead distance.
--- Signals are in the form of {{basicstate=..., prostate=..., distance_m=...}, ...}
-function P.iterforwardrestrictsignals (n, maxdistance_m)
-  return iterrestrictsignals(0, n, maxdistance_m)
-end
-
--- Iterate through up to n backward-facing restrictive signals, with an optional
--- maximum lookahead distance.
--- Signals are in the form of {{basicstate=..., prostate=..., distance_m=...}, ...}
-function P.iterbackwardrestrictsignals (n, maxdistance_m)
-  return iterrestrictsignals(1, n, maxdistance_m)
+-- Iterate through up to n restrictive signals in both directions, with an
+-- optional maximum lookahead/lookbehind distance. Signals are in the form
+-- of {basicstate=..., prostate=...} and the key is the distance in m.
+function P.iterrestrictsignals (n, maxdistance_m)
+  return Iterator.concat(
+    {Iterator.map(negatedistance, restrictsignalsbydistance(1, n, maxdistance_m))},
+    {restrictsignalsbydistance(0, n, maxdistance_m)})
 end
 
 function P.BeginUpdate ()
