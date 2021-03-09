@@ -49,7 +49,7 @@ function Atc._initstate(self)
   self._issuppression = false
   self._ispenalty = false
   self._pulsecode = Atc.pulsecode.restrict
-  self._accelaverage_mps2 = Average.new(Atc._naccelsamples)
+  self._accelaverage_mps2 = Average:new{nsamples=Atc._naccelsamples}
   self._enforce = Event:new{scheduler=self._sched}
   self._coroutines = {}
 end
