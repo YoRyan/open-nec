@@ -191,6 +191,9 @@ function P.max (comp, ...)
   return maxk
 end
 
+-- A simple a less than b comparer.
+function P.ltcomp (a, b) return a < b end
+
 -- Joins the values of the iterator together with the provided separator, like
 -- table.concat(t, sep).
 function P.join (sep, ...)

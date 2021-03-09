@@ -39,28 +39,29 @@ Initialise = RailWorks.wraperrors(function ()
     doalert = function () state.event_alert:trigger() end
   }
   atc:start()
-  do
-    local newacses = Acses.new(sched, atc)
-    local config = newacses.config
-    config.getspeed_mps =
-      function () return state.speed_mps end
-    config.gettrackspeed_mps =
-      function () return state.trackspeed_mps end
-    config.iterforwardspeedlimits =
-      function () return ipairs(state.forwardspeedlimits) end
-    config.iterbackwardspeedlimits =
-      function () return ipairs(state.backwardspeedlimits) end
-    config.iterforwardrestrictsignals =
-      function () return ipairs(state.forwardrestrictsignals) end
-    config.iterbackwardrestrictsignals =
-      function () return ipairs(state.backwardrestrictsignals) end
-    config.getacknowledge =
-      function () return state.acknowledge end
-    config.doalert =
-      function () state.event_alert:trigger() end
-    acses = newacses
-    acses:start()
-  end
+
+  acses = Acses:new{
+    scheduler = sched,
+    atc = atc,
+    getspeed_mps = function () return state.speed_mps end,
+    gettrackspeed_mps = function () return state.trackspeed_mps end,
+    iterforwardspeedlimits = function ()
+      return ipairs(state.forwardspeedlimits)
+    end,
+    iterbackwardspeedlimits = function ()
+      return ipairs(state.backwardspeedlimits)
+    end,
+    iterforwardrestrictsignals = function ()
+      return ipairs(state.forwardrestrictsignals)
+    end,
+    iterbackwardrestrictsignals = function ()
+      return ipairs(state.backwardrestrictsignals)
+    end,
+    getacknowledge = function () return state.acknowledge end,
+    doalert = function () state.event_alert:trigger() end
+  }
+  acses:start()
+
   cruise = Cruise:new{
     scheduler = sched,
     getspeed_mps = function () return state.speed_mps end,
