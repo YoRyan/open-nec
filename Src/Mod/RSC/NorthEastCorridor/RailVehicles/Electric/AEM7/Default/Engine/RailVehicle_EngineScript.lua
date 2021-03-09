@@ -85,7 +85,7 @@ Initialise = RailWorks.wraperrors(function ()
     alerter:start()
   end
   power = Power.new(Power.types.overhead)
-  state.event_alert = Event.new(sched)
+  state.event_alert = Event:new{scheduler=sched}
   sched:run(doalerts)
   sched:run(cs1flasher)
   RailWorks.BeginUpdate()

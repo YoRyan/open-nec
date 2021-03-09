@@ -1,19 +1,20 @@
 -- Library for conversions between units of measure.
-
-Units = {}
-Units.__index = Units
+local P = {}
+Units = P
 
 -- meters
-Units.m = {
+P.m = {
   toft = 3.28084
 }
 
 -- meters/second
-Units.mps = {
+P.mps = {
   tomph = 2.23694
 }
 
 -- miles/hour
-Units.mph = {
+P.mph = {
   tomps = 0.44704
 }
+
+return P

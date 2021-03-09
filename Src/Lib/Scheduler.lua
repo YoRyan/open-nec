@@ -130,39 +130,3 @@ end
 function Scheduler.alert(self, msg)
   table.insert(self._alertmessages, msg)
 end
-
-
--- Events are discrete triggers that can be waited on or polled. Doing so
--- automatically consumes and resets the event.
-Event = {}
-Event.__index = Event
-
--- Create a new Event context.
-function Event.new(scheduler)
-  local self = setmetatable({}, Event)
-  self._sched = scheduler
-  self._trigger = false
-  return self
-end
-
--- Allow one coroutine that is blocking on this event to proceed.
-function Event.trigger(self)
-  self._trigger = true
-end
-
--- Block until this event is triggered, with an optional timeout.
-function Event.waitfor(self, timeout)
-  local res = self._sched:select(
-    timeout,
-    function () return self._trigger end)
-  self._trigger = false
-  return res == 1
-end
-
--- Check the status of this event without blocking. Returns true if the event
--- was triggered (and resets it), or false otherwise.
-function Event.poll(self)
-  local res = self._trigger
-  self._trigger = false
-  return res
-end

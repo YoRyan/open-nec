@@ -25,7 +25,7 @@ function Alerter._initstate(self)
   self._running = false
   self._ispenalty = false
   self._isalarm = false
-  self._acknowledge = Event.new(self._sched)
+  self._acknowledge = Event:new{scheduler=self._sched}
   self._coroutines = {}
 end
 
