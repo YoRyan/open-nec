@@ -24,7 +24,7 @@ The signals on the Metro-North portion of the route send messages in the form of
 
 The different meanings of the `M..`, `M..R..`, and `N..` message types are unclear. It seems that most of the time, you will get `M..` messages, unless you encounter a downgrade, in which case you'll get a `M..R..` message, or an upgrade back to Clear, in which case you'll get a `N..` message.
 
-## Power Changing
+## Power changes
 
 To simulate power changeovers, Dovetail marked the end points of the route's third rail and overhead catenary systems with special signals. These emit the following messages:
 
@@ -37,6 +37,6 @@ To simulate power changeovers, Dovetail marked the end points of the route's thi
 | `P-AIOverheadToThirdNow` | AI overhead to third rail switch |
 | `P-AIThirdToOverheadNow` | AI third rail to overhead switch |
 
-## Speed Limits
+## Speed limits
 
 Type 1 speed limits represent visible speed posts. Type 3 limits represent signal speeds. There are no type 2 limits.

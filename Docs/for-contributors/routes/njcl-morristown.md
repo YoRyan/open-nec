@@ -2,13 +2,13 @@
 
 ## Signaling
 
-As far as I can tell, the signaling system implemented for the Philadelphia to New York Route was also reused for both of these routes.
+As far as I can tell, the signaling system implemented for the [New York to Philadelphia](../northeastcorridor) route was also reused for both of these routes.
 
-## Speed Limits
+## Speed limits
 
 Type 1 speed limits represent visible speed posts. Type 3 limits represent signal speeds. There are no type 2 limits.
 
-## Power Changing
+## Power changes
 
 | Message | Meaning |
 | --- | --- |

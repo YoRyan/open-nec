@@ -24,6 +24,6 @@ These aspects are mostly true to real life, but there are some differences compa
 
 Dovetail also [programmed](https://steamcdn-a.akamaihd.net/steam/apps/65232/manuals/Northeast_Corridor_Signal_Guide.pdf) two different "Approach Medium 45 mph" aspects into the AEM-7: a yellow-over-green aspect (for the Approach Medium and Medium Clear aspects) and a yellow-over-flashing-green (for the Approach Limited, Limited Clear, and Advance Approach aspects). This makes little sense, since there is only one 45 mph code used by the real pulse code signaling system.
 
-## Speed Limits
+## Speed limits
 
 Type 1 and type 3 speed limits represent signal speeds and other invisible speed restrictions. Type 2 speed limits represent visible speed posts.
