@@ -175,7 +175,7 @@ Update = RailWorks.wraperrors(function (dt)
 end)
 
 -- Set the state of the cab signal display.
-function setcabsignal ()
+local function setcabsignal ()
   local f = 2 -- cab speed flash
 
   local code = atc:getpulsecode()
