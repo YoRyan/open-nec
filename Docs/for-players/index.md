@@ -18,7 +18,11 @@ The ADU is the cockpit display that shows the states of the CSS, ATC, and ACSES 
 
 There are several styles of ADU in use on the Northeast Corridor, but they all have common elements. The cab signal display, which resembles a PRR-style circular signal head, communicates the current cab signal aspect in force. The "signal speed" display communicates the ATC-enforced speed limit. The "track speed" display communicates the ACSES-enforced speed limit. (Some ADU's combine the latter two displays.)
 
-Dovetail's models impose some limitations on the information that the ADU's can be programmed to display—for example, the track speed display on the AEM-7 cannot display certain numbers—so each locomotive has its own quirks. Please see the locomotive notes pages for specific information.
+This is the ADU for the AEM-7. It is showing "Restricting" as the cab signal aspect, 20 mph for the signal speed, and 15 mph for the track speed:
+
+![AEM-7 ADU](adu-aem7.jpg)
+
+Dovetail's models impose some limitations on the information that the ADU's can be programmed to display—for example, the track speed display on the AEM-7 cannot display certain numbers—so each locomotive has its own quirks. Please consult the locomotive notes pages for specific information.
 
 ## Cab Signaling System (CSS)
 
