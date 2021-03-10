@@ -1,6 +1,6 @@
-# Installation
+# Get the mod
 
-Releases are periodically made at the Open NEC Project's [GitHub site](https://github.com/YoRyan/open-nec/releases).
+Releases are periodically made and are available at the Open NEC Project's [GitHub page](https://github.com/YoRyan/open-nec/releases).
 
 To install one of the Zip files, copy of the contents of the Assets\ subfolder into your own Train Simulator Assets\ folder.
 
