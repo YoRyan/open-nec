@@ -8,8 +8,11 @@ To make this all possible, the project provides drop-in replacements for Dovetai
 
 Currently, the project consists of a single enhancement mod for Amtrak's AEM-7 locomotive, as well as complete Automatic Train Control (ATC) and Advanced Civil Speed Enforcement System (ACSES) implementations.
 
+- [Video demo #1](https://youtu.be/EFRsUOw1sGo)
+- [Video demo #2](https://youtu.be/MjvzT8cTnnE)
+
 ## Overview
 
-This website is divided into several sections. In the [Installation](installation) chapter, you can find information on obtaining and installing the mod and when you can expect the next release. In the [For players](for-players) chapter, you can learn how to navigate the newly improved Northeast Corridor with your newly upgraded equipment. In the [For contributors](for-contributors) chapter, developers can find information on how to contribute to the project, as well as technical documentation on Dovetail's content.
+This website is divided into several sections. In the [Get the mod](installation) chapter, you can find information on obtaining and installing the mod and when you can expect the next release. In the [For players](for-players) chapter, you can learn how to navigate the newly improved Northeast Corridor with your newly upgraded equipment. In the [For contributors](for-contributors) chapter, developers can find information on how to contribute to the project, as well as technical documentation on Dovetail's content.
 
 ![Project logo](opennec-logo.svg)
