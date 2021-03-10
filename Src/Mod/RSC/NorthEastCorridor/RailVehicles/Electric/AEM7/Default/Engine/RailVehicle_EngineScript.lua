@@ -1,6 +1,7 @@
 -- Engine script for the EMD AEM-7 operated by Amtrak.
 
 local sched = nil
+local alerttone = nil
 local atc = nil
 local acses = nil
 local cruise = nil
@@ -19,8 +20,6 @@ local state = {
   speedlimits={},
   restrictsignals={},
 
-  event_alert=nil,
-  beep_alert=false,
   cs1flash=0, -- 0 = off, 1 = on, 2 = flash
   cs1light=false
 }
@@ -29,12 +28,14 @@ local onebeep_s = 0.3
 Initialise = RailWorks.wraperrors(function ()
   sched = Scheduler:new{}
 
+  alerttone = Tone:new{scheduler=sched, time_s=onebeep_s}
+
   atc = Atc:new{
     scheduler = sched,
     getspeed_mps = function () return state.speed_mps end,
     getacceleration_mps2 = function () return state.acceleration_mps2 end,
     getacknowledge = function () return state.acknowledge end,
-    doalert = function () state.event_alert:trigger() end
+    doalert = function () alerttone:trigger() end
   }
   atc:start()
 
@@ -46,7 +47,7 @@ Initialise = RailWorks.wraperrors(function ()
     iterspeedlimits = function () return pairs(state.speedlimits) end,
     iterrestrictsignals = function () return pairs(state.restrictsignals) end,
     getacknowledge = function () return state.acknowledge end,
-    doalert = function () state.event_alert:trigger() end
+    doalert = function () alerttone:trigger() end
   }
   acses:start()
 
@@ -65,23 +66,10 @@ Initialise = RailWorks.wraperrors(function ()
 
   power = Power:new{available={Power.types.overhead}}
 
-  state.event_alert = Event:new{scheduler=sched}
-
-  sched:run(doalerts)
   sched:run(cs1flasher)
 
   RailWorks.BeginUpdate()
 end)
-
--- Play a beep sound when alerts sound.
-function doalerts ()
-  while true do
-    state.event_alert:waitfor()
-    state.beep_alert = true
-    sched:sleep(onebeep_s)
-    state.beep_alert = false
-  end
-end
 
 -- Flash the upper green head to show a cab speed aspect.
 function cs1flasher ()
@@ -190,7 +178,7 @@ Update = RailWorks.wraperrors(function (dt)
     RailWorks.frombool(alerter:isalarm()))
   RailWorks.SetControlValue(
     "OverSpeedAlert", 0,
-    RailWorks.frombool(state.beep_alert or atc:isalarm() or acses:isalarm()))
+    RailWorks.frombool(alerttone:isplaying() or atc:isalarm() or acses:isalarm()))
   RailWorks.SetControlValue(
     "TrackSpeed", 0,
     math.floor(acses:getinforcespeed_mps()*Units.mps.tomph + 0.5))
