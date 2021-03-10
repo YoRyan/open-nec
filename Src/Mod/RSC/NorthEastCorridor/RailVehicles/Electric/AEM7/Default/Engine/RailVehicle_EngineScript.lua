@@ -19,7 +19,9 @@ local state = {
   acceleration_mps2=0,
   trackspeed_mps=0,
   speedlimits={},
-  restrictsignals={}
+  restrictsignals={},
+
+  powertypes={}
 }
 local onebeep_s = 0.3
 
@@ -73,53 +75,54 @@ Initialise = RailWorks.wraperrors(function ()
   RailWorks.BeginUpdate()
 end)
 
-Update = RailWorks.wraperrors(function (dt)
-  if not RailWorks.GetIsEngineWithKey() then
-    RailWorks.EndUpdate()
-    return
+local function setalerter ()
+  local vthrottle = RailWorks.GetControlValue("VirtualThrottle", 0)
+  local vbrake = RailWorks.GetControlValue("VirtualBrake", 0)
+  local change = vthrottle ~= state.throttle or vbrake ~= state.train_brake
+  state.throttle = vthrottle
+  state.train_brake = vbrake
+  state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
+  if state.acknowledge or change then
+    alerter:acknowledge()
   end
+end
 
-  do
-    local vthrottle = RailWorks.GetControlValue("VirtualThrottle", 0)
-    local vbrake = RailWorks.GetControlValue("VirtualBrake", 0)
-    local change = vthrottle ~= state.throttle or vbrake ~= state.train_brake
-    state.throttle = vthrottle
-    state.train_brake = vbrake
-    state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
-    if state.acknowledge or change then
-      alerter:acknowledge()
-    end
-  end
-
+local function setcutin ()
   -- Reverse the polarities of the safety systems buttons so they are activated
-  -- by default.
+  -- by default. If we set them ourselves, they won't stick.
   alerter:setrunstate(RailWorks.GetControlValue("AlertControl", 0) == 0)
-  do
-    local speedcontrol = RailWorks.GetControlValue("SpeedControl", 0) == 0
-    atc:setrunstate(speedcontrol)
-    acses:setrunstate(speedcontrol)
+  local speedcontrol = RailWorks.GetControlValue("SpeedControl", 0) == 0
+  atc:setrunstate(speedcontrol)
+  acses:setrunstate(speedcontrol)
+end
+
+local function readlocostate ()
+  state.cruisespeed_mps =
+    RailWorks.GetControlValue("CruiseSet", 0)*Units.mph.tomps
+  state.cruiseenabled =
+    RailWorks.GetControlValue("CruiseSet", 0) > 10
+  state.speed_mps =
+    RailWorks.GetSpeed()
+  state.acceleration_mps2 =
+    RailWorks.GetAcceleration()
+  state.trackspeed_mps =
+    RailWorks.GetCurrentSpeedLimit(1)
+  state.speedlimits =
+    Iterator.totable(RailWorks.iterspeedlimits(Acses.nlimitlookahead))
+  state.restrictsignals =
+    Iterator.totable(RailWorks.iterrestrictsignals(Acses.nsignallookahead))
+  if RailWorks.GetControlValue("PantographControl", 0) == 1 then
+    state.powertypes = {Power.types.overhead}
+  else
+    state.powertypes = {}
   end
+end
 
-  state.cruisespeed_mps = RailWorks.GetControlValue("CruiseSet", 0)*Units.mph.tomps
-  state.cruiseenabled = RailWorks.GetControlValue("CruiseSet", 0) > 10
-  state.speed_mps = RailWorks.GetSpeed()
-  state.acceleration_mps2 = RailWorks.GetAcceleration()
-  state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
-  state.speedlimits = Iterator.totable(
-    RailWorks.iterspeedlimits(Acses.nlimitlookahead))
-  state.restrictsignals = Iterator.totable(
-    RailWorks.iterrestrictsignals(Acses.nsignallookahead))
-
-  sched:update()
-
+local function writelocostate ()
   local penalty = atc:ispenalty() or acses:ispenalty() or alerter:ispenalty()
   do
-    local powertypes = {}
-    if RailWorks.GetControlValue("PantographControl", 0) == 1 then
-      table.insert(powertypes, Power.types.overhead)
-    end
     local v
-    if not power:haspower(unpack(powertypes)) then
+    if not power:haspower(unpack(state.powertypes)) then
       v = 0
     elseif penalty then
       v = 0
@@ -159,22 +162,14 @@ Update = RailWorks.wraperrors(function (dt)
   RailWorks.SetControlValue(
     "TrackSpeed", 0,
     math.floor(acses:getinforcespeed_mps()*Units.mps.tomph + 0.5))
+end
 
-  setcabsignal()
+local function setcablight ()
+  local light = RailWorks.GetControlValue("CabLightControl", 0)
+  Call("FrontCabLight:Activate", light)
+  Call("RearCabLight:Activate", light)
+end
 
-  do
-    local cablight = RailWorks.GetControlValue("CabLightControl", 0)
-    Call("FrontCabLight:Activate", cablight)
-    Call("RearCabLight:Activate", cablight)
-  end
-
-  -- Prevent the acknowledge button from sticking if the button on the HUD is clicked.
-  if state.acknowledge then
-    RailWorks.SetControlValue("AWSReset", 0, 0)
-  end
-end)
-
--- Set the state of the cab signal display.
 local function setcabsignal ()
   local f = 2 -- cab speed flash
 
@@ -206,6 +201,28 @@ local function setcabsignal ()
 
   RailWorks.SetControlValue("CabSignal2", 0, cs2)
 end
+
+Update = RailWorks.wraperrors(function (_)
+  if not RailWorks.GetIsEngineWithKey() then
+    RailWorks.EndUpdate()
+    return
+  end
+
+  readlocostate()
+  sched:update()
+  writelocostate()
+
+  setcabsignal()
+  setcablight()
+  setalerter()
+  setcutin()
+
+  -- Prevent the acknowledge button from sticking if the button on the HUD is
+  -- clicked.
+  if state.acknowledge then
+    RailWorks.SetControlValue("AWSReset", 0, 0)
+  end
+end)
 
 OnControlValueChange = RailWorks.SetControlValue
 
