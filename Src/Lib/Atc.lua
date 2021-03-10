@@ -160,7 +160,7 @@ function P:stop ()
     for _, co in ipairs(self._coroutines) do
       self._sched:kill(co)
     end
-    self:_initstate()
+    initstate(self)
     self._sched:alert("ATC Cut Out")
   end
 end
