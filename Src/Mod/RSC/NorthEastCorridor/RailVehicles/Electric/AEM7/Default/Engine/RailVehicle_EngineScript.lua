@@ -146,14 +146,6 @@ Update = RailWorks.wraperrors(function (dt)
     RailWorks.iterrestrictsignals(Acses.nsignallookahead))
 
   sched:update(dt)
-  for _, msg in sched:iterinfomessages() do
-    RailWorks.showinfo(msg)
-  end
-  sched:clearinfomessages()
-  for _, msg in sched:iteralertmessages() do
-    RailWorks.showalert(msg)
-  end
-  sched:clearalertmessages()
 
   local penalty = atc:ispenalty() or acses:ispenalty() or alerter:ispenalty()
   do

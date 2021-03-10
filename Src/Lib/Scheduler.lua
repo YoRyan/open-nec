@@ -53,25 +53,14 @@ function P:update (_)
       self._coroutines[co] = restart(self, co, unpack(conds))
     end
   end
-end
-
--- Get an iterator of all info messages pushed by coroutines since the last update.
-function P:iterinfomessages ()
-  return ipairs(self._infomessages)
-end
-
--- From the main coroutine, clear the info message queue.
-function P:clearinfomessages ()
+  -- Process message queues.
+  for _, msg in ipairs(self._infomessages) do
+    RailWorks.showinfo(msg)
+  end
   self._infomessages = {}
-end
-
--- Get an iterator of all info messages pushed by coroutines since the last update.
-function P:iteralertmessages ()
-  return ipairs(self._alertmessages)
-end
-
--- From the main coroutine, clear the info message queue.
-function P:clearalertmessages ()
+  for _, msg in ipairs(self._alertmessages) do
+    RailWorks.showalert(msg)
+  end
   self._alertmessages = {}
 end
 
