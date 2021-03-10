@@ -110,7 +110,7 @@ Update = RailWorks.wraperrors(function (dt)
   state.restrictsignals = Iterator.totable(
     RailWorks.iterrestrictsignals(Acses.nsignallookahead))
 
-  sched:update(dt)
+  sched:update()
 
   local penalty = atc:ispenalty() or acses:ispenalty() or alerter:ispenalty()
   do

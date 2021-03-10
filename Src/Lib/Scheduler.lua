@@ -44,7 +44,7 @@ local function restart (self, co, ...)
 end
 
 -- From the main coroutine, update all active coroutines.
-function P:update (_)
+function P:update ()
   self._clock = RailWorks.GetSimulationTime()
   for co, conds in pairs(self._coroutines) do
     if coroutine.status(co) == "dead" then
