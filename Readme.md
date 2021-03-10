@@ -22,7 +22,7 @@ Releases are available at the [Releases](https://github.com/YoRyan/open-nec/rele
 
 ## Documentation
 
-Please refer to the project [manual](https://opennec.trinancrat.me), available online. It contains extensive information on how to install, use, and contribute to the project.
+Please refer to the project [website](https://opennec.trinancrat.me). It contains extensive information on how to install, use, and contribute to the project.
 
 ## Legal
 
