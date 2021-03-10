@@ -7,6 +7,7 @@ local acses = nil
 local cruise = nil
 local alerter = nil
 local power = nil
+local cs1flasher = nil
 local state = {
   throttle=0,
   train_brake=0,
@@ -18,10 +19,7 @@ local state = {
   acceleration_mps2=0,
   trackspeed_mps=0,
   speedlimits={},
-  restrictsignals={},
-
-  cs1flash=0, -- 0 = off, 1 = on, 2 = flash
-  cs1light=false
+  restrictsignals={}
 }
 local onebeep_s = 0.3
 
@@ -66,35 +64,14 @@ Initialise = RailWorks.wraperrors(function ()
 
   power = Power:new{available={Power.types.overhead}}
 
-  sched:run(cs1flasher)
+  cs1flasher = Flash:new{
+    scheduler=sched,
+    off_s=Atc.cabspeedflash_s,
+    on_s=Atc.cabspeedflash_s
+  }
 
   RailWorks.BeginUpdate()
 end)
-
--- Flash the upper green head to show a cab speed aspect.
-function cs1flasher ()
-  local waitchange = function (timeout)
-    local start = state.cs1flash
-    return sched:select(timeout, function () return state.cs1flash ~= start end)
-  end
-  while true do
-    if state.cs1flash == 0 then
-      state.cs1light = false
-      waitchange()
-    elseif state.cs1flash == 1 then
-      state.cs1light = true
-      waitchange()
-    elseif state.cs1flash == 2 then
-      local change
-      repeat
-        state.cs1light = not state.cs1light
-        change = waitchange(Atc.cabspeedflash_s)
-      until change ~= nil
-    else
-      waitchange() -- invalid value
-    end
-  end
-end
 
 Update = RailWorks.wraperrors(function (dt)
   if not RailWorks.GetIsEngineWithKey() then
@@ -184,7 +161,6 @@ Update = RailWorks.wraperrors(function (dt)
     math.floor(acses:getinforcespeed_mps()*Units.mps.tomph + 0.5))
 
   setcabsignal()
-  RailWorks.SetControlValue("CabSignal1", 0, RailWorks.frombool(state.cs1light))
 
   do
     local cablight = RailWorks.GetControlValue("CabLightControl", 0)
@@ -200,6 +176,8 @@ end)
 
 -- Set the state of the cab signal display.
 function setcabsignal ()
+  local f = 2 -- cab speed flash
+
   local code = atc:getpulsecode()
   local cs, cs1, cs2
   if code == Atc.pulsecode.restrict then
@@ -209,9 +187,9 @@ function setcabsignal ()
   elseif code == Atc.pulsecode.approachmed then
     cs, cs1, cs2 = 4, 0, 1
   elseif code == Atc.pulsecode.cabspeed60 then
-    cs, cs1, cs2 = 3, 2, 0
+    cs, cs1, cs2 = 3, f, 0
   elseif code == Atc.pulsecode.cabspeed80 then
-    cs, cs1, cs2 = 2, 2, 0
+    cs, cs1, cs2 = 2, f, 0
   elseif code == Atc.pulsecode.clear100
       or code == Atc.pulsecode.clear125
       or code == Atc.pulsecode.clear150 then
@@ -219,8 +197,13 @@ function setcabsignal ()
   else
     cs, cs1, cs2 = 8, 0, 0
   end
+
   RailWorks.SetControlValue("CabSignal", 0, cs)
-  state.cs1flash = cs1
+
+  cs1flasher:setflashstate(cs1 == f)
+  local cs1light = cs1 == 1 or (cs1 == f and cs1flasher:ison())
+  RailWorks.SetControlValue("CabSignal1", 0, RailWorks.frombool(cs1light))
+
   RailWorks.SetControlValue("CabSignal2", 0, cs2)
 end
 
