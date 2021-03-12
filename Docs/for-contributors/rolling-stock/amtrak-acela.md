@@ -20,7 +20,7 @@ The default setting is 0.
 
 #### CruiseControl
 
-The cruise control switch. Turning this on illuminates the "cruis system" indicator.
+The cruise control switch. Turning this on illuminates the "cruise system" indicator.
 
 The default setting is 0.
 
@@ -76,7 +76,7 @@ The emergency brake button.
 
 #### Reverser
 
-The player's Expert Mode reverser control. 1 for forward, 0 for neutral, and -1 for reverse.
+The player's Expert Mode reverser control. 1 = forward, 0 = neutral, -1 = reverse.
 
 #### CruiseControlSpeed
 
