@@ -156,4 +156,16 @@ function P.GetNextRestrictiveSignal (...)
   return Call("GetNextRestrictiveSignal", unpack(arg))
 end
 
+function P.ActivateNode (name, activate)
+  Call("ActivateNode", name, P.frombool(activate))
+end
+
+function P.AddTime (name, time_s)
+  return Call("AddTime", name, time_s)
+end
+
+function P.SetTime (name, time_s)
+  return Call("SetTime", name, time_s)
+end
+
 return P
