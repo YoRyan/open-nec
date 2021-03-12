@@ -302,3 +302,41 @@ The default setting is 0.
 Toggles between 0 and 1 with Ctrl+F. Should not be set by Lua; otherwise the value will desync from the keyboard shortcut.
 
 The default setting is 0.
+
+### Model nodes
+
+#### Front_spark01
+
+One of the white billboards for the front pantograph spark.
+
+#### Front_spark02
+
+One of the white billboards for the front pantograph spark.
+
+#### Rear_spark01
+
+One of the white billboards for the rear pantograph spark.
+
+#### Rear_spark02
+
+One of the white billboards for the rear pantograph spark.
+
+### Lights
+
+#### Spark
+
+The blue light for the front pantograph spark.
+
+#### Spark2
+
+The blue light for the rear pantograph spark.
+
+### Animations
+
+#### frontPanto
+
+Raises the front pantograph and its spark. Duration is 2 seconds.
+
+#### rearPanto
+
+Raises the rear pantograph and its spark. Duration is 2 seconds.
