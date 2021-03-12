@@ -1,0 +1,1 @@
+OnControlValueChange = RailWorks.SetControlValue
