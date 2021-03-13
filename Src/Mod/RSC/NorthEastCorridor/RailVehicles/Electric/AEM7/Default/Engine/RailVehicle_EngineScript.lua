@@ -75,7 +75,7 @@ Initialise = RailWorks.wraperrors(function ()
   RailWorks.BeginUpdate()
 end)
 
-local function setalerter ()
+local function readcontrols ()
   local vthrottle = RailWorks.GetControlValue("VirtualThrottle", 0)
   local vbrake = RailWorks.GetControlValue("VirtualBrake", 0)
   local change = vthrottle ~= state.throttle or vbrake ~= state.train_brake
@@ -85,15 +85,6 @@ local function setalerter ()
   if state.acknowledge or change then
     alerter:acknowledge()
   end
-end
-
-local function setcutin ()
-  -- Reverse the polarities of the safety systems buttons so they are activated
-  -- by default. If we set them ourselves, they won't stick.
-  alerter:setrunstate(RailWorks.GetControlValue("AlertControl", 0) == 0)
-  local speedcontrol = RailWorks.GetControlValue("SpeedControl", 0) == 0
-  atc:setrunstate(speedcontrol)
-  acses:setrunstate(speedcontrol)
 end
 
 local function readlocostate ()
@@ -164,12 +155,6 @@ local function writelocostate ()
     math.floor(acses:getinforcespeed_mps()*Units.mps.tomph + 0.5))
 end
 
-local function setcablight ()
-  local light = RailWorks.GetControlValue("CabLightControl", 0)
-  Call("FrontCabLight:Activate", light)
-  Call("RearCabLight:Activate", light)
-end
-
 local function setcabsignal ()
   local f = 2 -- cab speed flash
 
@@ -202,18 +187,33 @@ local function setcabsignal ()
   RailWorks.SetControlValue("CabSignal2", 0, cs2)
 end
 
+local function setcablight ()
+  local light = RailWorks.GetControlValue("CabLightControl", 0)
+  Call("FrontCabLight:Activate", light)
+  Call("RearCabLight:Activate", light)
+end
+
+local function setcutin ()
+  -- Reverse the polarities of the safety systems buttons so they are activated
+  -- by default. If we set them ourselves, they won't stick.
+  alerter:setrunstate(RailWorks.GetControlValue("AlertControl", 0) == 0)
+  local speedcontrol = RailWorks.GetControlValue("SpeedControl", 0) == 0
+  atc:setrunstate(speedcontrol)
+  acses:setrunstate(speedcontrol)
+end
+
 Update = RailWorks.wraperrors(function (_)
   if not RailWorks.GetIsEngineWithKey() then
     RailWorks.EndUpdate()
     return
   end
 
-  setalerter()
-
+  readcontrols()
   readlocostate()
-  sched:update()
-  writelocostate()
 
+  sched:update()
+
+  writelocostate()
   setcabsignal()
   setcablight()
   setcutin()
