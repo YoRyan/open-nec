@@ -208,13 +208,14 @@ Update = RailWorks.wraperrors(function (_)
     return
   end
 
+  setalerter()
+
   readlocostate()
   sched:update()
   writelocostate()
 
   setcabsignal()
   setcablight()
-  setalerter()
   setcutin()
 
   -- Prevent the acknowledge button from sticking if the button on the HUD is
