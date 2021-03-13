@@ -2,6 +2,98 @@
 local P = {}
 RailWorks = P
 
+--[[
+  Script Component
+]]
+
+function P.BeginUpdate ()
+  Call("BeginUpdate")
+end
+
+function P.EndUpdate ()
+  Call("EndUpdate")
+end
+
+function P.GetSimulationTime ()
+  return Call("GetSimulationTime")
+end
+
+--[[
+  Rail Vehicle Component
+]]
+
+function P.GetIsPlayer ()
+  return Call("GetIsPlayer") == 1
+end
+
+function P.GetSpeed ()
+  return Call("GetSpeed")
+end
+
+function P.GetAcceleration ()
+  return Call("GetAcceleration")
+end
+
+function P.SendConsistMessage (message, argument, direction)
+  return Call("SendConsistMessage", message, argument, direction) == 1
+end
+
+function P.GetNextRestrictiveSignal (...)
+  return Call("GetNextRestrictiveSignal", unpack(arg))
+end
+
+function P.GetNextSpeedLimit (...)
+  return Call("GetNextSpeedLimit", unpack(arg))
+end
+
+function P.GetCurrentSpeedLimit (...)
+  return Call("GetCurrentSpeedLimit", unpack(arg))
+end
+
+--[[
+  Render Component
+]]
+
+function P.ActivateNode (name, activate)
+  Call("ActivateNode", name, P.frombool(activate))
+end
+
+function P.AddTime (name, time_s)
+  return Call("AddTime", name, time_s)
+end
+
+function P.SetTime (name, time_s)
+  return Call("SetTime", name, time_s)
+end
+
+--[[
+  Control Container
+]]
+
+function P.GetControlValue (name, index)
+  return Call("GetControlValue", name, index)
+end
+
+function P.SetControlValue (name, index, value)
+  Call("SetControlValue", name, index, value)
+end
+
+--[[
+  Engine
+]]
+
+function P.GetTractiveEffort ()
+  return Call("GetTractiveEffort")
+end
+
+function P.GetIsEngineWithKey ()
+  return Call("GetIsEngineWithKey") == 1
+end
+
+--[[
+  Lua helper functions
+]]
+
 -- Flash an info (middle of screen) message.
 function P.showinfo (msg)
   SysCall("ScenarioManager:ShowMessage", "", tostring(msg), 0)
@@ -106,74 +198,6 @@ function P.iterrestrictsignals (n, maxdistance_m)
   return Iterator.concat(
     {Iterator.map(negatedistance, restrictsignalsbydistance(1, n, maxdistance_m))},
     {restrictsignalsbydistance(0, n, maxdistance_m)})
-end
-
-function P.BeginUpdate ()
-  Call("BeginUpdate")
-end
-
-function P.EndUpdate ()
-  Call("EndUpdate")
-end
-
-function P.GetSimulationTime ()
-  return Call("GetSimulationTime")
-end
-
-function P.GetIsPlayer ()
-  return Call("GetIsPlayer") == 1
-end
-
-function P.GetIsEngineWithKey ()
-  return Call("GetIsEngineWithKey") == 1
-end
-
-function P.GetTractiveEffort ()
-  return Call("GetTractiveEffort")
-end
-
-function P.GetControlValue (name, index)
-  return Call("GetControlValue", name, index)
-end
-
-function P.SetControlValue (name, index, value)
-  Call("SetControlValue", name, index, value)
-end
-
-function P.GetSpeed ()
-  return Call("GetSpeed")
-end
-
-function P.GetAcceleration ()
-  return Call("GetAcceleration")
-end
-
-function P.GetCurrentSpeedLimit (...)
-  return Call("GetCurrentSpeedLimit", unpack(arg))
-end
-
-function P.GetNextSpeedLimit (...)
-  return Call("GetNextSpeedLimit", unpack(arg))
-end
-
-function P.GetNextRestrictiveSignal (...)
-  return Call("GetNextRestrictiveSignal", unpack(arg))
-end
-
-function P.ActivateNode (name, activate)
-  Call("ActivateNode", name, P.frombool(activate))
-end
-
-function P.AddTime (name, time_s)
-  return Call("AddTime", name, time_s)
-end
-
-function P.SetTime (name, time_s)
-  return Call("SetTime", name, time_s)
-end
-
-function P.SendConsistMessage (message, argument, direction)
-  return Call("SendConsistMessage", message, argument, direction) == 1
 end
 
 return P
