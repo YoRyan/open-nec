@@ -340,3 +340,49 @@ Raises the front pantograph and its spark. Duration is 2 seconds.
 #### rearPanto
 
 Raises the rear pantograph and its spark. Duration is 2 seconds.
+
+#### cone
+
+Opens the nose cone that shrouds the front coupler. Duration is 2 seconds.
+
+### Consist messages
+
+#### 1209
+
+Communicates the position of the tilt isolate control, to tell the coaches to tilt or not to tilt. The argument is its current setting.
+
+#### 1210
+
+Communicates the currently displayed destination sign to the passenger coaches. The argument is the ID of the destination:
+
+| Argument | Destination |
+| --- | --- |
+| 1 | (blank) |
+| 2 | Philadelphia |
+| 3 | North Philadelphia |
+| 4 | Holmesburg |
+| 5 | Torresdale |
+| 6 | Cornwell |
+| 7 | Eddington |
+| 8 | Croydon |
+| 9 | Bristol |
+| 10 | Levittown |
+| 11 | Trenton |
+| 12 | Hamilton |
+| 13 | Princeton |
+| 14 | Jersey Avenue | 
+| 15 | New Brunswick |
+| 16 | Edison |
+| 17 | Metuchen |
+| 18 | Metropark |
+| 19 | Rahway |
+| 20 | Linden |
+| 21 | Elizabeth |
+| 22 | North Elizabeth |
+| 23 | Newark Liberty |
+| 24 | Newark Penn |
+| 25 | Harrison |
+| 26 | Secaucus |
+| 27 | New York Penn |
+
+These are only available stations, even for the Washington to Baltimore version of the Acela.
