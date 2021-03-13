@@ -94,7 +94,7 @@ local function readlocostate ()
   state.cruiseenabled =
     cruise_mph > 10
   state.speed_mps =
-    RailWorks.GetSpeed()
+    RailWorks.GetControlValue("SpeedometerMPH", 0)*Units.mph.tomps
   state.acceleration_mps2 =
     RailWorks.GetAcceleration()
   state.trackspeed_mps =
