@@ -128,6 +128,10 @@ function P.GetIsEngineWithKey ()
   return Call("GetIsEngineWithKey") == 1
 end
 
+function P.GetTractiveEffort ()
+  return Call("GetTractiveEffort")
+end
+
 function P.GetControlValue (name, index)
   return Call("GetControlValue", name, index)
 end
