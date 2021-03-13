@@ -1,12 +1,16 @@
 -- Engine script for the Acela Express operated by Amtrak.
 
-local sched = nil
-local power = nil
-local frontpantoanim = nil
-local rearpantoanim = nil
+local sched
+local cruise
+local alerter
+local power
+local frontpantoanim, rearpantoanim
 local state = {
   throttle = 0,
   train_brake = 0,
+  acknowledge = false,
+  cruisespeed_mps = 0,
+  cruiseenabled = false,
   startup = true,
   
   speed_mps = 0,
@@ -15,6 +19,19 @@ local state = {
 
 Initialise = RailWorks.wraperrors(function ()
   sched = Scheduler:new{}
+
+  cruise = Cruise:new{
+    scheduler = sched,
+    getspeed_mps = function () return state.speed_mps end,
+    gettargetspeed_mps = function () return state.cruisespeed_mps end,
+    getenabled = function () return state.cruiseenabled end
+  }
+
+  alerter = Alerter:new{
+    scheduler = sched,
+    getspeed_mps = function () return state.speed_mps end
+  }
+  alerter:start()
 
   power = Power:new{available={Power.types.overhead}}
 
@@ -35,10 +52,20 @@ end)
 local function readcontrols ()
   local vthrottle = RailWorks.GetControlValue("VirtualThrottle", 0)
   local vbrake = RailWorks.GetControlValue("VirtualBrake", 0)
+  local change = vthrottle ~= state.throttle or vbrake ~= state.train_brake
   state.throttle = vthrottle
   state.train_brake = vbrake
+  state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
+  if state.acknowledge or change then
+    alerter:acknowledge()
+  end
 
-  state.startup = RailWorks.GetControlValue("Startup", 0) == 1
+  state.startup =
+    RailWorks.GetControlValue("Startup", 0) == 1
+  state.cruisespeed_mps =
+    RailWorks.GetControlValue("CruiseControlSpeed", 0)*Units.mph.tomps
+  state.cruiseenabled =
+    RailWorks.GetControlValue("CruiseControl", 0) == 1
 end
 
 local function readpantographs ()
@@ -63,13 +90,30 @@ local function haspower ()
 end
 
 local function writelocostate ()
+  local penalty = alerter:ispenalty()
   do
     local v
-    if not haspower() then v = 0
-    else v = state.throttle end
+    if not haspower() then
+      v = 0
+    elseif penalty then
+      v = 0
+    elseif state.cruiseenabled then
+      v = math.min(state.throttle, cruise:getthrottle())
+    else
+      v = state.throttle
+    end
     RailWorks.SetControlValue("Regulator", 0, v)
   end
-  RailWorks.SetControlValue("TrainBrakeControl", 0, state.train_brake)
+  do
+    local v
+    if penalty then v = 0.6
+    else v = state.train_brake end
+    RailWorks.SetControlValue("TrainBrakeControl", 0, v)
+  end
+
+  RailWorks.SetControlValue(
+    "AWSWarnCount", 0,
+    RailWorks.frombool(alerter:isalarm()))
 end
 
 local function getdigit (v, place)
@@ -121,7 +165,8 @@ local function setdrivescreen ()
   end
   do
     local v
-    v = math.floor(state.throttle*6 + 0.5)
+    if state.cruiseenabled then v = 8
+    else v = math.floor(state.throttle*6 + 0.5) end
     RailWorks.SetControlValue("PowerState", 0, v)
   end
 end
@@ -143,6 +188,12 @@ Update = RailWorks.wraperrors(function (_)
   writelocostate()
   setstatusscreen()
   setdrivescreen()
+
+  -- Prevent the acknowledge button from sticking if the button on the HUD is
+  -- clicked.
+  if state.acknowledge then
+    RailWorks.SetControlValue("AWSReset", 0, 0)
+  end
 end)
 
 OnControlValueChange = RailWorks.SetControlValue
