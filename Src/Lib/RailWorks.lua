@@ -168,4 +168,8 @@ function P.SetTime (name, time_s)
   return Call("SetTime", name, time_s)
 end
 
+function P.SendConsistMessage (message, argument, direction)
+  return Call("SendConsistMessage", message, argument, direction) == 1
+end
+
 return P
