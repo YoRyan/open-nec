@@ -88,10 +88,11 @@ local function readcontrols ()
 end
 
 local function readlocostate ()
+  local cruise_mph = RailWorks.GetControlValue("CruiseSet", 0)
   state.cruisespeed_mps =
-    RailWorks.GetControlValue("CruiseSet", 0)*Units.mph.tomps
+    cruise_mph*Units.mph.tomps
   state.cruiseenabled =
-    RailWorks.GetControlValue("CruiseSet", 0) > 10
+    cruise_mph > 10
   state.speed_mps =
     RailWorks.GetSpeed()
   state.acceleration_mps2 =
