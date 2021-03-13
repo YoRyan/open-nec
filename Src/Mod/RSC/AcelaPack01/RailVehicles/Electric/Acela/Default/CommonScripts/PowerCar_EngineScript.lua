@@ -5,6 +5,7 @@ local cruise
 local alerter
 local power
 local frontpantoanim, rearpantoanim
+local tracteffort
 local state = {
   throttle = 0,
   train_brake = 0,
@@ -45,6 +46,8 @@ Initialise = RailWorks.wraperrors(function ()
     animation = "rearPanto",
     duration_s = 2
   }
+
+  tracteffort = Average:new{nsamples=30}
 
   RailWorks.BeginUpdate()
 end)
@@ -143,6 +146,8 @@ local function setstatusscreen ()
     end
     RailWorks.SetControlValue("PantoIndicator", 0, indicator)
   end
+  tracteffort:sample(RailWorks.GetTractiveEffort()*300)
+  RailWorks.SetControlValue("Effort", 0, tracteffort:get())
 end
 
 local function setdrivescreen ()
