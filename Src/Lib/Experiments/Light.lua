@@ -27,3 +27,5 @@ function P:update ()
     Call(self._light .. ":Activate", RailWorks.frombool(self._show))
   end
 end
+
+return P

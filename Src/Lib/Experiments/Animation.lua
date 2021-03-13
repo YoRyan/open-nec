@@ -41,3 +41,5 @@ function P:update ()
     self._lastcycle = now
   end
 end
+
+return P

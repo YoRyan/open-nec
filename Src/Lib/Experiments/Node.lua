@@ -27,3 +27,5 @@ function P:update ()
     RailWorks.ActivateNode(self._node, self._show)
   end
 end
+
+return P
