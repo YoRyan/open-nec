@@ -9,6 +9,7 @@ local power
 local frontpantoanim, rearpantoanim
 local tracteffort
 local csflasher
+local spark
 local state = {
   throttle = 0,
   train_brake = 0,
@@ -23,13 +24,13 @@ local state = {
   speedlimits = {},
   restrictsignals = {},
 
-  powertypes = {}
+  powertypes = {},
+  awsclearcount = 0,
+  lastsignalspeed_mph = nil
 }
-local awsclearcount = 0
-local lastsignalspeed_mph
 
 local function doalert ()
-  awsclearcount = math.mod(awsclearcount + 1, 2)
+  state.awsclearcount = math.mod(state.awsclearcount + 1, 2)
 end
 
 Initialise = RailWorks.wraperrors(function ()
@@ -90,6 +91,10 @@ Initialise = RailWorks.wraperrors(function ()
     on_s=Atc.cabspeedflash_s
   }
 
+  spark = PantoSpark:new{
+    scheduler = sched
+  }
+
   RailWorks.BeginUpdate()
 end)
 
@@ -117,10 +122,26 @@ local function readpantographs ()
   local pantosel = RailWorks.GetControlValue("SelPanto", 0)
   frontpantoanim:setanimatedstate(pantoup and pantosel < 1.5)
   rearpantoanim:setanimatedstate(pantoup and pantosel > 0.5)
-  if frontpantoanim:getposition() == 1 or rearpantoanim:getposition() == 1 then
+
+  local frontpantoup = frontpantoanim:getposition() == 1
+  local rearpantoup = rearpantoanim:getposition() == 1
+  if frontpantoup or rearpantoup then
     state.powertypes = {Power.types.overhead}
   else
     state.powertypes = {}
+  end
+
+  do
+    spark:setsparkstate(frontpantoup or rearpantoup)
+    local isspark = spark:isspark()
+
+    RailWorks.ActivateNode("Front_spark01", frontpantoup and isspark)
+    RailWorks.ActivateNode("Front_spark02", frontpantoup and isspark)
+    Call("Spark:Activate", RailWorks.frombool(frontpantoup and isspark))
+
+    RailWorks.ActivateNode("Rear_spark01", rearpantoup and isspark)
+    RailWorks.ActivateNode("Rear_spark02", rearpantoup and isspark)
+    Call("Spark2:Activate", RailWorks.frombool(rearpantoup and isspark))
   end
 end
 
@@ -176,7 +197,8 @@ local function writelocostate ()
     "AWSWarnCount", 0,
     RailWorks.frombool(alerter:isalarm() or atc:isalarm() or acses:isalarm()))
   RailWorks.SetControlValue(
-    "AWSClearCount", 0, awsclearcount)
+    "AWSClearCount", 0,
+    state.awsclearcount)
 end
 
 local function setstatusscreen ()
@@ -242,9 +264,9 @@ local function setadu ()
     -- TODO: Handle 100, 125, and 150 mph correctly.
     -- Can't set the signal speed continuously, or else the digits flash
     -- randomly for some reason.
-    if signalspeed_mph ~= lastsignalspeed_mph then
+    if signalspeed_mph ~= state.lastsignalspeed_mph then
       RailWorks.SetControlValue("SignalSpeed", 0, signalspeed_mph)
-      lastsignalspeed_mph = signalspeed_mph
+      state.lastsignalspeed_mph = signalspeed_mph
     end
   end
   do
