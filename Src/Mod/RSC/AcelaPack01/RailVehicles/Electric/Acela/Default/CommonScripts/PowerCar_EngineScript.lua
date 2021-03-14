@@ -240,6 +240,17 @@ local function setplayerpantos ()
 end
 
 local function setaipantos ()
+  local frontup = true
+  local rearup = false
+  frontpantoanim:setanimatedstate(frontup)
+  rearpantoanim:setanimatedstate(rearup)
+  RailWorks.SendConsistMessage(messageid.raisefrontpanto, frontup, 0)
+  RailWorks.SendConsistMessage(messageid.raisefrontpanto, frontup, 1)
+  RailWorks.SendConsistMessage(messageid.raiserearpanto, rearup, 0)
+  RailWorks.SendConsistMessage(messageid.raiserearpanto, rearup, 1)
+end
+
+local function setslavepantos ()
   if state.raisefrontpantomsg ~= nil then
     frontpantoanim:setanimatedstate(state.raisefrontpantomsg)
   end
@@ -274,10 +285,10 @@ local function setcone ()
   coneanim:setanimatedstate(open)
 end
 
-local setdestination
+local setplayerdest
 do
   local lastselected = 1
-  function setdestination ()
+  function setplayerdest ()
     local selected = destscroller:getselected()
     local destination, id = unpack(destinations[selected])
     if lastselected ~= selected then
@@ -293,6 +304,11 @@ do
       RailWorks.SendConsistMessage(messageid.destination, 0, 1)
     end
   end
+end
+
+local function setaidest ()
+  RailWorks.SendConsistMessage(messageid.destination, 1, 0)
+  RailWorks.SendConsistMessage(messageid.destination, 1, 1)
 end
 
 local function setstatusscreen ()
@@ -418,7 +434,7 @@ local function updateplayer ()
   setpantosparks()
   settilt()
   setcone()
-  setdestination()
+  setplayerdest()
   setstatusscreen()
   setdrivescreen()
   setcutin()
@@ -437,12 +453,26 @@ local function updateai ()
   rearpantoanim:update()
 
   setaipantos()
+  setaidest()
+  setpantosparks()
+end
+
+local function updateslave ()
+  anysched:update()
+  frontpantoanim:update()
+  rearpantoanim:update()
+
+  setslavepantos()
   setpantosparks()
 end
 
 Update = RailWorks.wraperrors(function (_)
+  -- -> [slave][coach]...[coach][player] ->
+  -- -> [ai   ][coach]...[coach][ai    ] ->
   if RailWorks.GetIsEngineWithKey() then
     updateplayer()
+  elseif RailWorks.GetIsPlayer() then
+    updateslave()
   else
     updateai()
   end
