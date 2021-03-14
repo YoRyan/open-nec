@@ -34,7 +34,9 @@ local state = {
 local messageids = {
   -- Reuse ID's from the DTG engine script to avoid conflicts.
   raisefrontpanto = 1207,
-  raiserearpanto = 1208
+  raiserearpanto = 1208,
+
+  tiltisolate = 1209
 }
 
 local function doalert ()
@@ -228,6 +230,12 @@ local function setpantosparks ()
   Call("Spark2:Activate", RailWorks.frombool(rearcontact and isspark))
 end
 
+local function settilt ()
+  local isolate = RailWorks.GetControlValue("TiltIsolate", 0)
+  RailWorks.SendConsistMessage(messageids.tiltisolate, isolate, 0)
+  RailWorks.SendConsistMessage(messageids.tiltisolate, isolate, 1)
+end
+
 local function setstatusscreen ()
   RailWorks.SetControlValue(
     "ControlScreenIzq", 0, RailWorks.frombool(not haspower()))
@@ -344,6 +352,7 @@ local function updateplayer ()
   writelocostate()
   setplayerpantos()
   setpantosparks()
+  settilt()
   setstatusscreen()
   setdrivescreen()
   setcutin()
