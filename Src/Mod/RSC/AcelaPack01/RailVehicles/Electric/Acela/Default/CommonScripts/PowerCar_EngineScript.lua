@@ -41,7 +41,7 @@ local destinations = {{"No service", 1},
                       {"NYC Penn", 27}}
 
 local messageid = {
-  -- Reuse ID's from the DTG engine script to avoid conflicts.
+  -- ID's must be reused from the DTG engine script so coaches will pass them down.
   raisefrontpanto = 1207,
   raiserearpanto = 1208,
 
