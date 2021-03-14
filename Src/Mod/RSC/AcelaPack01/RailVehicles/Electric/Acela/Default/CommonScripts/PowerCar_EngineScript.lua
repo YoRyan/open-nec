@@ -18,6 +18,7 @@ local state = {
   cruisespeed_mps = 0,
   cruiseenabled = false,
   startup = true,
+  destinationjoy = 0,
 
   speed_mps = 0,
   acceleration_mps2 = 0,
@@ -31,12 +32,22 @@ local state = {
   raiserearpantomsg = nil
 }
 
-local messageids = {
+local destscroller
+local destinations = {{"No service", 1},
+                      {"Philadelphia", 2},
+                      {"Trenton", 11},
+                      {"Metropark", 18},
+                      {"Newark Penn", 24},
+                      {"NYC Penn", 27}}
+
+local messageid = {
   -- Reuse ID's from the DTG engine script to avoid conflicts.
   raisefrontpanto = 1207,
   raiserearpanto = 1208,
 
-  tiltisolate = 1209
+  -- Used by the Acela coaches. Do not change.
+  tiltisolate = 1209,
+  destination = 1210
 }
 
 local function doalert ()
@@ -112,6 +123,20 @@ Initialise = RailWorks.wraperrors(function ()
     scheduler = anysched
   }
 
+  destscroller = RangeScroll:new{
+    scheduler = playersched,
+    getdirection = function ()
+      if state.destinationjoy == -1 then
+        return RangeScroll.direction.previous
+      elseif state.destinationjoy == 1 then
+        return RangeScroll.direction.next
+      else
+        return RangeScroll.direction.neutral
+      end
+    end,
+    limit = table.getn(destinations)
+  }
+
   RailWorks.BeginUpdate()
 end)
 
@@ -132,6 +157,8 @@ local function readcontrols ()
     RailWorks.GetControlValue("CruiseControlSpeed", 0)*Units.mph.tomps
   state.cruiseenabled =
     RailWorks.GetControlValue("CruiseControl", 0) == 1
+  state.destinationjoy =
+    RailWorks.GetControlValue("DestJoy", 0)
 end
 
 local function readlocostate ()
@@ -198,10 +225,10 @@ local function setplayerpantos ()
   local rearup = pantoup and pantosel > 0.5
   frontpantoanim:setanimatedstate(frontup)
   rearpantoanim:setanimatedstate(rearup)
-  RailWorks.SendConsistMessage(messageids.raisefrontpanto, frontup, 0)
-  RailWorks.SendConsistMessage(messageids.raisefrontpanto, frontup, 1)
-  RailWorks.SendConsistMessage(messageids.raiserearpanto, rearup, 0)
-  RailWorks.SendConsistMessage(messageids.raiserearpanto, rearup, 1)
+  RailWorks.SendConsistMessage(messageid.raisefrontpanto, frontup, 0)
+  RailWorks.SendConsistMessage(messageid.raisefrontpanto, frontup, 1)
+  RailWorks.SendConsistMessage(messageid.raiserearpanto, rearup, 0)
+  RailWorks.SendConsistMessage(messageid.raiserearpanto, rearup, 1)
 
   local frontcontact = frontpantoanim:getposition() == 1
   local rearcontact = rearpantoanim:getposition() == 1
@@ -238,13 +265,34 @@ end
 
 local function settilt ()
   local isolate = RailWorks.GetControlValue("TiltIsolate", 0)
-  RailWorks.SendConsistMessage(messageids.tiltisolate, isolate, 0)
-  RailWorks.SendConsistMessage(messageids.tiltisolate, isolate, 1)
+  RailWorks.SendConsistMessage(messageid.tiltisolate, isolate, 0)
+  RailWorks.SendConsistMessage(messageid.tiltisolate, isolate, 1)
 end
 
 local function setcone ()
   local open = RailWorks.GetControlValue("FrontCone", 0) == 1
   coneanim:setanimatedstate(open)
+end
+
+local setdestination
+do
+  local lastselected = 1
+  function setdestination ()
+    local selected = destscroller:getselected()
+    local destination, id = unpack(destinations[selected])
+    if lastselected ~= selected then
+      RailWorks.showalert(string.upper(destination))
+      lastselected = selected
+    end
+
+    if RailWorks.GetControlValue("DestOnOff", 0) == 1 then
+      RailWorks.SendConsistMessage(messageid.destination, id, 0)
+      RailWorks.SendConsistMessage(messageid.destination, id, 1)
+    else
+      RailWorks.SendConsistMessage(messageid.destination, 0, 0)
+      RailWorks.SendConsistMessage(messageid.destination, 0, 1)
+    end
+  end
 end
 
 local function setstatusscreen ()
@@ -370,6 +418,7 @@ local function updateplayer ()
   setpantosparks()
   settilt()
   setcone()
+  setdestination()
   setstatusscreen()
   setdrivescreen()
   setcutin()
@@ -408,9 +457,9 @@ end)
 
 OnConsistMessage = RailWorks.wraperrors(function (message, argument, direction)
   -- Cross the pantograph states. We assume the slave engine is flipped.
-  if message == messageids.raisefrontpanto then
+  if message == messageid.raisefrontpanto then
     state.raiserearpantomsg = argument == "true"
-  elseif message == messageids.raiserearpanto then
+  elseif message == messageid.raiserearpanto then
     state.raisefrontpantomsg = argument == "true"
   end
 end)
