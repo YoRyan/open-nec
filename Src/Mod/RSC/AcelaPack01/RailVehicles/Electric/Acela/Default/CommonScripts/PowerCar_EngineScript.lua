@@ -27,7 +27,6 @@ local state = {
 
   powertypes = {},
   awsclearcount = 0,
-  lastsignalspeed_mph = nil,
   raisefrontpantomsg = nil,
   raiserearpantomsg = nil
 }
@@ -302,53 +301,57 @@ local function setcutin ()
   acses:setrunstate(RailWorks.GetControlValue("ACSESCutIn", 0) == 0)
 end
 
-local function setadu ()
-  local pulsecode =
-    atc:getpulsecode()
-  do
-    local signalspeed_mph =
-      math.floor(Atc.amtrakpulsecodespeed_mps(pulsecode)*Units.mps.tomph + 0.5)
-    -- TODO: Handle 100, 125, and 150 mph correctly.
-    -- Can't set the signal speed continuously, or else the digits flash
-    -- randomly for some reason.
-    if signalspeed_mph ~= state.lastsignalspeed_mph then
-      RailWorks.SetControlValue("SignalSpeed", 0, signalspeed_mph)
-      state.lastsignalspeed_mph = signalspeed_mph
+local setadu
+do
+  local lastsignalspeed_mph
+  function setadu ()
+    local pulsecode =
+      atc:getpulsecode()
+    do
+      local signalspeed_mph =
+        math.floor(Atc.amtrakpulsecodespeed_mps(pulsecode)*Units.mps.tomph + 0.5)
+      -- TODO: Handle 100, 125, and 150 mph correctly.
+      -- Can't set the signal speed continuously, or else the digits flash
+      -- randomly for some reason.
+      if signalspeed_mph ~= lastsignalspeed_mph then
+        RailWorks.SetControlValue("SignalSpeed", 0, signalspeed_mph)
+        lastsignalspeed_mph = signalspeed_mph
+      end
     end
-  end
-  do
-    local f = 2 -- cab speed flash
-    local n, l, s, m, r
-    if pulsecode == Atc.pulsecode.restrict then
-      n, l, s, m, r = 0, 0, 1, 0, 1
-    elseif pulsecode == Atc.pulsecode.approach then
-      n, l, s, m, r = 0, 1, 0, 0, 0
-    elseif pulsecode == Atc.pulsecode.approachmed then
-      n, l, s, m, r = 0, 1, 0, 1, 0
-    elseif pulsecode == Atc.pulsecode.cabspeed60
-        or pulsecode == Atc.pulsecode.cabspeed80 then
-      n, l, s, m, r = f, 0, 0, 0, 0
-    elseif pulsecode == Atc.pulsecode.clear100
-        or pulsecode == Atc.pulsecode.clear125
-        or pulsecode == Atc.pulsecode.clear150 then
-      n, l, s, m, r = 1, 0, 0, 0, 0
-    else
-      n, l, s, m, r = 0, 0, 0, 0, 0
+    do
+      local f = 2 -- cab speed flash
+      local n, l, s, m, r
+      if pulsecode == Atc.pulsecode.restrict then
+        n, l, s, m, r = 0, 0, 1, 0, 1
+      elseif pulsecode == Atc.pulsecode.approach then
+        n, l, s, m, r = 0, 1, 0, 0, 0
+      elseif pulsecode == Atc.pulsecode.approachmed then
+        n, l, s, m, r = 0, 1, 0, 1, 0
+      elseif pulsecode == Atc.pulsecode.cabspeed60
+          or pulsecode == Atc.pulsecode.cabspeed80 then
+        n, l, s, m, r = f, 0, 0, 0, 0
+      elseif pulsecode == Atc.pulsecode.clear100
+          or pulsecode == Atc.pulsecode.clear125
+          or pulsecode == Atc.pulsecode.clear150 then
+        n, l, s, m, r = 1, 0, 0, 0, 0
+      else
+        n, l, s, m, r = 0, 0, 0, 0, 0
+      end
+      csflasher:setflashstate(n == f)
+      local nlight = n == 1 or (n == f and csflasher:ison())
+      RailWorks.SetControlValue("SigN", 0, RailWorks.frombool(nlight))
+      RailWorks.SetControlValue("SigL", 0, l)
+      RailWorks.SetControlValue("SigS", 0, s)
+      RailWorks.SetControlValue("SigM", 0, m)
+      RailWorks.SetControlValue("SigR", 0, r)
     end
-    csflasher:setflashstate(n == f)
-    local nlight = n == 1 or (n == f and csflasher:ison())
-    RailWorks.SetControlValue("SigN", 0, RailWorks.frombool(nlight))
-    RailWorks.SetControlValue("SigL", 0, l)
-    RailWorks.SetControlValue("SigS", 0, s)
-    RailWorks.SetControlValue("SigM", 0, m)
-    RailWorks.SetControlValue("SigR", 0, r)
-  end
-  do
-    local acsesspeed_mph =
-      math.floor(acses:getinforcespeed_mps()*Units.mps.tomph + 0.5)
-    RailWorks.SetControlValue("TSHundreds", 0, getdigit(acsesspeed_mph, 2))
-    RailWorks.SetControlValue("TSTens", 0, getdigit(acsesspeed_mph, 1))
-    RailWorks.SetControlValue("TSUnits", 0, getdigit(acsesspeed_mph, 0))
+    do
+      local acsesspeed_mph =
+        math.floor(acses:getinforcespeed_mps()*Units.mps.tomph + 0.5)
+      RailWorks.SetControlValue("TSHundreds", 0, getdigit(acsesspeed_mph, 2))
+      RailWorks.SetControlValue("TSTens", 0, getdigit(acsesspeed_mph, 1))
+      RailWorks.SetControlValue("TSUnits", 0, getdigit(acsesspeed_mph, 0))
+    end
   end
 end
 
