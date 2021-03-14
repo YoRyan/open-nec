@@ -37,24 +37,10 @@ function P:new (conf)
   return o
 end
 
--- From the main coroutine, start the flash sequence.
-function P:start ()
-  self._flash = true
-end
-
--- From the main coroutine, halt the flash sequence.
-function P:stop ()
-  self._flash = false
-end
-
 -- From the main coroutine, start or stop the flash sequence based on the
 -- provided condition.
 function P:setflashstate (cond)
-  if cond and not self._flash then
-    self:start()
-  elseif not cond and self._flash then
-    self:stop()
-  end
+  self._flash = cond
 end
 
 -- Returns true if the flasher in the "on" phase.
