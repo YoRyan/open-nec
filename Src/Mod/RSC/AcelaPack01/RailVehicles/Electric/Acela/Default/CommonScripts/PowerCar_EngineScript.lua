@@ -7,6 +7,7 @@ local cruise
 local alerter
 local power
 local frontpantoanim, rearpantoanim
+local coneanim
 local tracteffort
 local csflasher
 local spark
@@ -91,6 +92,12 @@ Initialise = RailWorks.wraperrors(function ()
   rearpantoanim = Animation:new{
     scheduler = anysched,
     animation = "rearPanto",
+    duration_s = 2
+  }
+
+  coneanim = Animation:new{
+    scheduler = playersched,
+    animation = "cone",
     duration_s = 2
   }
 
@@ -236,6 +243,11 @@ local function settilt ()
   RailWorks.SendConsistMessage(messageids.tiltisolate, isolate, 1)
 end
 
+local function setcone ()
+  local open = RailWorks.GetControlValue("FrontCone", 0) == 1
+  coneanim:setanimatedstate(open)
+end
+
 local function setstatusscreen ()
   RailWorks.SetControlValue(
     "ControlScreenIzq", 0, RailWorks.frombool(not haspower()))
@@ -348,11 +360,13 @@ local function updateplayer ()
   anysched:update()
   frontpantoanim:update()
   rearpantoanim:update()
+  coneanim:update()
 
   writelocostate()
   setplayerpantos()
   setpantosparks()
   settilt()
+  setcone()
   setstatusscreen()
   setdrivescreen()
   setcutin()
