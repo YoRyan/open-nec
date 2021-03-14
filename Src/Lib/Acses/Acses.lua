@@ -311,7 +311,7 @@ local function setstate (self)
   while true do
     local inforce_mps =
       self._enforcingspeed_mps or self._trackspeed:gettrackspeed_mps()
-    if inforce_mps ~= self._inforcespeed_mps then
+    if inforce_mps ~= self._inforcespeed_mps and not self._isalarm then
       self._doalert()
     end
     self._inforcespeed_mps = inforce_mps
