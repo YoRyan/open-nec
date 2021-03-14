@@ -1,6 +1,6 @@
 -- Engine script for the Acela Express operated by Amtrak.
 
-local sched
+local playersched, anysched
 local atc
 local acses
 local cruise
@@ -26,7 +26,15 @@ local state = {
 
   powertypes = {},
   awsclearcount = 0,
-  lastsignalspeed_mph = nil
+  lastsignalspeed_mph = nil,
+  raisefrontpantomsg = nil,
+  raiserearpantomsg = nil
+}
+
+local messageids = {
+  -- Reuse ID's from the DTG engine script to avoid conflicts.
+  raisefrontpanto = 1207,
+  raiserearpanto = 1208
 }
 
 local function doalert ()
@@ -34,10 +42,11 @@ local function doalert ()
 end
 
 Initialise = RailWorks.wraperrors(function ()
-  sched = Scheduler:new{}
+  playersched = Scheduler:new{}
+  anysched = Scheduler:new{}
 
   atc = Atc:new{
-    scheduler = sched,
+    scheduler = playersched,
     getspeed_mps = function () return state.speed_mps end,
     getacceleration_mps2 = function () return state.acceleration_mps2 end,
     getacknowledge = function () return state.acknowledge end,
@@ -46,7 +55,7 @@ Initialise = RailWorks.wraperrors(function ()
   atc:start()
 
   acses = Acses:new{
-    scheduler = sched,
+    scheduler = playersched,
     atc = atc,
     getspeed_mps = function () return state.speed_mps end,
     gettrackspeed_mps = function () return state.trackspeed_mps end,
@@ -58,14 +67,14 @@ Initialise = RailWorks.wraperrors(function ()
   acses:start()
 
   cruise = Cruise:new{
-    scheduler = sched,
+    scheduler = playersched,
     getspeed_mps = function () return state.speed_mps end,
     gettargetspeed_mps = function () return state.cruisespeed_mps end,
     getenabled = function () return state.cruiseenabled end
   }
 
   alerter = Alerter:new{
-    scheduler = sched,
+    scheduler = playersched,
     getspeed_mps = function () return state.speed_mps end
   }
   alerter:start()
@@ -73,12 +82,12 @@ Initialise = RailWorks.wraperrors(function ()
   power = Power:new{available={Power.types.overhead}}
 
   frontpantoanim = Animation:new{
-    scheduler = sched,
+    scheduler = anysched,
     animation = "frontPanto",
     duration_s = 2
   }
   rearpantoanim = Animation:new{
-    scheduler = sched,
+    scheduler = anysched,
     animation = "rearPanto",
     duration_s = 2
   }
@@ -86,13 +95,13 @@ Initialise = RailWorks.wraperrors(function ()
   tracteffort = Average:new{nsamples=30}
 
   csflasher = Flash:new{
-    scheduler = sched,
+    scheduler = playersched,
     off_on=Atc.cabspeedflash_s,
     on_s=Atc.cabspeedflash_s
   }
 
   spark = PantoSpark:new{
-    scheduler = sched
+    scheduler = anysched
   }
 
   RailWorks.BeginUpdate()
@@ -115,34 +124,6 @@ local function readcontrols ()
     RailWorks.GetControlValue("CruiseControlSpeed", 0)*Units.mph.tomps
   state.cruiseenabled =
     RailWorks.GetControlValue("CruiseControl", 0) == 1
-end
-
-local function readpantographs ()
-  local pantoup = RailWorks.GetControlValue("PantographControl", 0) == 1
-  local pantosel = RailWorks.GetControlValue("SelPanto", 0)
-  frontpantoanim:setanimatedstate(pantoup and pantosel < 1.5)
-  rearpantoanim:setanimatedstate(pantoup and pantosel > 0.5)
-
-  local frontpantoup = frontpantoanim:getposition() == 1
-  local rearpantoup = rearpantoanim:getposition() == 1
-  if frontpantoup or rearpantoup then
-    state.powertypes = {Power.types.overhead}
-  else
-    state.powertypes = {}
-  end
-
-  do
-    spark:setsparkstate(frontpantoup or rearpantoup)
-    local isspark = spark:isspark()
-
-    RailWorks.ActivateNode("Front_spark01", frontpantoup and isspark)
-    RailWorks.ActivateNode("Front_spark02", frontpantoup and isspark)
-    Call("Spark:Activate", RailWorks.frombool(frontpantoup and isspark))
-
-    RailWorks.ActivateNode("Rear_spark01", rearpantoup and isspark)
-    RailWorks.ActivateNode("Rear_spark02", rearpantoup and isspark)
-    Call("Spark2:Activate", RailWorks.frombool(rearpantoup and isspark))
-  end
 end
 
 local function readlocostate ()
@@ -199,6 +180,52 @@ local function writelocostate ()
   RailWorks.SetControlValue(
     "AWSClearCount", 0,
     state.awsclearcount)
+end
+
+local function setplayerpantos ()
+  local pantoup = RailWorks.GetControlValue("PantographControl", 0) == 1
+  local pantosel = RailWorks.GetControlValue("SelPanto", 0)
+
+  local frontup = pantoup and pantosel < 1.5
+  local rearup = pantoup and pantosel > 0.5
+  frontpantoanim:setanimatedstate(frontup)
+  rearpantoanim:setanimatedstate(rearup)
+  RailWorks.SendConsistMessage(messageids.raisefrontpanto, frontup, 0)
+  RailWorks.SendConsistMessage(messageids.raisefrontpanto, frontup, 1)
+  RailWorks.SendConsistMessage(messageids.raiserearpanto, rearup, 0)
+  RailWorks.SendConsistMessage(messageids.raiserearpanto, rearup, 1)
+
+  local frontcontact = frontpantoanim:getposition() == 1
+  local rearcontact = rearpantoanim:getposition() == 1
+  if frontcontact or rearcontact then
+    state.powertypes = {Power.types.overhead}
+  else
+    state.powertypes = {}
+  end
+end
+
+local function setaipantos ()
+  if state.raisefrontpantomsg ~= nil then
+    frontpantoanim:setanimatedstate(state.raisefrontpantomsg)
+  end
+  if state.raiserearpantomsg ~= nil then
+    rearpantoanim:setanimatedstate(state.raiserearpantomsg)
+  end
+end
+
+local function setpantosparks ()
+  local frontcontact = frontpantoanim:getposition() == 1
+  local rearcontact = rearpantoanim:getposition() == 1
+  spark:setsparkstate(frontcontact or rearcontact)
+  local isspark = spark:isspark()
+
+  RailWorks.ActivateNode("Front_spark01", frontcontact and isspark)
+  RailWorks.ActivateNode("Front_spark02", frontcontact and isspark)
+  Call("Spark:Activate", RailWorks.frombool(frontcontact and isspark))
+
+  RailWorks.ActivateNode("Rear_spark01", rearcontact and isspark)
+  RailWorks.ActivateNode("Rear_spark02", rearcontact and isspark)
+  Call("Spark2:Activate", RailWorks.frombool(rearcontact and isspark))
 end
 
 local function setstatusscreen ()
@@ -305,21 +332,18 @@ local function setadu ()
   end
 end
 
-Update = RailWorks.wraperrors(function (_)
-  if not RailWorks.GetIsEngineWithKey() then
-    RailWorks.EndUpdate()
-    return
-  end
-
+local function updateplayer ()
   readcontrols()
-  readpantographs()
   readlocostate()
 
-  sched:update()
+  playersched:update()
+  anysched:update()
   frontpantoanim:update()
   rearpantoanim:update()
 
   writelocostate()
+  setplayerpantos()
+  setpantosparks()
   setstatusscreen()
   setdrivescreen()
   setcutin()
@@ -330,6 +354,23 @@ Update = RailWorks.wraperrors(function (_)
   if state.acknowledge then
     RailWorks.SetControlValue("AWSReset", 0, 0)
   end
+end
+
+local function updateai ()
+  anysched:update()
+  frontpantoanim:update()
+  rearpantoanim:update()
+
+  setaipantos()
+  setpantosparks()
+end
+
+Update = RailWorks.wraperrors(function (_)
+  if RailWorks.GetIsEngineWithKey() then
+    updateplayer()
+  else
+    updateai()
+  end
 end)
 
 OnControlValueChange = RailWorks.SetControlValue
@@ -337,4 +378,13 @@ OnControlValueChange = RailWorks.SetControlValue
 OnCustomSignalMessage = RailWorks.wraperrors(function (message)
   power:receivemessage(message)
   atc:receivemessage(message)
+end)
+
+OnConsistMessage = RailWorks.wraperrors(function (message, argument, direction)
+  -- Cross the pantograph states. We assume the slave engine is flipped.
+  if message == messageids.raisefrontpanto then
+    state.raiserearpantomsg = argument == "true"
+  elseif message == messageids.raiserearpanto then
+    state.raisefrontpantomsg = argument == "true"
+  end
 end)
