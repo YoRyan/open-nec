@@ -16,11 +16,18 @@
     </AvailableItemName>
   </ItemGroup>
   <ItemGroup>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Serz.xml" />
+    <AvailableItemName Include="SerzFile">
+      <Targets>Serz</Targets>
+    </AvailableItemName>
+  </ItemGroup>
+  <ItemGroup>
     <LuaBinary Include="Mod\**\*.lua" />
     <EmptyLuaBinary Include="Mod\**\*.emptylua" />
     <LuaLibrary Include="Lib\**\*.lua" />
+    <SerzFile Include="Mod\**\*.xml" />
   </ItemGroup>
-  <Target Name="Build" DependsOnTargets="Lua;EmptyLua" />
+  <Target Name="Build" DependsOnTargets="Lua;EmptyLua;Serz" />
   <Target Name="Lua" Inputs="@(LuaLibrary);%(LuaBinary.Identity)" Outputs="$(OutputPath)\%(LuaBinary.RelativeDir)%(LuaBinary.Filename).out">
     <MakeDir Directories="$(OutputPath)\%(LuaBinary.RelativeDir)" Condition="!Exists('$(OutputPath)\%(LuaBinary.RelativeDir)')" />
     <Exec Command="luacheck.exe --allow-defined-top --no-unused-args @(LuaLibrary->'&quot;%(Identity)&quot;', ' ') &quot;%(LuaBinary.Identity)&quot; --read-globals=Call SysCall" IgnoreExitCode="true" />
@@ -29,5 +36,9 @@
   <Target Name="EmptyLua" Inputs="%(EmptyLuaBinary.Identity)" Outputs="$(OutputPath)\%(EmptyLuaBinary.RelativeDir)%(EmptyLuaBinary.Filename).out">
     <MakeDir Directories="$(OutputPath)\%(EmptyLuaBinary.RelativeDir)" Condition="!Exists('$(OutputPath)\%(EmptyLuaBinary.RelativeDir)')" />
     <Exec Command="copy NUL &quot;$(OutputPath)\%(EmptyLuaBinary.RelativeDir)%(EmptyLuaBinary.Filename).out&quot;" />
+  </Target>
+  <Target Name="Serz" Inputs="%(SerzFile.Identity)" Outputs="$(OutputPath)\%(SerzFile.RelativeDir)%(SerzFile.Filename).bin">
+    <MakeDir Directories="$(OutputPath)\%(SerzFile.RelativeDir)" Condition="!Exists('$(OutputPath)\%(SerzFile.RelativeDir)')" />
+    <Exec Command="serz.exe &quot;%(SerzFile.Identity)&quot; /xml:&quot;$(OutputPath)\%(SerzFile.RelativeDir)%(SerzFile.Filename).bin&quot;" />
   </Target>
 </Project>
