@@ -35,7 +35,7 @@ function P.GetAcceleration ()
 end
 
 function P.SendConsistMessage (message, argument, direction)
-  return Call("SendConsistMessage", message, argument, direction) == 1
+  return Call("SendConsistMessage", message, tostring(argument), direction) == 1
 end
 
 function P.GetNextRestrictiveSignal (...)
