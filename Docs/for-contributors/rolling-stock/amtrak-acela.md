@@ -255,6 +255,10 @@ The track speed digit to display in the tens place.
 
 The track speed digit to display in the ones place.
 
+#### MaximumSpeedLimitIndicator
+
+Turns on one of the red squares next to the signal and track speed limit displays. -1 = both off, 0 = signal speed square on, 1 = track speed square on.
+
 #### Wipers
 
 The wipers switch.

@@ -1,15 +1,15 @@
 -- Engine script for the Acela Express operated by Amtrak.
 
 local playersched, anysched
-local atc
-local acses
+local atcwarning, atc
+local acseswarning, acses
 local cruise
 local alerter
 local power
 local frontpantoanim, rearpantoanim
 local coneanim
 local tracteffort
-local csflasher
+local csflasher, squareflasher
 local spark
 local state = {
   throttle = 0,
@@ -49,8 +49,9 @@ local messageid = {
   tiltisolate = 1209,
   destination = 1210
 }
+local squareflash_s = 0.5
 
-local function doalert ()
+local function playawsclear ()
   state.awsclearcount = math.mod(state.awsclearcount + 1, 2)
 end
 
@@ -58,15 +59,26 @@ Initialise = RailWorks.wraperrors(function ()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
 
+  atcwarning = Tone:new{
+    scheduler = playersched,
+    time_s = squareflash_s
+  }
   atc = Atc:new{
     scheduler = playersched,
     getspeed_mps = function () return state.speed_mps end,
     getacceleration_mps2 = function () return state.acceleration_mps2 end,
     getacknowledge = function () return state.acknowledge end,
-    doalert = doalert
+    doalert = function ()
+      atcwarning:trigger()
+      playawsclear()
+    end
   }
   atc:start()
 
+  acseswarning = Tone:new{
+    scheduler = playersched,
+    time_s = squareflash_s
+  }
   acses = Acses:new{
     scheduler = playersched,
     atc = atc,
@@ -75,7 +87,10 @@ Initialise = RailWorks.wraperrors(function ()
     iterspeedlimits = function () return pairs(state.speedlimits) end,
     iterrestrictsignals = function () return pairs(state.restrictsignals) end,
     getacknowledge = function () return state.acknowledge end,
-    doalert = doalert
+    doalert = function ()
+      acseswarning:trigger()
+      playawsclear()
+    end
   }
   acses:start()
 
@@ -117,6 +132,11 @@ Initialise = RailWorks.wraperrors(function ()
     scheduler = playersched,
     off_on=Atc.cabspeedflash_s,
     on_s=Atc.cabspeedflash_s
+  }
+  squareflasher = Flash:new{
+    scheduler = playersched,
+    off_on=squareflash_s,
+    on_on=squareflash_s
   }
 
   spark = PantoSpark:new{
@@ -426,6 +446,21 @@ local function setadu ()
     RailWorks.SetControlValue("TSTens", 0, getdigit(acsesspeed_mph, 1))
     RailWorks.SetControlValue("TSUnits", 0, getdigit(acsesspeed_mph, 0))
   end
+  do
+    local atcalarm = atc:isalarm()
+    local acsesalarm = acses:isalarm()
+    squareflasher:setflashstate(atcalarm or acsesalarm)
+    local flash = squareflasher:ison()
+
+    local square
+    if atcalarm and flash then square = 0
+    elseif acsesalarm and flash then square = 1
+    elseif atcwarning:isplaying() then square = 0
+    elseif acseswarning:isplaying() then square = 1
+    else square = -1 end
+    RailWorks.SetControlValue("MaximumSpeedLimitIndicator", 0, square)
+  end
+end
 end
 
 local function updateplayer ()
