@@ -62,6 +62,8 @@ Initialise = RailWorks.wraperrors(function ()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
 
+  local squareflash_s = 0.5
+
   atcwarning = Tone:new{
     scheduler = playersched,
     time_s = squareflash_s
@@ -137,7 +139,6 @@ Initialise = RailWorks.wraperrors(function ()
     on_s = Atc.cabspeedflash_s
   }
 
-  local squareflash_s = 0.5
   squareflasher = Flash:new{
     scheduler = playersched,
     off_s = squareflash_s,
