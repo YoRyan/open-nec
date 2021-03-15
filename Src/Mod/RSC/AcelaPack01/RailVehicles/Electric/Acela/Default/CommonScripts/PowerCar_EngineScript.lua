@@ -9,7 +9,9 @@ local power
 local frontpantoanim, rearpantoanim
 local coneanim
 local tracteffort
-local csflasher, squareflasher
+local csflasher
+local squareflasher
+local groundflasher
 local spark
 local state = {
   throttle = 0,
@@ -19,6 +21,8 @@ local state = {
   cruiseenabled = false,
   startup = true,
   destinationjoy = 0,
+  headlights = 0,
+  groundlights = 0,
 
   speed_mps = 0,
   acceleration_mps2 = 0,
@@ -49,7 +53,6 @@ local messageid = {
   tiltisolate = 1209,
   destination = 1210
 }
-local squareflash_s = 0.5
 
 local function playawsclear ()
   state.awsclearcount = math.mod(state.awsclearcount + 1, 2)
@@ -130,13 +133,22 @@ Initialise = RailWorks.wraperrors(function ()
 
   csflasher = Flash:new{
     scheduler = playersched,
-    off_on=Atc.cabspeedflash_s,
-    on_s=Atc.cabspeedflash_s
+    off_on = Atc.cabspeedflash_s,
+    on_s = Atc.cabspeedflash_s
   }
+
+  local squareflash_s = 0.5
   squareflasher = Flash:new{
     scheduler = playersched,
-    off_on=squareflash_s,
-    on_on=squareflash_s
+    off_s = squareflash_s,
+    on_s = squareflash_s
+  }
+
+  local groundflash_s = 1
+  groundflasher = Flash:new{
+    scheduler = playersched,
+    off_s = groundflash_s,
+    on_s = groundflash_s
   }
 
   spark = PantoSpark:new{
@@ -179,6 +191,10 @@ local function readcontrols ()
     RailWorks.GetControlValue("CruiseControl", 0) == 1
   state.destinationjoy =
     RailWorks.GetControlValue("DestJoy", 0)
+  state.headlights =
+    RailWorks.GetControlValue("Headlights", 0)
+  state.groundlights =
+    RailWorks.GetControlValue("GroundLights", 0)
 end
 
 local function readlocostate ()
@@ -363,6 +379,21 @@ local function setstatusscreen ()
     end
     RailWorks.SetControlValue("PantoIndicator", 0, indicator)
   end
+  do
+    local indicator
+    if state.headlights == 1 then
+      if state.groundlights == 1 then
+        indicator = 1
+      elseif state.groundlights == 2 then
+        indicator = 2
+      else
+        indicator = 0
+      end
+    else
+      indicator = -1
+    end
+    RailWorks.SetControlValue("LightsIndicator", 0, indicator)
+  end
   tracteffort:sample(RailWorks.GetTractiveEffort()*300)
   RailWorks.SetControlValue("Effort", 0, tracteffort:get())
 end
@@ -461,6 +492,22 @@ local function setadu ()
     RailWorks.SetControlValue("MaximumSpeedLimitIndicator", 0, square)
   end
 end
+
+local function setcablight ()
+  local on = RailWorks.GetControlValue("CabLight", 0)
+  Call("CabLight:Activate", on)
+  Call("CabLight:Activate", on)
+end
+
+local function setgroundlights ()
+  local fixed = state.headlights == 1 and state.groundlights == 1
+  local flash = state.headlights == 1 and state.groundlights == 2
+  groundflasher:setflashstate(flash)
+  local flashleft = groundflasher:ison()
+  Call("DitchLightLeft:Activate",
+    RailWorks.frombool(fixed or (flash and flashleft)))
+  Call("DitchLightRight:Activate",
+    RailWorks.frombool(fixed or (flash and not flashleft)))
 end
 
 local function updateplayer ()
@@ -483,6 +530,8 @@ local function updateplayer ()
   setdrivescreen()
   setcutin()
   setadu()
+  setcablight()
+  setgroundlights()
 
   -- Prevent the acknowledge button from sticking if the button on the HUD is
   -- clicked.
