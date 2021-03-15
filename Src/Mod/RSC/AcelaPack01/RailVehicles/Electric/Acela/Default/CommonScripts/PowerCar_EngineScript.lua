@@ -208,6 +208,20 @@ local function writelocostate ()
     else v = state.train_brake end
     RailWorks.SetControlValue("TrainBrakeControl", 0, v)
   end
+  do
+    -- DTG's "blended braking" algorithm
+    local mineffectivespeed_mps = 10*Units.mph.tomps
+    local proportion = 0.3
+    local v
+    if penalty then
+      v = proportion
+    elseif state.speed_mps >= mineffectivespeed_mps then
+      v = state.train_brake*proportion
+    else
+      v = 0
+    end
+    RailWorks.SetControlValue("DynamicBrake", 0, v)
+  end
 
   RailWorks.SetControlValue(
     "AWSWarnCount", 0,
