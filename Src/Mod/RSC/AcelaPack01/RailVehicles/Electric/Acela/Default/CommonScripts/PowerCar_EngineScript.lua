@@ -376,6 +376,8 @@ local function setaidest ()
 end
 
 local function setstatusscreen ()
+  RailWorks.SetControlValue(
+    "ControlScreenIzq", 0, RailWorks.frombool(not haspower()))
   do
     local frontpantoup = frontpantoanim:getposition() == 1
     local rearpantoup = rearpantoanim:getposition() == 1
@@ -411,6 +413,8 @@ local function setstatusscreen ()
 end
 
 local function setdrivescreen ()
+  RailWorks.SetControlValue(
+    "ControlScreenDer", 0, RailWorks.frombool(not haspower()))
   do
     local speed_mph = math.floor(state.speed_mps*Units.mps.tomph + 0.5)
     RailWorks.SetControlValue("SPHundreds", 0, getdigit(speed_mph, 2))
