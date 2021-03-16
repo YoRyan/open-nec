@@ -437,10 +437,10 @@ local function setadu ()
   do
     local signalspeed_mph =
       math.floor(Atc.amtrakpulsecodespeed_mps(pulsecode)*Units.mps.tomph + 0.5)
-    -- TODO: Handle 100, 125, and 150 mph correctly.
-    -- Can't set the signal speed continuously, or else the digits flash
-    -- randomly for some reason.
-    if RailWorks.GetControlValue("SignalSpeed", 0) ~= signalspeed_mph then
+    -- If we set the digits too early, they flicker (or turn invisible) for the
+    -- rest of the game.
+    if not playersched:isstartup() then
+      -- TODO: Handle 100, 125, and 150 mph correctly.
       RailWorks.SetControlValue("SignalSpeed", 0, signalspeed_mph)
     end
   end
