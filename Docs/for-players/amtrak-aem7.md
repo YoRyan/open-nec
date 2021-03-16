@@ -2,6 +2,8 @@
 
 The AEM-7 is a high-speed electric locomotive included with the Northeast Corridor: New York - Philadelphia DLC. It has a top speed of 125 mph and as of 2016, its last year in service, is equipped with cab signaling, ATC, and ACSES.
 
+### Mod compatibility
+
 The Open NEC mod for the AEM-7 is fully compatible and tested with Fan Railer's AEM-7 physics and sound mod.
 
 ### Bugs fixed
