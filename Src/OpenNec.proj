@@ -28,13 +28,20 @@
     </AvailableItemName>
   </ItemGroup>
   <ItemGroup>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Sound.xml" />
+    <AvailableItemName Include="SoundFile">
+      <Targets>Sound</Targets>
+    </AvailableItemName>
+  </ItemGroup>
+  <ItemGroup>
     <LuaBinary Include="Mod\**\*.lua" />
     <EmptyLuaBinary Include="Mod\**\*.emptylua" />
     <LuaLibrary Include="Lib\**\*.lua" />
     <SerzFile Include="Mod\**\*.xml" />
     <SerzTextureFile Include="Mod\**\*.TgPcDx" />
+    <SoundFile Include="Mod\**\*.wav" />
   </ItemGroup>
-  <Target Name="Build" DependsOnTargets="Lua;EmptyLua;Serz;SerzTexture" />
+  <Target Name="Build" DependsOnTargets="Lua;EmptyLua;Serz;SerzTexture;Sound" />
   <Target Name="Lua" Inputs="@(LuaLibrary);%(LuaBinary.Identity)" Outputs="$(OutputPath)\%(LuaBinary.RelativeDir)%(LuaBinary.Filename).out">
     <MakeDir Directories="$(OutputPath)\%(LuaBinary.RelativeDir)" Condition="!Exists('$(OutputPath)\%(LuaBinary.RelativeDir)')" />
     <Exec Command="luacheck.exe --allow-defined-top --no-unused-args @(LuaLibrary->'&quot;%(Identity)&quot;', ' ') &quot;%(LuaBinary.Identity)&quot; --read-globals=Call SysCall" IgnoreExitCode="true" />
@@ -50,5 +57,9 @@
   </Target>
   <Target Name="SerzTexture" Inputs="%(SerzTextureFile.Identity)" Outputs="$(OutputPath)\%(SerzTextureFile.Identity)">
     <Copy SourceFiles="%(SerzTextureFile.Identity)" DestinationFiles="$(OutputPath)\%(SerzTextureFile.Identity)" />
+  </Target>
+  <Target Name="Sound" Inputs="%(SoundFile.Identity)" Outputs="$(OutputPath)\%(SoundFile.RelativeDir)%(SoundFile.Filename).dav">
+    <MakeDir Directories="$(OutputPath)\%(SoundFile.RelativeDir)" Condition="!Exists('$(OutputPath)\%(SoundFile.RelativeDir)')" />
+    <Exec Command="ConvertToDav.exe -i &quot;%(SoundFile.Identity)&quot; -o &quot;$(OutputPath)\%(SoundFile.RelativeDir)%(SoundFile.Filename).dav&quot;" />
   </Target>
 </Project>
