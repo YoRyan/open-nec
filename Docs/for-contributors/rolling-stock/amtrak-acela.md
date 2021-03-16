@@ -42,13 +42,13 @@ The default setting is 0.
 
 #### ScreenDer
 
-Controls power to the righthand speedometer display.
+The off/on switch for the righthand speedometer display.
 
 The default setting is 1.
 
-#### ScrenIzq
+#### ScreenIzq
 
-Controls power to the lefthand train status display.
+The off/on switch for the lefthand train status display.
 
 The default setting is 1.
 
@@ -80,7 +80,7 @@ The player's Expert Mode reverser control. 1 = forward, 0 = neutral, -1 = revers
 
 #### CruiseControlSpeed
 
-The setting of the cruise control joystick. Ranges from 0 to 160 mph.
+The setting of the cruise control lever. Ranges from 0 to 160 mph.
 
 #### VirtualThrottle
 
@@ -110,7 +110,7 @@ The true train brake control used by the physics model. Ranges from 0 to 1.
 
 #### AWSReset
 
-The acknowledgement joystick. On the Acela, this is *not* mapped to Q.
+The acknowledgement plunger. On the Acela, this is *not* mapped to Q.
 
 #### Startup
 
@@ -176,15 +176,15 @@ Number of digits to offset the speedometer number to center it on screen. 0 = no
 
 #### SPHundreds
 
-The speedometer digit to display in the hundreds position.
+The speedometer digit to display in the hundreds position. -1 to hide the digit.
 
 #### SPTens
 
-The speedometer digit to display in the tens position.
+The speedometer digit to display in the tens position. -1 to hide the digit.
 
 #### SPUnits
 
-The speedometer digit to display in the ones position.
+The speedometer digit to display in the ones position. -1 to hide the digit.
 
 #### PowerState
 
@@ -207,7 +207,7 @@ All other values blank the box.
 
 #### Horn
 
-The horn joystick.
+The horn plunger.
 
 #### SigN
 
@@ -245,15 +245,15 @@ All other values will blank the display.
 
 #### TSHundreds
 
-The track speed digit to display in the hundreds place.
+The track speed digit to display in the hundreds place. -1 to hide the digit.
 
 #### TSTens
 
-The track speed digit to display in the tens place.
+The track speed digit to display in the tens place. -1 to hide the digit.
 
 #### TSUnits
 
-The track speed digit to display in the ones place.
+The track speed digit to display in the ones place. -1 to hide the digit.
 
 #### MaximumSpeedLimitIndicator
 
@@ -287,11 +287,15 @@ The destination display setting joystick. -1 = left, 0 = centered, 1 = right.
 
 #### AWSWarnCount
 
-Plays a British AWS warning horn when set to 1.
+Plays a British AWS warning horn and illuminates the exclamation mark on the HUD when set to 1.
 
 #### AWSClearCount
 
 Plays a British AWS informational tone when its value is changed.
+
+#### SpeedIncreaseAlert
+
+Plays a short electronic beep when set to 1.
 
 ### Keyboard shortcuts
 
