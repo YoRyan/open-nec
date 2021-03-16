@@ -22,12 +22,19 @@
     </AvailableItemName>
   </ItemGroup>
   <ItemGroup>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Texture.xml" />
+    <AvailableItemName Include="SerzTextureFile">
+      <Targets>SerzTexture</Targets>
+    </AvailableItemName>
+  </ItemGroup>
+  <ItemGroup>
     <LuaBinary Include="Mod\**\*.lua" />
     <EmptyLuaBinary Include="Mod\**\*.emptylua" />
     <LuaLibrary Include="Lib\**\*.lua" />
     <SerzFile Include="Mod\**\*.xml" />
+    <SerzTextureFile Include="Mod\**\*.TgPcDx" />
   </ItemGroup>
-  <Target Name="Build" DependsOnTargets="Lua;EmptyLua;Serz" />
+  <Target Name="Build" DependsOnTargets="Lua;EmptyLua;Serz;SerzTexture" />
   <Target Name="Lua" Inputs="@(LuaLibrary);%(LuaBinary.Identity)" Outputs="$(OutputPath)\%(LuaBinary.RelativeDir)%(LuaBinary.Filename).out">
     <MakeDir Directories="$(OutputPath)\%(LuaBinary.RelativeDir)" Condition="!Exists('$(OutputPath)\%(LuaBinary.RelativeDir)')" />
     <Exec Command="luacheck.exe --allow-defined-top --no-unused-args @(LuaLibrary->'&quot;%(Identity)&quot;', ' ') &quot;%(LuaBinary.Identity)&quot; --read-globals=Call SysCall" IgnoreExitCode="true" />
@@ -40,5 +47,8 @@
   <Target Name="Serz" Inputs="%(SerzFile.Identity)" Outputs="$(OutputPath)\%(SerzFile.RelativeDir)%(SerzFile.Filename).bin">
     <MakeDir Directories="$(OutputPath)\%(SerzFile.RelativeDir)" Condition="!Exists('$(OutputPath)\%(SerzFile.RelativeDir)')" />
     <Exec Command="serz.exe &quot;%(SerzFile.Identity)&quot; /xml:&quot;$(OutputPath)\%(SerzFile.RelativeDir)%(SerzFile.Filename).bin&quot;" />
+  </Target>
+  <Target Name="SerzTexture" Inputs="%(SerzTextureFile.Identity)" Outputs="$(OutputPath)\%(SerzTextureFile.Identity)">
+    <Copy SourceFiles="%(SerzTextureFile.Identity)" DestinationFiles="$(OutputPath)\%(SerzTextureFile.Identity)" />
   </Target>
 </Project>

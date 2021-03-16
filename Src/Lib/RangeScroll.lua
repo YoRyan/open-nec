@@ -9,7 +9,7 @@ local function scrollprevious (self, start_s)
   local event
   repeat
     self._selected = math.max(self._selected - 1, 1)
-    event = self._sched:select(1,
+    event = self._sched:select(self._move_s,
       function () return self._getdirection() ~= P.direction.previous end)
   until event == 1
 end
@@ -18,7 +18,7 @@ local function scrollnext (self, start_s)
   local event
   repeat
     self._selected = math.min(self._selected + 1, self._limit)
-    event = self._sched:select(1,
+    event = self._sched:select(self._move_s,
       function () return self._getdirection() ~= P.direction.next end)
   until event == 1
 end
@@ -43,6 +43,7 @@ function P:new (conf)
     _sched = conf.scheduler,
     _getdirection = conf.getdirection or function () return P.direction.neutral end,
     _limit = conf.limit or 1,
+    _move_s = conf.move_s or 1,
     _selected = conf.selected or 1
   }
   setmetatable(o, self)

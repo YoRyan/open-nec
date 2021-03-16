@@ -38,11 +38,23 @@ local state = {
 
 local destscroller
 local destinations = {{"No service", 1},
+                      {"Union Station", 3},
+                      {"BWI Airport", 4},
+                      {"Baltimore Penn", 5},
+                      {"Wilmington", 6},
                       {"Philadelphia", 2},
                       {"Trenton", 11},
                       {"Metropark", 18},
                       {"Newark Penn", 24},
-                      {"NYC Penn", 27}}
+                      {"New York", 27},
+                      {"New Rochelle", 7},
+                      {"Stamford", 8},
+                      {"New Haven", 9},
+                      {"New London", 10},
+                      {"Providence", 12},
+                      {"Route 128", 13},
+                      {"Back Bay", 14},
+                      {"South Station", 15}}
 
 local messageid = {
   -- ID's must be reused from the DTG engine script so coaches will pass them down.
@@ -167,7 +179,8 @@ Initialise = RailWorks.wraperrors(function ()
         return RangeScroll.direction.neutral
       end
     end,
-    limit = table.getn(destinations)
+    limit = table.getn(destinations),
+    move_s = 0.5
   }
 
   RailWorks.BeginUpdate()
@@ -343,7 +356,7 @@ do
     local selected = destscroller:getselected()
     local destination, id = unpack(destinations[selected])
     if lastselected ~= selected then
-      RailWorks.showalert(string.upper(destination))
+      RailWorks.showalert(destination)
       lastselected = selected
     end
 
