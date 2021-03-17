@@ -28,9 +28,9 @@
     </AvailableItemName>
   </ItemGroup>
   <ItemGroup>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Sound.xml" />
-    <AvailableItemName Include="SoundFile">
-      <Targets>Sound</Targets>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)SoundWav.xml" />
+    <AvailableItemName Include="SoundWav">
+      <Targets>SoundWav</Targets>
     </AvailableItemName>
   </ItemGroup>
   <ItemGroup>
@@ -41,7 +41,7 @@
     <TexturePng Include="Mod\**\*.png" />
     <SoundFile Include="Mod\**\*.wav" />
   </ItemGroup>
-  <Target Name="Build" DependsOnTargets="LuaBinary;LuaEmpty;SerzXml;TexturePng;Sound" />
+  <Target Name="Build" DependsOnTargets="LuaBinary;LuaEmpty;SerzXml;TexturePng;SoundWav" />
   <Target Name="LuaBinary" Inputs="@(LuaLibrary);%(LuaBinary.Identity)" Outputs="$(OutputPath)\%(LuaBinary.RelativeDir)%(LuaBinary.Filename).out">
     <MakeDir Directories="$(OutputPath)\%(LuaBinary.RelativeDir)" Condition="!Exists('$(OutputPath)\%(LuaBinary.RelativeDir)')" />
     <Exec Command="luacheck.exe --allow-defined-top --no-unused-args @(LuaLibrary->'&quot;%(Identity)&quot;', ' ') &quot;%(LuaBinary.Identity)&quot; --read-globals=Call SysCall" IgnoreExitCode="true" />
@@ -64,8 +64,8 @@
     <Exec Command="ConvertToTg.exe -forcecompress -i &quot;$(AbsoluteOutputPath)\%(TexturePng.RelativeDir)%(TexturePng.Filename).dds&quot; -o &quot;$(AbsoluteOutputPath)\%(TexturePng.RelativeDir)%(TexturePng.Filename).TgPcDx&quot;" />
     <Delete Files="$(OutputPath)\%(TexturePng.RelativeDir)%(TexturePng.Filename).dds" />
   </Target>
-  <Target Name="Sound" Inputs="%(SoundFile.Identity)" Outputs="$(OutputPath)\%(SoundFile.RelativeDir)%(SoundFile.Filename).dav">
-    <MakeDir Directories="$(OutputPath)\%(SoundFile.RelativeDir)" Condition="!Exists('$(OutputPath)\%(SoundFile.RelativeDir)')" />
-    <Exec Command="ConvertToDav.exe -i &quot;%(SoundFile.Identity)&quot; -o &quot;$(OutputPath)\%(SoundFile.RelativeDir)%(SoundFile.Filename).dav&quot;" />
+  <Target Name="SoundWav" Inputs="%(SoundWav.Identity)" Outputs="$(OutputPath)\%(SoundWav.RelativeDir)%(SoundWav.Filename).dav">
+    <MakeDir Directories="$(OutputPath)\%(SoundWav.RelativeDir)" Condition="!Exists('$(OutputPath)\%(SoundWav.RelativeDir)')" />
+    <Exec Command="ConvertToDav.exe -i &quot;%(SoundWav.Identity)&quot; -o &quot;$(OutputPath)\%(SoundWav.RelativeDir)%(SoundWav.Filename).dav&quot;" />
   </Target>
 </Project>
