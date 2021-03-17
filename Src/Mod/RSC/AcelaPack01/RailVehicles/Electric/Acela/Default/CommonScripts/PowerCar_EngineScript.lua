@@ -30,7 +30,6 @@ local state = {
   speedlimits = {},
   restrictsignals = {},
 
-  powertypes = {},
   awsclearcount = 0,
   raisefrontpantomsg = nil,
   raiserearpantomsg = nil
@@ -225,7 +224,7 @@ local function readlocostate ()
 end
 
 local function haspower ()
-  return power:haspower(unpack(state.powertypes)) and state.startup
+  return power:haspower() and state.startup
 end
 
 local function getdigit (v, place)
@@ -297,9 +296,9 @@ local function setplayerpantos ()
   local frontcontact = frontpantoanim:getposition() == 1
   local rearcontact = rearpantoanim:getposition() == 1
   if frontcontact or rearcontact then
-    state.powertypes = {Power.types.overhead}
+    power:setcollectors(Power.types.overhead)
   else
-    state.powertypes = {}
+    power:setcollectors()
   end
 end
 

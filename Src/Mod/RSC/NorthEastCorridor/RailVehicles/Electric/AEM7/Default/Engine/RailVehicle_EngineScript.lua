@@ -19,9 +19,7 @@ local state = {
   acceleration_mps2=0,
   trackspeed_mps=0,
   speedlimits={},
-  restrictsignals={},
-
-  powertypes={}
+  restrictsignals={}
 }
 local onebeep_s = 0.3
 
@@ -104,9 +102,9 @@ local function readlocostate ()
   state.restrictsignals =
     Iterator.totable(RailWorks.iterrestrictsignals(Acses.nsignallookahead))
   if RailWorks.GetControlValue("PantographControl", 0) == 1 then
-    state.powertypes = {Power.types.overhead}
+    power:setcollectors(Power.types.overhead)
   else
-    state.powertypes = {}
+    power:setcollectors()
   end
 end
 
@@ -114,7 +112,7 @@ local function writelocostate ()
   local penalty = atc:ispenalty() or acses:ispenalty() or alerter:ispenalty()
   do
     local v
-    if not power:haspower(unpack(state.powertypes)) then
+    if not power:haspower() then
       v = 0
     elseif penalty then
       v = 0

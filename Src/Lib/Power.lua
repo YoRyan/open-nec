@@ -22,7 +22,8 @@ end
 -- From the main coroutine, create a new Power context.
 function P:new (conf)
   local o = {
-    _available = {}
+    _available = {},
+    _collectors = {}
   }
   -- There's no way to detect the currently available power supplies, so we have
   -- to trust the player or scenario designer to select the right one(s) for the
@@ -35,11 +36,16 @@ function P:new (conf)
   return o
 end
 
--- Determine whether the locomotive is powered given the supplied set of
--- activated power supply collectors.
-function P:haspower (...)
+-- Set the current power supply collectors turned on on this locomotive.
+function P:setcollectors (...)
+  self._collectors = arg
+end
+
+-- Determine whether the locomotive is powered given the current set of power
+-- supply collectors.
+function P:haspower ()
   return Iterator.hasone(
-    function (_, type) return self._available[type] end, ipairs(arg))
+    function (_, type) return self._available[type] end, ipairs(self._collectors))
 end
 
 -- Receive a custom signal message that may or may not indicate a change point.
