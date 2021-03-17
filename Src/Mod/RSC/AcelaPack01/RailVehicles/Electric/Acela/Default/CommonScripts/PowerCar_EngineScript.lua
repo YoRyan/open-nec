@@ -602,4 +602,5 @@ OnConsistMessage = RailWorks.wraperrors(function (message, argument, direction)
   elseif message == messageid.raiserearpanto then
     state.raisefrontpantomsg = argument == "true"
   end
+  RailWorks.SendConsistMessage(message, argument, direction)
 end)
