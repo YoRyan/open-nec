@@ -562,6 +562,8 @@ local function updateai ()
   setaipantos()
   setaidest()
   setpantosparks()
+  setcablight()
+  setgroundlights()
 end
 
 local function updateslave ()
