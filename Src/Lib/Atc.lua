@@ -294,7 +294,7 @@ function P:receivemessage (message)
   end
   self._pulsecode = newcode
   if debugsignals then
-    self._sched:info(message)
+    self._sched:alert(message)
   end
 end
 
