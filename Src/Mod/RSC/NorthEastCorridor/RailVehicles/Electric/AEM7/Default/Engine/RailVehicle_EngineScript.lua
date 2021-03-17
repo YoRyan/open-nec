@@ -230,3 +230,5 @@ OnCustomSignalMessage = RailWorks.wraperrors(function (message)
   power:receivemessage(message)
   atc:receivemessage(message)
 end)
+
+OnConsistMessage = RailWorks.SendConsistMessage
