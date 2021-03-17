@@ -6,6 +6,3 @@
 /Release/
 /Mod.zip
 /site/
-
-# Luac binaries
-*.out
