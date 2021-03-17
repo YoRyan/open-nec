@@ -146,7 +146,7 @@ Initialise = RailWorks.wraperrors(function ()
 
   csflasher = Flash:new{
     scheduler = playersched,
-    off_on = Atc.cabspeedflash_s,
+    off_s = Atc.cabspeedflash_s,
     on_s = Atc.cabspeedflash_s
   }
 
