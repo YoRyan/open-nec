@@ -70,6 +70,10 @@ end
   Control Container
 ]]
 
+function P.ControlExists (name, index)
+  return Call("ControlExists", name, index) == 1
+end
+
 function P.GetControlValue (name, index)
   return Call("GetControlValue", name, index)
 end
