@@ -39,7 +39,7 @@
     <LuaLibrary Include="Lib\**\*.lua" />
     <SerzXml Include="Mod\**\*.xml" />
     <TexturePng Include="Mod\**\*.png" />
-    <SoundFile Include="Mod\**\*.wav" />
+    <SoundWav Include="Mod\**\*.wav" />
   </ItemGroup>
   <Target Name="Build" DependsOnTargets="LuaBinary;LuaEmpty;SerzXml;TexturePng;SoundWav" />
   <Target Name="LuaBinary" Inputs="@(LuaLibrary);%(LuaBinary.Identity)" Outputs="$(OutputPath)\%(LuaBinary.RelativeDir)%(LuaBinary.Filename).out">
