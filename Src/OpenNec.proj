@@ -28,6 +28,12 @@
     </AvailableItemName>
   </ItemGroup>
   <ItemGroup>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)TexturePng.xml" />
+    <AvailableItemName Include="TexturePng">
+      <Targets>TexturePng</Targets>
+    </AvailableItemName>
+  </ItemGroup>
+  <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Sound.xml" />
     <AvailableItemName Include="SoundFile">
       <Targets>Sound</Targets>
@@ -39,9 +45,10 @@
     <LuaLibrary Include="Lib\**\*.lua" />
     <SerzFile Include="Mod\**\*.xml" />
     <SerzTextureFile Include="Mod\**\*.TgPcDx" />
+    <TexturePng Include="Mod\**\*.png" />
     <SoundFile Include="Mod\**\*.wav" />
   </ItemGroup>
-  <Target Name="Build" DependsOnTargets="Lua;EmptyLua;Serz;SerzTexture;Sound" />
+  <Target Name="Build" DependsOnTargets="Lua;EmptyLua;Serz;TexturePng;SerzTexture;Sound" />
   <Target Name="Lua" Inputs="@(LuaLibrary);%(LuaBinary.Identity)" Outputs="$(OutputPath)\%(LuaBinary.RelativeDir)%(LuaBinary.Filename).out">
     <MakeDir Directories="$(OutputPath)\%(LuaBinary.RelativeDir)" Condition="!Exists('$(OutputPath)\%(LuaBinary.RelativeDir)')" />
     <Exec Command="luacheck.exe --allow-defined-top --no-unused-args @(LuaLibrary->'&quot;%(Identity)&quot;', ' ') &quot;%(LuaBinary.Identity)&quot; --read-globals=Call SysCall" IgnoreExitCode="true" />
@@ -57,6 +64,15 @@
   </Target>
   <Target Name="SerzTexture" Inputs="%(SerzTextureFile.Identity)" Outputs="$(OutputPath)\%(SerzTextureFile.Identity)">
     <Copy SourceFiles="%(SerzTextureFile.Identity)" DestinationFiles="$(OutputPath)\%(SerzTextureFile.Identity)" />
+  </Target>
+  <Target Name="TexturePng" Inputs="%(TexturePng.Identity)" Outputs="$(OutputPath)\%(TexturePng.RelativeDir)%(TexturePng.Filename).TgPcDx">
+    <PropertyGroup>
+      <AbsoluteOutputPath>$([System.IO.Path]::GetFullPath($(OutputPath)))</AbsoluteOutputPath>
+    </PropertyGroup>
+    <MakeDir Directories="$(OutputPath)\%(TexturePng.RelativeDir)" Condition="!Exists('$(OutputPath)\%(TexturePng.RelativeDir)')" />
+    <Exec Command="compressonatorcli.exe -miplevels 5 -fd ARGB_8888 &quot;%(TexturePng.Identity)&quot; &quot;$(OutputPath)\%(TexturePng.RelativeDir)%(TexturePng.Filename).dds&quot;" />
+    <Exec Command="ConvertToTg.exe -forcecompress -i &quot;$(AbsoluteOutputPath)\%(TexturePng.RelativeDir)%(TexturePng.Filename).dds&quot; -o &quot;$(AbsoluteOutputPath)\%(TexturePng.RelativeDir)%(TexturePng.Filename).TgPcDx&quot;" />
+    <Delete Files="$(OutputPath)\%(TexturePng.RelativeDir)%(TexturePng.Filename).dds" />
   </Target>
   <Target Name="Sound" Inputs="%(SoundFile.Identity)" Outputs="$(OutputPath)\%(SoundFile.RelativeDir)%(SoundFile.Filename).dav">
     <MakeDir Directories="$(OutputPath)\%(SoundFile.RelativeDir)" Condition="!Exists('$(OutputPath)\%(SoundFile.RelativeDir)')" />

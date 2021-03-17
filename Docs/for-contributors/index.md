@@ -21,8 +21,10 @@ To compile the mod, you will need the following tools in your `%PATH%`:
 - `MSBuild.exe`: Microsoft's take on the Makefile. This comes with any installation of Visual Studio. From VS, you can [open](https://docs.microsoft.com/en-us/dotnet/framework/tools/developer-command-prompt-for-vs) a developer console with this tool already included in `%PATH%`.
 - `luacheck.exe`: the [Luacheck](https://github.com/mpeterv/luacheck) linter. Its static analysis capabilities are much appreciated for an untyped language like Lua. Although it was designed for Lua 5.1+, it works well enough on 5.0—with the exception of variable length arguments, which it misinterprets as "unused variables." The static Windows executable will work just fine.
 - `luac50.exe`: the Lua 5.0 [compiler](https://sourceforge.net/projects/luabinaries/files/5.0.3/Tools%20Executables/). This is used to compile the actual bytecode for Train Simulator.
-- `serz.exe`: Train Simulator's .bin compiler. Included with the game.
-- `ConvertToDav.exe`: Train Simulator's .dav compiler. Included with the game.
+- `compressonatorcli.exe`: The CLI version of [AMD's Compressonator](https://gpuopen.com/compressonator/), a tool we use to generate DDS textures.
+- `serz.exe`: Train Simulator's .bin data packer. Included with the game.
+- `ConvertToDav.exe`: Train Simulator's .dav sound compiler. Included with the game.
+- `ConvertToTg.exe`: Train Simulator's .TgPcDx texture compiler. Included with the game.
 
 It also helps to have the following tools handy:
 
