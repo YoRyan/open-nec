@@ -1,8 +1,8 @@
 -- Engine script for the Acela Express operated by Amtrak.
 
 local playersched, anysched
-local atcwarning, atc
-local acseswarning, acses
+local atcalert, atc
+local acsesalert, acses
 local cruise
 local alerter
 local power
@@ -75,7 +75,7 @@ Initialise = RailWorks.wraperrors(function ()
 
   local squareflash_s = 0.5
 
-  atcwarning = Tone:new{
+  atcalert = Tone:new{
     scheduler = playersched,
     time_s = squareflash_s
   }
@@ -85,13 +85,13 @@ Initialise = RailWorks.wraperrors(function ()
     getacceleration_mps2 = function () return state.acceleration_mps2 end,
     getacknowledge = function () return state.acknowledge end,
     doalert = function ()
-      atcwarning:trigger()
+      atcalert:trigger()
       playawsclear()
     end
   }
   atc:start()
 
-  acseswarning = Tone:new{
+  acsesalert = Tone:new{
     scheduler = playersched,
     time_s = squareflash_s
   }
@@ -104,7 +104,7 @@ Initialise = RailWorks.wraperrors(function ()
     iterrestrictsignals = function () return pairs(state.restrictsignals) end,
     getacknowledge = function () return state.acknowledge end,
     doalert = function ()
-      acseswarning:trigger()
+      acsesalert:trigger()
       playawsclear()
     end
   }
@@ -238,6 +238,7 @@ end
 
 local function writelocostate ()
   local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
+  local penaltybrake = 0.6
   do
     local v
     if not haspower() then
@@ -253,7 +254,7 @@ local function writelocostate ()
   end
   do
     local v
-    if penalty then v = 0.6
+    if penalty then v = penaltybrake
     else v = state.train_brake end
     RailWorks.SetControlValue("TrainBrakeControl", 0, v)
   end
@@ -263,7 +264,7 @@ local function writelocostate ()
     local proportion = 0.3
     local v
     if penalty then
-      v = proportion
+      v = penaltybrake*proportion
     elseif state.speed_mps >= mineffectivespeed_mps then
       v = state.train_brake*proportion
     else
@@ -444,8 +445,7 @@ local function setcutin ()
 end
 
 local function setadu ()
-  local pulsecode =
-    atc:getpulsecode()
+  local pulsecode = atc:getpulsecode()
   do
     local signalspeed_mph =
       math.floor(Atc.amtrakpulsecodespeed_mps(pulsecode)*Units.mps.tomph + 0.5)
@@ -499,8 +499,8 @@ local function setadu ()
     local square
     if atcalarm and flash then square = 0
     elseif acsesalarm and flash then square = 1
-    elseif atcwarning:isplaying() then square = 0
-    elseif acseswarning:isplaying() then square = 1
+    elseif atcalert:isplaying() then square = 0
+    elseif acsesalert:isplaying() then square = 1
     else square = -1 end
     RailWorks.SetControlValue("MaximumSpeedLimitIndicator", 0, square)
   end
