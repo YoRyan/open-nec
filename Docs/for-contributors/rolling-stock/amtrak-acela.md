@@ -293,10 +293,6 @@ Plays a British AWS warning horn and illuminates the exclamation mark on the HUD
 
 Plays a British AWS informational tone when its value is changed.
 
-#### SpeedIncreaseAlert
-
-Plays a short electronic beep when set to 1.
-
 ### Keyboard shortcuts
 
 #### ATCCutIn
