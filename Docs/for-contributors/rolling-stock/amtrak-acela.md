@@ -335,6 +335,18 @@ The blue light for the front pantograph spark.
 
 The blue light for the rear pantograph spark.
 
+#### CabLight
+
+The cab's dome light.
+
+#### DitchLightLeft
+
+The left ground light.
+
+#### DitchLightRight
+
+The right ground light.
+
 ### Animations
 
 #### frontPanto
