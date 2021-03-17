@@ -57,7 +57,7 @@ to build the project. The compiled files will output to the Mod\ folder, from wh
             ],
             "options": {
                 "env": {
-                    "PATH": "C:\\Users\\Ryan\\Downloads\\Programs\\lua5_0_3_Win32_bin;C:\\Users\\Ryan\\Downloads\\Programs\\luacheck"
+                    "PATH": "C:\\Users\\Ryan\\Downloads\\Programs\\lua5_0_3_Win32_bin;C:\\Users\\Ryan\\Downloads\\Programs\\luacheck;C:\\Program Files (x86)\\Steam\\steamapps\\common\\RailWorks;C:\\Compressonator_4.1.5083\\bin\\CLI"
                 }
             },
             "group": {
