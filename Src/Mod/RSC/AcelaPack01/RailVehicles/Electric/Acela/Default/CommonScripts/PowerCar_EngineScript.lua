@@ -31,6 +31,7 @@ local state = {
   restrictsignals = {},
 
   powertypes = {},
+  awsclearcount = 0,
   raisefrontpantomsg = nil,
   raiserearpantomsg = nil
 }
@@ -65,6 +66,10 @@ local messageid = {
   destination = 1210
 }
 
+local function playawsclear ()
+  state.awsclearcount = math.mod(state.awsclearcount + 1, 2)
+end
+
 Initialise = RailWorks.wraperrors(function ()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
@@ -80,7 +85,10 @@ Initialise = RailWorks.wraperrors(function ()
     getspeed_mps = function () return state.speed_mps end,
     getacceleration_mps2 = function () return state.acceleration_mps2 end,
     getacknowledge = function () return state.acknowledge end,
-    doalert = function () atcwarning:trigger() end
+    doalert = function ()
+      atcwarning:trigger()
+      playawsclear()
+    end
   }
   atc:start()
 
@@ -96,7 +104,10 @@ Initialise = RailWorks.wraperrors(function ()
     iterspeedlimits = function () return pairs(state.speedlimits) end,
     iterrestrictsignals = function () return pairs(state.restrictsignals) end,
     getacknowledge = function () return state.acknowledge end,
-    doalert = function () acseswarning:trigger() end
+    doalert = function ()
+      acseswarning:trigger()
+      playawsclear()
+    end
   }
   acses:start()
 
@@ -266,8 +277,8 @@ local function writelocostate ()
     "AWSWarnCount", 0,
     RailWorks.frombool(alerter:isalarm() or atc:isalarm() or acses:isalarm()))
   RailWorks.SetControlValue(
-    "SpeedIncreaseAlert", 0,
-    RailWorks.frombool(atcwarning:isplaying() or acseswarning:isplaying()))
+    "AWSClearCount", 0,
+    state.awsclearcount)
 end
 
 local function setplayerpantos ()
