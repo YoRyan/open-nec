@@ -22,12 +22,6 @@
     </AvailableItemName>
   </ItemGroup>
   <ItemGroup>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Texture.xml" />
-    <AvailableItemName Include="SerzTextureFile">
-      <Targets>SerzTexture</Targets>
-    </AvailableItemName>
-  </ItemGroup>
-  <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)TexturePng.xml" />
     <AvailableItemName Include="TexturePng">
       <Targets>TexturePng</Targets>
@@ -44,11 +38,10 @@
     <LuaEmpty Include="Mod\**\*.emptylua" />
     <LuaLibrary Include="Lib\**\*.lua" />
     <SerzXml Include="Mod\**\*.xml" />
-    <TextureSerz Include="Mod\**\*.TgPcDx" />
     <TexturePng Include="Mod\**\*.png" />
     <SoundFile Include="Mod\**\*.wav" />
   </ItemGroup>
-  <Target Name="Build" DependsOnTargets="LuaBinary;LuaEmpty;SerzXml;TexturePng;TextureSerz;Sound" />
+  <Target Name="Build" DependsOnTargets="LuaBinary;LuaEmpty;SerzXml;TexturePng;Sound" />
   <Target Name="LuaBinary" Inputs="@(LuaLibrary);%(LuaBinary.Identity)" Outputs="$(OutputPath)\%(LuaBinary.RelativeDir)%(LuaBinary.Filename).out">
     <MakeDir Directories="$(OutputPath)\%(LuaBinary.RelativeDir)" Condition="!Exists('$(OutputPath)\%(LuaBinary.RelativeDir)')" />
     <Exec Command="luacheck.exe --allow-defined-top --no-unused-args @(LuaLibrary->'&quot;%(Identity)&quot;', ' ') &quot;%(LuaBinary.Identity)&quot; --read-globals=Call SysCall" IgnoreExitCode="true" />
@@ -61,9 +54,6 @@
   <Target Name="SerzXml" Inputs="%(SerzXml.Identity)" Outputs="$(OutputPath)\%(SerzXml.RelativeDir)%(SerzXml.Filename).bin">
     <MakeDir Directories="$(OutputPath)\%(SerzXml.RelativeDir)" Condition="!Exists('$(OutputPath)\%(SerzXml.RelativeDir)')" />
     <Exec Command="serz.exe &quot;%(SerzXml.Identity)&quot; /xml:&quot;$(OutputPath)\%(SerzXml.RelativeDir)%(SerzXml.Filename).bin&quot;" />
-  </Target>
-  <Target Name="TextureSerz" Inputs="%(TextureSerz.Identity)" Outputs="$(OutputPath)\%(TextureSerz.Identity)">
-    <Copy SourceFiles="%(TextureSerz.Identity)" DestinationFiles="$(OutputPath)\%(TextureSerz.Identity)" />
   </Target>
   <Target Name="TexturePng" Inputs="%(TexturePng.Identity)" Outputs="$(OutputPath)\%(TexturePng.RelativeDir)%(TexturePng.Filename).TgPcDx">
     <PropertyGroup>
