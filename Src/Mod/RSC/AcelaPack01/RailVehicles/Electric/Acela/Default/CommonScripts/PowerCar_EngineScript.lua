@@ -573,6 +573,8 @@ local function updateslave ()
 
   setslavepantos()
   setpantosparks()
+  setcablight()
+  setgroundlights()
 end
 
 Update = RailWorks.wraperrors(function (_)
