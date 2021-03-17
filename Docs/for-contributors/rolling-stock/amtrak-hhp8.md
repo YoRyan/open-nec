@@ -270,3 +270,61 @@ The default setting is 1.
 Toggles between 0 and 1 with Ctrl+F. Should not be set by Lua; otherwise the value will desync from the keyboard shortcut.
 
 The default setting is 1.
+
+### Model nodes
+
+#### front_spark01
+
+One of the white billboards for the front pantograph spark.
+
+#### front_spark02
+
+One of the white billboards for the front pantograph spark.
+
+#### rear_spark01
+
+One of the white billboards for the rear pantograph spark.
+
+#### rear_spark02
+
+One of the white billboards for the rear pantograph spark.
+
+### Lights
+
+#### Spark
+
+The blue light for the front pantograph spark.
+
+#### Spark2
+
+The blue light for the rear pantograph spark.
+
+#### CabLight
+
+The cab's dome light.
+
+#### Fwd_DitchLightLeft
+
+The forward left ground light.
+
+#### Fwd_DitchLightRight
+
+The forward right ground light.
+
+#### Bwd_DitchLightLeft
+
+The rear left ground light.
+
+#### Bwd_DitchLightRight
+
+The rear right ground light.
+
+### Animations
+
+#### frontPanto
+
+Raises the front pantograph and its spark. Duration is 2 seconds.
+
+#### rearPanto
+
+Raises the rear pantograph and its spark. Duration is 2 seconds.
