@@ -2,7 +2,9 @@
 
 The EMD AEM-7 is the sole locomotive included with the Northeast Corridor: New York - Philadelphia DLC.
 
-## Warning devices
+## Controls
+
+### Warning devices
 
 #### CabSignal
 
@@ -68,7 +70,7 @@ Plays a "whoop whoop" warning sound and triggers the alerter display on the HUD.
 
 Plays a "beep beep" warning sound. Set to 1 to play the sound, and 0 to turn it off.
 
-## Buttons and switches
+### Buttons and switches
 
 #### SpeedControl
 

@@ -307,7 +307,7 @@ Toggles between 0 and 1 with Ctrl+F. Should not be set by Lua; otherwise the val
 
 The default setting is 0.
 
-### Model nodes
+## Model nodes
 
 #### Front_spark01
 
@@ -325,7 +325,7 @@ One of the white billboards for the rear pantograph spark.
 
 One of the white billboards for the rear pantograph spark.
 
-### Lights
+## Lights
 
 #### Spark
 
@@ -347,7 +347,7 @@ The left ground light.
 
 The right ground light.
 
-### Animations
+## Animations
 
 #### frontPanto
 
@@ -361,7 +361,7 @@ Raises the rear pantograph and its spark. Duration is 2 seconds.
 
 Opens the nose cone that shrouds the front coupler. Duration is 2 seconds.
 
-### Consist messages
+## Consist messages
 
 #### 1209
 

@@ -271,7 +271,7 @@ Toggles between 0 and 1 with Ctrl+F. Should not be set by Lua; otherwise the val
 
 The default setting is 1.
 
-### Model nodes
+## Model nodes
 
 #### front_spark01
 
@@ -289,7 +289,7 @@ One of the white billboards for the rear pantograph spark.
 
 One of the white billboards for the rear pantograph spark.
 
-### Lights
+## Lights
 
 #### Spark
 
@@ -319,7 +319,7 @@ The rear left ground light.
 
 The rear right ground light.
 
-### Animations
+## Animations
 
 #### frontPanto
 
