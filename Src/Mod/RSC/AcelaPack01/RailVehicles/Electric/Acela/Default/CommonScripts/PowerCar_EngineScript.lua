@@ -10,6 +10,7 @@ local frontpantoanim, rearpantoanim
 local coneanim
 local tracteffort
 local csflasher
+local sigspeedflasher
 local squareflasher
 local groundflasher
 local spark
@@ -148,6 +149,12 @@ Initialise = RailWorks.wraperrors(function ()
     scheduler = playersched,
     off_s = Nec.cabspeedflash_s,
     on_s = Nec.cabspeedflash_s
+  }
+
+  sigspeedflasher = Flash:new{
+    scheduler = playersched,
+    off_s = 0.5,
+    on_s = 1.5
   }
 
   squareflasher = Flash:new{
@@ -447,16 +454,56 @@ local function setcutin ()
   acses:setrunstate(RailWorks.GetControlValue("ACSESCutIn", 0) == 0)
 end
 
+local function toroundedmph (v)
+  return math.floor(v*Units.mps.tomph + 0.5)
+end
+
 local function setadu ()
   local pulsecode = atc:getpulsecode()
+  local atcalarm = atc:isalarm()
+  local atcalertp = atcalert:isplaying()
+  local acsesalarm = acses:isalarm()
+  local acsesalertp = acsesalert:isplaying()
   do
-    local signalspeed_mph =
-      math.floor(Atc.amtrakpulsecodespeed_mps(pulsecode)*Units.mps.tomph + 0.5)
+    local signalspeed_mph = toroundedmph(Atc.amtrakpulsecodespeed_mps(pulsecode))
+    local trackspeed_mph = toroundedmph(acses:getinforcespeed_mps())
+    local canshowsigspeed = signalspeed_mph ~= 100
+      and signalspeed_mph ~= 125
+      and signalspeed_mph ~= 150
+    local showsigspeed = not canshowsigspeed
+      and not (acsesalarm or acsesalertp)
+      and (signalspeed_mph < trackspeed_mph or atcalarm or atcalertp)
+
+    sigspeedflasher:setflashstate(showsigspeed)
+
     -- If we set the digits too early, they flicker (or turn invisible) for the
     -- rest of the game.
     if not playersched:isstartup() then
-      -- TODO: Handle 100, 125, and 150 mph correctly.
-      RailWorks.SetControlValue("SignalSpeed", 0, signalspeed_mph)
+      if canshowsigspeed then
+        RailWorks.SetControlValue("SignalSpeed", 0, signalspeed_mph)
+      else
+        RailWorks.SetControlValue("SignalSpeed", 0, 1) -- blank
+      end
+    end
+
+    local show_mph
+    if showsigspeed then
+      if sigspeedflasher:ison() then
+        show_mph = signalspeed_mph
+      else
+        show_mph = nil
+      end
+    else
+      show_mph = trackspeed_mph
+    end
+    if show_mph == nil then -- blank
+      RailWorks.SetControlValue("TSHundreds", 0, -1)
+      RailWorks.SetControlValue("TSTens", 0, -1)
+      RailWorks.SetControlValue("TSUnits", 0, -1)
+    else
+      RailWorks.SetControlValue("TSHundreds", 0, getdigit(show_mph, 2))
+      RailWorks.SetControlValue("TSTens", 0, getdigit(show_mph, 1))
+      RailWorks.SetControlValue("TSUnits", 0, getdigit(show_mph, 0))
     end
   end
   do
@@ -487,23 +534,14 @@ local function setadu ()
     RailWorks.SetControlValue("SigR", 0, r)
   end
   do
-    local acsesspeed_mph =
-      math.floor(acses:getinforcespeed_mps()*Units.mps.tomph + 0.5)
-    RailWorks.SetControlValue("TSHundreds", 0, getdigit(acsesspeed_mph, 2))
-    RailWorks.SetControlValue("TSTens", 0, getdigit(acsesspeed_mph, 1))
-    RailWorks.SetControlValue("TSUnits", 0, getdigit(acsesspeed_mph, 0))
-  end
-  do
-    local atcalarm = atc:isalarm()
-    local acsesalarm = acses:isalarm()
     squareflasher:setflashstate(atcalarm or acsesalarm)
     local flash = squareflasher:ison()
 
     local square
     if atcalarm and flash then square = 0
     elseif acsesalarm and flash then square = 1
-    elseif atcalert:isplaying() then square = 0
-    elseif acsesalert:isplaying() then square = 1
+    elseif atcalertp then square = 0
+    elseif acsesalertp then square = 1
     else square = -1 end
     RailWorks.SetControlValue("MaximumSpeedLimitIndicator", 0, square)
   end
