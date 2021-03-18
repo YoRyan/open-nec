@@ -368,7 +368,7 @@ local function setadu ()
     if pulsecode == Atc.pulsecode.restrict then
       g, y, r, lg, lw = 0, 0, 1, 0, 1
     elseif pulsecode == Atc.pulsecode.approach then
-      g, y, r, lg, lw = 0, 1, 0, 0, 1
+      g, y, r, lg, lw = 0, 1, 0, 0, 0
     elseif pulsecode == Atc.pulsecode.approachmed then
       g, y, r, lg, lw = 0, 1, 0, 1, 0
     elseif pulsecode == Atc.pulsecode.cabspeed60
