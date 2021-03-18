@@ -9,11 +9,13 @@ To make this all possible, the project provides drop-in replacements for Dovetai
 Currently, the project consists of a single enhancement mod for several Amtrak locomotives, as well as complete Automatic Train Control (ATC) and Advanced Civil Speed Enforcement System (ACSES) implementations.
 
 Locomotives overhauled by the Open NEC project include:
+
 - [Amtrak EMD AEM-7](https://store.steampowered.com/app/65232/Train_Simulator_Northeast_Corridor_New_York__Philadelphia_Route_AddOn/)
 - [Amtrak Acela Express](https://store.steampowered.com/app/65231/Train_Simulator_Amtrak_Acela_Express_EMU_AddOn/)
 - [Amtrak Bombardier HHP-8](https://store.steampowered.com/app/222558/Train_Simulator_Amtrak_HHP8_Loco_AddOn/)
 
 Demonstrations:
+
 - [Video demo #1](https://youtu.be/EFRsUOw1sGo)
 - [Video demo #2](https://youtu.be/MjvzT8cTnnE)
 
