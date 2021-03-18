@@ -146,8 +146,8 @@ Initialise = RailWorks.wraperrors(function ()
 
   csflasher = Flash:new{
     scheduler = playersched,
-    off_s = Atc.cabspeedflash_s,
-    on_s = Atc.cabspeedflash_s
+    off_s = Nec.cabspeedflash_s,
+    on_s = Nec.cabspeedflash_s
   }
 
   squareflasher = Flash:new{
@@ -462,18 +462,18 @@ local function setadu ()
   do
     local f = 2 -- cab speed flash
     local n, l, s, m, r
-    if pulsecode == Atc.pulsecode.restrict then
+    if pulsecode == Nec.pulsecode.restrict then
       n, l, s, m, r = 0, 0, 1, 0, 1
-    elseif pulsecode == Atc.pulsecode.approach then
+    elseif pulsecode == Nec.pulsecode.approach then
       n, l, s, m, r = 0, 1, 0, 0, 0
-    elseif pulsecode == Atc.pulsecode.approachmed then
+    elseif pulsecode == Nec.pulsecode.approachmed then
       n, l, s, m, r = 0, 1, 0, 1, 0
-    elseif pulsecode == Atc.pulsecode.cabspeed60
-        or pulsecode == Atc.pulsecode.cabspeed80 then
+    elseif pulsecode == Nec.pulsecode.cabspeed60
+        or pulsecode == Nec.pulsecode.cabspeed80 then
       n, l, s, m, r = f, 0, 0, 0, 0
-    elseif pulsecode == Atc.pulsecode.clear100
-        or pulsecode == Atc.pulsecode.clear125
-        or pulsecode == Atc.pulsecode.clear150 then
+    elseif pulsecode == Nec.pulsecode.clear100
+        or pulsecode == Nec.pulsecode.clear125
+        or pulsecode == Nec.pulsecode.clear150 then
       n, l, s, m, r = 1, 0, 0, 0, 0
     else
       n, l, s, m, r = 0, 0, 0, 0, 0

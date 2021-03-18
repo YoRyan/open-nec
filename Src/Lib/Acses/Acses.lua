@@ -280,8 +280,8 @@ local function iterhazards (self)
   local hazards = {gettrackspeedhazard(self)}
 
   local pulsecode = self._atc:getpulsecode()
-  if pulsecode == Atc.pulsecode.restrict
-      or pulsecode == Atc.pulsecode.approach then
+  if pulsecode == Nec.pulsecode.restrict
+      or pulsecode == Nec.pulsecode.approach then
     local id = getnextstopsignalid(self, dir)
     if id ~= nil then
       table.insert(hazards, getsignalstophazard(self, id))

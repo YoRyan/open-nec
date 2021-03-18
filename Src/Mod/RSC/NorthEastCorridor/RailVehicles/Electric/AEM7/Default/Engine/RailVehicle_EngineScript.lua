@@ -66,8 +66,8 @@ Initialise = RailWorks.wraperrors(function ()
 
   cs1flasher = Flash:new{
     scheduler=sched,
-    off_s=Atc.cabspeedflash_s,
-    on_s=Atc.cabspeedflash_s
+    off_s=Nec.cabspeedflash_s,
+    on_s=Nec.cabspeedflash_s
   }
 
   RailWorks.BeginUpdate()
@@ -159,19 +159,19 @@ local function setcabsignal ()
 
   local code = atc:getpulsecode()
   local cs, cs1, cs2
-  if code == Atc.pulsecode.restrict then
+  if code == Nec.pulsecode.restrict then
     cs, cs1, cs2 = 7, 0, 0
-  elseif code == Atc.pulsecode.approach then
+  elseif code == Nec.pulsecode.approach then
     cs, cs1, cs2 = 6, 0, 0
-  elseif code == Atc.pulsecode.approachmed then
+  elseif code == Nec.pulsecode.approachmed then
     cs, cs1, cs2 = 4, 0, 1
-  elseif code == Atc.pulsecode.cabspeed60 then
+  elseif code == Nec.pulsecode.cabspeed60 then
     cs, cs1, cs2 = 3, f, 0
-  elseif code == Atc.pulsecode.cabspeed80 then
+  elseif code == Nec.pulsecode.cabspeed80 then
     cs, cs1, cs2 = 2, f, 0
-  elseif code == Atc.pulsecode.clear100
-      or code == Atc.pulsecode.clear125
-      or code == Atc.pulsecode.clear150 then
+  elseif code == Nec.pulsecode.clear100
+      or code == Nec.pulsecode.clear125
+      or code == Nec.pulsecode.clear150 then
     cs, cs1, cs2 = 1, 1, 0
   else
     cs, cs1, cs2 = 8, 0, 0

@@ -3,16 +3,6 @@
 local P = {}
 Atc = P
 
-P.pulsecode = {restrict=0,
-               approach=1,
-               approachmed=2,
-               cabspeed60=3,
-               cabspeed80=4,
-               clear100=5,
-               clear125=6,
-               clear150=7}
-P.cabspeedflash_s = 0.5
-
 local debugsignals = false
 local naccelsamples = 24
 local stopspeed_mps = 0.01
@@ -23,7 +13,7 @@ local function initstate (self)
   self._issuppressing = false
   self._issuppression = false
   self._ispenalty = false
-  self._pulsecode = P.pulsecode.restrict
+  self._pulsecode = Nec.pulsecode.restrict
   self._accelaverage_mps2 = Average:new{nsamples=naccelsamples}
   self._enforce = Event:new{scheduler=self._sched}
   self._coroutines = {}
@@ -193,21 +183,21 @@ end
 -- Get the speed limit, in m/s, that corresponds to a pulse code.
 -- Amtrak speed limits.
 function P.amtrakpulsecodespeed_mps (pulsecode)
-  if pulsecode == P.pulsecode.restrict then
+  if pulsecode == Nec.pulsecode.restrict then
     return 20*Units.mph.tomps
-  elseif pulsecode == P.pulsecode.approach then
+  elseif pulsecode == Nec.pulsecode.approach then
     return 30*Units.mph.tomps
-  elseif pulsecode == P.pulsecode.approachmed then
+  elseif pulsecode == Nec.pulsecode.approachmed then
     return 45*Units.mph.tomps
-  elseif pulsecode == P.pulsecode.cabspeed60 then
+  elseif pulsecode == Nec.pulsecode.cabspeed60 then
     return 60*Units.mph.tomps
-  elseif pulsecode == P.pulsecode.cabspeed80 then
+  elseif pulsecode == Nec.pulsecode.cabspeed80 then
     return 80*Units.mph.tomps
-  elseif pulsecode == P.pulsecode.clear100 then
+  elseif pulsecode == Nec.pulsecode.clear100 then
     return 100*Units.mph.tomps
-  elseif pulsecode == P.pulsecode.clear125 then
+  elseif pulsecode == Nec.pulsecode.clear125 then
     return 125*Units.mph.tomps
-  elseif pulsecode == P.pulsecode.clear150 then
+  elseif pulsecode == Nec.pulsecode.clear150 then
     return 150*Units.mph.tomps
   else
     return nil
@@ -220,22 +210,22 @@ local function topulsecode (self, message)
     local code = string.sub(message, 4, 4)
     -- DTG "Clear"
     if code == "1" then
-      return P.pulsecode.clear125
+      return Nec.pulsecode.clear125
     elseif code == "2" then
-      return P.pulsecode.cabspeed80
+      return Nec.pulsecode.cabspeed80
     elseif code == "3" then
-      return P.pulsecode.cabspeed60
+      return Nec.pulsecode.cabspeed60
     -- DTG "Approach Limited (45mph)"
     elseif code == "4" then
-      return P.pulsecode.approachmed
+      return Nec.pulsecode.approachmed
     -- DTG "Approach Medium (30mph)"
     elseif code == "5" then
-      return P.pulsecode.approach
+      return Nec.pulsecode.approach
     -- DTG "Approach (30mph)"
     elseif code == "6" then
-      return P.pulsecode.approach
+      return Nec.pulsecode.approach
     elseif code == "7" then
-      return P.pulsecode.restrict
+      return Nec.pulsecode.restrict
     -- DTG "Ignore"
     elseif code == "8" then
       return self._pulsecode
@@ -247,18 +237,18 @@ local function topulsecode (self, message)
     local code = string.sub(message, 2, 3)
     -- DTG "Clear"
     if code == "10" then
-      return P.pulsecode.clear125
+      return Nec.pulsecode.clear125
     -- DTG "Approach Limited (45mph)"
     elseif code == "11" then
-      return P.pulsecode.approachmed
+      return Nec.pulsecode.approachmed
     -- DTG "Approach Medium (30mph)"
     elseif code == "12" then
-      return P.pulsecode.approach
+      return Nec.pulsecode.approach
     elseif code == "13" or code == "14" then
-      return P.pulsecode.restrict
+      return Nec.pulsecode.restrict
     -- DTG "Stop"
     elseif code == "15" then
-      return P.pulsecode.restrict
+      return Nec.pulsecode.restrict
     else
       return nil
     end
@@ -278,7 +268,7 @@ local function getnewpulsecode (self, message)
     return self._pulsecode
   end
   self._sched:info("WARNING:\nUnknown signal '" .. message .. "'")
-  return P.pulsecode.restrict
+  return Nec.pulsecode.restrict
 end
 
 -- Receive a custom signal message.
