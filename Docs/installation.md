@@ -1,7 +1,23 @@
 # Get the mod
 
-Releases are periodically made and are available at the Open NEC Project's [GitHub page](https://github.com/YoRyan/open-nec/releases).
+Releases are periodically made and are available at the Open NEC Project's [GitHub page](https://github.com/YoRyan/open-nec/releases). Please be sure to browse the release notes and peruse this manual to understand exactly what you are installing.
 
-To install one of the Zip files, copy of the contents of the Assets\ subfolder into your own Train Simulator Assets\ folder.
+To install one of the Zip files, copy of the contents of the Assets\ subfolder into your own Train Simulator Assets\ folder. This is a large mod, with many modifications, so some users may wish to audit the contents of the package and install only the files they need. [Below](#package-contents) is a listing of the mod's contents.
 
-Please be sure to browse the release notes and peruse this manual to understand exactly what you are installing.
+### Compatibility
+
+I've endeavoured to maintain compatibility with Fan Railer's physics and sound mods, since they are freely available. In general, for the mods to work together, Open NEC must be installed last. For specific information, see the notes pages for a particular rolling stock or route.
+
+### Package contents
+
+Rolling stock:
+
+- [Amtrak AEM-7](/for-players/amtrak-aem7)
+    - `RSC\NorthEastCorridor\RailVehicles\Electric\AEM7\`
+- [Amtrak HHP-8](/for-players/amtrak-hhp8)
+    - `RSC\AcelaHHP8Pack01\`
+- [Amtrak Acela Express](/for-players/amtrak-acela)
+    - `RSC\AcelaPack01\` (standalone version)
+    - `DTG\WashingtonBaltimore\Audio\RailVehicles\Electric\Acela\` (Washington-Baltimore version)
+    - `DTG\WashingtonBaltimore\RailVehicles\Electric\Acela\` (Washington-Baltimore version)
+    - `DTG\WashingtonBaltimore\InputMapper\AcelaExpert.bin` (Washington-Baltimore version)
