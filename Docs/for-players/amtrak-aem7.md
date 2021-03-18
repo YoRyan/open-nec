@@ -4,7 +4,7 @@ The AEM-7 is a high-speed electric locomotive included with the Northeast Corrid
 
 ### Mod compatibility
 
-The Open NEC mod for the AEM-7 is fully compatible and tested with Fan Railer's AEM-7 physics and sound mod.
+The Open NEC mod for the AEM-7 is fully compatible and tested with Fan Railer's AEM-7 physics and sound [mod](https://youtu.be/PDaemMowD4c).
 
 ### Bugs fixed
 

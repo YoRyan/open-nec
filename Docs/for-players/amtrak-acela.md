@@ -4,7 +4,7 @@ The Acela Express is a high-speed electric trainset sold as a standalone addon t
 
 ### Mod compatibility
 
-The Open NEC mod for the Acela is fully compatible and tested with Fan Railer's Acela physics and sound mod. *However*, Fan Railer's mod must be installed first. Otherwise, if Open NEC is installed first, then the Q key (which isn't mapped on the stock Acela either) will remain unmapped, and you will have to acknowledge the safety systems by clicking and dragging the 3D plunger or by clicking the exclamation mark on the HUD.
+The Open NEC mod for the Acela is fully compatible and tested with Fan Railer's Acela physics and sound [mod](https://youtu.be/l_iytY0iz4I). *However*, Fan Railer's mod must be installed first. Otherwise, if Open NEC is installed first, then the Q key (which isn't mapped on the stock Acela either) will remain unmapped, and you will have to acknowledge the safety systems by clicking and dragging the 3D plunger or by clicking the exclamation mark on the HUD.
 
 There is also a known bug with the June 4, 2020 version of Fan Railer's mod: The signal speed display on the ADU is unreadable. Although you can still read the current cab signal aspect, this means it is impossible to distinguish between the 60 mph and 80 mph cab speeds.
 

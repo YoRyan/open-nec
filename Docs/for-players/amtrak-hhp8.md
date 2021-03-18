@@ -4,7 +4,7 @@ The Bombardier HHP-8 is a high-horsepower electric locomotive sold as a separate
 
 ### Mod compatibility
 
-The Open NEC mod for the HHP-8 is fully compatible and tested with Fan Railer's HHP-8 physics and sound mod. *However*, Fan Railer's mod must be installed first.
+The Open NEC mod for the HHP-8 is fully compatible and tested with Fan Railer's HHP-8 physics and sound [mod](https://youtu.be/l_iytY0iz4I). *However*, Fan Railer's mod must be installed first for the Open NEC scripting to function.
 
 ### Bugs fixed
 
