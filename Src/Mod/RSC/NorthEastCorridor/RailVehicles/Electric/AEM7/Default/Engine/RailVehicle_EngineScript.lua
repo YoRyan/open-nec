@@ -1,13 +1,13 @@
 -- Engine script for the EMD AEM-7 operated by Amtrak.
 
-local sched = nil
-local alerttone = nil
-local atc = nil
-local acses = nil
-local cruise = nil
-local alerter = nil
-local power = nil
-local cs1flasher = nil
+local sched
+local atcalert, atc
+local acsesalert, acses
+local cruise
+local alerter
+local power
+local cs1flasher
+local sigspeedflasher
 local state = {
   throttle=0,
   train_brake=0,
@@ -26,17 +26,23 @@ local onebeep_s = 0.3
 Initialise = RailWorks.wraperrors(function ()
   sched = Scheduler:new{}
 
-  alerttone = Tone:new{scheduler=sched, time_s=onebeep_s}
-
+  atcalert = Tone:new{
+    scheduler = sched,
+    time_s = onebeep_s
+  }
   atc = Atc:new{
     scheduler = sched,
     getspeed_mps = function () return state.speed_mps end,
     getacceleration_mps2 = function () return state.acceleration_mps2 end,
     getacknowledge = function () return state.acknowledge end,
-    doalert = function () alerttone:trigger() end
+    doalert = function () atcalert:trigger() end
   }
   atc:start()
 
+  acsesalert = Tone:new{
+    scheduler = sched,
+    time_s = onebeep_s
+  }
   acses = Acses:new{
     scheduler = sched,
     atc = atc,
@@ -45,7 +51,7 @@ Initialise = RailWorks.wraperrors(function ()
     iterspeedlimits = function () return pairs(state.speedlimits) end,
     iterrestrictsignals = function () return pairs(state.restrictsignals) end,
     getacknowledge = function () return state.acknowledge end,
-    doalert = function () alerttone:trigger() end
+    doalert = function () acsesalert:trigger() end
   }
   acses:start()
 
@@ -65,9 +71,15 @@ Initialise = RailWorks.wraperrors(function ()
   power = Power:new{available={Power.types.overhead}}
 
   cs1flasher = Flash:new{
-    scheduler=sched,
-    off_s=Nec.cabspeedflash_s,
-    on_s=Nec.cabspeedflash_s
+    scheduler = sched,
+    off_s = Nec.cabspeedflash_s,
+    on_s = Nec.cabspeedflash_s
+  }
+
+  sigspeedflasher = Flash:new{
+    scheduler = sched,
+    off_s = 0.5,
+    on_s = 1.5
   }
 
   RailWorks.BeginUpdate()
@@ -146,12 +158,13 @@ local function writelocostate ()
   RailWorks.SetControlValue(
     "AWSWarnCount", 0,
     RailWorks.frombool(alerter:isalarm()))
-  RailWorks.SetControlValue(
-    "OverSpeedAlert", 0,
-    RailWorks.frombool(alerttone:isplaying() or atc:isalarm() or acses:isalarm()))
-  RailWorks.SetControlValue(
-    "TrackSpeed", 0,
-    math.floor(acses:getinforcespeed_mps()*Units.mps.tomph + 0.5))
+  do
+    local alert = atcalert:isplaying() or acsesalert:isplaying()
+    local alarm = atc:isalarm() or acses:isalarm()
+    RailWorks.SetControlValue(
+      "OverSpeedAlert", 0,
+      RailWorks.frombool(alert or alarm))
+  end
 end
 
 local function setcabsignal ()
@@ -186,6 +199,37 @@ local function setcabsignal ()
   RailWorks.SetControlValue("CabSignal2", 0, cs2)
 end
 
+local function toroundedmph (v)
+  return math.floor(v*Units.mps.tomph + 0.5)
+end
+
+local function settrackspeed ()
+  local signalspeed_mph = toroundedmph(
+    Atc.amtrakpulsecodespeed_mps(atc:getpulsecode()))
+  local trackspeed_mph = toroundedmph(acses:getinforcespeed_mps())
+  local canshowsigspeed = signalspeed_mph ~= 100
+    and signalspeed_mph ~= 125
+    and signalspeed_mph ~= 150
+  local showsigspeed = not canshowsigspeed
+    and not (acses:isalarm() or acsesalert:isplaying())
+    and (signalspeed_mph < trackspeed_mph or atc:isalarm() or atcalert:isplaying())
+
+  sigspeedflasher:setflashstate(showsigspeed)
+
+  local show_mph
+  local blank = 14.5
+  if showsigspeed then
+    if sigspeedflasher:ison() then
+      show_mph = signalspeed_mph
+    else
+      show_mph = blank
+    end
+  else
+    show_mph = trackspeed_mph
+  end
+  RailWorks.SetControlValue("TrackSpeed", 0, show_mph)
+end
+
 local function setcablight ()
   local light = RailWorks.GetControlValue("CabLightControl", 0)
   Call("FrontCabLight:Activate", light)
@@ -214,6 +258,7 @@ Update = RailWorks.wraperrors(function (_)
 
   writelocostate()
   setcabsignal()
+  settrackspeed()
   setcablight()
   setcutin()
 
