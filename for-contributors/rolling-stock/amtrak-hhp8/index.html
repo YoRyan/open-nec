@@ -8,7 +8,7 @@
         
         
         <link rel="shortcut icon" href="../../../img/favicon.ico">
-        <title>Amtrak Acela Express - Open NEC Project</title>
+        <title>Amtrak HHP-8 - Open NEC Project</title>
         <link href="../../../css/bootstrap.min.css" rel="stylesheet">
         <link href="../../../css/font-awesome.min.css" rel="stylesheet">
         <link href="../../../css/base.css" rel="stylesheet">
@@ -52,7 +52,7 @@
     <ul class="dropdown-menu">
             
 <li>
-    <a href="./" class="dropdown-item active">Amtrak Acela Express</a>
+    <a href="../amtrak-acela/" class="dropdown-item">Amtrak Acela Express</a>
 </li>
             
 <li>
@@ -60,7 +60,7 @@
 </li>
             
 <li>
-    <a href="../amtrak-hhp8/" class="dropdown-item">Amtrak HHP-8</a>
+    <a href="./" class="dropdown-item active">Amtrak HHP-8</a>
 </li>
     </ul>
   </li>
@@ -114,12 +114,12 @@
                             </a>
                         </li>
                             <li class="nav-item">
-                                <a rel="prev" href="../../" class="nav-link">
+                                <a rel="prev" href="../amtrak-aem7/" class="nav-link">
                                     <i class="fa fa-arrow-left"></i> Previous
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="next" href="../amtrak-aem7/" class="nav-link">
+                                <a rel="next" href="../../routes/newhaven/" class="nav-link">
                                     Next <i class="fa fa-arrow-right"></i>
                                 </a>
                             </li>
@@ -141,7 +141,7 @@
     <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-level="1"><a href="#amtrak-acela-express" class="nav-link">Amtrak Acela Express</a>
+            <li class="nav-item" data-level="1"><a href="#amtrak-hhp-8" class="nav-link">Amtrak HHP-8</a>
               <ul class="nav flex-column">
             <li class="nav-item" data-level="2"><a href="#controls" class="nav-link">Controls</a>
               <ul class="nav flex-column">
@@ -154,26 +154,21 @@
 </div></div>
                     <div class="col-md-9" role="main">
 
-<h1 id="amtrak-acela-express">Amtrak Acela Express</h1>
-<p>The Acela Express is a high-speed electric trainset sold as a standalone addon to the New York to Philadelphia and New York to New Haven routes. Another version is distributed with the Washington to Baltimore route.</p>
+<h1 id="amtrak-hhp-8">Amtrak HHP-8</h1>
+<p>The Bombardier HHP-8 is a high-horsepower electric locomotive sold as a separate addon to the New York to Philadelphia and New York to New Haven routes. Its styling is intentionally similar to that of the Acela's.</p>
 <h2 id="controls">Controls</h2>
 <h3 id="left-panel">Left panel</h3>
 <h4 id="selpanto">SelPanto</h4>
-<p>The pantograph selection switch. 0 = front, 1 = both, 2 = rear. Note that the dial is not actually animated. Also, the dial will not snap to the intermediate "both" setting.</p>
+<p>The pantograph selection switch. 0 = front, 1 = both, 2 = rear.</p>
 <p>The default setting is 0.</p>
 <h4 id="pantographcontrol">PantographControl</h4>
-<p>The pantograph lower/raise switch. 0 = lower, 1 = raise. Note that the dial is not actually animated.</p>
-<p>The default setting is 0.</p>
+<p>The pantograph lower/raise switch. 0 = lower, 1 = raise.</p>
+<p>The default setting is 1.</p>
 <h4 id="cruisecontrol">CruiseControl</h4>
 <p>The cruise control switch. Turning this on illuminates the "cruise system" indicator.</p>
 <p>The default setting is 0.</p>
-<h4 id="handbrake">Handbrake</h4>
-<p>The handbrake dial. Setting this to the maximum illuminates the "parking brakes" indicator.</p>
-<p>The default setting is 0.</p>
-<h4 id="sander">Sander</h4>
-<p>The sander switch.</p>
-<h4 id="autobrakes">AutoBrakes</h4>
-<p>The "auto dynamic brakes" switch. Turning this on illuminates the "auto brakes" indicator.</p>
+<h4 id="wipers">Wipers</h4>
+<p>The wiper off/on switch.</p>
 <p>The default setting is 0.</p>
 <h4 id="screender">ScreenDer</h4>
 <p>The off/on switch for the righthand speedometer display.</p>
@@ -186,21 +181,18 @@
 <p>The default setting is 0.</p>
 <h4 id="reset">Reset</h4>
 <p>The "reset throttle/cruise" button.</p>
-<h4 id="tiltisolate">TiltIsolate</h4>
-<p>The "tilt isolate" switch. Deactivating this also deactivates the "tilt system" indicator.</p>
-<p>The default setting is 1.</p>
 <h4 id="emergencybrake">EmergencyBrake</h4>
 <p>The emergency brake button.</p>
 <h3 id="control-desk">Control desk</h3>
 <h4 id="reverser">Reverser</h4>
 <p>The player's Expert Mode reverser control. 1 = forward, 0 = neutral, -1 = reverse.</p>
-<h4 id="cruisecontrolspeed">CruiseControlSpeed</h4>
-<p>The setting of the cruise control lever. Ranges from 0 to 160 mph.</p>
+<h4 id="speedsetcontrol">SpeedSetControl</h4>
+<p>The setting of the cruise control lever. Ranges from 0.0 (0 mph) to 16.0 (160 mph).</p>
 <h4 id="virtualthrottle">VirtualThrottle</h4>
 <p>The player's Expert Mode throttle control. Ranges from 0 to 1.</p>
 <h4 id="regulator">Regulator</h4>
 <p>The true throttle control used by the physics model. Ranges from 0 to 1.</p>
-<h4 id="virtualbrake">VirtualBrake</h4>
+<h4 id="trainbrakecontrol">TrainBrakeControl</h4>
 <p>The player's Expert Mode train brake control. Ranges from 0 to 1.</p>
 <table>
 <thead>
@@ -212,10 +204,6 @@
 <tbody>
 <tr>
 <td>1.0</td>
-<td>Emergency (applying)</td>
-</tr>
-<tr>
-<td>0.99</td>
 <td>Emergency</td>
 </tr>
 <tr>
@@ -240,13 +228,14 @@
 </tr>
 </tbody>
 </table>
-<h4 id="trainbrakecontrol">TrainBrakeControl</h4>
-<p>The true train brake control used by the physics model. Ranges from 0 to 1.</p>
+<h4 id="enginebrakecontrol">EngineBrakeControl</h4>
+<p>The player's Expert Mode locomotive brake control. Ranges from 0 to 1.</p>
 <h4 id="awsreset">AWSReset</h4>
-<p>The acknowledgement plunger. On the Acela, this is <em>not</em> mapped to Q.</p>
-<h4 id="startup">Startup</h4>
-<p>The engine on/off button. 1 = depressed (on), -1 = released (off).</p>
-<p>The default setting is 1.</p>
+<p>The acknowledgement plunger.</p>
+<h4 id="sander">Sander</h4>
+<p>The sander button.</p>
+<h4 id="bell">Bell</h4>
+<p>The bell button.</p>
 <h4 id="headlights">Headlights</h4>
 <p>The headlights dial. 0 = off, 1 = front headlights, 2 = rear headlights.</p>
 <p>The default setting is 0.</p>
@@ -260,21 +249,22 @@
 <h4 id="controlscreender">ControlScreenDer</h4>
 <p>Replaces the speedometer display with an Amtrak logo. Any value except 0 shows the logo.</p>
 <p>The default setting is 0.</p>
-<h4 id="doors">Doors</h4>
-<p>Sets the status of the "doors" indicator. 0 = extinguished, 1 = illuminated.</p>
+<h4 id="status">Status</h4>
+<p>The currently selected train status display page. 0 = primary page, 1 = secondary page.</p>
 <p>The default setting is 0.</p>
 <h4 id="effort">Effort</h4>
 <p>Sets the positions of both tractive effort displays. Ranges from -80 to 160 lbs x 1000.</p>
 <h4 id="pantoindicator">PantoIndicator</h4>
 <p>Sets the status of the "pantographs" indicator. -1 = neither pantograph up, 0 = front pantograph up, 1 = both pantographs up, 2 = rear pantograph up.</p>
 <p>The default setting is 0.</p>
-<h4 id="lightsindicator">LightsIndicator</h4>
+<h4 id="selectlights">SelectLights</h4>
 <p>Sets the status of the "lighting" indicator. -1 = off, 0 = headlights, 1 = headlights and ground lights, 2 = head lights and flashing ground lights.</p>
 <p>The default setting is 0.</p>
 <h4 id="speedometermph">SpeedometerMPH</h4>
 <p>The position of the speedometer dial. This is not controlled by scripting.</p>
 <h4 id="speedoguide">SpeedoGuide</h4>
 <p>Number of digits to offset the speedometer number to center it on screen. 0 = no digits (for ones), 1 = one digit (for tens), 2 = two digits (for hundreds).</p>
+<p>Note that the "1" position is incorrectly rendered the same as the "2" position.</p>
 <h4 id="sphundreds">SPHundreds</h4>
 <p>The speedometer digit to display in the hundreds position. -1 to hide the digit.</p>
 <h4 id="sptens">SPTens</h4>
@@ -327,22 +317,19 @@
 </table>
 <p>All other values blank the box.</p>
 <h3 id="right-panel">Right panel</h3>
-<h4 id="horn">Horn</h4>
-<p>The horn plunger.</p>
-<h4 id="sign">SigN</h4>
+<h4 id="siggreen">SigGreen</h4>
 <p>Controls the green lights on the upper cab signal head. Any value above 0.5 turns on the lights.</p>
-<h4 id="sigl">SigL</h4>
+<h4 id="sigyellow">SigYellow</h4>
 <p>Controls the yellow lights on the upper cab signal head. Any value above 0.5 turns on the lights.</p>
-<h4 id="sigs">SigS</h4>
+<h4 id="sigred">SigRed</h4>
 <p>Controls the red lights on the upper cab signal head. Any value above 0.5 turns on the lights.</p>
-<h4 id="sigm">SigM</h4>
+<h4 id="siglowergreen">SigLowerGreen</h4>
 <p>Controls the green lights on the lower cab signal head. Any value above 0.5 turns on the lights.</p>
-<h4 id="sigr">SigR</h4>
+<h4 id="siglowergrey">SigLowerGrey</h4>
 <p>Controls the lunar lights on the lower cab signal head. Any value above 0.5 turns on the lights.</p>
-<h4 id="signalspeed">SignalSpeed</h4>
+<h4 id="cabspeed">CabSpeed</h4>
 <p>Sets the displayed signal speed limit. Only the following values are supported:</p>
 <ul>
-<li>0</li>
 <li>15</li>
 <li>20</li>
 <li>30</li>
@@ -357,40 +344,31 @@
 <p>The track speed digit to display in the tens place. -1 to hide the digit.</p>
 <h4 id="tsunits">TSUnits</h4>
 <p>The track speed digit to display in the ones place. -1 to hide the digit.</p>
-<h4 id="maximumspeedlimitindicator">MaximumSpeedLimitIndicator</h4>
+<h4 id="minimumspeed">MinimumSpeed</h4>
 <p>Turns on one of the red squares next to the signal and track speed limit displays. -1 = both off, 0 = signal speed square on, 1 = track speed square on.</p>
-<h4 id="wipers">Wipers</h4>
-<p>The wipers switch.</p>
-<h4 id="frontcone">FrontCone</h4>
-<p>The front hatch button. 0 = closed (released), 1 = open (depressed).</p>
+<h4 id="handbrake">Handbrake</h4>
+<p>The handbrake dial. Setting this to the maximum illuminates the "parking brakes" indicator.</p>
 <p>The default setting is 0.</p>
-<h4 id="bell">Bell</h4>
-<p>The bell switch.</p>
-<h4 id="destonoff">DestOnOff</h4>
-<p>The destination display off/on button.</p>
-<p>The default setting is 0.</p>
-<h4 id="destjoy">DestJoy</h4>
-<p>The destination display setting joystick. -1 = left, 0 = centered, 1 = right.</p>
 <h3 id="sounds">Sounds</h3>
 <h4 id="awswarncount">AWSWarnCount</h4>
 <p>Plays a British AWS warning horn and illuminates the exclamation mark on the HUD when set to 1.</p>
-<h4 id="awsclearcount">AWSClearCount</h4>
-<p>Plays a British AWS informational tone when its value is changed.</p>
+<h4 id="speedincreasealert">SpeedIncreaseAlert</h4>
+<p>Plays a short electronic beep when set to 1.</p>
 <h3 id="keyboard-shortcuts">Keyboard shortcuts</h3>
 <h4 id="atccutin">ATCCutIn</h4>
 <p>Toggles between 0 and 1 with Ctrl+D. Should not be set by Lua; otherwise the value will desync from the keyboard shortcut.</p>
-<p>The default setting is 0.</p>
+<p>The default setting is 1.</p>
 <h4 id="acsescutin">ACSESCutIn</h4>
 <p>Toggles between 0 and 1 with Ctrl+F. Should not be set by Lua; otherwise the value will desync from the keyboard shortcut.</p>
-<p>The default setting is 0.</p>
+<p>The default setting is 1.</p>
 <h3 id="model-nodes">Model nodes</h3>
-<h4 id="front_spark01">Front_spark01</h4>
+<h4 id="front_spark01">front_spark01</h4>
 <p>One of the white billboards for the front pantograph spark.</p>
-<h4 id="front_spark02">Front_spark02</h4>
+<h4 id="front_spark02">front_spark02</h4>
 <p>One of the white billboards for the front pantograph spark.</p>
-<h4 id="rear_spark01">Rear_spark01</h4>
+<h4 id="rear_spark01">rear_spark01</h4>
 <p>One of the white billboards for the rear pantograph spark.</p>
-<h4 id="rear_spark02">Rear_spark02</h4>
+<h4 id="rear_spark02">rear_spark02</h4>
 <p>One of the white billboards for the rear pantograph spark.</p>
 <h3 id="lights">Lights</h3>
 <h4 id="spark">Spark</h4>
@@ -399,141 +377,19 @@
 <p>The blue light for the rear pantograph spark.</p>
 <h4 id="cablight">CabLight</h4>
 <p>The cab's dome light.</p>
-<h4 id="ditchlightleft">DitchLightLeft</h4>
-<p>The left ground light.</p>
-<h4 id="ditchlightright">DitchLightRight</h4>
-<p>The right ground light.</p>
+<h4 id="fwd_ditchlightleft">Fwd_DitchLightLeft</h4>
+<p>The forward left ground light.</p>
+<h4 id="fwd_ditchlightright">Fwd_DitchLightRight</h4>
+<p>The forward right ground light.</p>
+<h4 id="bwd_ditchlightleft">Bwd_DitchLightLeft</h4>
+<p>The rear left ground light.</p>
+<h4 id="bwd_ditchlightright">Bwd_DitchLightRight</h4>
+<p>The rear right ground light.</p>
 <h3 id="animations">Animations</h3>
 <h4 id="frontpanto">frontPanto</h4>
 <p>Raises the front pantograph and its spark. Duration is 2 seconds.</p>
 <h4 id="rearpanto">rearPanto</h4>
-<p>Raises the rear pantograph and its spark. Duration is 2 seconds.</p>
-<h4 id="cone">cone</h4>
-<p>Opens the nose cone that shrouds the front coupler. Duration is 2 seconds.</p>
-<h3 id="consist-messages">Consist messages</h3>
-<h4 id="1209">1209</h4>
-<p>Communicates the position of the tilt isolate control, to tell the coaches to tilt or not to tilt. The argument is its current setting.</p>
-<h4 id="1210">1210</h4>
-<p>Communicates the currently displayed destination sign to the passenger coaches. The argument is the ID of the destination:</p>
-<table>
-<thead>
-<tr>
-<th>Argument</th>
-<th>Destination</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>(blank)</td>
-</tr>
-<tr>
-<td>2</td>
-<td>Philadelphia</td>
-</tr>
-<tr>
-<td>3</td>
-<td>North Philadelphia</td>
-</tr>
-<tr>
-<td>4</td>
-<td>Holmesburg</td>
-</tr>
-<tr>
-<td>5</td>
-<td>Torresdale</td>
-</tr>
-<tr>
-<td>6</td>
-<td>Cornwell</td>
-</tr>
-<tr>
-<td>7</td>
-<td>Eddington</td>
-</tr>
-<tr>
-<td>8</td>
-<td>Croydon</td>
-</tr>
-<tr>
-<td>9</td>
-<td>Bristol</td>
-</tr>
-<tr>
-<td>10</td>
-<td>Levittown</td>
-</tr>
-<tr>
-<td>11</td>
-<td>Trenton</td>
-</tr>
-<tr>
-<td>12</td>
-<td>Hamilton</td>
-</tr>
-<tr>
-<td>13</td>
-<td>Princeton</td>
-</tr>
-<tr>
-<td>14</td>
-<td>Jersey Avenue</td>
-</tr>
-<tr>
-<td>15</td>
-<td>New Brunswick</td>
-</tr>
-<tr>
-<td>16</td>
-<td>Edison</td>
-</tr>
-<tr>
-<td>17</td>
-<td>Metuchen</td>
-</tr>
-<tr>
-<td>18</td>
-<td>Metropark</td>
-</tr>
-<tr>
-<td>19</td>
-<td>Rahway</td>
-</tr>
-<tr>
-<td>20</td>
-<td>Linden</td>
-</tr>
-<tr>
-<td>21</td>
-<td>Elizabeth</td>
-</tr>
-<tr>
-<td>22</td>
-<td>North Elizabeth</td>
-</tr>
-<tr>
-<td>23</td>
-<td>Newark Liberty</td>
-</tr>
-<tr>
-<td>24</td>
-<td>Newark Penn</td>
-</tr>
-<tr>
-<td>25</td>
-<td>Harrison</td>
-</tr>
-<tr>
-<td>26</td>
-<td>Secaucus</td>
-</tr>
-<tr>
-<td>27</td>
-<td>New York Penn</td>
-</tr>
-</tbody>
-</table>
-<p>These are only available stations, even for the Washington to Baltimore version of the Acela.</p></div>
+<p>Raises the rear pantograph and its spark. Duration is 2 seconds.</p></div>
             </div>
         </div>
 
