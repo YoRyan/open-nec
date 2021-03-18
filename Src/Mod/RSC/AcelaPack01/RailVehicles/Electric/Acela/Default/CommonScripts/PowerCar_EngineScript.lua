@@ -408,8 +408,11 @@ local function setstatusscreen ()
     end
     RailWorks.SetControlValue("LightsIndicator", 0, indicator)
   end
-  tracteffort:sample(RailWorks.GetTractiveEffort()*300)
-  RailWorks.SetControlValue("Effort", 0, tracteffort:get())
+  do
+    local maxtracteffort = 300
+    tracteffort:sample(RailWorks.GetTractiveEffort()*maxtracteffort)
+    RailWorks.SetControlValue("Effort", 0, tracteffort:get())
+  end
 end
 
 local function setdrivescreen ()
