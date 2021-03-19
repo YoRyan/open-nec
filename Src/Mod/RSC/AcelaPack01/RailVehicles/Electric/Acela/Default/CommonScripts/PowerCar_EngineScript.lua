@@ -37,7 +37,7 @@ local state = {
 }
 
 local destscroller
-local destinations = {{"No service", 1},
+local destinations = {{"No service", 24},
                       {"Union Station", 3},
                       {"BWI Airport", 4},
                       {"Baltimore Penn", 5},
@@ -45,7 +45,7 @@ local destinations = {{"No service", 1},
                       {"Philadelphia", 2},
                       {"Trenton", 11},
                       {"Metropark", 18},
-                      {"Newark Penn", 24},
+                      {"Newark Penn", 1},
                       {"New York", 27},
                       {"New Rochelle", 7},
                       {"Stamford", 8},
