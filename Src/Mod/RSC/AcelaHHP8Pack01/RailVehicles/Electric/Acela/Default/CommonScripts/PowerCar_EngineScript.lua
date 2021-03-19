@@ -42,11 +42,11 @@ Initialise = RailWorks.wraperrors(function ()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
 
-  local squareflash_s = 0.5
+  local alert_s = 1
 
   atcalert = Tone:new{
     scheduler = playersched,
-    time_s = squareflash_s
+    time_s = alert_s
   }
   atc = Atc:new{
     scheduler = playersched,
@@ -59,7 +59,7 @@ Initialise = RailWorks.wraperrors(function ()
 
   acsesalert = Tone:new{
     scheduler = playersched,
-    time_s = squareflash_s
+    time_s = alert_s
   }
   acses = Acses:new{
     scheduler = playersched,
@@ -113,6 +113,7 @@ Initialise = RailWorks.wraperrors(function ()
     on_s = 1.5
   }
 
+  local squareflash_s = 0.5
   squareflasher = Flash:new{
     scheduler = playersched,
     off_s = squareflash_s,
