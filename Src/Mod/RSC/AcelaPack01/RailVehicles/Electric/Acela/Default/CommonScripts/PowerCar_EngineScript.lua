@@ -558,10 +558,18 @@ local function setgroundlights ()
   local flash = state.headlights == 1 and state.groundlights == 2
   groundflasher:setflashstate(flash)
   local flashleft = groundflasher:ison()
-  Call("DitchLightLeft:Activate",
-    RailWorks.frombool(fixed or (flash and flashleft)))
-  Call("DitchLightRight:Activate",
-    RailWorks.frombool(fixed or (flash and not flashleft)))
+  do
+    local showleft = fixed or (flash and flashleft)
+    RailWorks.ActivateNode("LeftOn", showleft)
+    RailWorks.ActivateNode("DitchLightsL", showleft)
+    Call("DitchLightLeft:Activate", RailWorks.frombool(showleft))
+  end
+  do
+    local showright = fixed or (flash and not flashleft)
+    RailWorks.ActivateNode("RightOn", showright)
+    RailWorks.ActivateNode("DitchLightsR", showright)
+    Call("DitchLightRight:Activate", RailWorks.frombool(showright))
+  end
 end
 
 local function updateplayer ()
