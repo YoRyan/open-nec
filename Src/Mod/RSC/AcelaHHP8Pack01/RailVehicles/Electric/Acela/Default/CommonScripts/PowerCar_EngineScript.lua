@@ -324,23 +324,24 @@ local function setstatusscreen ()
   end
 end
 
+local function toroundedmph (v)
+  return math.floor(v*Units.mps.tomph + 0.5)
+end
+
+local function getdigitguide (v)
+  if v < 10 then return 0
+  else return math.floor(math.log10(v)) end
+end
+
 local function setdrivescreen ()
   RailWorks.SetControlValue(
     "ControlScreenDer", 0, RailWorks.frombool(not power:haspower()))
   do
-    local speed_mph = math.floor(state.speed_mps*Units.mps.tomph + 0.5)
+    local speed_mph = toroundedmph(state.speed_mps)
     RailWorks.SetControlValue("SPHundreds", 0, getdigit(speed_mph, 2))
     RailWorks.SetControlValue("SPTens", 0, getdigit(speed_mph, 1))
     RailWorks.SetControlValue("SPUnits", 0, getdigit(speed_mph, 0))
-
-    local speedlog10 = math.log10(speed_mph)
-    local offset
-    if speedlog10 > 1e9 or speedlog10 < 0 then
-      offset = 0
-    else
-      offset = math.floor(speedlog10)
-    end
-    RailWorks.SetControlValue("SpeedoGuide", 0, offset)
+    RailWorks.SetControlValue("SpeedoGuide", 0, getdigitguide(speed_mph))
   end
   do
     local v
@@ -355,10 +356,6 @@ local function setcutin ()
     atc:setrunstate(RailWorks.GetControlValue("ATCCutIn", 0) == 1)
     acses:setrunstate(RailWorks.GetControlValue("ACSESCutIn", 0) == 1)
   end
-end
-
-local function toroundedmph (v)
-  return math.floor(v*Units.mps.tomph + 0.5)
 end
 
 local function setadu ()
@@ -449,7 +446,6 @@ end
 local function setcablight ()
   local on = RailWorks.GetControlValue("CabLight", 0)
   Call("CabLight:Activate", on)
-  Call("CabLight:Activate", on)
 end
 
 local function setgroundlights ()
@@ -481,6 +477,7 @@ local function updateplayer ()
   anysched:update()
   frontpantoanim:update()
   rearpantoanim:update()
+
   writelocostate()
   setplayerpantos()
   setpantosparks()
