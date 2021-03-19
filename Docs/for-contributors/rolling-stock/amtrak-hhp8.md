@@ -289,6 +289,22 @@ One of the white billboards for the rear pantograph spark.
 
 One of the white billboards for the rear pantograph spark.
 
+#### ditch_fwd_l
+
+The forward left ground light.
+
+#### ditch_fwd_r
+
+The forward right ground light.
+
+#### ditch_bwd_l
+
+The rear left ground light.
+
+#### ditch_bwd_r
+
+The rear right ground light.
+
 ## Lights
 
 #### Spark
