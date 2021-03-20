@@ -383,18 +383,25 @@ local function stopsignalpenalty (self, violation)
   self._enforcingspeed_mps = 0
   self._ispenalty = true
   self._ispositivestop = true
-  self._sched:select(nil, function ()
-    local signal = self._signaltracker:getobject(violation.hazard.id)
-    local upgraded = signal == nil or signal.prostate ~= 3
-    return upgraded
-  end)
-  self._sched:select(nil, function ()
-    return self._getacknowledge()
-  end)
+  local acknowledged = false
+  while true do
+    local event = self._sched:select(nil,
+      function ()
+        local signal = self._signaltracker:getobject(violation.hazard.id)
+        local upgraded = signal == nil or signal.prostate ~= 3
+        return upgraded and acknowledged
+      end,
+      function () return self._getacknowledge() end)
+    if event == 1 then
+      break
+    elseif event == 2 then
+      acknowledged = true
+      self._isalarm = false
+    end
+  end
   self._enforcingspeed_mps = nil
   self._ispenalty = false
   self._ispositivestop = false
-  self._isalarm = false
 end
 
 local function penalty (self, violation)
