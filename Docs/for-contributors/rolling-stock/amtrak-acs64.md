@@ -122,10 +122,6 @@ Illuminates the upper green cab signal aspect lamp.
 
 Illuminates the upper yellow cab signal aspect lamp.
 
-#### SigAspectTopYellow
-
-Illuminates the upper yellow cab signal aspect lamp.
-
 #### SigAspectTopRed
 
 Illuminates the upper red cab signal aspect lamp.
@@ -167,10 +163,6 @@ Selects one of the predefined texts for the cab signal aspect display.
 | 13 | APPROACH MEDIUM |
 
 All other values blank the display.
-
-#### SigS
-
-Illuminates the "S" cab signal aspect lamp.
 
 #### SigS
 
