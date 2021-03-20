@@ -226,7 +226,7 @@ local function topulsecode (self, message)
       return Nec.pulsecode.approachmed
     -- DTG "Approach Medium (30mph)"
     elseif code == "5" then
-      return Nec.pulsecode.approach
+      return Nec.pulsecode.approachmed
     -- DTG "Approach (30mph)"
     elseif code == "6" then
       return Nec.pulsecode.approach
