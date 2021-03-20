@@ -20,6 +20,7 @@ local function initstate (self)
   self._curvespeed_mps = 0
   self._isalarm = false
   self._ispenalty = false
+  self._ispositivestop = false
   self._violation = nil
   self._enforcingspeed_mps = nil
   self._limitfilter = nil
@@ -189,6 +190,13 @@ local function calcbrakecurve (self, vf, d, t)
     math.pow(math.pow(a*t, 2) - 2*a*d + math.pow(vf, 2), 0.5) + a*t, vf)
 end
 
+local function calctimetopenalty (self, vf, d)
+  local a = self._penaltycurve_mps2
+  local vi = math.abs(self._getspeed_mps())
+  if vi <= vf or a == 0 or vi == 0 then return nil
+  else return (d - (vf*vf - vi*vi)/(2*a))/vi end
+end
+
 local function getspeedlimithazard (self, id)
   local speed_mps = self._limittracker:getobject(id).speed_mps
   local distance_m = self._limittracker:getdistance_m(id)
@@ -197,6 +205,8 @@ local function getspeedlimithazard (self, id)
     id=id,
     penalty_mps=calcbrakecurve(
       self, speed_mps + self._penaltylimit_mps, distance_m, 0),
+    timetopenalty_s=calctimetopenalty(
+      self, speed_mps + self._penaltylimit_mps, distance_m),
     alert_mps=calcbrakecurve(
       self, speed_mps + self._alertlimit_mps, distance_m, self._alertcurve_s),
     curve_mps=calcbrakecurve(
@@ -255,6 +265,7 @@ local function getsignalstophazard (self, id)
     type=hazardtype.stopsignal,
     id=id,
     penalty_mps=calcbrakecurve(self, 0, distance_m, 0),
+    timetopenalty_s=calctimetopenalty(self, 0, distance_m),
     alert_mps=alert_mps,
     curve_mps=alert_mps
   }
@@ -371,6 +382,7 @@ end
 local function stopsignalpenalty (self, violation)
   self._enforcingspeed_mps = 0
   self._ispenalty = true
+  self._ispositivestop = true
   self._sched:select(nil, function ()
     local signal = self._signaltracker:getobject(violation.hazard.id)
     local upgraded = signal == nil or signal.prostate ~= 3
@@ -381,6 +393,7 @@ local function stopsignalpenalty (self, violation)
   end)
   self._enforcingspeed_mps = nil
   self._ispenalty = false
+  self._ispositivestop = false
   self._isalarm = false
 end
 
@@ -607,6 +620,25 @@ end
 -- Returns true when a penalty brake is applied.
 function P:ispenalty ()
   return self._ispenalty
+end
+
+-- Returns true when a positive stop is in effect.
+function P:ispositivestop ()
+  return self._ispositivestop
+end
+
+-- Returns the time to penalty countdown if in the alert state.
+function P:gettimetopenalty_s ()
+  if self._violation == nil then
+    return nil
+  else
+    local violation = self._violation
+    if violation.type == violationtype.alert then
+      return violation.hazard.timetopenalty_s
+    else
+      return nil
+    end
+  end
 end
 
 return P

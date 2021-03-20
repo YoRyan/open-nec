@@ -270,6 +270,101 @@ local function setcutin ()
   end
 end
 
+local function setadu ()
+  local pulsecode = atc:getpulsecode()
+  do
+    local tg, ty, tr, bg, bw
+    local text
+    local s, r, m, l, cs60, cs80, n
+    local f = 2 -- flash
+    if acses:ispositivestop() then
+      tg, ty, tr, bg, bw = 0, 0, 1, 0, 0
+      text = 12
+      s, r, m, l, cs60, cs80, n = 1, 0, 0, 0, 0, 0, 0
+    elseif pulsecode == Nec.pulsecode.restrict then
+      tg, ty, tr, bg, bw = 0, 0, 1, 0, 1
+      text = 11
+      s, r, m, l, cs60, cs80, n = 0, 1, 0, 0, 0, 0, 0
+    elseif pulsecode == Nec.pulsecode.approach then
+      tg, ty, tr, bg, bw = 0, 1, 0, 0, 0
+      text = 8
+      s, r, m, l, cs60, cs80, n = 0, 0, 1, 0, 0, 0, 0
+    elseif pulsecode == Nec.pulsecode.approachmed then
+      tg, ty, tr, bg, bw = 0, 1, 0, 1, 0
+      text = 13
+      s, r, m, l, cs60, cs80, n = 0, 0, 0, 1, 0, 0, 0
+    elseif pulsecode == Nec.pulsecode.cabspeed60 then
+      tg, ty, tr, bg, bw = f, 0, 0, 0, 0
+      text = 2
+      s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 1, 0, 0
+    elseif pulsecode == Nec.pulsecode.cabspeed80 then
+      tg, ty, tr, bg, bw = f, 0, 0, 0, 0
+      text = 2
+      s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, 1, 0
+    elseif pulsecode == Nec.pulsecode.clear100
+        or pulsecode == Nec.pulsecode.clear125
+        or pulsecode == Nec.pulsecode.clear150 then
+      tg, ty, tr, bg, bw = 1, 0, 0, 0, 0
+      text = 1
+      s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, 0, 1
+    end
+
+    csflasher:setflashstate(tg == f)
+    local tglight = tg == 1 or (tg == f and csflasher:ison())
+    RailWorks.SetControlValue("SigAspectTopGreen", 0, RailWorks.frombool(tglight))
+    RailWorks.SetControlValue("SigAspectTopYellow", 0, ty)
+    RailWorks.SetControlValue("SigAspectTopRed", 0, tr)
+    RailWorks.SetControlValue("SigAspectBottomGreen", 0, bg)
+    RailWorks.SetControlValue("SigAspectBottomWhite", 0, bw)
+
+    RailWorks.SetControlValue("SigText", 0, text)
+
+    RailWorks.SetControlValue("SigS", 0, s)
+    RailWorks.SetControlValue("SigR", 0, r)
+    RailWorks.SetControlValue("SigM", 0, m)
+    RailWorks.SetControlValue("SigL", 0, l)
+    RailWorks.SetControlValue("Sig60", 0, cs60)
+    RailWorks.SetControlValue("Sig80", 0, cs80)
+    RailWorks.SetControlValue("SigN", 0, n)
+  end
+  do
+    local atcspeed_mph = toroundedmph(Atc.amtrakpulsecodespeed_mps(pulsecode))
+    local acsesspeed_mph = toroundedmph(acses:getinforcespeed_mps())
+    local speed_mph = math.min(atcspeed_mph, acsesspeed_mph)
+    RailWorks.SetControlValue("SpeedLimit_hundreds", 0, getdigit(speed_mph, 2))
+    RailWorks.SetControlValue("SpeedLimit_tens", 0, getdigit(speed_mph, 1))
+    RailWorks.SetControlValue("SpeedLimit_units", 0, getdigit(speed_mph, 0))
+
+    RailWorks.SetControlValue("SigModeATC", 0,
+      RailWorks.frombool(atc:isalarm() or atcalert:isplaying()))
+    RailWorks.SetControlValue("SigModeACSES", 0,
+      RailWorks.frombool(acses:isalarm() or acsesalert:isplaying()))
+  end
+  do
+    local ttp_s = acses:gettimetopenalty_s()
+    if ttp_s == nil then
+      RailWorks.SetControlValue("Penalty_hundreds", 0, 0)
+      RailWorks.SetControlValue("Penalty_tens", 0, -1)
+      RailWorks.SetControlValue("Penalty_units", 0, -1)
+    else
+      local rttp_s = math.floor(ttp_s)
+      RailWorks.SetControlValue("Penalty_hundreds", 0, getdigit(rttp_s, 2))
+      RailWorks.SetControlValue("Penalty_tens", 0, getdigit(rttp_s, 1))
+      RailWorks.SetControlValue("Penalty_units", 0, getdigit(rttp_s, 0))
+    end
+  end
+  do
+    local cutin = RailWorks.GetControlValue("ATCCutIn", 0) == 1
+    RailWorks.SetControlValue("SigATCCutIn", 0, RailWorks.frombool(cutin))
+    RailWorks.SetControlValue("SigATCCutOut", 0, RailWorks.frombool(not cutin))
+  end
+  do
+    local cutin = RailWorks.GetControlValue("ACSESCutIn", 0) == 1
+    RailWorks.SetControlValue("SigACSESCutIn", 0, RailWorks.frombool(cutin))
+    RailWorks.SetControlValue("SigACSESCutOut", 0, RailWorks.frombool(not cutin))
+  end
+end
+
 local function setcablights ()
   do
     local dome = RailWorks.GetControlValue("CabLight", 0)
@@ -326,6 +421,7 @@ local function updateplayer ()
   setpantosparks()
   setscreen()
   setcutin()
+  setadu()
   setcablights()
   setditchlights()
 
