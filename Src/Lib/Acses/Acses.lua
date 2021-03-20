@@ -62,7 +62,7 @@ function P:new (conf)
     _positivestop_m =
       conf.positivestop_m or 20*Units.m.toft,
     _alertcurve_s =
-      conf.alertcurve_s or 8
+      conf.alertcurve_s or 7
   }
   setmetatable(o, self)
   self.__index = self

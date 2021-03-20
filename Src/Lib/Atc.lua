@@ -29,7 +29,7 @@ function P:new (conf)
     _getacknowledge = conf.getacknowledge or function () return false end,
     _getpulsecodespeed_mps = conf.getpulsecodespeed_mps or P.amtrakpulsecodespeed_mps,
     _doalert = conf.doalert or function () end,
-    _countdown_s = conf.countdown_s or 6,
+    _countdown_s = conf.countdown_s or 7,
     -- Rates are taken fom the Train Sim World: Northeast Corridor New York manual.
     -- The units are given as m/s/s, but the implied rates would be impossible to
     -- achieve, so I suspect they are supposed to be mph/s.
