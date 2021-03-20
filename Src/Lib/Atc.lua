@@ -27,6 +27,7 @@ function P:new (conf)
     _getspeed_mps = conf.getspeed_mps or function () return 0 end,
     _getacceleration_mps2 = conf.getacceleration_mps2 or function () return 0 end,
     _getacknowledge = conf.getacknowledge or function () return false end,
+    _getpulsecodespeed_mps = conf.getpulsecodespeed_mps or P.amtrakpulsecodespeed_mps,
     _doalert = conf.doalert or function () end,
     _countdown_s = conf.countdown_s or 6,
     -- Rates are taken fom the Train Sim World: Northeast Corridor New York manual.
@@ -78,7 +79,7 @@ local function penalty (self)
 end
 
 local function iscomplying (self)
-  local limit_mps = P.amtrakpulsecodespeed_mps(self._pulsecode)
+  local limit_mps = self._getpulsecodespeed_mps(self._pulsecode)
   return self._getspeed_mps() <= limit_mps + self._speedmargin_mps
 end
 
@@ -158,6 +159,11 @@ end
 -- Get the current pulse code in effect.
 function P:getpulsecode ()
   return self._pulsecode
+end
+
+-- Get the current signal speed limit in force.
+function P:getinforcespeed_mps ()
+  return self._getpulsecodespeed_mps(self._pulsecode)
 end
 
 -- Returns true when the alarm is sounding.

@@ -204,8 +204,7 @@ local function toroundedmph (v)
 end
 
 local function settrackspeed ()
-  local signalspeed_mph = toroundedmph(
-    Atc.amtrakpulsecodespeed_mps(atc:getpulsecode()))
+  local signalspeed_mph = toroundedmph(atc:getinforcespeed_mps())
   local trackspeed_mph = toroundedmph(acses:getinforcespeed_mps())
   local canshowsigspeed = signalspeed_mph ~= 100
     and signalspeed_mph ~= 125

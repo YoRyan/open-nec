@@ -463,7 +463,7 @@ local function setadu ()
   local acsesalarm = acses:isalarm()
   local acsesalertp = acsesalert:isplaying()
   do
-    local signalspeed_mph = toroundedmph(Atc.amtrakpulsecodespeed_mps(pulsecode))
+    local signalspeed_mph = toroundedmph(atc:getinforcespeed_mps())
     local trackspeed_mph = toroundedmph(acses:getinforcespeed_mps())
     local canshowsigspeed = signalspeed_mph ~= 100
       and signalspeed_mph ~= 125

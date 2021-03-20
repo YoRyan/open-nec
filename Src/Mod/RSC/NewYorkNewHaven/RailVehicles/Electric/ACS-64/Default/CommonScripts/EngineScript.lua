@@ -328,7 +328,7 @@ local function setadu ()
     RailWorks.SetControlValue("SigN", 0, n)
   end
   do
-    local atcspeed_mph = toroundedmph(Atc.amtrakpulsecodespeed_mps(pulsecode))
+    local atcspeed_mph = toroundedmph(atc:getinforcespeed_mps())
     local acsesspeed_mph = toroundedmph(acses:getinforcespeed_mps())
     local speed_mph = math.min(atcspeed_mph, acsesspeed_mph)
     RailWorks.SetControlValue("SpeedLimit_hundreds", 0, getdigit(speed_mph, 2))
