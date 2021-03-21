@@ -53,7 +53,6 @@ Initialise = RailWorks.wraperrors(function ()
   }
   acses = Acses:new{
     scheduler = playersched,
-    atc = atc,
     getspeed_mps = function () return state.speed_mps end,
     gettrackspeed_mps = function () return state.trackspeed_mps end,
     iterspeedlimits = function () return pairs(state.speedlimits) end,
@@ -462,6 +461,7 @@ OnControlValueChange = RailWorks.SetControlValue
 OnCustomSignalMessage = RailWorks.wraperrors(function (message)
   power:receivemessage(message)
   atc:receivemessage(message)
+  acses:receivemessage(message)
 end)
 
 OnConsistMessage = RailWorks.SendConsistMessage

@@ -21,6 +21,8 @@ local function initstate (self)
   self._isalarm = false
   self._ispenalty = false
   self._ispositivestop = false
+  self._issigapproach = true
+  self._issigapproachmed = false
   self._violation = nil
   self._enforcingspeed_mps = nil
   self._limitfilter = nil
@@ -36,8 +38,6 @@ function P:new (conf)
   local o = {
     _sched =
       conf.scheduler,
-    _atc =
-      conf.atc,
     _getspeed_mps =
       conf.getspeed_mps or function () return 0 end,
     _gettrackspeed_mps =
@@ -290,9 +290,7 @@ local function iterhazards (self)
   local dir = getdirection(self)
   local hazards = {gettrackspeedhazard(self)}
 
-  local pulsecode = self._atc:getpulsecode()
-  if pulsecode == Nec.pulsecode.restrict
-      or pulsecode == Nec.pulsecode.approach then
+  if self._issigapproach then
     local id = getnextstopsignalid(self, dir)
     if id ~= nil then
       table.insert(hazards, getsignalstophazard(self, id))
@@ -632,6 +630,53 @@ end
 -- Returns true when a positive stop is in effect.
 function P:ispositivestop ()
   return self._ispositivestop
+end
+
+-- Receive a custom signal message.
+function P:receivemessage (message)
+  if not self._running then
+    return
+  end
+
+  local approach, approachmed
+  -- Amtrak/NJ Transit signals
+  if string.sub(message, 1, 3) == "sig" then
+    local code = string.sub(message, 4, 4)
+    -- DTG "Approach Medium (30mph)"
+    if code == "5" then
+      approach, approachmed = false, true
+    -- DTG "Approach (30mph)"
+    elseif code == "6" then
+      approach, approachmed = true, false
+    -- DTG "Restricting"
+    elseif code == "7" then
+      approach, approachmed = true, false
+    -- DTG "Ignore"
+    elseif code == "8" then
+      approach, approachmed = self._isapproach, self._isapproachmedium
+    else
+      approach, approachmed = false, false
+    end
+  -- Metro-North signals
+  elseif string.find(message, "[MN]") == 1 then
+    local code = string.sub(message, 2, 3)
+    -- DTG "Approach Medium (30mph)"
+    if code == "12" then
+      approach, approachmed = true, false
+    -- DTG "Restricting"
+    elseif code == "13" or code == "14" then
+      approach, approachmed = true, false
+    -- DTG "Stop"
+    elseif code == "15" then
+      approach, approachmed = true, false
+    else
+      approach, approachmed = false, false
+    end
+  else
+    approach, approachmed = false, false
+  end
+  self._issigapproach = approach
+  self._issigapproachmed = approachmed
 end
 
 -- Returns the time to penalty countdown if in the alert state.
