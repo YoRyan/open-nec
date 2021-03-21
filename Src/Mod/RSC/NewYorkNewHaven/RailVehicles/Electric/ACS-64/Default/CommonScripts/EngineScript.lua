@@ -23,7 +23,9 @@ local state = {
   acceleration_mps2 = 0,
   trackspeed_mps = 0,
   speedlimits = {},
-  restrictsignals = {}
+  restrictsignals = {},
+
+  lasthorntime_s = nil
 }
 
 Initialise = RailWorks.wraperrors(function ()
@@ -116,6 +118,10 @@ local function readcontrols ()
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
   if state.acknowledge or change then
     alerter:acknowledge()
+  end
+
+  if RailWorks.GetControlValue("Horn", 0) == 1 then
+    state.lasthorntime_s = playersched:clock()
   end
 
   state.headlights = RailWorks.GetControlValue("Headlights", 0)
@@ -389,8 +395,11 @@ local function setcablights ()
 end
 
 local function setditchlights ()
+  local horntime_s = 30
+  local horn = state.lasthorntime_s ~= nil
+    and playersched:clock() <= state.lasthorntime_s + horntime_s
   local fixed = state.headlights == 1 and state.ditchlights == 1
-  local flash = state.headlights == 1 and state.ditchlights == 2
+  local flash = (state.headlights == 1 and state.ditchlights == 2) or horn
   ditchflasher:setflashstate(flash)
   local flashleft = ditchflasher:ison()
   do
