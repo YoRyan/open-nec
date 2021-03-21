@@ -3,8 +3,8 @@
 local P = {}
 AcsesTracker = P
 
-local passing_m = 16
-local trackmargin_m = 2
+local maxpassing_m = 28.5 -- 1.1*85 ft
+local trackmargin_m = 1
 
 local function run (self)
   local ctr = 1
@@ -17,58 +17,73 @@ local function run (self)
 
     local newobjects = {}
     local newdistances_m = {}
+    local newpassing_m = {}
+
+    local function itertravel (id, distance_m)
+      return id, distance_m - travel_m
+    end
+    local inferdistances_m = Iterator.totable(
+      Iterator.map(itertravel, pairs(self._distances_m)))
+    local inferpassing_m = Iterator.totable(
+      Iterator.map(itertravel, pairs(self._passing_m)))
 
     -- Match sensed objects to tracked objects, taking into consideration the
     -- anticipated travel distance.
-    for rawdistance_m, obj in self._iterbydistance() do
-      local sensedistance_m
-      if rawdistance_m >= 0 then
-        sensedistance_m = rawdistance_m + passing_m/2
+    for sensedistance_m, obj in self._iterbydistance() do
+      local closest = Iterator.min(
+        function (dista_m, distb_m)
+          return math.abs(dista_m - sensedistance_m)
+            < math.abs(distb_m - sensedistance_m)
+        end, pairs(inferdistances_m))
+      local newid
+      if closest == nil
+          or math.abs(inferdistances_m[closest] - sensedistance_m)
+            >= trackmargin_m then
+        -- If the distance is close, then attempt to match to a passing object.
+        local passed
+        if sensedistance_m < trackmargin_m then
+          passed = Iterator.max(Iterator.ltcomp, self._passing_m)
+        elseif sensedistance_m > -trackmargin_m then
+          passed = Iterator.min(Iterator.ltcomp, self._passing_m)
+        else
+          passed = nil
+        end
+        if passed == nil then
+          -- Add unmatched object.
+          newid = ctr
+          ctr = ctr + 1
+        else
+          -- Re-add passed object.
+          newid = passed
+        end
       else
-        sensedistance_m = rawdistance_m - passing_m/2
+        -- Update matched object.
+        newid = closest
       end
-      local match = Iterator.findfirst(
-        function (_, trackdistance_m)
-          return math.abs(trackdistance_m - travel_m - sensedistance_m)
-            < trackmargin_m/2
-        end,
-        pairs(self._distances_m))
-      if match == nil then
-        -- Add unmatched objects.
-        newobjects[ctr] = obj
-        newdistances_m[ctr] = sensedistance_m
-        ctr = ctr + 1
-      else
-        -- Update matched objects.
-        newobjects[match] = obj
-        newdistances_m[match] = sensedistance_m
+      newobjects[newid] = obj
+      newdistances_m[newid] = sensedistance_m
+    end
+
+    -- Cull passing objects that have exceeded the maximum passing distance.
+    for id, distance_m in pairs(inferpassing_m) do
+      if newdistances_m[id] == nil and math.abs(distance_m) < maxpassing_m then
+        newobjects[id] = self._objects[id]
+        newpassing_m[id] = distance_m
       end
     end
 
-    --[[
-      Track objects will briefly disappear for about 16 m of travel before they
-      reappear in the reverse direction. We call this area the "passing" zone.
-
-      d < 0|invisible|d > 0
-      ---->|__~16_m__|<----
-
-      Here, we add back objects that are no longer detected, but are within the
-      passing zone.
-    ]]
-    local ispassing = function (id, distance_m)
-      -- Use a generous retention margin here so that users will be notified
-      -- with a positive or negative distance if an object cannot be tracked
-      -- in the reverse direction.
-      return newdistances_m[id] == nil and math.abs(distance_m - travel_m)
-        < passing_m/2 + trackmargin_m
-    end
-    for id, distance_m in Iterator.filter(ispassing, pairs(self._distances_m)) do
-      newobjects[id] = self._objects[id]
-      newdistances_m[id] = distance_m - travel_m
+    -- Add back objects that are no longer sensed, but have entered the passing
+    -- zone.
+    for id, distance_m in pairs(inferdistances_m) do
+      if newdistances_m[id] == nil and math.abs(distance_m) < maxpassing_m then
+        newobjects[id] = self._objects[id]
+        newpassing_m[id] = 0
+      end
     end
 
     self._objects = newobjects
     self._distances_m = newdistances_m
+    self._passing_m = newpassing_m
   end
 end
 
@@ -84,7 +99,16 @@ function P:new (conf)
     _getspeed_mps = conf.getspeed_mps or function () return 0 end,
     _iterbydistance = conf.iterbydistance or function () return pairs({}) end,
     _objects = {},
-    _distances_m = {}
+    _distances_m = {},
+    --[[
+      Track objects will briefly disappear before they reappear in the reverse
+      direction - the exact distance is possibly the locomotive length? We call
+      this area the "passing" zone.
+
+      d < 0|invisible|d > 0
+      ---->|_________|<----
+    ]]
+    _passing_m = {}
   }
   setmetatable(o, self)
   self.__index = self
@@ -109,29 +133,17 @@ function P:getobject (id)
   return self._objects[id]
 end
 
-local function getcorrectdistance_m (self, id)
-  local distance_m = self._distances_m[id]
-  if distance_m == nil then
-    return nil
-  elseif distance_m < -passing_m/2 then
-    return distance_m + passing_m/2
-  elseif distance_m > passing_m/2 then
-    return distance_m - passing_m/2
-  else
-    return 0
-  end
-end
-
 -- Iterate through all relative distances by identifier.
 function P:iterdistances_m ()
-  return Iterator.map(
-    function (id, _) return id, getcorrectdistance_m(self, id) end,
-    pairs(self._distances_m))
+  return Iterator.concat(
+    {pairs(self._distances_m)},
+    {Iterator.map(function (id, _) return id, 0 end, pairs(self._passing_m))})
 end
 
 -- Get a relative distance by identifier.
 function P:getdistance_m (id)
-  return getcorrectdistance_m(self, id)
+  if self._passing_m[id] ~= nil then return 0
+  else return self._distances_m[id] end
 end
 
 return P
