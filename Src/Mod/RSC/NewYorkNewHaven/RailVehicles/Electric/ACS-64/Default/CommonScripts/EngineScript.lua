@@ -261,7 +261,7 @@ local function setscreen ()
     else
       light = false
     end
-    RailWorks.SetControlValue("ScreenSuppression", 0, light)
+    RailWorks.SetControlValue("ScreenSuppression", 0, RailWorks.frombool(light))
   end
   RailWorks.SetControlValue(
     "ScreenAlerter", 0,
