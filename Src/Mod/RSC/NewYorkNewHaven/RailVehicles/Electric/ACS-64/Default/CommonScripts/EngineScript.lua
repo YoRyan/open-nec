@@ -184,6 +184,7 @@ local function setpantosparks ()
   local rearcontact = RailWorks.GetControlValue("PantographControl", 0) == 1
   spark:setsparkstate(frontcontact or rearcontact)
   local isspark = spark:isspark()
+  RailWorks.SetControlValue("Spark", 0, RailWorks.frombool(isspark))
 
   RailWorks.ActivateNode("PantoBsparkA", frontcontact and isspark)
   RailWorks.ActivateNode("PantoBsparkB", frontcontact and isspark)
