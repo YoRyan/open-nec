@@ -461,13 +461,18 @@ local function setcutin ()
 end
 
 local function setadu ()
-  local pulsecode = atc:getpulsecode()
   local atcalarm = atc:isalarm()
   local atcalertp = atcalert:isplaying()
+  local acsesmode = acses:getmode()
   local acsesalarm = acses:isalarm()
   local acsesalertp = acsesalert:isplaying()
   do
-    local signalspeed_mph = toroundedmph(atc:getinforcespeed_mps())
+    local signalspeed_mph
+    if acsesmode == Acses.mode.approachmed30 then
+      signalspeed_mph = 30
+    else
+      signalspeed_mph = toroundedmph(atc:getinforcespeed_mps())
+    end
     local trackspeed_mph = toroundedmph(acses:getinforcespeed_mps())
     local canshowsigspeed = signalspeed_mph ~= 100
       and signalspeed_mph ~= 125
@@ -509,20 +514,25 @@ local function setadu ()
     end
   end
   do
+    local atccode = atc:getpulsecode()
     local f = 2 -- cab speed flash
     local n, l, s, m, r
-    if pulsecode == Nec.pulsecode.restrict then
-      n, l, s, m, r = 0, 0, 1, 0, 1
-    elseif pulsecode == Nec.pulsecode.approach then
-      n, l, s, m, r = 0, 1, 0, 0, 0
-    elseif pulsecode == Nec.pulsecode.approachmed then
+    if acsesmode == Acses.mode.positivestop then
+      n, l, s, m, r = 0, 0, 1, 0, 0
+    elseif acsesmode == Acses.mode.approachmed30 then
       n, l, s, m, r = 0, 1, 0, 1, 0
-    elseif pulsecode == Nec.pulsecode.cabspeed60
-        or pulsecode == Nec.pulsecode.cabspeed80 then
+    elseif atccode == Nec.pulsecode.restrict then
+      n, l, s, m, r = 0, 0, 1, 0, 1
+    elseif atccode == Nec.pulsecode.approach then
+      n, l, s, m, r = 0, 1, 0, 0, 0
+    elseif atccode == Nec.pulsecode.approachmed then
+      n, l, s, m, r = 0, 1, 0, 1, 0
+    elseif atccode == Nec.pulsecode.cabspeed60
+        or atccode == Nec.pulsecode.cabspeed80 then
       n, l, s, m, r = f, 0, 0, 0, 0
-    elseif pulsecode == Nec.pulsecode.clear100
-        or pulsecode == Nec.pulsecode.clear125
-        or pulsecode == Nec.pulsecode.clear150 then
+    elseif atccode == Nec.pulsecode.clear100
+        or atccode == Nec.pulsecode.clear125
+        or atccode == Nec.pulsecode.clear150 then
       n, l, s, m, r = 1, 0, 0, 0, 0
     else
       n, l, s, m, r = 0, 0, 0, 0, 0

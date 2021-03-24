@@ -276,39 +276,44 @@ local function setcutin ()
 end
 
 local function setadu ()
-  local pulsecode = atc:getpulsecode()
   do
+    local acsesmode = acses:getmode()
+    local atccode = atc:getpulsecode()
     local tg, ty, tr, bg, bw
     local text
     local s, r, m, l, cs60, cs80, n
     local f = 2 -- flash
-    if acses:ispositivestop() then
+    if acsesmode == Acses.mode.positivestop then
       tg, ty, tr, bg, bw = 0, 0, 1, 0, 0
       text = 12
       s, r, m, l, cs60, cs80, n = 1, 0, 0, 0, 0, 0, 0
-    elseif pulsecode == Nec.pulsecode.restrict then
-      tg, ty, tr, bg, bw = 0, 0, 1, 0, 1
-      text = 11
-      s, r, m, l, cs60, cs80, n = 0, 1, 0, 0, 0, 0, 0
-    elseif pulsecode == Nec.pulsecode.approach then
-      tg, ty, tr, bg, bw = 0, 1, 0, 0, 0
-      text = 8
-      s, r, m, l, cs60, cs80, n = 0, 0, 1, 0, 0, 0, 0
-    elseif pulsecode == Nec.pulsecode.approachmed then
+    elseif acsesmode == Acses.mode.approachmed30 then
       tg, ty, tr, bg, bw = 0, 1, 0, 1, 0
       text = 13
       s, r, m, l, cs60, cs80, n = 0, 0, 0, 1, 0, 0, 0
-    elseif pulsecode == Nec.pulsecode.cabspeed60 then
+    elseif atccode == Nec.pulsecode.restrict then
+      tg, ty, tr, bg, bw = 0, 0, 1, 0, 1
+      text = 11
+      s, r, m, l, cs60, cs80, n = 0, 1, 0, 0, 0, 0, 0
+    elseif atccode == Nec.pulsecode.approach then
+      tg, ty, tr, bg, bw = 0, 1, 0, 0, 0
+      text = 8
+      s, r, m, l, cs60, cs80, n = 0, 0, 1, 0, 0, 0, 0
+    elseif atccode == Nec.pulsecode.approachmed then
+      tg, ty, tr, bg, bw = 0, 1, 0, 1, 0
+      text = 13
+      s, r, m, l, cs60, cs80, n = 0, 0, 0, 1, 0, 0, 0
+    elseif atccode == Nec.pulsecode.cabspeed60 then
       tg, ty, tr, bg, bw = f, 0, 0, 0, 0
       text = 2
       s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 1, 0, 0
-    elseif pulsecode == Nec.pulsecode.cabspeed80 then
+    elseif atccode == Nec.pulsecode.cabspeed80 then
       tg, ty, tr, bg, bw = f, 0, 0, 0, 0
       text = 2
       s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, 1, 0
-    elseif pulsecode == Nec.pulsecode.clear100
-        or pulsecode == Nec.pulsecode.clear125
-        or pulsecode == Nec.pulsecode.clear150 then
+    elseif atccode == Nec.pulsecode.clear100
+        or atccode == Nec.pulsecode.clear125
+        or atccode == Nec.pulsecode.clear150 then
       tg, ty, tr, bg, bw = 1, 0, 0, 0, 0
       text = 1
       s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, 0, 1

@@ -169,21 +169,26 @@ end
 local function setcabsignal ()
   local f = 2 -- cab speed flash
 
-  local code = atc:getpulsecode()
+  local acsesmode = acses:getmode()
+  local atccode = atc:getpulsecode()
   local cs, cs1, cs2
-  if code == Nec.pulsecode.restrict then
+  if acsesmode == Acses.mode.positivestop then
+    cs, cs1, cs2 = 7, 0, 0 -- Unfortunately, we can't show a Stop aspect.
+  elseif acsesmode == Acses.mode.approachmed30 then
+    cs, cs1, cs2 = 6, 0, 1
+  elseif atccode == Nec.pulsecode.restrict then
     cs, cs1, cs2 = 7, 0, 0
-  elseif code == Nec.pulsecode.approach then
+  elseif atccode == Nec.pulsecode.approach then
     cs, cs1, cs2 = 6, 0, 0
-  elseif code == Nec.pulsecode.approachmed then
+  elseif atccode == Nec.pulsecode.approachmed then
     cs, cs1, cs2 = 4, 0, 1
-  elseif code == Nec.pulsecode.cabspeed60 then
+  elseif atccode == Nec.pulsecode.cabspeed60 then
     cs, cs1, cs2 = 3, f, 0
-  elseif code == Nec.pulsecode.cabspeed80 then
+  elseif atccode == Nec.pulsecode.cabspeed80 then
     cs, cs1, cs2 = 2, f, 0
-  elseif code == Nec.pulsecode.clear100
-      or code == Nec.pulsecode.clear125
-      or code == Nec.pulsecode.clear150 then
+  elseif atccode == Nec.pulsecode.clear100
+      or atccode == Nec.pulsecode.clear125
+      or atccode == Nec.pulsecode.clear150 then
     cs, cs1, cs2 = 1, 1, 0
   else
     cs, cs1, cs2 = 8, 0, 0
