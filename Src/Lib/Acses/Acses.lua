@@ -22,7 +22,7 @@ local function initstate (self)
   self._isalarm = false
   self._ispenalty = false
   self._ispositivestop = false
-  self._issigapproach = true
+  self._issigrestricting = true
   self._violation = nil
   self._enforcingspeed_mps = nil
   self._limitfilter = nil
@@ -295,7 +295,7 @@ local function iterhazards (self)
   local dir = getdirection(self)
   local hazards = {gettrackspeedhazard(self)}
 
-  if self._issigapproach then
+  if self._issigrestricting then
     local id = getnextstopsignalid(self, dir)
     if id ~= nil then
       table.insert(hazards, getsignalstophazard(self, id))
@@ -650,16 +650,12 @@ function P:receivemessage (message)
   -- Amtrak/NJ Transit signals
   if string.sub(message, 1, 3) == "sig" then
     local code = string.sub(message, 4, 4)
-    self._issigapproach =
-      code == "6" -- DTG "Approach (30mph)"
-        or code == "7" -- DTG "Restricting"
-        or code == "8" -- DTG "Ignore"
+    self._issigrestricting = code == "7" -- DTG "Restricting"
+        or (code == "8" and self._issigrestricting) -- DTG "Ignore"
   -- Metro-North signals
   elseif string.find(message, "[MN]") == 1 then
     local code = string.sub(message, 2, 3)
-    self._issigapproach =
-      code == "12" -- DTG "Approach Medium (30mph)"
-        or code == "13" or code == "14" -- DTG "Restricting"
+    self._issigrestricting = code == "13" or code == "14" -- DTG "Restricting"
         or code == "15" -- DTG "Stop"
   end
 end
