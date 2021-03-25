@@ -154,46 +154,49 @@ local function writelocostate ()
 end
 
 local function setadu ()
-  local aspect = adu:getaspect()
-  local signalspeed_mph = adu:getsignalspeed_mph()
-  local cs, cs1, cs2
-  if aspect == Adu.aspect.stop then
-    -- The mdoel has no Stop aspect, so we have to use Restricting.
-    cs, cs1, cs2 = 7, 0, 0
-  elseif aspect == Adu.aspect.restrict then
-    cs, cs1, cs2 = 7, 0, 0
-  elseif aspect == Adu.aspect.approach then
-    cs, cs1, cs2 = 6, 0, 0
-  elseif aspect == Adu.aspect.approachmed then
-    if signalspeed_mph == 30 then
-      cs, cs1, cs2 = 6, 0, 1
-    elseif signalspeed_mph == 45 then
-      cs, cs1, cs2 = 4, 0, 1
+  do
+    local aspect = adu:getaspect()
+    local signalspeed_mph = adu:getsignalspeed_mph()
+    local cs, cs1, cs2
+    if aspect == Adu.aspect.stop then
+      -- The mdoel has no Stop aspect, so we have to use Restricting.
+      cs, cs1, cs2 = 7, 0, 0
+    elseif aspect == Adu.aspect.restrict then
+      cs, cs1, cs2 = 7, 0, 0
+    elseif aspect == Adu.aspect.approach then
+      cs, cs1, cs2 = 6, 0, 0
+    elseif aspect == Adu.aspect.approachmed then
+      if signalspeed_mph == 30 then
+        cs, cs1, cs2 = 6, 0, 1
+      elseif signalspeed_mph == 45 then
+        cs, cs1, cs2 = 4, 0, 1
+      end
+    elseif aspect == Adu.aspect.cabspeed then
+      if signalspeed_mph == 60 then
+        cs, cs1, cs2 = 3, 1, 0
+      elseif signalspeed_mph == 80 then
+        cs, cs1, cs2 = 2, 1, 0
+      end
+    elseif aspect == Adu.aspect.cabspeedoff then
+      if signalspeed_mph == 60 then
+        cs, cs1, cs2 = 3, 0, 0
+      elseif signalspeed_mph == 80 then
+        cs, cs1, cs2 = 2, 0, 0
+      end
+    elseif aspect == Adu.aspect.clear then
+      cs, cs1, cs2 = 1, 1, 0
     end
-  elseif aspect == Adu.aspect.cabspeed then
-    if signalspeed_mph == 60 then
-      cs, cs1, cs2 = 3, 1, 0
-    elseif signalspeed_mph == 80 then
-      cs, cs1, cs2 = 2, 1, 0
-    end
-  elseif aspect == Adu.aspect.cabspeedoff then
-    if signalspeed_mph == 60 then
-      cs, cs1, cs2 = 3, 0, 0
-    elseif signalspeed_mph == 80 then
-      cs, cs1, cs2 = 2, 0, 0
-    end
-  elseif aspect == Adu.aspect.clear then
-    cs, cs1, cs2 = 1, 1, 0
+    RailWorks.SetControlValue("CabSignal", 0, cs)
+    RailWorks.SetControlValue("CabSignal1", 0, cs1)
+    RailWorks.SetControlValue("CabSignal2", 0, cs2)
   end
-  RailWorks.SetControlValue("CabSignal", 0, cs)
-  RailWorks.SetControlValue("CabSignal1", 0, cs1)
-  RailWorks.SetControlValue("CabSignal2", 0, cs2)
-
-  local trackspeed_mph = adu:getcivilspeed_mph()
-  if trackspeed_mph == nil then
-    RailWorks.SetControlValue("TrackSpeed", 0, 14.5) -- blank
-  else
-    RailWorks.SetControlValue("TrackSpeed", 0, trackspeed_mph)
+  do
+    local trackspeed_mph = adu:getcivilspeed_mph()
+    if trackspeed_mph == nil then
+      RailWorks.SetControlValue("TrackSpeed", 0, 14.5) -- blank
+    else
+      RailWorks.SetControlValue("TrackSpeed", 0, trackspeed_mph)
+    end
   end
 end
 
