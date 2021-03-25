@@ -53,6 +53,11 @@ function P:setrunstate (cond)
   end
 end
 
+-- Determine whether this system is currently cut in.
+function P:isrunning ()
+  return self._running
+end
+
 local function setsuppress (self)
   while true do
     self._accelaverage_mps2:sample(self._getacceleration_mps2())

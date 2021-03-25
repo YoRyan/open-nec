@@ -80,6 +80,11 @@ function P:setrunstate (cond)
   end
 end
 
+-- Determine whether this system is currently cut in.
+function P:isrunning ()
+  return self._running
+end
+
 local function getdirection (self)
   local speed_mps = self._getspeed_mps()
   if math.abs(speed_mps) < stopspeed_mps then

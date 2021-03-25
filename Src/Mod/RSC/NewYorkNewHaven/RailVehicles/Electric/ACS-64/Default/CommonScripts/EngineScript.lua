@@ -1,15 +1,15 @@
 -- Engine script for the Siemens ACS-64 operated by Amtrak.
 
 local playersched, anysched
-local atcalert, atc
-local acsesalert, acses
+local atc
+local acses
+local adu
 local alerter
 local power
 local tracteffort
 local acceleration
 local alarmonoff
 local suppressflasher
-local csflasher
 local ditchflasher
 local spark
 local state = {
@@ -32,25 +32,14 @@ Initialise = RailWorks.wraperrors(function ()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
 
-  local alert_s = 1
-
-  atcalert = Tone:new{
-    scheduler = playersched,
-    time_s = alert_s
-  }
   atc = Atc:new{
     scheduler = playersched,
     getspeed_mps = function () return state.speed_mps end,
     getacceleration_mps2 = function () return state.acceleration_mps2 end,
     getacknowledge = function () return state.acknowledge end,
-    doalert = function () atcalert:trigger() end
+    doalert = function () adu:doatcalert() end
   }
-  atc:start()
 
-  acsesalert = Tone:new{
-    scheduler = playersched,
-    time_s = alert_s
-  }
   acses = Acses:new{
     scheduler = playersched,
     getspeed_mps = function () return state.speed_mps end,
@@ -58,8 +47,19 @@ Initialise = RailWorks.wraperrors(function ()
     iterspeedlimits = function () return pairs(state.speedlimits) end,
     iterrestrictsignals = function () return pairs(state.restrictsignals) end,
     getacknowledge = function () return state.acknowledge end,
-    doalert = function () acsesalert:trigger() end
+    doalert = function () adu:doacsesalert() end
   }
+
+  local alert_s = 1
+  adu = AmtrakCombinedAdu:new{
+    scheduler = playersched,
+    atc = atc,
+    atcalert_s = alert_s,
+    acses = acses,
+    acsesalert_s = alert_s
+  }
+
+  atc:start()
   acses:start()
 
   alerter = Alerter:new{
@@ -86,12 +86,6 @@ Initialise = RailWorks.wraperrors(function ()
     scheduler = playersched,
     off_s = suppressflash_s,
     on_s = suppressflash_s
-  }
-
-  csflasher = Flash:new{
-    scheduler = playersched,
-    off_s = Nec.cabspeedflash_s,
-    on_s = Nec.cabspeedflash_s
   }
 
   local groundflash_s = 1
@@ -166,7 +160,7 @@ local function writelocostate ()
     RailWorks.frombool(alarmonoff:ison()))
   RailWorks.SetControlValue(
     "SpeedIncreaseAlert", 0,
-    RailWorks.frombool(atcalert:isplaying() or acsesalert:isplaying()))
+    RailWorks.frombool(adu:isatcalert() or adu:isacsesalert()))
 end
 
 local function setpantocontrol ()
@@ -278,58 +272,54 @@ end
 
 local function setadu ()
   do
-    local acsesmode = acses:getmode()
-    local atccode = atc:getpulsecode()
+    local aspect = adu:getaspect()
+    local signalspeed_mph = adu:getsignalspeed_mph()
     local tg, ty, tr, bg, bw
     local text
     local s, r, m, l, cs60, cs80, n
-    local f = 2 -- flash
-    if acsesmode == Acses.mode.positivestop then
+    if aspect == Adu.aspect.stop then
       tg, ty, tr, bg, bw = 0, 0, 1, 0, 0
       text = 12
       s, r, m, l, cs60, cs80, n = 1, 0, 0, 0, 0, 0, 0
-    elseif acsesmode == Acses.mode.approachmed30 then
-      tg, ty, tr, bg, bw = 0, 1, 0, 1, 0
-      text = 13
-      s, r, m, l, cs60, cs80, n = 0, 0, 0, 1, 0, 0, 0
-    elseif atccode == Nec.pulsecode.restrict then
+    elseif aspect == Adu.aspect.restrict then
       tg, ty, tr, bg, bw = 0, 0, 1, 0, 1
       text = 11
       s, r, m, l, cs60, cs80, n = 0, 1, 0, 0, 0, 0, 0
-    elseif atccode == Nec.pulsecode.approach then
+    elseif aspect == Adu.aspect.approach then
       tg, ty, tr, bg, bw = 0, 1, 0, 0, 0
       text = 8
       s, r, m, l, cs60, cs80, n = 0, 0, 1, 0, 0, 0, 0
-    elseif atccode == Nec.pulsecode.approachmed then
+    elseif aspect == Adu.aspect.approachmed then
       tg, ty, tr, bg, bw = 0, 1, 0, 1, 0
       text = 13
       s, r, m, l, cs60, cs80, n = 0, 0, 0, 1, 0, 0, 0
-    elseif atccode == Nec.pulsecode.cabspeed60 then
-      tg, ty, tr, bg, bw = f, 0, 0, 0, 0
+    elseif aspect == Adu.aspect.cabspeed then
+      tg, ty, tr, bg, bw = 1, 0, 0, 0, 0
       text = 2
-      s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 1, 0, 0
-    elseif atccode == Nec.pulsecode.cabspeed80 then
-      tg, ty, tr, bg, bw = f, 0, 0, 0, 0
+      if signalspeed_mph == 60 then
+        s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 1, 0, 0
+      elseif signalspeed_mph == 80 then
+        s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, 1, 0
+      end
+    elseif aspect == Adu.aspect.cabspeedoff then
+      tg, ty, tr, bg, bw = 0, 0, 0, 0, 0
       text = 2
-      s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, 1, 0
-    elseif atccode == Nec.pulsecode.clear100
-        or atccode == Nec.pulsecode.clear125
-        or atccode == Nec.pulsecode.clear150 then
+      if signalspeed_mph == 60 then
+        s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 1, 0, 0
+      elseif signalspeed_mph == 80 then
+        s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, 1, 0
+      end
+    elseif aspect == Adu.aspect.clear then
       tg, ty, tr, bg, bw = 1, 0, 0, 0, 0
       text = 1
       s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, 0, 1
     end
-
-    csflasher:setflashstate(tg == f)
-    local tglight = tg == 1 or (tg == f and csflasher:ison())
-    RailWorks.SetControlValue("SigAspectTopGreen", 0, RailWorks.frombool(tglight))
+    RailWorks.SetControlValue("SigAspectTopGreen", 0, tg)
     RailWorks.SetControlValue("SigAspectTopYellow", 0, ty)
     RailWorks.SetControlValue("SigAspectTopRed", 0, tr)
     RailWorks.SetControlValue("SigAspectBottomGreen", 0, bg)
     RailWorks.SetControlValue("SigAspectBottomWhite", 0, bw)
-
     RailWorks.SetControlValue("SigText", 0, text)
-
     RailWorks.SetControlValue("SigS", 0, s)
     RailWorks.SetControlValue("SigR", 0, r)
     RailWorks.SetControlValue("SigM", 0, m)
@@ -339,17 +329,20 @@ local function setadu ()
     RailWorks.SetControlValue("SigN", 0, n)
   end
   do
-    local atcspeed_mph = toroundedmph(atc:getinforcespeed_mps())
-    local acsesspeed_mph = toroundedmph(acses:getinforcespeed_mps())
-    local speed_mph = math.min(atcspeed_mph, acsesspeed_mph)
-    RailWorks.SetControlValue("SpeedLimit_hundreds", 0, getdigit(speed_mph, 2))
-    RailWorks.SetControlValue("SpeedLimit_tens", 0, getdigit(speed_mph, 1))
-    RailWorks.SetControlValue("SpeedLimit_units", 0, getdigit(speed_mph, 0))
-
-    RailWorks.SetControlValue("SigModeATC", 0,
-      RailWorks.frombool(atc:isalarm() or atcalert:isplaying()))
-    RailWorks.SetControlValue("SigModeACSES", 0,
-      RailWorks.frombool(acses:isalarm() or acsesalert:isplaying()))
+    local speed_mph = adu:getspeedlimit_mph()
+    if speed_mph == nil then
+      RailWorks.SetControlValue("SpeedLimit_hundreds", 0, 0)
+      RailWorks.SetControlValue("SpeedLimit_tens", 0, -1)
+      RailWorks.SetControlValue("SpeedLimit_units", 0, -1)
+    else
+      RailWorks.SetControlValue("SpeedLimit_hundreds", 0, getdigit(speed_mph, 2))
+      RailWorks.SetControlValue("SpeedLimit_tens", 0, getdigit(speed_mph, 1))
+      RailWorks.SetControlValue("SpeedLimit_units", 0, getdigit(speed_mph, 0))
+    end
+    RailWorks.SetControlValue(
+      "SigModeATC", 0, RailWorks.frombool(adu:getatcindicator()))
+    RailWorks.SetControlValue(
+      "SigModeACSES", 0, RailWorks.frombool(adu:getacsesindicator()))
   end
   do
     local ttp_s = acses:gettimetopenalty_s()
@@ -365,12 +358,12 @@ local function setadu ()
     end
   end
   do
-    local cutin = RailWorks.GetControlValue("ATCCutIn", 0) == 1
+    local cutin = adu:atccutin()
     RailWorks.SetControlValue("SigATCCutIn", 0, RailWorks.frombool(cutin))
     RailWorks.SetControlValue("SigATCCutOut", 0, RailWorks.frombool(not cutin))
   end
   do
-    local cutin = RailWorks.GetControlValue("ACSESCutIn", 0) == 1
+    local cutin = adu:acsescutin()
     RailWorks.SetControlValue("SigACSESCutIn", 0, RailWorks.frombool(cutin))
     RailWorks.SetControlValue("SigACSESCutOut", 0, RailWorks.frombool(not cutin))
   end
