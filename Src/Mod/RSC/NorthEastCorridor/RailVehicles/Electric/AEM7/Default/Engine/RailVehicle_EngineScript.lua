@@ -20,7 +20,6 @@ local state = {
   speedlimits={},
   restrictsignals={}
 }
-local onebeep_s = 0.3
 
 Initialise = RailWorks.wraperrors(function ()
   sched = Scheduler:new{}
@@ -43,6 +42,7 @@ Initialise = RailWorks.wraperrors(function ()
     doalert = function () adu:doacsesalert() end
   }
 
+  local onebeep_s = 0.3
   adu = AmtrakTwoSpeedAdu:new{
     scheduler = sched,
     atc = atc,
