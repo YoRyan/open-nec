@@ -1,16 +1,15 @@
 -- Engine script for the Acela Express operated by Amtrak.
 
 local playersched, anysched
-local atcalert, atc
-local acsesalert, acses
+local atc
+local acses
+local adu
 local cruise
 local alerter
 local power
 local frontpantoanim, rearpantoanim
 local coneanim
 local tracteffort
-local csflasher
-local sigspeedflasher
 local squareflasher
 local groundflasher
 local spark
@@ -75,28 +74,17 @@ Initialise = RailWorks.wraperrors(function ()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
 
-  local alert_s = 1
-
-  atcalert = Tone:new{
-    scheduler = playersched,
-    time_s = alert_s
-  }
   atc = Atc:new{
     scheduler = playersched,
     getspeed_mps = function () return state.speed_mps end,
     getacceleration_mps2 = function () return state.acceleration_mps2 end,
     getacknowledge = function () return state.acknowledge end,
     doalert = function ()
-      atcalert:trigger()
+      adu:doatcalert()
       playawsclear()
     end
   }
-  atc:start()
 
-  acsesalert = Tone:new{
-    scheduler = playersched,
-    time_s = alert_s
-  }
   acses = Acses:new{
     scheduler = playersched,
     getspeed_mps = function () return state.speed_mps end,
@@ -105,10 +93,21 @@ Initialise = RailWorks.wraperrors(function ()
     iterrestrictsignals = function () return pairs(state.restrictsignals) end,
     getacknowledge = function () return state.acknowledge end,
     doalert = function ()
-      acsesalert:trigger()
+      adu:doacsesalert()
       playawsclear()
     end
   }
+
+  local alert_s = 1
+  adu = AmtrakTwoSpeedAdu:new{
+    scheduler = playersched,
+    atc = atc,
+    atcalert_s = alert_s,
+    acses = acses,
+    acsesalert_s = alert_s
+  }
+
+  atc:start()
   acses:start()
 
   cruise = Cruise:new{
@@ -144,18 +143,6 @@ Initialise = RailWorks.wraperrors(function ()
   }
 
   tracteffort = Average:new{nsamples=30}
-
-  csflasher = Flash:new{
-    scheduler = playersched,
-    off_s = Nec.cabspeedflash_s,
-    on_s = Nec.cabspeedflash_s
-  }
-
-  sigspeedflasher = Flash:new{
-    scheduler = playersched,
-    off_s = 0.5,
-    on_s = 1.5
-  }
 
   local squareflash_s = 0.5
   squareflasher = Flash:new{
@@ -461,99 +448,61 @@ local function setcutin ()
 end
 
 local function setadu ()
-  local atcalarm = atc:isalarm()
-  local atcalertp = atcalert:isplaying()
-  local acsesmode = acses:getmode()
-  local acsesalarm = acses:isalarm()
-  local acsesalertp = acsesalert:isplaying()
   do
-    local signalspeed_mph
-    if acsesmode == Acses.mode.approachmed30 then
-      signalspeed_mph = 30
-    else
-      signalspeed_mph = toroundedmph(atc:getinforcespeed_mps())
-    end
-    local trackspeed_mph = toroundedmph(acses:getinforcespeed_mps())
-    local canshowsigspeed = signalspeed_mph ~= 100
-      and signalspeed_mph ~= 125
-      and signalspeed_mph ~= 150
-    local showsigspeed = not canshowsigspeed
-      and not (acsesalarm or acsesalertp)
-      and (signalspeed_mph < trackspeed_mph or atcalarm or atcalertp)
-
-    sigspeedflasher:setflashstate(showsigspeed)
-
-    -- If we set the digits too early, they flicker (or turn invisible) for the
-    -- rest of the game.
-    if not playersched:isstartup() then
-      if canshowsigspeed then
-        RailWorks.SetControlValue("SignalSpeed", 0, signalspeed_mph)
-      else
-        RailWorks.SetControlValue("SignalSpeed", 0, 1) -- blank
-      end
-    end
-
-    local show_mph
-    if showsigspeed then
-      if sigspeedflasher:ison() then
-        show_mph = signalspeed_mph
-      else
-        show_mph = nil
-      end
-    else
-      show_mph = trackspeed_mph
-    end
-    if show_mph == nil then -- blank
-      RailWorks.SetControlValue("TSHundreds", 0, -1)
-      RailWorks.SetControlValue("TSTens", 0, -1)
-      RailWorks.SetControlValue("TSUnits", 0, -1)
-    else
-      RailWorks.SetControlValue("TSHundreds", 0, getdigit(show_mph, 2))
-      RailWorks.SetControlValue("TSTens", 0, getdigit(show_mph, 1))
-      RailWorks.SetControlValue("TSUnits", 0, getdigit(show_mph, 0))
-    end
-  end
-  do
-    local atccode = atc:getpulsecode()
-    local f = 2 -- cab speed flash
+    local aspect = adu:getaspect()
     local n, l, s, m, r
-    if acsesmode == Acses.mode.positivestop then
+    if aspect == Adu.aspect.stop then
       n, l, s, m, r = 0, 0, 1, 0, 0
-    elseif acsesmode == Acses.mode.approachmed30 then
-      n, l, s, m, r = 0, 1, 0, 1, 0
-    elseif atccode == Nec.pulsecode.restrict then
+    elseif aspect == Adu.aspect.restrict then
       n, l, s, m, r = 0, 0, 1, 0, 1
-    elseif atccode == Nec.pulsecode.approach then
+    elseif aspect == Adu.aspect.approach then
       n, l, s, m, r = 0, 1, 0, 0, 0
-    elseif atccode == Nec.pulsecode.approachmed then
+    elseif aspect == Adu.aspect.approachmed then
       n, l, s, m, r = 0, 1, 0, 1, 0
-    elseif atccode == Nec.pulsecode.cabspeed60
-        or atccode == Nec.pulsecode.cabspeed80 then
-      n, l, s, m, r = f, 0, 0, 0, 0
-    elseif atccode == Nec.pulsecode.clear100
-        or atccode == Nec.pulsecode.clear125
-        or atccode == Nec.pulsecode.clear150 then
+    elseif aspect == Adu.aspect.cabspeed then
       n, l, s, m, r = 1, 0, 0, 0, 0
-    else
+    elseif aspect == Adu.aspect.cabspeedoff then
       n, l, s, m, r = 0, 0, 0, 0, 0
+    elseif aspect == Adu.aspect.clear then
+      n, l, s, m, r = 1, 0, 0, 0, 0
     end
-    csflasher:setflashstate(n == f)
-    local nlight = n == 1 or (n == f and csflasher:ison())
-    RailWorks.SetControlValue("SigN", 0, RailWorks.frombool(nlight))
+    RailWorks.SetControlValue("SigN", 0, n)
     RailWorks.SetControlValue("SigL", 0, l)
     RailWorks.SetControlValue("SigS", 0, s)
     RailWorks.SetControlValue("SigM", 0, m)
     RailWorks.SetControlValue("SigR", 0, r)
   end
+  -- If we set the digits too early, they flicker (or turn invisible) for the
+  -- rest of the game.
+  if not playersched:isstartup() then
+    local signalspeed_mph = adu:getsignalspeed_mph()
+    if signalspeed_mph == nil then
+      RailWorks.SetControlValue("SignalSpeed", 0, 1) -- blank
+    else
+      RailWorks.SetControlValue("SignalSpeed", 0, signalspeed_mph)
+    end
+  end
   do
-    squareflasher:setflashstate(atcalarm or acsesalarm)
-    local flash = squareflasher:ison()
+    local civilspeed_mph = adu:getcivilspeed_mph()
+    if civilspeed_mph == nil then
+      RailWorks.SetControlValue("TSHundreds", 0, -1)
+      RailWorks.SetControlValue("TSTens", 0, -1)
+      RailWorks.SetControlValue("TSUnits", 0, -1)
+    else
+      RailWorks.SetControlValue("TSHundreds", 0, getdigit(civilspeed_mph, 2))
+      RailWorks.SetControlValue("TSTens", 0, getdigit(civilspeed_mph, 1))
+      RailWorks.SetControlValue("TSUnits", 0, getdigit(civilspeed_mph, 0))
+    end
+  end
+  do
+    local atcind = adu:getatcindicator()
+    local acsesind = adu:getacsesindicator()
+    squareflasher:setflashstate(atcind or acsesind)
+    local lit = squareflasher:ison()
 
     local square
-    if atcalarm and flash then square = 0
-    elseif acsesalarm and flash then square = 1
-    elseif atcalertp then square = 0
-    elseif acsesalertp then square = 1
+    if atcind and lit then square = 0
+    elseif acsesind and lit then square = 1
     else square = -1 end
     RailWorks.SetControlValue("MaximumSpeedLimitIndicator", 0, square)
   end
