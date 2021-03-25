@@ -37,7 +37,8 @@ Initialise = RailWorks.wraperrors(function ()
     getspeed_mps = function () return state.speed_mps end,
     getacceleration_mps2 = function () return state.acceleration_mps2 end,
     getacknowledge = function () return state.acknowledge end,
-    doalert = function () adu:doatcalert() end
+    doalert = function () adu:doatcalert() end,
+    getbrakesuppression = function () return state.train_brake >= 0.75 end
   }
 
   acses = Acses:new{

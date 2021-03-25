@@ -28,6 +28,7 @@ function P:new (conf)
     _getacceleration_mps2 = conf.getacceleration_mps2 or function () return 0 end,
     _getacknowledge = conf.getacknowledge or function () return false end,
     _getpulsecodespeed_mps = conf.getpulsecodespeed_mps or P.amtrakpulsecodespeed_mps,
+    _getbrakesuppression = conf.getbrakesuppression or function () return false end,
     _doalert = conf.doalert or function () end,
     _countdown_s = conf.countdown_s or 7,
     -- Rates are taken fom the Train Sim World: Northeast Corridor New York manual.
@@ -62,13 +63,16 @@ local function setsuppress (self)
   while true do
     self._accelaverage_mps2:sample(self._getacceleration_mps2())
     local accel_mps2 = self._accelaverage_mps2:get()
+    local suppressingrate, suppressionrate
     if self._getspeed_mps() >= 0 then
-      self._issuppressing = accel_mps2 <= self._suppressing_mps2
-      self._issuppression = accel_mps2 <= self._suppression_mps2
+      suppressingrate = accel_mps2 <= self._suppressing_mps2
+      suppressionrate = accel_mps2 <= self._suppression_mps2
     else
-      self._issuppressing = accel_mps2 >= -self._suppressing_mps2
-      self._issuppression = accel_mps2 >= -self._suppression_mps2
+      suppressingrate = accel_mps2 >= -self._suppressing_mps2
+      suppressionrate = accel_mps2 >= -self._suppression_mps2
     end
+    self._issuppressing = suppressingrate
+    self._issuppression = self._getbrakesuppression() or suppressionrate
     self._sched:yield()
   end
 end

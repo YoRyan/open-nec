@@ -82,7 +82,8 @@ Initialise = RailWorks.wraperrors(function ()
     doalert = function ()
       adu:doatcalert()
       playawsclear()
-    end
+    end,
+    getbrakesuppression = function () return state.train_brake >= 0.4 end
   }
 
   acses = Acses:new{
