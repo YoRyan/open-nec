@@ -4,16 +4,16 @@ AmtrakCombinedAdu = P
 
 -- Ensure we have inherited the properties of the base class, PiL-style.
 -- We can't run code on initialization in TS, so we do this in :new().
-local function inherit ()
-  if getmetatable(P) == nil then
-    Adu.__index = Adu
-    setmetatable(P, Adu)
+local function inherit (base)
+  if getmetatable(base) == nil then
+    base.__index = base
+    setmetatable(P, base)
   end
 end
 
 -- Create a new AmtrakCombinedAdu context.
 function P:new (conf)
-  inherit()
+  inherit(Adu)
   local o = Adu:new(conf)
   setmetatable(o, self)
   self.__index = self

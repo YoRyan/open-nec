@@ -1,13 +1,12 @@
 -- Engine script for the EMD AEM-7 operated by Amtrak.
 
 local sched
-local atcalert, atc
-local acsesalert, acses
+local atc
+local acses
+local adu
 local cruise
 local alerter
 local power
-local cs1flasher
-local sigspeedflasher
 local state = {
   throttle=0,
   train_brake=0,
@@ -26,23 +25,14 @@ local onebeep_s = 0.3
 Initialise = RailWorks.wraperrors(function ()
   sched = Scheduler:new{}
 
-  atcalert = Tone:new{
-    scheduler = sched,
-    time_s = onebeep_s
-  }
   atc = Atc:new{
     scheduler = sched,
     getspeed_mps = function () return state.speed_mps end,
     getacceleration_mps2 = function () return state.acceleration_mps2 end,
     getacknowledge = function () return state.acknowledge end,
-    doalert = function () atcalert:trigger() end
+    doalert = function () adu:doatcalert() end
   }
-  atc:start()
 
-  acsesalert = Tone:new{
-    scheduler = sched,
-    time_s = onebeep_s
-  }
   acses = Acses:new{
     scheduler = sched,
     getspeed_mps = function () return state.speed_mps end,
@@ -50,8 +40,18 @@ Initialise = RailWorks.wraperrors(function ()
     iterspeedlimits = function () return pairs(state.speedlimits) end,
     iterrestrictsignals = function () return pairs(state.restrictsignals) end,
     getacknowledge = function () return state.acknowledge end,
-    doalert = function () acsesalert:trigger() end
+    doalert = function () adu:doacsesalert() end
   }
+
+  adu = AmtrakTwoSpeedAdu:new{
+    scheduler = sched,
+    atc = atc,
+    atcalert_s = onebeep_s,
+    acses = acses,
+    acsesalert_s = onebeep_s
+  }
+
+  atc:start()
   acses:start()
 
   cruise = Cruise:new{
@@ -68,18 +68,6 @@ Initialise = RailWorks.wraperrors(function ()
   alerter:start()
 
   power = Power:new{available={Power.types.overhead}}
-
-  cs1flasher = Flash:new{
-    scheduler = sched,
-    off_s = Nec.cabspeedflash_s,
-    on_s = Nec.cabspeedflash_s
-  }
-
-  sigspeedflasher = Flash:new{
-    scheduler = sched,
-    off_s = 0.5,
-    on_s = 1.5
-  }
 
   RailWorks.BeginUpdate()
 end)
@@ -158,79 +146,55 @@ local function writelocostate ()
     "AWSWarnCount", 0,
     RailWorks.frombool(alerter:isalarm()))
   do
-    local alert = atcalert:isplaying() or acsesalert:isplaying()
+    local alert = adu:isatcalert() or adu:isacsesalert()
     local alarm = atc:isalarm() or acses:isalarm()
     RailWorks.SetControlValue(
-      "OverSpeedAlert", 0,
-      RailWorks.frombool(alert or alarm))
+      "OverSpeedAlert", 0, RailWorks.frombool(alert or alarm))
   end
 end
 
-local function setcabsignal ()
-  local f = 2 -- cab speed flash
-
-  local acsesmode = acses:getmode()
-  local atccode = atc:getpulsecode()
+local function setadu ()
+  local aspect = adu:getaspect()
+  local signalspeed_mph = adu:getsignalspeed_mph()
   local cs, cs1, cs2
-  if acsesmode == Acses.mode.positivestop then
-    cs, cs1, cs2 = 7, 0, 0 -- Unfortunately, we can't show a Stop aspect.
-  elseif acsesmode == Acses.mode.approachmed30 then
-    cs, cs1, cs2 = 6, 0, 1
-  elseif atccode == Nec.pulsecode.restrict then
+  if aspect == Adu.aspect.stop then
+    -- The mdoel has no Stop aspect, so we have to use Restricting.
     cs, cs1, cs2 = 7, 0, 0
-  elseif atccode == Nec.pulsecode.approach then
+  elseif aspect == Adu.aspect.restrict then
+    cs, cs1, cs2 = 7, 0, 0
+  elseif aspect == Adu.aspect.approach then
     cs, cs1, cs2 = 6, 0, 0
-  elseif atccode == Nec.pulsecode.approachmed then
-    cs, cs1, cs2 = 4, 0, 1
-  elseif atccode == Nec.pulsecode.cabspeed60 then
-    cs, cs1, cs2 = 3, f, 0
-  elseif atccode == Nec.pulsecode.cabspeed80 then
-    cs, cs1, cs2 = 2, f, 0
-  elseif atccode == Nec.pulsecode.clear100
-      or atccode == Nec.pulsecode.clear125
-      or atccode == Nec.pulsecode.clear150 then
-    cs, cs1, cs2 = 1, 1, 0
-  else
-    cs, cs1, cs2 = 8, 0, 0
-  end
-
-  RailWorks.SetControlValue("CabSignal", 0, cs)
-
-  cs1flasher:setflashstate(cs1 == f)
-  local cs1light = cs1 == 1 or (cs1 == f and cs1flasher:ison())
-  RailWorks.SetControlValue("CabSignal1", 0, RailWorks.frombool(cs1light))
-
-  RailWorks.SetControlValue("CabSignal2", 0, cs2)
-end
-
-local function toroundedmph (v)
-  return math.floor(v*Units.mps.tomph + 0.5)
-end
-
-local function settrackspeed ()
-  local signalspeed_mph = toroundedmph(atc:getinforcespeed_mps())
-  local trackspeed_mph = toroundedmph(acses:getinforcespeed_mps())
-  local canshowsigspeed = signalspeed_mph ~= 100
-    and signalspeed_mph ~= 125
-    and signalspeed_mph ~= 150
-  local showsigspeed = not canshowsigspeed
-    and not (acses:isalarm() or acsesalert:isplaying())
-    and (signalspeed_mph < trackspeed_mph or atc:isalarm() or atcalert:isplaying())
-
-  sigspeedflasher:setflashstate(showsigspeed)
-
-  local show_mph
-  local blank = 14.5
-  if showsigspeed then
-    if sigspeedflasher:ison() then
-      show_mph = signalspeed_mph
-    else
-      show_mph = blank
+  elseif aspect == Adu.aspect.approachmed then
+    if signalspeed_mph == 30 then
+      cs, cs1, cs2 = 6, 0, 1
+    elseif signalspeed_mph == 45 then
+      cs, cs1, cs2 = 4, 0, 1
     end
-  else
-    show_mph = trackspeed_mph
+  elseif aspect == Adu.aspect.cabspeed then
+    if signalspeed_mph == 60 then
+      cs, cs1, cs2 = 3, 1, 0
+    elseif signalspeed_mph == 80 then
+      cs, cs1, cs2 = 2, 1, 0
+    end
+  elseif aspect == Adu.aspect.cabspeedoff then
+    if signalspeed_mph == 60 then
+      cs, cs1, cs2 = 3, 0, 0
+    elseif signalspeed_mph == 80 then
+      cs, cs1, cs2 = 2, 0, 0
+    end
+  elseif aspect == Adu.aspect.clear then
+    cs, cs1, cs2 = 1, 1, 0
   end
-  RailWorks.SetControlValue("TrackSpeed", 0, show_mph)
+  RailWorks.SetControlValue("CabSignal", 0, cs)
+  RailWorks.SetControlValue("CabSignal1", 0, cs1)
+  RailWorks.SetControlValue("CabSignal2", 0, cs2)
+
+  local trackspeed_mph = adu:getcivilspeed_mph()
+  if trackspeed_mph == nil then
+    RailWorks.SetControlValue("TrackSpeed", 0, 14.5) -- blank
+  else
+    RailWorks.SetControlValue("TrackSpeed", 0, trackspeed_mph)
+  end
 end
 
 local function setcablight ()
@@ -260,8 +224,7 @@ Update = RailWorks.wraperrors(function (_)
   sched:update()
 
   writelocostate()
-  setcabsignal()
-  settrackspeed()
+  setadu()
   setcablight()
   setcutin()
 
