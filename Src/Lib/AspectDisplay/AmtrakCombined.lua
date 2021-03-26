@@ -37,6 +37,20 @@ function P:getspeedlimit_mph ()
   end
 end
 
+-- Get the current time to penalty counter, if any.
+function P:gettimetopenalty_s ()
+  if self._acses:getmode() == Acses.mode.positivestop then
+    local ttp_s = self._acses:gettimetopenalty_s()
+    if ttp_s ~= nil then
+      return math.floor(ttp_s)
+    else
+      return nil
+    end
+  else
+    return nil
+  end
+end
+
 -- Get the current state of the ATC system.
 function P:atccutin ()
   return self._atc:isrunning()

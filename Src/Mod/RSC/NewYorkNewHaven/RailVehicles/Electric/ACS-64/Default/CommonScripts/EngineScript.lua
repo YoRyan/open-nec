@@ -346,16 +346,15 @@ local function setadu ()
       "SigModeACSES", 0, RailWorks.frombool(adu:getacsesindicator()))
   end
   do
-    local ttp_s = acses:gettimetopenalty_s()
+    local ttp_s = adu:gettimetopenalty_s()
     if ttp_s == nil then
       RailWorks.SetControlValue("Penalty_hundreds", 0, 0)
       RailWorks.SetControlValue("Penalty_tens", 0, -1)
       RailWorks.SetControlValue("Penalty_units", 0, -1)
     else
-      local rttp_s = math.floor(ttp_s)
-      RailWorks.SetControlValue("Penalty_hundreds", 0, getdigit(rttp_s, 2))
-      RailWorks.SetControlValue("Penalty_tens", 0, getdigit(rttp_s, 1))
-      RailWorks.SetControlValue("Penalty_units", 0, getdigit(rttp_s, 0))
+      RailWorks.SetControlValue("Penalty_hundreds", 0, getdigit(ttp_s, 2))
+      RailWorks.SetControlValue("Penalty_tens", 0, getdigit(ttp_s, 1))
+      RailWorks.SetControlValue("Penalty_units", 0, getdigit(ttp_s, 0))
     end
   end
   do
