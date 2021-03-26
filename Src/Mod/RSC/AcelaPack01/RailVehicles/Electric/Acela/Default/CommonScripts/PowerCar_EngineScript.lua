@@ -27,6 +27,7 @@ local state = {
   speed_mps = 0,
   acceleration_mps2 = 0,
   trackspeed_mps = 0,
+  consistlength_m = 0,
   speedlimits = {},
   restrictsignals = {},
 
@@ -90,6 +91,7 @@ Initialise = RailWorks.wraperrors(function ()
     scheduler = playersched,
     getspeed_mps = function () return state.speed_mps end,
     gettrackspeed_mps = function () return state.trackspeed_mps end,
+    getconsistlength_m = function () return state.consistlength_m end,
     iterspeedlimits = function () return pairs(state.speedlimits) end,
     iterrestrictsignals = function () return pairs(state.restrictsignals) end,
     getacknowledge = function () return state.acknowledge end,
@@ -217,6 +219,8 @@ local function readlocostate ()
     RailWorks.GetAcceleration()
   state.trackspeed_mps =
     RailWorks.GetCurrentSpeedLimit(1)
+  state.consistlength_m =
+    RailWorks.GetConsistLength()
   state.speedlimits =
     Iterator.totable(RailWorks.iterspeedlimits(Acses.nlimitlookahead))
   state.restrictsignals =

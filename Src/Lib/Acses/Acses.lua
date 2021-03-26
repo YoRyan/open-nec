@@ -44,6 +44,8 @@ function P:new (conf)
       conf.getspeed_mps or function () return 0 end,
     _gettrackspeed_mps =
       conf.gettrackspeed_mps or function () return 0 end,
+    _getconsistlength_m =
+      conf.getconsistlength_m or function () return 0 end,
     _iterspeedlimits =
       conf.iterspeedlimits or function () return pairs({}) end,
     _iterrestrictsignals =
@@ -470,7 +472,8 @@ function P:start ()
     self._trackspeed = AcsesTrackSpeed:new{
       scheduler = self._sched,
       speedlimittracker = self._limittracker,
-      gettrackspeed_mps = self._gettrackspeed_mps
+      gettrackspeed_mps = self._gettrackspeed_mps,
+      getconsistlength_m = self._getconsistlength_m
     }
 
     self._coroutines = {

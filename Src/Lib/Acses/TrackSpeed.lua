@@ -41,10 +41,17 @@ local function run (self)
       local gamespeed_mps = self._gettrackspeed_mps()
       if sensed_mps == nil then
         self._sensedspeed_mps = gamespeed_mps
+      -- The game-calculated speed limit is strictly lower than the track
+      -- speed limit we want, so if that is higher, then we should use it.
+      elseif gamespeed_mps > sensed_mps then
+        self._sensedspeed_mps = gamespeed_mps
+      -- If the previous speed post is behind the end of our train, then we
+      -- can use the game-calculated speed limit.
+      elseif lastid ~= nil and -self._limittracker:getdistance_m(lastid)
+          > self._getconsistlength_m() then
+        self._sensedspeed_mps = gamespeed_mps
       else
-        -- The game-calculated speed limit is strictly lower than the track
-        -- speed limit we want, so if that is higher, then we should use it.
-        self._sensedspeed_mps = math.max(sensed_mps, gamespeed_mps)
+        self._sensedspeed_mps = sensed_mps
       end
     end
   end
@@ -57,6 +64,7 @@ function P:new (conf)
     _sched = conf.scheduler,
     _limittracker = conf.speedlimittracker,
     _gettrackspeed_mps = conf.gettrackspeed_mps or function () return 0 end,
+    _getconsistlength_m = conf.getconsistlength_m or function () return 0 end,
     _sensedspeed_mps = 0
   }
   setmetatable(o, self)

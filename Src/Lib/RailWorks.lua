@@ -34,6 +34,10 @@ function P.GetAcceleration ()
   return Call("GetAcceleration")
 end
 
+function P.GetConsistLength ()
+  return Call("GetConsistLength")
+end
+
 function P.SendConsistMessage (message, argument, direction)
   return Call("SendConsistMessage", message, tostring(argument), direction) == 1
 end
