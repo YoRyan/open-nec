@@ -21,3 +21,6 @@ Rolling stock:
     - `DTG\WashingtonBaltimore\Audio\RailVehicles\Electric\Acela\` (Washington-Baltimore version)
     - `DTG\WashingtonBaltimore\RailVehicles\Electric\Acela\` (Washington-Baltimore version)
     - `DTG\WashingtonBaltimore\InputMapper\AcelaExpert.bin` (Washington-Baltimore version)
+- [Amtrak ACS-64](/for-players/amtrak-acs64)
+    - `RSC\NewYorkNewHaven\RailVehicles\Electric\ACS-64\` (New York-New Haven version)
+    - `DTG\WashingtonBaltimore\RailVehicles\Electric\ACS-64\` (Washington-Baltimore version)
