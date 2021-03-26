@@ -417,6 +417,7 @@ local function penalty (self)
     self._sched:select(nil, function ()
       return not tableeq(self._currenthazardid, hazardid)
     end)
+    self._doalert()
   else
     self._sched:select(nil, function ()
       return self._getacknowledge() and not self._isabovealertcurve
