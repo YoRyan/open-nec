@@ -106,6 +106,11 @@ Initialise = RailWorks.wraperrors(function ()
 end)
 
 local function readcontrols ()
+  if RailWorks.GetControlValue("AutoSuppression", 0) == 1 then
+    RailWorks.SetControlValue("AutoSuppression", 0, 0)
+    RailWorks.SetControlValue("VirtualBrake", 0, 0.75)
+  end
+
   local throttle = RailWorks.GetControlValue("ThrottleAndBrake", 0)
   local vbrake = RailWorks.GetControlValue("VirtualBrake", 0)
   local change = throttle ~= state.throttle or vbrake ~= state.train_brake
