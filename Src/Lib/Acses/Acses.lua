@@ -13,18 +13,19 @@ local debugtrackers = false
 local stopspeed_mps = 0.01
 local direction = {forward=0, stopped=1, backward=2}
 local hazardtype = {currentlimit=0, advancelimit=1, stopsignal=2}
-local violationtype = {alert=0, penalty=1}
 
 local function initstate (self)
   self._running = false
   self._inforcespeed_mps = 0
   self._curvespeed_mps = 0
+  self._timetopenalty_s = nil
   self._isalarm = false
   self._ispenalty = false
   self._ispositivestop = false
+  self._currenthazardid = {}
+  self._isabovealertcurve = false
+  self._isabovepenaltycurve = false
   self._issigrestricting = true
-  self._violation = nil
-  self._enforcingspeed_mps = nil
   self._limitfilter = nil
   self._trackspeed = nil
   self._limittracker = nil
@@ -61,8 +62,10 @@ function P:new (conf)
     -- closely spaced shunting signals.
     _positivestop_m =
       conf.positivestop_m or 20*Units.m.toft,
-    _alertcurve_s =
-      conf.alertcurve_s or 7
+    _alertwarning_s =
+      conf.alertwarning_s or 7,
+    _positivestopwarning_s =
+      conf.positivestopwarning_s or 20
   }
   setmetatable(o, self)
   self.__index = self
@@ -93,6 +96,18 @@ local function getdirection (self)
     return direction.forward
   else
     return direction.backward
+  end
+end
+
+local getmovingdirection
+do
+  local lastdir = direction.forward
+  function getmovingdirection (self)
+    local dir = getdirection(self)
+    if dir ~= direction.stopped then
+      lastdir = dir
+    end
+    return lastdir
   end
 end
 
@@ -186,7 +201,7 @@ local function showsignals (self)
 end
 
 --[[
-  Speed limit and stop signal hazard acquisition
+  Braking curve calculation and state tracking
 ]]
 
 local function calcbrakecurve (self, vf, d, t)
@@ -202,362 +217,231 @@ local function calctimetopenalty (self, vf, d)
   else return (d - (vf*vf - vi*vi)/(2*a))/vi end
 end
 
-local function getspeedlimithazard (self, id)
-  local speed_mps = self._limittracker:getobject(id).speed_mps
-  local distance_m = self._limittracker:getdistance_m(id)
-  return {
-    type=hazardtype.advancelimit,
-    id=id,
-    penalty_mps=calcbrakecurve(
-      self, speed_mps + self._penaltylimit_mps, distance_m, 0),
-    timetopenalty_s=calctimetopenalty(
-      self, speed_mps + self._penaltylimit_mps, distance_m),
-    alert_mps=calcbrakecurve(
-      self, speed_mps + self._alertlimit_mps, distance_m, self._alertcurve_s),
-    curve_mps=calcbrakecurve(
-      self, speed_mps, distance_m, self._alertcurve_s),
-  }
-end
-
-local function gettrackspeedhazard (self)
-  local limit_mps = self._trackspeed:gettrackspeed_mps()
-  return {
-    type=hazardtype.currentlimit,
-    penalty_mps=limit_mps + self._penaltylimit_mps,
-    alert_mps=limit_mps + self._alertlimit_mps,
-    curve_mps=limit_mps
-  }
-end
-
-local function getnextstopsignalid (self, dir)
-  local isstop = function (id, _)
-    local signal = self._signaltracker:getobject(id)
-    return signal ~= nil and signal.prostate == 3
-  end
-  if dir == direction.forward then
-    return Iterator.min(
-      Iterator.ltcomp,
-      Iterator.filter(
-        isstop,
-        Iterator.filter(
-          function (_, distance_m) return distance_m >= 0 end,
-          self._signaltracker:iterdistances_m()
-        )
-      )
+local function iteradvancelimithazards (self)
+  return Iterator.map(
+    function (id, distance_m)
+      local speed_mps = self._limittracker:getobject(id).speed_mps
+      return {hazardtype.advancelimit, id}, {
+        inforce_mps = speed_mps,
+        penalty_mps = calcbrakecurve(
+          self, speed_mps + self._penaltylimit_mps, distance_m, 0),
+        alert_mps = calcbrakecurve(
+          self, speed_mps + self._alertlimit_mps, distance_m, self._alertwarning_s),
+        timetopenalty_s = calctimetopenalty(
+          self, speed_mps + self._penaltylimit_mps, distance_m)
+      }
+    end,
+    Iterator.filter(
+      function (_, distance_m)
+        if getmovingdirection(self) == direction.forward then
+          return distance_m >= 0
+        else
+          return distance_m < 0
+        end
+      end,
+      self._limittracker:iterdistances_m()
     )
-  elseif dir == direction.backward then
-    return Iterator.max(
-      Iterator.ltcomp,
-      Iterator.filter(
-        isstop,
-        Iterator.filter(
-          function (_, distance_m) return distance_m < 0 end,
-          self._signaltracker:iterdistances_m()
-        )
-      )
-    )
-  else
-    return nil
-  end
+  )
 end
 
-local function getsignalstophazard (self, id)
-  local distance_m =
-    self._signaltracker:getdistance_m(id) - self._positivestop_m
-  local alert_mps =
-    calcbrakecurve(self, 0, distance_m, self._alertcurve_s)
-  return {
-    type=hazardtype.stopsignal,
-    id=id,
-    penalty_mps=calcbrakecurve(self, 0, distance_m, 0),
-    timetopenalty_s=calctimetopenalty(self, 0, distance_m),
-    alert_mps=alert_mps,
-    curve_mps=alert_mps
+local function iterstopsignalhazards (self)
+  return Iterator.map(
+    function (id, distance_m)
+      local target_m
+      if distance_m > 0 then
+        target_m = distance_m - self._positivestop_m
+      else
+        target_m = distance_m + self._positivestop_m
+      end
+      local prostate = self._signaltracker:getobject(id).prostate
+      if prostate == 3 then
+        return {hazardtype.stopsignal, id}, {
+          inforce_mps = 0,
+          penalty_mps = calcbrakecurve(self, 0, target_m, 0),
+          alert_mps = calcbrakecurve(self, 0, target_m, self._positivestopwarning_s),
+          timetopenalty_s = calctimetopenalty(self, 0, target_m)
+        }
+      else
+        return nil, nil
+      end
+    end,
+    Iterator.filter(
+      function (_, distance_m)
+        if getmovingdirection(self) == direction.forward then
+          return distance_m >= 0
+        else
+          return distance_m < 0
+        end
+      end,
+      self._signaltracker:iterdistances_m()
+    )
+  )
+end
+
+local function getcurrentlimithazard (self)
+  local speed_mps = self._trackspeed:gettrackspeed_mps()
+  return {hazardtype.currentlimit}, {
+    inforce_mps = speed_mps,
+    penalty_mps = speed_mps + self._penaltylimit_mps,
+    alert_mps = speed_mps + self._alertlimit_mps
   }
 end
 
-local function iteradvancespeedlimithazards (self, dir)
-  local rightdirection = function (_, distance_m)
-    if dir == direction.forward then
-      return distance_m >= 0
-    elseif dir == direction.backward then
-      return distance_m < 0
-    else
-      return false
-    end
+local function gethazardsdict (self)
+  local hazards = TupleDict:new{}
+  for k, hazard in iteradvancelimithazards(self) do
+    hazards[k] = hazard
   end
-  return Iterator.imap(
-    function (id, _) return getspeedlimithazard(self, id) end,
-    Iterator.filter(rightdirection, self._limittracker:iterdistances_m()))
-end
-
-local function iterhazards (self)
-  local dir = getdirection(self)
-  local hazards = {gettrackspeedhazard(self)}
-
   if self._issigrestricting then
-    local id = getnextstopsignalid(self, dir)
-    if id ~= nil then
-      table.insert(hazards, getsignalstophazard(self, id))
+    for k, hazard in iterstopsignalhazards(self) do
+      hazards[k] = hazard
     end
   end
-
-  return Iterator.iconcat(
-    {ipairs(hazards)}, {iteradvancespeedlimithazards(self, dir)})
+  do
+    local k, hazard = getcurrentlimithazard(self)
+    hazards[k] = hazard
+  end
+  return hazards
 end
 
-local function getviolation (self, ...)
-  local aspeed_mps = math.abs(self._getspeed_mps())
-  local violation = nil
-  for _, hazard in unpack(arg) do
-    if aspeed_mps > hazard.penalty_mps then
-      violation = {type=violationtype.penalty, hazard=hazard}
-      break
-    elseif aspeed_mps > hazard.alert_mps then
-      violation = {type=violationtype.alert, hazard=hazard}
-      break
-    end
+local function setinforcespeed_mps (self, v)
+  if self._inforcespeed_mps ~= v and not self._isalarm then
+    self._doalert()
   end
-  return violation
+  self._inforcespeed_mps = v
 end
 
 local function setstate (self)
+  local state = TupleDict:new{}
   while true do
-    local inforce_mps =
-      self._enforcingspeed_mps or self._trackspeed:gettrackspeed_mps()
-    if inforce_mps ~= self._inforcespeed_mps and not self._isalarm then
-      self._doalert()
-    end
-    self._inforcespeed_mps = inforce_mps
+    local hazards = gethazardsdict(self)
     do
-      local hazards = Iterator.totable(iterhazards(self))
-      local lowestcurve = Iterator.min(Iterator.ltcomp, Iterator.imap(
-        function (_, hazard) return hazard.curve_mps end,
-        ipairs(hazards)))
-      self._curvespeed_mps = hazards[lowestcurve]
-      self._violation = getviolation(self, ipairs(hazards))
+      local newstate = TupleDict:new{}
+      for k, hazard in TupleDict.pairs(hazards) do
+        newstate[k] = state[k]
+      end
+      state = newstate
     end
-    if debuglimits and self._getacknowledge() then
-      showlimits(self)
+
+    -- Get the current hazard in effect.
+    local currentid = Iterator.min(
+      Iterator.ltcomp,
+      Iterator.map(
+        function (k, hazard) return k, hazard.alert_mps end,
+        TupleDict.pairs(hazards)
+      )
+    )
+    local currenthazard = hazards[currentid]
+    self._currenthazardid = currentid
+    self._curvespeed_mps = math.max(0, currenthazard.alert_mps - 1*Units.mph.tomps)
+    self._timetopenalty_s = currenthazard.timetopenalty_s
+    self._ispositivestop = currentid[1] == hazardtype.stopsignal
+
+    -- Check for violation of the alert and/or penalty curves.
+    local aspeed_mps = math.abs(self._getspeed_mps())
+    local abovealert = aspeed_mps > currenthazard.alert_mps
+    self._isabovealertcurve = abovealert
+    self._isabovepenaltycurve = aspeed_mps > currenthazard.penalty_mps
+    if currentid[1] == hazardtype.advancelimit then
+      if state[currentid] == nil then
+        state[currentid] = {}
+      end
+      state[currentid].revealed = state[currentid].revealed or abovealert
     end
-    if debugsignals and self._getacknowledge() then
-      showsignals(self)
+
+    -- Get the lowest in-force speed that has also been revealed by an alert
+    -- curve violation.
+    local inforceid = Iterator.min(
+      Iterator.ltcomp,
+      Iterator.map(
+        function (k, hazard)
+          if k[1] == hazardtype.advancelimit then
+            if state[k] ~= nil and state[k].revealed then
+              return k, hazard.inforce_mps
+            else
+              return nil, nil
+            end
+          else
+            return k, hazard.inforce_mps
+          end
+        end,
+        TupleDict.pairs(hazards)
+      )
+    )
+    setinforcespeed_mps(self, hazards[inforceid].inforce_mps)
+
+    -- Activate the debug views if enabled.
+    if self._getacknowledge() then
+      if debuglimits then
+        showlimits(self)
+      end
+      if debugsignals then
+        showsignals(self)
+      end
     end
     self._sched:yield()
   end
 end
 
 --[[
-  Alert and penalty states
+  Alert and penalty enforcement
 ]]
 
-local function currentlimitpenalty (self)
-  local limit_mps = self._trackspeed:gettrackspeed_mps()
-  self._enforcingspeed_mps = limit_mps
+local function tableeq (a, b)
+  local an = table.getn(a)
+  local bn = table.getn(b)
+  if an ~= bn then
+    return false
+  end
+  for i = 1, an do
+    if a[i] ~= b[i] then
+      return false
+    end
+  end
+  return true
+end
+
+local function penalty (self)
   self._ispenalty = true
-  self._isalarm = true
-  self._sched:select(nil, function ()
-    return math.abs(self._getspeed_mps()) <= limit_mps
-      and self._getacknowledge()
-  end)
-  self._enforcingspeed_mps = nil
+  local hazardid = self._currenthazardid
+  if hazardid[1] == hazardtype.stopsignal then
+    self._sched:select(nil, function ()
+      return getdirection(self) == direction.stopped
+    end)
+    self._isalarm = false
+    -- Now wait for the signal to upgrade.
+    -- TODO: Implement stop release function.
+    self._sched:select(nil, function ()
+      return not tableeq(self._currenthazardid, hazardid)
+    end)
+  else
+    self._sched:select(nil, function ()
+      return self._getacknowledge() and not self._isabovealertcurve
+    end)
+  end
   self._ispenalty = false
-  self._isalarm = false
-end
-
-local function advancelimitpenalty (self, violation)
-  local limit = self._limittracker:getobject(violation.hazard.id)
-  if limit == nil then
-    return
-  end
-  self._enforcingspeed_mps = limit.speed_mps
-  self._ispenalty = true
-  self._isalarm = true
-  self._sched:select(nil, function ()
-    return math.abs(self._getspeed_mps()) <= limit.speed_mps
-      and self._getacknowledge()
-  end)
-  self._enforcingspeed_mps = nil
-  self._ispenalty = false
-  self._isalarm = false
-end
-
-local function stopsignalpenalty (self, violation)
-  self._enforcingspeed_mps = 0
-  self._ispenalty = true
-  self._ispositivestop = true
-  local acknowledged = false
-  while true do
-    local event = self._sched:select(nil,
-      function ()
-        local signal = self._signaltracker:getobject(violation.hazard.id)
-        local upgraded = signal == nil or signal.prostate ~= 3
-        return upgraded and acknowledged
-      end,
-      function () return self._getacknowledge() end)
-    if event == 1 then
-      break
-    elseif event == 2 then
-      acknowledged = true
-      self._isalarm = false
-    end
-  end
-  self._enforcingspeed_mps = nil
-  self._ispenalty = false
-  self._ispositivestop = false
-end
-
-local function penalty (self, violation)
-  local type = violation.hazard.type
-  if type == hazardtype.currentlimit then
-    currentlimitpenalty(self)
-  elseif type == hazardtype.advancelimit then
-    advancelimitpenalty(self, violation)
-  elseif type == hazardtype.stopsignal then
-    stopsignalpenalty(self, violation)
-  end
-end
-
-local function currentlimitalert (self)
-  local limit_mps = self._trackspeed:gettrackspeed_mps()
-  self._enforcingspeed_mps = limit_mps
-  self._isalarm = true
-  local acknowledged = false
-  while true do
-    local event = self._sched:select(
-      nil,
-      function ()
-        return self._violation ~= nil
-          and self._violation.type == violationtype.penalty
-      end,
-      function ()
-        return self._getacknowledge()
-      end,
-      function ()
-        return math.abs(self._getspeed_mps()) <= limit_mps
-          and acknowledged
-      end,
-      function ()
-        return self._trackspeed:gettrackspeed_mps() ~= limit_mps
-          and acknowledged
-      end)
-    if event == 1 then
-      penalty(self, self._violation)
-      break
-    elseif event == 2 then
-      self._isalarm = false
-      acknowledged = true
-    elseif event == 3 or event == 4 then
-      self._enforcingspeed_mps = nil
-      self._isalarm = false
-      break
-    end
-  end
-end
-
-local function advancelimitalert (self, violation)
-  local limit = self._limittracker:getobject(violation.hazard.id)
-  if limit == nil then
-    return
-  end
-  self._enforcingspeed_mps = limit.speed_mps
-  self._isalarm = true
-  local acknowledged = false
-  local initdir = getdirection(self)
-  while true do
-    local event = self._sched:select(
-      nil,
-      function ()
-        return self._violation ~= nil
-          and self._violation.type == violationtype.penalty
-      end,
-      function ()
-        return self._getacknowledge()
-      end,
-      function ()
-        local pastlimit
-        local distanceto_m =
-          self._limittracker:getdistance_m(violation.hazard.id)
-        if distanceto_m == nil then
-          pastlimit = true
-        elseif initdir == direction.forward and distanceto_m < 0 then
-          pastlimit = true
-        elseif initdir == direction.backward and distanceto_m > 0 then
-          pastlimit = true
-        else
-          pastlimit = false
-        end
-
-        local dir = getdirection(self)
-        local reversed = dir ~= initdir and dir ~= direction.stopped
-
-        return (pastlimit or reversed) and acknowledged
-      end)
-    if event == 1 then
-      penalty(self, self._violation)
-      break
-    elseif event == 2 then
-      self._isalarm = false
-      acknowledged = true
-    elseif event == 3 then
-      self._enforcingspeed_mps = nil
-      self._isalarm = false
-      break
-    end
-  end
-end
-
-local function stopsignalalert (self, violation)
-  self._enforcingspeed_mps = 0
-  self._isalarm = true
-  local acknowledged = false
-  local initdir = getdirection(self)
-  while true do
-    local signal =
-      self._signaltracker:getobject(violation.hazard.id)
-    local upgraded =
-      signal == nil or signal.prostate ~= 3
-    local dir = getdirection(self)
-    local reversed = dir ~= initdir and dir ~= direction.stopped
-    if upgraded or reversed then
-      if not acknowledged then
-        self._sched:select(nil, function () return self._getacknowledge() end)
-        self._isalarm = false
-      end
-      self._enforcingspeed_mps = nil
-      break
-    end
-
-    local event = self._sched:select(
-      0,
-      function ()
-        return self._violation ~= nil
-          and self._violation.type == violationtype.penalty
-      end,
-      function ()
-        return self._getacknowledge()
-      end)
-    if event == 1 then
-      penalty(self, self._violation)
-      break
-    elseif event == 2 then
-      self._isalarm = false
-      acknowledged = true
-    end
-  end
 end
 
 local function enforce (self)
   while true do
-    self._sched:select(nil, function () return self._violation ~= nil end)
-    local violation = self._violation
-    local type = violation.hazard.type
-    if type == hazardtype.currentlimit then
-      currentlimitalert(self)
-    elseif type == hazardtype.advancelimit then
-      advancelimitalert(self, violation)
-    elseif type == hazardtype.stopsignal then
-      stopsignalalert(self, violation)
+    self._sched:select(nil, function () return self._isabovealertcurve end)
+    self._isalarm = true
+    local acknowledge = self._sched:select(
+      self._alertwarning_s,
+      self._getacknowledge,
+      function () return self._isabovepenaltycurve end)
+    if acknowledge == nil or acknowledge == 2 then
+      penalty(self)
+      self._isalarm = false
+    else
+      local curve = self._sched:select(
+        nil,
+        function () return not self._isabovealertcurve end,
+        function () return self._isabovepenaltycurve end)
+      if curve == 2 then
+        penalty(self)
+      end
+      self._isalarm = false
     end
   end
 end
@@ -615,11 +499,15 @@ function P:getinforcespeed_mps ()
   return self._inforcespeed_mps
 end
 
--- Returns the current track speed in force, taking into account the advance
--- alert and penalty braking curves. This value "counts down" to an
--- approaching speed limit.
+-- Returns the current alert curve speed in force. This value "counts down"
+-- to an approaching speed limit.
 function P:getcurvespeed_mps ()
   return self._curvespeed_mps
+end
+
+-- Returns the time to penalty countdown.
+function P:gettimetopenalty_s ()
+  return self._timetopenalty_s
 end
 
 -- Returns true when the alarm is sounding.
@@ -657,20 +545,6 @@ function P:receivemessage (message)
     local code = string.sub(message, 2, 3)
     self._issigrestricting = code == "13" or code == "14" -- DTG "Restricting"
         or code == "15" -- DTG "Stop"
-  end
-end
-
--- Returns the time to penalty countdown if in the alert state.
-function P:gettimetopenalty_s ()
-  if self._violation == nil then
-    return nil
-  else
-    local violation = self._violation
-    if violation.type == violationtype.alert then
-      return violation.hazard.timetopenalty_s
-    else
-      return nil
-    end
   end
 end
 
