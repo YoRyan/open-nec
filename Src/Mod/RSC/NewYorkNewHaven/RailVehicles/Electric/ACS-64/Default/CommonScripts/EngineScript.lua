@@ -159,8 +159,11 @@ local function writelocostate ()
       throttle = 0
       dynbrake = 0
     else
-      throttle = math.max(state.throttle - 0.5, 0)*2
-      dynbrake = math.max(0.5 - state.throttle, 0)*2
+      local min = RailWorks.GetControlMinimum("ThrottleAndBrake", 0)
+      local max = RailWorks.GetControlMaximum("ThrottleAndBrake", 0)
+      local mid = (max + min)/2
+      throttle = math.max(state.throttle - mid, 0)/(max - mid)
+      dynbrake = math.max(mid - state.throttle, 0)/(mid - min)
     end
     RailWorks.SetControlValue("Regulator", 0, throttle)
     RailWorks.SetControlValue("DynamicBrake", 0, dynbrake)

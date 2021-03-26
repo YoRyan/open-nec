@@ -86,6 +86,14 @@ function P.SetControlValue (name, index, value)
   Call("SetControlValue", name, index, value)
 end
 
+function P.GetControlMinimum (name, index)
+  return Call("GetControlMinimum", name, index)
+end
+
+function P.GetControlMaximum (name, index)
+  return Call("GetControlMaximum", name, index)
+end
+
 --[[
   Engine
 ]]
