@@ -292,7 +292,7 @@ local function gethazardsdict (self)
   for k, hazard in iteradvancelimithazards(self) do
     hazards[k] = hazard
   end
-  if self._issigrestricting then
+  if self._issigrestricting and not self._sched:isstartup() then
     for k, hazard in iterstopsignalhazards(self) do
       hazards[k] = hazard
     end
