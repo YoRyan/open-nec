@@ -33,17 +33,23 @@ end
 
 -- Return a new iterator with the function fn(k, v) -> v2 applied to all
 -- key-value pairs. Keys will be renumbered with positive, continguous integers.
+-- Any keys mapped to nil will be deleted.
 function P.imap (fn, ...)
   local i = 0
   local f, s, k = unpack(arg)
   return function ()
-    local v
-    k, v = f(s, k)
-    if k == nil then
-      return nil, nil
-    else
-      i = i + 1
-      return i, fn(k, v)
+    while true do
+      local v
+      k, v = f(s, k)
+      if k == nil then
+        return nil, nil
+      else
+        local v2 = fn(k, v)
+        if v2 ~= nil then
+          i = i + 1
+          return i, fn(k, v)
+        end
+      end
     end
   end, nil, nil
 end
@@ -88,12 +94,14 @@ function P.ifilter (fn, ...)
   end, nil, nil
 end
 
+local function empty () return pairs({}) end
+
 -- Combine the provided iterators into a single iterator. The iterators should
 -- be supplied as function/invariant/value triplets packed into tables --
 -- e.g., {pairs({ ... })} .
 function P.concat (...)
   if arg.n < 1 then
-    return pairs({})
+    return empty()
   end
   local i = 1
   local f, s, k = unpack(arg[i])
@@ -123,7 +131,7 @@ end
 ]]
 function P.iconcat (...)
   if arg.n < 1 then
-    return pairs({})
+    return empty()
   end
   local i = 1
   local j = 0
@@ -142,6 +150,36 @@ function P.iconcat (...)
       else
         j = j + 1
         return j, v
+      end
+    end
+  end, nil, nil
+end
+
+--[[
+  Combine the iterators yielded by the provided iterator (in the form of
+  function/invariant/value triplets packed into tables) into a single iterator.
+  Keys will be discarded.
+]]
+function P.chain (...)
+  if arg.n < 1 then
+    return empty()
+  end
+  local f, s, k = unpack(arg)
+  local v
+  local fi, si, ki = empty()
+  return function ()
+    while true do
+      local vi
+      ki, vi = fi(si, ki)
+      if ki == nil then
+        k, v = f(s, k)
+        if k == nil then
+          return nil, nil
+        else
+          fi, si, ki = unpack(v)
+        end
+      else
+        return ki, vi
       end
     end
   end, nil, nil
