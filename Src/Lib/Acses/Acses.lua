@@ -61,6 +61,8 @@ function P:new (conf)
     -- -1.3 mph/s
     _penaltycurve_mps2 =
       conf.penaltycurve_mps2 or -1.3*Units.mph.tomps,
+    _restrictingspeed_mps =
+      conf.restrictingspeed_mps or 20*Units.mph.tomps,
     -- Keep the distance small (not very prototypical) to handle those pesky
     -- closely spaced shunting signals.
     _positivestop_m =
@@ -252,12 +254,15 @@ local function iterstopsignalhazards (self)
       else
         target_m = distance_m + self._positivestop_m
       end
-      local prostate = self._signaltracker:getobject(id).prostate
-      if prostate == 3 then
+      local prostate =
+        self._signaltracker:getobject(id).prostate
+      local alert_mps =
+        calcbrakecurve(self, 0, target_m, self._positivestopwarning_s)
+      if prostate == 3 and alert_mps <= self._restrictingspeed_mps then
         return {hazardtype.stopsignal, id}, {
           inforce_mps = 0,
           penalty_mps = calcbrakecurve(self, 0, target_m, 0),
-          alert_mps = calcbrakecurve(self, 0, target_m, self._positivestopwarning_s),
+          alert_mps = alert_mps,
           timetopenalty_s = calctimetopenalty(self, 0, target_m)
         }
       else
