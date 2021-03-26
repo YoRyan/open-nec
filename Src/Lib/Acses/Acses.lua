@@ -321,7 +321,12 @@ local function setstate (self)
     do
       local newstate = TupleDict:new{}
       for k, hazard in TupleDict.pairs(hazards) do
-        newstate[k] = state[k]
+        local s = state[k]
+        if s == nil then
+          newstate[k] = {}
+        else
+          newstate[k] = s
+        end
       end
       state = newstate
     end
@@ -346,9 +351,6 @@ local function setstate (self)
     self._isabovealertcurve = abovealert
     self._isabovepenaltycurve = aspeed_mps > currenthazard.penalty_mps
     if currentid[1] == hazardtype.advancelimit then
-      if state[currentid] == nil then
-        state[currentid] = {}
-      end
       state[currentid].revealed = state[currentid].revealed or abovealert
     end
 
