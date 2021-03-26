@@ -236,7 +236,7 @@ local function iteradvancelimithazards (self)
         if getmovingdirection(self) == direction.forward then
           return distance_m >= 0
         else
-          return distance_m < 0
+          return distance_m <= 0
         end
       end,
       self._limittracker:iterdistances_m()
@@ -270,7 +270,7 @@ local function iterstopsignalhazards (self)
         if getmovingdirection(self) == direction.forward then
           return distance_m >= 0
         else
-          return distance_m < 0
+          return distance_m <= 0
         end
       end,
       self._signaltracker:iterdistances_m()
@@ -354,23 +354,25 @@ local function setstate (self)
       state[currentid].revealed = state[currentid].revealed or abovealert
     end
 
-    -- Get the lowest in-force speed that has also been revealed by an alert
-    -- curve violation.
+    -- Get the most restrictive hazard in effect that also has an in-force speed.
     local inforceid = Iterator.min(
       Iterator.ltcomp,
       Iterator.map(
         function (k, hazard)
           if k[1] == hazardtype.advancelimit then
             if state[k] ~= nil and state[k].revealed then
-              return k, hazard.inforce_mps
+              return k, hazard.alert_mps
             else
               return nil, nil
             end
           else
-            return k, hazard.inforce_mps
+            return k, hazard.alert_mps
           end
         end,
-        TupleDict.pairs(hazards)
+        Iterator.filter(
+          function (_, hazard) return hazard.inforce_mps ~= nil end,
+          TupleDict.pairs(hazards)
+        )
       )
     )
     setinforcespeed_mps(self, hazards[inforceid].inforce_mps)

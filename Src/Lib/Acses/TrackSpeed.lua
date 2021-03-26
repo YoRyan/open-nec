@@ -14,10 +14,10 @@ local function run (self)
       local newafter_mps = {}
       for id, distance_m in self._limittracker:iterdistances_m() do
         local limit = self._limittracker:getobject(id)
-        if distance_m > 0 then
+        if distance_m >= 0 then
           newbefore_mps[id] = before_mps[id]
           newafter_mps[id] = limit.speed_mps
-        elseif distance_m < 0 then
+        elseif distance_m <= 0 then
           newbefore_mps[id] = limit.speed_mps
           newafter_mps[id] = after_mps[id]
         else
