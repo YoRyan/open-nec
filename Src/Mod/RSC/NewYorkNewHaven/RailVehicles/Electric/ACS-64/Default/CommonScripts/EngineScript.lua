@@ -153,9 +153,17 @@ end
 local function writelocostate ()
   local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
   local penaltybrake = 0.85
-  -- There's no virtual throttle, so just move the throttle handle.
-  if not power:haspower() or penalty then
-    RailWorks.SetControlValue("ThrottleAndBrake", 0, 0.5) -- no power
+  do
+    local throttle, dynbrake
+    if not power:haspower() or penalty then
+      throttle = 0
+      dynbrake = 0
+    else
+      throttle = math.max(state.throttle - 0.5, 0)*2
+      dynbrake = math.max(0.5 - state.throttle, 0)*2
+    end
+    RailWorks.SetControlValue("Regulator", 0, throttle)
+    RailWorks.SetControlValue("DynamicBrake", 0, dynbrake)
   end
   do
     local v
