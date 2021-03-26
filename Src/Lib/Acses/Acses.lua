@@ -305,8 +305,11 @@ local function gethazardsdict (self)
 end
 
 local function setinforcespeed_mps (self, v)
-  if self._inforcespeed_mps ~= v and not self._isalarm then
-    self._doalert()
+  if self._inforcespeed_mps ~= v then
+    self._sched:yield() -- Give other coroutines the opportunity to set the alarm.
+    if not self._isalarm then
+      self._doalert()
+    end
   end
   self._inforcespeed_mps = v
 end
