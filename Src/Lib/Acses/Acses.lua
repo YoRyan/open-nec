@@ -26,6 +26,7 @@ local function initstate (self)
   self._isabovealertcurve = false
   self._isabovepenaltycurve = false
   self._issigrestricting = true
+  self._movingdirection = direction.forward
   self._limitfilter = nil
   self._trackspeed = nil
   self._limittracker = nil
@@ -99,16 +100,12 @@ local function getdirection (self)
   end
 end
 
-local getmovingdirection
-do
-  local lastdir = direction.forward
-  function getmovingdirection (self)
-    local dir = getdirection(self)
-    if dir ~= direction.stopped then
-      lastdir = dir
-    end
-    return lastdir
+local function getmovingdirection (self)
+  local dir = getdirection(self)
+  if dir ~= direction.stopped then
+    self._movingdirection = dir
   end
+  return self._movingdirection
 end
 
 --[[
