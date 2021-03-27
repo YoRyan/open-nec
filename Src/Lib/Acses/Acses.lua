@@ -360,11 +360,15 @@ local function setstate (self)
     -- Check for violation of the alert and/or penalty curves.
     local aspeed_mps = math.abs(self._getspeed_mps())
     local abovealert = aspeed_mps > currenthazard.alert_mps
-    self._isabovealertcurve = abovealert
-    self._isabovepenaltycurve = aspeed_mps > currenthazard.penalty_mps
     if currentid[1] == hazardtype.advancelimit then
-      state[currentid].revealed = state[currentid].revealed or abovealert
+      local violated = state[currentid].violated or abovealert
+      local abovelimit = aspeed_mps > currenthazard.inforce_mps
+      state[currentid].violated = violated
+      self._isabovealertcurve = violated and abovelimit
+    else
+      self._isabovealertcurve = abovealert
     end
+    self._isabovepenaltycurve = aspeed_mps > currenthazard.penalty_mps
 
     -- Get the most restrictive hazard in effect that also has an in-force speed.
     local inforceid = Iterator.min(
@@ -372,7 +376,7 @@ local function setstate (self)
       Iterator.map(
         function (k, hazard)
           if k[1] == hazardtype.advancelimit then
-            if state[k] ~= nil and state[k].revealed then
+            if state[k] ~= nil and state[k].violated then
               return k, hazard.alert_mps
             else
               return nil, nil
