@@ -42,23 +42,23 @@ The default position is 20% braking.
 
 #### SigN
 
-Illuminates the "N" signal cab aspect lamp.
+Illuminates the "N" cab signal aspect lamp.
 
 #### SigL
 
-Illuminates the "L" signal cab aspect lamp.
+Illuminates the "L" cab signal aspect lamp.
 
 #### SigM
 
-Illuminates the "M" signal cab aspect lamp.
+Illuminates the "M" cab signal aspect lamp.
 
 #### SigR
 
-Illuminates the "R" signal cab aspect lamp.
+Illuminates the "R" cab signal aspect lamp.
 
 #### SigS
 
-Illuminates the "S" signal cab aspect lamp.
+Illuminates the "S" cab signal aspect lamp.
 
 #### SignalSpeed
 
