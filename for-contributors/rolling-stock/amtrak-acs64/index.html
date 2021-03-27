@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../../../img/favicon.ico">
+        <title>Amtrak ACS-64 - Open NEC Project</title>
+        <link href="../../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../../../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
+
+        <script src="../../../js/jquery-1.10.2.min.js" defer></script>
+        <script src="../../../js/bootstrap.min.js" defer></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+        <script>hljs.initHighlightingOnLoad();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../../..">Open NEC Project</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href="../../.." class="nav-link">Introduction</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../../../installation/" class="nav-link">Get the mod</a>
+                            </li>
+                            <li class="dropdown active">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">For contributors <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../" class="dropdown-item">Developing for the project</a>
+</li>
+                                    
+  <li class="dropdown-submenu">
+    <a href="#" class="dropdown-item">Rolling stock</a>
+    <ul class="dropdown-menu">
+            
+<li>
+    <a href="../amtrak-acela/" class="dropdown-item">Amtrak Acela Express</a>
+</li>
+            
+<li>
+    <a href="./" class="dropdown-item active">Amtrak ACS-64</a>
+</li>
+            
+<li>
+    <a href="../amtrak-aem7/" class="dropdown-item">Amtrak AEM-7</a>
+</li>
+            
+<li>
+    <a href="../amtrak-hhp8/" class="dropdown-item">Amtrak HHP-8</a>
+</li>
+            
+<li>
+    <a href="../marc-mp36ph/" class="dropdown-item">MARC MP36PH</a>
+</li>
+            
+<li>
+    <a href="../marc-multilevel/" class="dropdown-item">MARC Multilevel Cab Car</a>
+</li>
+            
+<li>
+    <a href="../mta-m8/" class="dropdown-item">Metro-North M8</a>
+</li>
+    </ul>
+  </li>
+                                    
+  <li class="dropdown-submenu">
+    <a href="#" class="dropdown-item">Routes</a>
+    <ul class="dropdown-menu">
+            
+<li>
+    <a href="../../routes/newhaven/" class="dropdown-item">Northeast Corridor - New York to New Haven</a>
+</li>
+            
+<li>
+    <a href="../../routes/njcl-morristown/" class="dropdown-item">NJ Transit North Jersey Coast and Morristown-Essex Lines</a>
+</li>
+            
+<li>
+    <a href="../../routes/northeastcorridor/" class="dropdown-item">Northeast Corridor - New York to Philadelphia</a>
+</li>
+    </ul>
+  </li>
+                                </ul>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">For players <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../../for-players/" class="dropdown-item">Driving on the NEC</a>
+</li>
+                                    
+<li>
+    <a href="../../../for-players/amtrak-acela/" class="dropdown-item">Notes for the Amtrak Acela Express</a>
+</li>
+                                    
+<li>
+    <a href="../../../for-players/amtrak-acs64/" class="dropdown-item">Notes for the Amtrak ACS-64</a>
+</li>
+                                    
+<li>
+    <a href="../../../for-players/amtrak-aem7/" class="dropdown-item">Notes for the Amtrak AEM-7</a>
+</li>
+                                    
+<li>
+    <a href="../../../for-players/amtrak-hhp8/" class="dropdown-item">Notes for the Amtrak HHP-8</a>
+</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../amtrak-acela/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../amtrak-aem7/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#amtrak-acs-64" class="nav-link">Amtrak ACS-64</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#controls" class="nav-link">Controls</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#lights" class="nav-link">Lights</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#model-nodes" class="nav-link">Model nodes</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="amtrak-acs-64">Amtrak ACS-64</h1>
+<p>The Siemens ACS-64 is an electric locomotive included with the New York to New Haven and Washington to Baltimore routes. It is currently the only conventional electric locomotive operated by Amtrak.</p>
+<h2 id="controls">Controls</h2>
+<h3 id="control-desk">Control desk</h3>
+<h4 id="cablight">CabLight</h4>
+<p>The cab dome light switch.</p>
+<p>The default position is 0.</p>
+<h4 id="deskconsolelight">DeskConsoleLight</h4>
+<p>The desk and console lights switch. 0 = off, 1 = desk light only, 2 = both lights, 3 = console light only.</p>
+<p>The default position is 0.</p>
+<h4 id="pantographdownbutton">PantographDownButton</h4>
+<p>The pantograph lower button. 0 = released, 1 = depressed.</p>
+<p>The default position is 0.</p>
+<h4 id="pantographupbutton">PantographUpButton</h4>
+<p>The pantograph raise button. 0 = released, 1 = depressed.</p>
+<p>The default position is 0.</p>
+<h4 id="awsreset">AWSReset</h4>
+<p>The safety systems acknowledge button.</p>
+<p>The default position is 0.</p>
+<h4 id="reverser">Reverser</h4>
+<p>The reverser lever. -1 = reverse, 0 = neutral, 1 = forward.</p>
+<p>The default position is 0.</p>
+<h4 id="throttleandbrake">ThrottleAndBrake</h4>
+<p>The combined throttle/dynamic brake lever. Ranges from 0 to 1, where &lt;0.5 applies braking, 0.5 coasts, and &gt;0.5 applies power.</p>
+<p>The default position is 0.5.</p>
+<h4 id="virtualbrake">VirtualBrake</h4>
+<p>The player's Expert Mode train brake control. Ranges from 0 to 1.</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0</td>
+<td>Emergency</td>
+</tr>
+<tr>
+<td>0.85</td>
+<td>Full service</td>
+</tr>
+<tr>
+<td>0.75</td>
+<td>Suppression</td>
+</tr>
+<tr>
+<td>0.575</td>
+<td>Service 95%</td>
+</tr>
+<tr>
+<td>0.55</td>
+<td>Service 85%</td>
+</tr>
+<tr>
+<td>0.525</td>
+<td>Service 75%</td>
+</tr>
+<tr>
+<td>0.5</td>
+<td>Service 65%</td>
+</tr>
+<tr>
+<td>0.475</td>
+<td>Service 55%</td>
+</tr>
+<tr>
+<td>0.45</td>
+<td>Service 45%</td>
+</tr>
+<tr>
+<td>0.425</td>
+<td>Service 35%</td>
+</tr>
+<tr>
+<td>0.4</td>
+<td>Service 25%</td>
+</tr>
+<tr>
+<td>0.375</td>
+<td>Service 15%</td>
+</tr>
+<tr>
+<td>0.35</td>
+<td>Service 5%</td>
+</tr>
+<tr>
+<td>0.1</td>
+<td>Minimum</td>
+</tr>
+<tr>
+<td>0</td>
+<td>Release</td>
+</tr>
+</tbody>
+</table>
+<h4 id="trainbrakecontrol">TrainBrakeControl</h4>
+<p>The true train brake control used by the physics model. Ranges from 0 to 1.</p>
+<p>The default position is 0.75.</p>
+<h4 id="enginebrakecontrol">EngineBrakeControl</h4>
+<p>The player's Expert Mode independent (locomotive) brake control. Ranges from 0 to 1.</p>
+<p>The default position is 0.</p>
+<h4 id="sander">Sander</h4>
+<p>The sander switch.</p>
+<p>The default position is 0.</p>
+<h4 id="headlights">Headlights</h4>
+<p>The forward headlight switch. 0 = off, 1 = forward headlights, 2 = reverse headlights.</p>
+<p>The default position is 0.</p>
+<h4 id="ditchlight">DitchLight</h4>
+<p>The ditch light switch. 0 = off, 1 = on, 2 = flash.</p>
+<p>The default position is 0.</p>
+<h4 id="bell">Bell</h4>
+<p>The bell button.</p>
+<p>The default position is 0.</p>
+<h4 id="horn">Horn</h4>
+<p>The horn joystick.</p>
+<p>The default position is 0.</p>
+<h3 id="dashboard">Dashboard</h3>
+<h4 id="sigaspecttopgreen">SigAspectTopGreen</h4>
+<p>Illuminates the upper green cab signal aspect lamp.</p>
+<h4 id="sigaspecttopyellow">SigAspectTopYellow</h4>
+<p>Illuminates the upper yellow cab signal aspect lamp.</p>
+<h4 id="sigaspecttopred">SigAspectTopRed</h4>
+<p>Illuminates the upper red cab signal aspect lamp.</p>
+<h4 id="sigaspecttopwhite">SigAspectTopWhite</h4>
+<p>Illuminates the upper white cab signal aspect lamp.</p>
+<h4 id="sigaspectbottomgreen">SigAspectBottomGreen</h4>
+<p>Illuminates the lower green cab signal aspect lamp.</p>
+<h4 id="sigaspectbottomyellow">SigAspectBottomYellow</h4>
+<p>Illuminates the lower yellow cab signal aspect lamp.</p>
+<h4 id="sigaspectbottomwhite">SigAspectBottomWhite</h4>
+<p>Illuminates the lower white cab signal aspect lamp.</p>
+<h4 id="sigtext">SigText</h4>
+<p>Selects one of the predefined texts for the cab signal aspect display.</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>CLEAR</td>
+</tr>
+<tr>
+<td>2</td>
+<td>CAB SPEED</td>
+</tr>
+<tr>
+<td>3</td>
+<td>APPROACH LIMITED</td>
+</tr>
+<tr>
+<td>4</td>
+<td>LIMITED CLEAR</td>
+</tr>
+<tr>
+<td>5</td>
+<td>ADVANCE APPROACH</td>
+</tr>
+<tr>
+<td>6</td>
+<td>MEDIUM CLEAR</td>
+</tr>
+<tr>
+<td>7</td>
+<td>SLOW APPROACH</td>
+</tr>
+<tr>
+<td>8</td>
+<td>APPROACH</td>
+</tr>
+<tr>
+<td>9</td>
+<td>MEDIUM APPROACH</td>
+</tr>
+<tr>
+<td>10</td>
+<td>STOP AND PROCEED</td>
+</tr>
+<tr>
+<td>11</td>
+<td>RESTRICTING</td>
+</tr>
+<tr>
+<td>12</td>
+<td>STOP</td>
+</tr>
+<tr>
+<td>13</td>
+<td>APPROACH MEDIUM</td>
+</tr>
+</tbody>
+</table>
+<p>All other values blank the display.</p>
+<h4 id="sigs">SigS</h4>
+<p>Illuminates the "S" cab signal aspect lamp.</p>
+<h4 id="sigr">SigR</h4>
+<p>Illuminates the "R" cab signal aspect lamp.</p>
+<h4 id="sigm">SigM</h4>
+<p>Illuminates the "M" cab signal aspect lamp.</p>
+<h4 id="sigl">SigL</h4>
+<p>Illuminates the "L" cab signal aspect lamp.</p>
+<h4 id="sig60">Sig60</h4>
+<p>Illuminates the "60" cab signal aspect lamp.</p>
+<h4 id="sig80">Sig80</h4>
+<p>Illuminates the "80" cab signal aspect lamp.</p>
+<h4 id="sign">SigN</h4>
+<p>Illuminates the "N" cab signal aspect lamp.</p>
+<h4 id="sigmodeatc">SigModeATC</h4>
+<p>Illuminates the "ATC" lamp to the left of the maximum authorized speed indicator.</p>
+<h4 id="sigmodeacses">SigModeACSES</h4>
+<p>Illuminates the "ACSES" lamp to the right of the maximum authorized speed indicator.</p>
+<h4 id="speedlimit_hundreds">SpeedLimit_hundreds</h4>
+<p>Sets the hundreds digit on the maximum authorized speed indicator. 0 hides the digit.</p>
+<h4 id="speedlimit_tens">SpeedLimit_tens</h4>
+<p>Sets the tens digit on the maximum authorized speed indicator. -1 hides the digit.</p>
+<h4 id="speedlimit_units">SpeedLimit_units</h4>
+<p>Sets the ones digit on the maximum authorized speed indicator. -1 hides the digit.</p>
+<h4 id="penalty_hundreds">Penalty_hundreds</h4>
+<p>Sets the hundreds digit on the time to penalty indicator. 0 hides the digit.</p>
+<h4 id="penalty_tens">Penalty_tens</h4>
+<p>Sets the tens digit on the time to penalty indicator. -1 hides the digit.</p>
+<h4 id="penalty_units">Penalty_units</h4>
+<p>Sets the ones digit on the time to penalty indicator. -1 hides the digit.</p>
+<h4 id="sigatccutin">SigATCCutIn</h4>
+<p>Illuminates the green "ATC Cut-In" lamp.</p>
+<h4 id="sigatccutout">SigATCCutOut</h4>
+<p>Illuminates the red "ATC Cut-Out" lamp.</p>
+<h4 id="sigacsescutin">SigACSESCutIn</h4>
+<p>Illuminates the green "ACSES Cut-In" lamp.</p>
+<h4 id="sigacsescutout">SigACSESCutOut</h4>
+<p>Illuminates the red "ACSES Cut-Out" lamp.</p>
+<h4 id="wipers">Wipers</h4>
+<p>The wiper switch.</p>
+<p>The default position is 0.</p>
+<h3 id="display">Display</h3>
+<h4 id="effort_tens">effort_tens</h4>
+<p>Sets the tens digit on the kLBS effort indicator. -1 hides the digit.</p>
+<h4 id="effort_units">effort_units</h4>
+<p>Sets the ones digit on the kLBS effort indicator. -1 hides the digit.</p>
+<h4 id="effort_guide">effort_guide</h4>
+<p>Moves the effort indicator digits by the supplied number of places to compensate for a smaller number.</p>
+<p>The effect is so small as to be useless.</p>
+<h4 id="abstractiveeffort">AbsTractiveEffort</h4>
+<p>Fills the kLBS effort indicator bar. Ranges from 0 (0) to 365 (80 kLBS).</p>
+<h4 id="speedometermph">SpeedometerMPH</h4>
+<p>The current position of the speedometer dial. This value is set by the simulator, not by Lua.</p>
+<h4 id="speeddigit_hundreds">SpeedDigit_hundreds</h4>
+<p>Sets the hundreds digit on the speedometer. 0 hides the digit.</p>
+<h4 id="speeddigit_tens">SpeedDigit_tens</h4>
+<p>Sets the tens digit on the speedometer. -1 hides the digit.</p>
+<h4 id="speeddigit_units">SpeedDigit_units</h4>
+<p>Sets the ones digit on the speedometer.</p>
+<h4 id="speeddigit_guide">SpeedDigit_guide</h4>
+<p>Moves the speedometer digits by the supplied number of places to compensate for a smaller number.</p>
+<h4 id="accel_hundreds">accel_hundreds</h4>
+<p>Sets the hundreds digit on the mph/min accelerometer. 0 hides the digit.</p>
+<h4 id="accel_tens">accel_tens</h4>
+<p>Sets the tens digit on the mph/min accelerometer. -1 hides the digit.</p>
+<h4 id="accel_units">accel_units</h4>
+<p>Sets the ones digit on the mph/min accelerometer. -1 hides the digit.</p>
+<h4 id="accel_guide">accel_guide</h4>
+<p>Moves the accelerometer digits by the supplied number of places to compensate for a smaller number.</p>
+<h4 id="accelerationmphpm">AccelerationMPHPM</h4>
+<p>Fills the mph/min accelerometer indicator bar. Ranges from 0 to 150.</p>
+<h4 id="screenalerter">ScreenAlerter</h4>
+<p>Illuminates the large, yellow "Alerter" indicator and plays a continuous beeping sound.</p>
+<h4 id="screenwheelslip">ScreenWheelslip</h4>
+<p>Illuminates the yellow "Wheel Slip" indicator.</p>
+<h4 id="screendoorsbypassed">ScreenDoorsBypassed</h4>
+<p>Illuminates the yellow "Doors Bypassed" indicator.</p>
+<h4 id="screensuppression">ScreenSuppression</h4>
+<p>Illuminates the yellow "Suppression" indicator.</p>
+<h4 id="screenparkingbrake">ScreenParkingBrake</h4>
+<p>Illuminates the yellow "Parking Brake Applied" indicator.</p>
+<h4 id="screennopowerbrake">ScreenNoPowerbrake</h4>
+<p>Illuminates the red "No Power Brake" indicator.</p>
+<h4 id="screenfiresuppressiondisabled">ScreenFireSuppressionDisabled</h4>
+<p>Illuminates the red "Fire Suppression Disabled" indicator.</p>
+<h3 id="sounds">Sounds</h3>
+<h4 id="speedreductionalert">SpeedReductionAlert</h4>
+<p>Plays a single speed reduction beep sound that lasts for a couple of seconds.</p>
+<h4 id="speedincreasealert">SpeedIncreaseAlert</h4>
+<p>Plays a single, brief speed increase beep sound.</p>
+<h3 id="keyboard-shortcuts">Keyboard shortcuts</h3>
+<h4 id="atccutin">ATCCutIn</h4>
+<p>Toggles between 0 and 1 with Ctrl+D. Should not be set by Lua; otherwise the value will desync from the keyboard shortcut.</p>
+<p>The default setting is 1.</p>
+<h4 id="acsescutin">ACSESCutIn</h4>
+<p>Toggles between 0 and 1 with Ctrl+F. Should not be set by Lua; otherwise the value will desync from the keyboard shortcut.</p>
+<p>The default setting is 1.</p>
+<h2 id="lights">Lights</h2>
+<h4 id="frontcablight">FrontCabLight</h4>
+<p>The forward cab dome light.</p>
+<h4 id="rearcablight">RearCabLight</h4>
+<p>The rear cab dome light.</p>
+<h4 id="front_consolelight_01">Front_ConsoleLight_01</h4>
+<h4 id="front_consolelight_02">Front_ConsoleLight_02</h4>
+<h4 id="front_consolelight_03">Front_ConsoleLight_03</h4>
+<p>The forward cab console lights.</p>
+<h4 id="rear_consolelight_01">Rear_ConsoleLight_01</h4>
+<h4 id="rear_consolelight_02">Rear_ConsoleLight_02</h4>
+<h4 id="rear_consolelight_03">Rear_ConsoleLight_03</h4>
+<p>The rear cab console lights.</p>
+<h4 id="front_desklight_01">Front_DeskLight_01</h4>
+<h4 id="rear_desklight_01">Rear_DeskLight_01</h4>
+<p>The rear cab desk lights.</p>
+<h4 id="spark1">Spark1</h4>
+<p>The forward pantograph spark.</p>
+<h4 id="spark2">Spark2</h4>
+<p>The rear pantograph spark.</p>
+<h4 id="frontditchlightl">FrontDitchLightL</h4>
+<p>The forward left ditch light.</p>
+<h4 id="frontditchlightr">FrontDitchLightR</h4>
+<p>The forward right ditch light.</p>
+<h4 id="rearditchlightl">RearDitchLightL</h4>
+<p>The rear left ditch light.</p>
+<h4 id="rearditchlightr">RearDitchLightR</h4>
+<p>The rear right ditch light.</p>
+<h2 id="model-nodes">Model nodes</h2>
+<h4 id="pantobsparka">PantoBsparkA</h4>
+<h4 id="pantobsparkb">PantoBsparkB</h4>
+<h4 id="pantobsparkc">PantoBsparkC</h4>
+<h4 id="pantobsparkd">PantoBsparkD</h4>
+<h4 id="pantobsparke">PantoBsparkE</h4>
+<h4 id="pantobsparkf">PantoBsparkF</h4>
+<p>The forward pantograph spark.</p>
+<h4 id="pantoasparka">PantoAsparkA</h4>
+<h4 id="pantoasparkb">PantoAsparkB</h4>
+<h4 id="pantoasparkc">PantoAsparkC</h4>
+<h4 id="pantoasparkd">PantoAsparkD</h4>
+<h4 id="pantoasparke">PantoAsparkE</h4>
+<h4 id="pantoasparkf">PantoAsparkF</h4>
+<p>The rear pantograph spark.</p>
+<h4 id="ditch_fwd_l">ditch_fwd_l</h4>
+<p>The forward left ditch light.</p>
+<h4 id="ditch_fwd_r">ditch_fwd_r</h4>
+<p>The forward right ditch light.</p>
+<h4 id="ditch_rev_l">ditch_rev_l</h4>
+<p>The rear ditch light.</p>
+<h4 id="ditch_rev_r">ditch_rev_r</h4>
+<p>The rear right ditch light.</p></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script>
+            var base_url = "../../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../../js/base.js" defer></script>
+        <script src="../../../search/main.js" defer></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>
+                    From here you can search these documents. Enter
+                    your search terms below.
+                </p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

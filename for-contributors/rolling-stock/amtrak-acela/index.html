@@ -56,11 +56,27 @@
 </li>
             
 <li>
+    <a href="../amtrak-acs64/" class="dropdown-item">Amtrak ACS-64</a>
+</li>
+            
+<li>
     <a href="../amtrak-aem7/" class="dropdown-item">Amtrak AEM-7</a>
 </li>
             
 <li>
     <a href="../amtrak-hhp8/" class="dropdown-item">Amtrak HHP-8</a>
+</li>
+            
+<li>
+    <a href="../marc-mp36ph/" class="dropdown-item">MARC MP36PH</a>
+</li>
+            
+<li>
+    <a href="../marc-multilevel/" class="dropdown-item">MARC Multilevel Cab Car</a>
+</li>
+            
+<li>
+    <a href="../mta-m8/" class="dropdown-item">Metro-North M8</a>
 </li>
     </ul>
   </li>
@@ -97,6 +113,10 @@
 </li>
                                     
 <li>
+    <a href="../../../for-players/amtrak-acs64/" class="dropdown-item">Notes for the Amtrak ACS-64</a>
+</li>
+                                    
+<li>
     <a href="../../../for-players/amtrak-aem7/" class="dropdown-item">Notes for the Amtrak AEM-7</a>
 </li>
                                     
@@ -119,7 +139,7 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="next" href="../amtrak-aem7/" class="nav-link">
+                                <a rel="next" href="../amtrak-acs64/" class="nav-link">
                                     Next <i class="fa fa-arrow-right"></i>
                                 </a>
                             </li>
@@ -144,6 +164,22 @@
             <li class="nav-item" data-level="1"><a href="#amtrak-acela-express" class="nav-link">Amtrak Acela Express</a>
               <ul class="nav flex-column">
             <li class="nav-item" data-level="2"><a href="#controls" class="nav-link">Controls</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#model-nodes" class="nav-link">Model nodes</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#lights" class="nav-link">Lights</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#animations" class="nav-link">Animations</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#consist-messages" class="nav-link">Consist messages</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -383,7 +419,7 @@
 <h4 id="acsescutin">ACSESCutIn</h4>
 <p>Toggles between 0 and 1 with Ctrl+F. Should not be set by Lua; otherwise the value will desync from the keyboard shortcut.</p>
 <p>The default setting is 0.</p>
-<h3 id="model-nodes">Model nodes</h3>
+<h2 id="model-nodes">Model nodes</h2>
 <h4 id="front_spark01">Front_spark01</h4>
 <p>One of the white billboards for the front pantograph spark.</p>
 <h4 id="front_spark02">Front_spark02</h4>
@@ -392,7 +428,13 @@
 <p>One of the white billboards for the rear pantograph spark.</p>
 <h4 id="rear_spark02">Rear_spark02</h4>
 <p>One of the white billboards for the rear pantograph spark.</p>
-<h3 id="lights">Lights</h3>
+<h4 id="lefton">LeftOn</h4>
+<h4 id="ditchlightsl">DitchLightsL</h4>
+<p>The left ground light.</p>
+<h4 id="righton">RightOn</h4>
+<h4 id="ditchlightsr">DitchLightsR</h4>
+<p>The right ground light.</p>
+<h2 id="lights">Lights</h2>
 <h4 id="spark">Spark</h4>
 <p>The blue light for the front pantograph spark.</p>
 <h4 id="spark2">Spark2</h4>
@@ -403,14 +445,14 @@
 <p>The left ground light.</p>
 <h4 id="ditchlightright">DitchLightRight</h4>
 <p>The right ground light.</p>
-<h3 id="animations">Animations</h3>
+<h2 id="animations">Animations</h2>
 <h4 id="frontpanto">frontPanto</h4>
 <p>Raises the front pantograph and its spark. Duration is 2 seconds.</p>
 <h4 id="rearpanto">rearPanto</h4>
 <p>Raises the rear pantograph and its spark. Duration is 2 seconds.</p>
 <h4 id="cone">cone</h4>
 <p>Opens the nose cone that shrouds the front coupler. Duration is 2 seconds.</p>
-<h3 id="consist-messages">Consist messages</h3>
+<h2 id="consist-messages">Consist messages</h2>
 <h4 id="1209">1209</h4>
 <p>Communicates the position of the tilt isolate control, to tell the coaches to tilt or not to tilt. The argument is its current setting.</p>
 <h4 id="1210">1210</h4>

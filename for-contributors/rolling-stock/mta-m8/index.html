@@ -8,7 +8,7 @@
         
         
         <link rel="shortcut icon" href="../../../img/favicon.ico">
-        <title>Amtrak AEM-7 - Open NEC Project</title>
+        <title>Metro-North M8 - Open NEC Project</title>
         <link href="../../../css/bootstrap.min.css" rel="stylesheet">
         <link href="../../../css/font-awesome.min.css" rel="stylesheet">
         <link href="../../../css/base.css" rel="stylesheet">
@@ -60,7 +60,7 @@
 </li>
             
 <li>
-    <a href="./" class="dropdown-item active">Amtrak AEM-7</a>
+    <a href="../amtrak-aem7/" class="dropdown-item">Amtrak AEM-7</a>
 </li>
             
 <li>
@@ -76,7 +76,7 @@
 </li>
             
 <li>
-    <a href="../mta-m8/" class="dropdown-item">Metro-North M8</a>
+    <a href="./" class="dropdown-item active">Metro-North M8</a>
 </li>
     </ul>
   </li>
@@ -134,12 +134,12 @@
                             </a>
                         </li>
                             <li class="nav-item">
-                                <a rel="prev" href="../amtrak-acs64/" class="nav-link">
+                                <a rel="prev" href="../marc-multilevel/" class="nav-link">
                                     <i class="fa fa-arrow-left"></i> Previous
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="next" href="../amtrak-hhp8/" class="nav-link">
+                                <a rel="next" href="../../routes/newhaven/" class="nav-link">
                                     Next <i class="fa fa-arrow-right"></i>
                                 </a>
                             </li>
@@ -161,9 +161,13 @@
     <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-level="1"><a href="#amtrak-aem-7" class="nav-link">Amtrak AEM-7</a>
+            <li class="nav-item" data-level="1"><a href="#metro-north-m8" class="nav-link">Metro-North M8</a>
               <ul class="nav flex-column">
             <li class="nav-item" data-level="2"><a href="#controls" class="nav-link">Controls</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#keyboard-shortcuts" class="nav-link">Keyboard shortcuts</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -174,104 +178,117 @@
 </div></div>
                     <div class="col-md-9" role="main">
 
-<h1 id="amtrak-aem-7">Amtrak AEM-7</h1>
-<p>The EMD AEM-7 is the sole locomotive included with the Northeast Corridor: New York - Philadelphia DLC.</p>
+<h1 id="metro-north-m8">Metro-North M8</h1>
+<p>The Kawasaki M8 is an electric multiple-unit that serves Metro-North's New Haven Line. It is also proposed to run to Penn Station as part of the Penn Station Access project.</p>
 <h2 id="controls">Controls</h2>
-<h3 id="warning-devices">Warning devices</h3>
-<h4 id="cabsignal">CabSignal</h4>
-<p>Sets the upper (signal) speed limit display and the cab signal aspect displays. However, this control is incapable of rendering any green signal heads, which must be rendered by the <code>CabSignal1</code> and <code>CabSignal2</code> controls.</p>
-<table>
-<thead>
-<tr>
-<th>Value</th>
-<th>Signal Speed</th>
-<th>Aspect</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0-1</td>
-<td><code>--</code></td>
-<td>Blank over blank</td>
-</tr>
-<tr>
-<td>2</td>
-<td><code>80</code></td>
-<td>Blank over blank</td>
-</tr>
-<tr>
-<td>3</td>
-<td><code>60</code></td>
-<td>Blank over blank</td>
-</tr>
-<tr>
-<td>4-5</td>
-<td><code>45</code></td>
-<td>Yellow over blank</td>
-</tr>
-<tr>
-<td>6</td>
-<td><code>30</code></td>
-<td>Yellow over blank</td>
-</tr>
-<tr>
-<td>7</td>
-<td><code>20</code></td>
-<td>Red over white</td>
-</tr>
-<tr>
-<td>8-10</td>
-<td><code></code></td>
-<td>Blank over blank</td>
-</tr>
-</tbody>
-</table>
-<h4 id="cabsignal1">CabSignal1</h4>
-<p>Toggles the green lights on the upper cab signal head. Set to 1 to turn the lights on, and 0 to turn the lights off. These lights are independent of the lights displayed by the <code>CabSignal</code> control.</p>
-<h4 id="cabsignal2">CabSignal2</h4>
-<p>Toggles the green lights on the lower cab signal head. Set to 1 to turn the lights on, and 0 to turn the lights off. These lights are independent of the lights displayed by the <code>CabSignal</code> control.</p>
-<h4 id="trackspeed">TrackSpeed</h4>
-<p>Sets the lower (track) speed limit display. The track speed indicator supports the following speeds:</p>
-<ul>
-<li>0 (which displays <code>--</code>)</li>
-<li>10</li>
-<li>15</li>
-<li>25</li>
-<li>30</li>
-<li>35</li>
-<li>45</li>
-<li>50</li>
-<li>55</li>
-<li>60</li>
-<li>65</li>
-<li>70</li>
-<li>75</li>
-<li>80</li>
-<li>90</li>
-<li>100</li>
-<li>105</li>
-<li>110</li>
-<li>120</li>
-<li>125</li>
-<li>150</li>
-</ul>
-<p>All other values will display the highest supported speed that is less than the requested value. For example, setting the value to 20 will display <code>15</code>, and setting it to 85 will display <code>80</code>.</p>
-<p>However, if the value is set to (s - 1) &lt; v &lt; s where s is any supported speed, the display will turn blank (<code></code>). For example, you can set the value to 9.5 to achieve this effect.</p>
-<h4 id="aws">AWS</h4>
-<p>Illuminates the red "Alert Indicator" light above the cab signal display. Set to 1 to turn the light on, and 0 to turn the light off.</p>
-<h4 id="awswarncount">AWSWarnCount</h4>
-<p>Plays a "whoop whoop" warning sound and triggers the alerter display on the HUD. Set to 1 to play the sound and flash the warning, and 0 to turn them off.</p>
-<h4 id="overspeedalert">OverSpeedAlert</h4>
-<p>Plays a "beep beep" warning sound. Set to 1 to play the sound, and 0 to turn it off.</p>
-<h3 id="buttons-and-switches">Buttons and switches</h3>
-<h4 id="speedcontrol">SpeedControl</h4>
-<p>The position of the "Speed Control" button above the cab signal display. It is 1 when depressed and 0 when released.</p>
-<h4 id="alertcontrol">AlertControl</h4>
-<p>The position of the "Alerter Enable" button above the cab signal display. It is 1 when depressed and 0 when released.</p>
-<h4 id="cruiseset">CruiseSet</h4>
-<p>The position of the cruise control speed dial on the dash. It ranges from 10 (off) to 120.</p>
+<h3 id="left-panel">Left panel</h3>
+<h4 id="cablight">Cablight</h4>
+<p>The cab dome light switch.</p>
+<h4 id="wipers">Wipers</h4>
+<p>The wipers switch, which activates the wiper sequence.</p>
+<h4 id="headlights">Headlights</h4>
+<p>The headlights switch, which controls the model headlights. 0 = off, 1 = headlights, 2 = taillights.</p>
+<h4 id="horn">Horn</h4>
+<p>The horn plunger, which activates the horn.</p>
+<h3 id="control-desk">Control desk</h3>
 <h4 id="awsreset">AWSReset</h4>
-<p>The position of the acknowledge (Q) button. It is 1 when depressed and 0 when released.</p></div>
+<p>The safety systems acknowledge button.</p>
+<h4 id="reverser">Reverser</h4>
+<p>The reverser control. -1 = reverse, 0 = neutral, 1 = forward.</p>
+<p>The default position is neutral.</p>
+<h4 id="throttleandbrake">ThrottleAndBrake</h4>
+<p>The combined power and brake handle. Values range from -1 to 1; negative values apply braking, while positive values apply power.</p>
+<p>The default position is 20% braking.</p>
+<h4 id="sign">SigN</h4>
+<p>Illuminates the "N" signal cab aspect lamp.</p>
+<h4 id="sigl">SigL</h4>
+<p>Illuminates the "L" signal cab aspect lamp.</p>
+<h4 id="sigm">SigM</h4>
+<p>Illuminates the "M" signal cab aspect lamp.</p>
+<h4 id="sigr">SigR</h4>
+<p>Illuminates the "R" signal cab aspect lamp.</p>
+<h4 id="sigs">SigS</h4>
+<p>Illuminates the "S" signal cab aspect lamp.</p>
+<h4 id="signalspeed">SignalSpeed</h4>
+<p>Sets the displayed signal speed limit. Only the following speeds are supported:</p>
+<ul>
+<li>0</li>
+<li>15</li>
+<li>30</li>
+<li>45</li>
+</ul>
+<p>All other values will blank the display.</p>
+<h4 id="trackspeedhundreds">TrackSpeedHundreds</h4>
+<p>Sets the hundreds digit on the track speed limit display. 0 hides the digit.</p>
+<h4 id="trackspeedtens">TrackSpeedTens</h4>
+<p>Sets the tens digit on the track speed limit display. -1 hides the digit.</p>
+<h4 id="trackspeedunits">TrackSpeedUnits</h4>
+<p>Sets the ones digit on the track speed limit display. -1 hides the digit.</p>
+<h4 id="atccutin">ATCCutIn</h4>
+<p>The status of the ATC cut in/out lamps, which reflect the state of Ctrl-D, the ATC cut in/out keyboard toggle.</p>
+<p>The default position is 1 (cut in).</p>
+<h3 id="right-panel">Right panel</h3>
+<h4 id="panto">Panto</h4>
+<p>The mode of operation switch. 0 = AC pantograph down, 1 = AC pantograph up, 2 = DC mode.</p>
+<p>The default position is AC pantograph down.</p>
+<h4 id="pantographcontrol">PantographControl</h4>
+<p>The energy on/off switch, which when turned on also illuminates the "line" lamp.</p>
+<p>The default position is 1.</p>
+<h3 id="displays">Displays</h3>
+<h4 id="cars">Cars</h4>
+<p>Number of additional multiple units to display on the operating screen behind the driving one. Ranges from 0 to 7.</p>
+<h4 id="doors_2">Doors_2</h4>
+<h4 id="doors_3">Doors_3</h4>
+<h4 id="doors_4">Doors_4</h4>
+<h4 id="doors_5">Doors_5</h4>
+<h4 id="doors_6">Doors_6</h4>
+<h4 id="doors_7">Doors_7</h4>
+<h4 id="doors_8">Doors_8</h4>
+<p>Sets the door indicators of the trailing multiple units. -1 left doors open, 0 = no doors open, 1 = right doors open.</p>
+<p>Note that every other multiple unit is flipped, so the positions of the doors also alternate.</p>
+<h4 id="motor_2">Motor_2</h4>
+<h4 id="motor_3">Motor_3</h4>
+<h4 id="motor_4">Motor_4</h4>
+<h4 id="motor_5">Motor_5</h4>
+<h4 id="motor_6">Motor_6</h4>
+<h4 id="motor_7">Motor_7</h4>
+<h4 id="motor_8">Motor_8</h4>
+<p>Sets the motor indicators of the trailing multiple units. -1 = braking, 0 = coasting, 1 = applying power.</p>
+<h4 id="speedohundreds">SpeedoHundreds</h4>
+<p>Sets the hundreds digit on the speedometer. 0 hides the digit.</p>
+<h4 id="speedotens">SpeedoTens</h4>
+<p>Sets the tens digit on the speedometer. -1 hides the digit.</p>
+<h4 id="speedounits">SpeedoUnits</h4>
+<p>Sets the ones digit on the speedometer.</p>
+<h4 id="pipehundreds">PipeHundreds</h4>
+<p>Sets the hundreds digit on the BP pressure indicator. 0 hides the digit.</p>
+<h4 id="pipetens">PipeTens</h4>
+<p>Sets the tens digit on the BP pressure indicator. -1 hides the digit.</p>
+<h4 id="pipeunits">PipeUnits</h4>
+<p>Sets the ones digit on the BP pressure indicator.</p>
+<h4 id="cylinderhundreds">CylinderHundreds</h4>
+<p>Sets the hundreds digit on the BC pressure indicator. 0 hides the digit.</p>
+<h4 id="cylindertens">CylinderTens</h4>
+<p>Sets the tens digit on the BC pressure indicator. -1 hides the digit.</p>
+<h4 id="cylinderunits">CylinderUnits</h4>
+<p>Sets the ones digit on the BC pressure indicator.</p>
+<h4 id="powerac">PowerAC</h4>
+<p>Sets the AC power indicator. 0 = unlit, 1 = yellow, 2 = green.</p>
+<h4 id="powerdc">PowerDC</h4>
+<p>Sets the DC power indicator. 0 = unlit, 1 = yellow, 2 = green.</p>
+<h4 id="aws">AWS</h4>
+<p>Illuminates the alerter indicator and plays a continuous beeping sound.</p>
+<h3 id="sounds">Sounds</h3>
+<h4 id="speedincreasealert">SpeedIncreaseAlert</h4>
+<p>Plays a short electronic chirp.</p>
+<h4 id="speedreductionalert">SpeedReductionAlert</h4>
+<p>Plays an electronic warning tone for a couple of seconds.</p>
+<h4 id="fansound">FanSound</h4>
+<p>Plays a low, droning sound. The volume is scaled from 0 to 1.</p>
+<h2 id="keyboard-shortcuts">Keyboard shortcuts</h2>
+<h4 id="acsescutin">ACSESCutIn</h4>
+<p>The status of the Ctrl-F ACSES cut in/out keyboard toggle. (ACSES cut in/out lamps are present in the model, but not functional.)</p>
+<p>The default position is 1.</p></div>
             </div>
         </div>
 

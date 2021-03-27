@@ -56,11 +56,27 @@
 </li>
             
 <li>
+    <a href="../amtrak-acs64/" class="dropdown-item">Amtrak ACS-64</a>
+</li>
+            
+<li>
     <a href="../amtrak-aem7/" class="dropdown-item">Amtrak AEM-7</a>
 </li>
             
 <li>
     <a href="./" class="dropdown-item active">Amtrak HHP-8</a>
+</li>
+            
+<li>
+    <a href="../marc-mp36ph/" class="dropdown-item">MARC MP36PH</a>
+</li>
+            
+<li>
+    <a href="../marc-multilevel/" class="dropdown-item">MARC Multilevel Cab Car</a>
+</li>
+            
+<li>
+    <a href="../mta-m8/" class="dropdown-item">Metro-North M8</a>
 </li>
     </ul>
   </li>
@@ -97,6 +113,10 @@
 </li>
                                     
 <li>
+    <a href="../../../for-players/amtrak-acs64/" class="dropdown-item">Notes for the Amtrak ACS-64</a>
+</li>
+                                    
+<li>
     <a href="../../../for-players/amtrak-aem7/" class="dropdown-item">Notes for the Amtrak AEM-7</a>
 </li>
                                     
@@ -119,7 +139,7 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="next" href="../../routes/newhaven/" class="nav-link">
+                                <a rel="next" href="../marc-mp36ph/" class="nav-link">
                                     Next <i class="fa fa-arrow-right"></i>
                                 </a>
                             </li>
@@ -144,6 +164,18 @@
             <li class="nav-item" data-level="1"><a href="#amtrak-hhp-8" class="nav-link">Amtrak HHP-8</a>
               <ul class="nav flex-column">
             <li class="nav-item" data-level="2"><a href="#controls" class="nav-link">Controls</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#model-nodes" class="nav-link">Model nodes</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#lights" class="nav-link">Lights</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#animations" class="nav-link">Animations</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -361,7 +393,7 @@
 <h4 id="acsescutin">ACSESCutIn</h4>
 <p>Toggles between 0 and 1 with Ctrl+F. Should not be set by Lua; otherwise the value will desync from the keyboard shortcut.</p>
 <p>The default setting is 1.</p>
-<h3 id="model-nodes">Model nodes</h3>
+<h2 id="model-nodes">Model nodes</h2>
 <h4 id="front_spark01">front_spark01</h4>
 <p>One of the white billboards for the front pantograph spark.</p>
 <h4 id="front_spark02">front_spark02</h4>
@@ -370,7 +402,15 @@
 <p>One of the white billboards for the rear pantograph spark.</p>
 <h4 id="rear_spark02">rear_spark02</h4>
 <p>One of the white billboards for the rear pantograph spark.</p>
-<h3 id="lights">Lights</h3>
+<h4 id="ditch_fwd_l">ditch_fwd_l</h4>
+<p>The forward left ground light.</p>
+<h4 id="ditch_fwd_r">ditch_fwd_r</h4>
+<p>The forward right ground light.</p>
+<h4 id="ditch_bwd_l">ditch_bwd_l</h4>
+<p>The rear left ground light.</p>
+<h4 id="ditch_bwd_r">ditch_bwd_r</h4>
+<p>The rear right ground light.</p>
+<h2 id="lights">Lights</h2>
 <h4 id="spark">Spark</h4>
 <p>The blue light for the front pantograph spark.</p>
 <h4 id="spark2">Spark2</h4>
@@ -385,7 +425,7 @@
 <p>The rear left ground light.</p>
 <h4 id="bwd_ditchlightright">Bwd_DitchLightRight</h4>
 <p>The rear right ground light.</p>
-<h3 id="animations">Animations</h3>
+<h2 id="animations">Animations</h2>
 <h4 id="frontpanto">frontPanto</h4>
 <p>Raises the front pantograph and its spark. Duration is 2 seconds.</p>
 <h4 id="rearpanto">rearPanto</h4>
