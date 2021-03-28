@@ -36,7 +36,6 @@ end
 
 -- Get the currently displayed cab signal aspect, MTA-style.
 function P:getaspect ()
-  local aspect
   local acsesmode = self._acses:getmode()
   local atccode = self._atc:getpulsecode()
   if acsesmode == Acses.mode.positivestop then
