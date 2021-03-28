@@ -121,7 +121,7 @@ local function readcontrols ()
     alerter:acknowledge()
   end
 
-  if RailWorks.GetControlValue("Horn", 0) == 1 then
+  if RailWorks.GetControlValue("Horn", 0) > 0 then
     state.lasthorntime_s = playersched:clock()
   end
 
