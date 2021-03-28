@@ -9,7 +9,6 @@ local cruise
 local power
 local frontpantoanim, rearpantoanim
 local tracteffort
-local squareflasher
 local groundflasher
 local spark
 local state = {
@@ -102,13 +101,6 @@ Initialise = RailWorks.wraperrors(function ()
   }
 
   tracteffort = Average:new{nsamples=30}
-
-  local squareflash_s = 0.5
-  squareflasher = Flash:new{
-    scheduler = playersched,
-    off_s = squareflash_s,
-    on_s = squareflash_s
-  }
 
   local groundflash_s = 1
   groundflasher = Flash:new{
@@ -400,18 +392,7 @@ local function setadu ()
       RailWorks.SetControlValue("TSUnits", 0, getdigit(civilspeed_mph, 0))
     end
   end
-  do
-    local atcind = adu:getatcindicator()
-    local acsesind = adu:getacsesindicator()
-    squareflasher:setflashstate(atcind or acsesind)
-    local lit = squareflasher:ison()
-
-    local square
-    if atcind and lit then square = 0
-    elseif acsesind and lit then square = 1
-    else square = -1 end
-    RailWorks.SetControlValue("MinimumSpeed", 0, square)
-  end
+  RailWorks.SetControlValue("MinimumSpeed", 0, adu:getsquareindicator())
 end
 
 local function setcablight ()

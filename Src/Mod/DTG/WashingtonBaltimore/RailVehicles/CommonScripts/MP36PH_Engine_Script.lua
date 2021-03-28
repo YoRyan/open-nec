@@ -5,7 +5,6 @@ local atc
 local acses
 local adu
 local alerter
-local squareflasher
 local ditchflasher
 local state = {
   throttle = 0,
@@ -66,13 +65,6 @@ Initialise = RailWorks.wraperrors(function ()
     getspeed_mps = function () return state.speed_mps end
   }
   alerter:start()
-
-  local squareflash_s = 0.5
-  squareflasher = Flash:new{
-    scheduler = sched,
-    off_s = squareflash_s,
-    on_s = squareflash_s
-  }
 
   local ditchflash_s = 1
   ditchflasher = Flash:new{
@@ -215,18 +207,8 @@ local function setadu ()
       RailWorks.SetControlValue("TSUnits", 0, getdigit(civilspeed_mph, 0))
     end
   end
-  do
-    local atcind = adu:getatcindicator()
-    local acsesind = adu:getacsesindicator()
-    squareflasher:setflashstate(atcind or acsesind)
-    local lit = squareflasher:ison()
-
-    local square
-    if atcind and lit then square = 0
-    elseif acsesind and lit then square = 1
-    else square = -1 end
-    RailWorks.SetControlValue("MaximumSpeedLimitIndicator", 0, square)
-  end
+  RailWorks.SetControlValue(
+    "MaximumSpeedLimitIndicator", 0, adu:getsquareindicator())
 end
 
 local function setcablight ()
