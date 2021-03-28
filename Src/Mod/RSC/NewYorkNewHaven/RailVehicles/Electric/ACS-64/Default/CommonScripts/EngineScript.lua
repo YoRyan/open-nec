@@ -91,11 +91,11 @@ Initialise = RailWorks.wraperrors(function ()
     on_s = suppressflash_s
   }
 
-  local groundflash_s = 1
+  local ditchflash_s = 1
   ditchflasher = Flash:new{
     scheduler = playersched,
-    off_s = groundflash_s,
-    on_s = groundflash_s
+    off_s = ditchflash_s,
+    on_s = ditchflash_s
   }
 
   spark = PantoSpark:new{
