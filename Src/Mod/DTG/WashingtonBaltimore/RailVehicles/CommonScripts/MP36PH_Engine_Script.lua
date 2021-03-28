@@ -143,7 +143,7 @@ local function writelocostate ()
   RailWorks.SetControlValue("EngineBrakeControl", 0, state.indep_brake)
   do
     local alert = adu:isatcalert() or adu:isacsesalert()
-    local alarm = atc:isalarm() or acses:isalarm()
+    local alarm = atc:isalarm() or acses:isalarm() or alerter:isalarm()
     RailWorks.SetControlValue("TMS", 0, RailWorks.frombool(alert or alarm))
     RailWorks.SetControlValue("AWSWarnCount", 0, RailWorks.frombool(alarm))
   end
