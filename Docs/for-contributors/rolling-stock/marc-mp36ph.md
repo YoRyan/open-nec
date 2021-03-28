@@ -196,6 +196,12 @@ The right pane wiper switch.
 
 The default position is 0.
 
+### Sounds
+
+#### TMS
+
+Plays a continuous beeping sound.
+
 ## Lights
 
 #### Cablight

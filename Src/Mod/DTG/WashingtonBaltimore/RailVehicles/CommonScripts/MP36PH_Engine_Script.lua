@@ -49,13 +49,13 @@ Initialise = RailWorks.wraperrors(function ()
     doalert = function () adu:doacsesalert() end
   }
 
-  local alert_s = 1
+  local onebeep_s = 1
   adu = AmtrakTwoSpeedAdu:new{
     scheduler = sched,
     atc = atc,
-    atcalert_s = alert_s,
+    atcalert_s = onebeep_s,
     acses = acses,
-    acsesalert_s = alert_s
+    acsesalert_s = onebeep_s
   }
 
   atc:start()
@@ -144,7 +144,8 @@ local function writelocostate ()
   do
     local alert = adu:isatcalert() or adu:isacsesalert()
     local alarm = atc:isalarm() or acses:isalarm()
-    RailWorks.SetControlValue("AWSWarnCount", 0, RailWorks.frombool(alert or alarm))
+    RailWorks.SetControlValue("TMS", 0, RailWorks.frombool(alert or alarm))
+    RailWorks.SetControlValue("AWSWarnCount", 0, RailWorks.frombool(alarm))
   end
 end
 
