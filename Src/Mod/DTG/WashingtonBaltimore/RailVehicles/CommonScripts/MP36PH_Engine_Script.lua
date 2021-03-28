@@ -194,7 +194,7 @@ local function setadu ()
     RailWorks.SetControlValue("SigM", 0, m)
     RailWorks.SetControlValue("SigR", 0, r)
   end
-  do
+  if not sched:isstartup() then -- Stop the digits from flashing.
     local signalspeed_mph = adu:getsignalspeed_mph()
     if signalspeed_mph == nil then
       RailWorks.SetControlValue("SignalSpeed", 0, 0) -- blank
