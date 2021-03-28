@@ -163,7 +163,7 @@ end
 
 local function setspeedometer ()
   local speed_mph = toroundedmph(state.speed_mps)
-  RailWorks.SetControlValue("SpeedoDots", 0, speed_mph/2)
+  RailWorks.SetControlValue("SpeedoDots", 0, math.floor(speed_mph/2))
   RailWorks.SetControlValue("SpeedoHundreds", 0, getdigit(speed_mph, 2))
   RailWorks.SetControlValue("SpeedoTens", 0, getdigit(speed_mph, 1))
   RailWorks.SetControlValue("SpeedoUnits", 0, getdigit(speed_mph, 0))
