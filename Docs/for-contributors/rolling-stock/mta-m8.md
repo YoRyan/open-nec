@@ -212,3 +212,103 @@ Plays a low, droning sound. The volume is scaled from 0 to 1.
 The status of the Ctrl-F ACSES cut in/out keyboard toggle. (ACSES cut in/out lamps are present in the model, but not functional.)
 
 The default position is 1.
+
+## Lights
+
+#### Spark
+
+The pantograph spark glow.
+
+#### Fwd_DitchLightRight
+
+The right ditch light.
+
+#### Fwd_DitchLightLeft
+
+The left ditch light.
+
+#### Cablight
+
+The cab dome light.
+
+#### PVLight_001
+
+#### PVLight_002
+
+#### PVLight_003
+
+#### PVLight_004
+
+#### PVLight_005
+
+#### PVLight_006
+
+#### PVLight_007
+
+#### PVLight_008
+
+#### PVLight_009
+
+#### PVLight_010
+
+#### PVLight_011
+
+#### PVLight_012
+
+#### HallLight_001
+
+#### HallLight_002
+
+The passenger cabin lights.
+
+## Model nodes
+
+#### panto_spark
+
+The pantograph spark billboard.
+
+#### right_ditch_light
+
+The right ditch light.
+
+#### left_ditch_light
+
+The left ditch light.
+
+#### round_lights_off
+
+The hallway light model in the darkened state.
+
+#### round_lights_on
+
+The hallway light model in the illuminated state.
+
+#### SL_green
+
+The green marker light.
+
+#### SL_yellow
+
+The yellow marker light.
+
+#### SL_blue
+
+The blue marker light.
+
+#### SL_doors_L
+
+The lefthand door indicator lights.
+
+#### SL_doors_R
+
+The righthand door indicator lights.
+
+## Animations
+
+#### panto
+
+Raises the forward pantograph. The duration is 2 seconds.
+
+#### ribbons
+
+Extends the pantograph gate that connects to another car on the front end. The duration is 1 second.
