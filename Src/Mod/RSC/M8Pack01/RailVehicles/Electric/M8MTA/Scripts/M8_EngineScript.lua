@@ -140,6 +140,9 @@ local function writelocostate ()
   RailWorks.SetControlValue(
     "SpeedIncreaseAlert", 0,
     RailWorks.frombool(adu:isatcalert() or adu:isacsesalert()))
+  RailWorks.SetControlValue(
+    "AWS", 0,
+    RailWorks.frombool(alerter:isalarm()))
 end
 
 local function round (v)
