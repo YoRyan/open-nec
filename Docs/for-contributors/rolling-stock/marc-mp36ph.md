@@ -234,6 +234,24 @@ The bright set of rear lights.
 
 The dim set of rear lights.
 
+#### Carriage Light 1
+
+#### Carriage Light 2
+
+#### Carriage Light 3
+
+#### Carriage Light 4
+
+#### Carriage Light 5
+
+#### Carriage Light 6
+
+#### Carriage Light 7
+
+#### Carriage Light 8
+
+The trailing carriage lights when powered by HEP.
+
 ## Model nodes
 
 #### ditch_left
@@ -247,3 +265,7 @@ The right ditch light.
 #### lights_dim
 
 Should be turned on when the ditch lights are on.
+
+#### 1_1000_LitInteriorLights
+
+Should be turned on when HEP is available.

@@ -274,6 +274,34 @@ local function setrearlight ()
   Call("Rearlight_02_Bright:Activate", RailWorks.frombool(isbright))
 end
 
+local function sethep ()
+  -- TODO: Unlike DTG's implementation, there is no startup delay, but I doubt
+  -- anybody would really notice or care.
+  local run = RailWorks.GetControlValue("HEP_State", 0)
+  if sched:isstartup() then
+    RailWorks.SetControlValue("HEP", 0, 1)
+    RailWorks.SetControlValue("HEP_Off", 0, 0)
+  else
+    if run > 0 and RailWorks.GetControlValue("HEP_Off", 0) == 1 then
+      RailWorks.SetControlValue("HEP", 0, 0)
+      run = 0
+    elseif run == 0 and RailWorks.GetControlValue("HEP", 0) == 1 then
+      RailWorks.SetControlValue("HEP_Off", 0, 0)
+      run = 1
+    end
+  end
+  Call("Carriage Light 1:Activate", run)
+  Call("Carriage Light 2:Activate", run)
+  Call("Carriage Light 3:Activate", run)
+  Call("Carriage Light 4:Activate", run)
+  Call("Carriage Light 5:Activate", run)
+  Call("Carriage Light 6:Activate", run)
+  Call("Carriage Light 7:Activate", run)
+  Call("Carriage Light 8:Activate", run)
+  RailWorks.ActivateNode("1_1000_LitInteriorLights", run == 1)
+  RailWorks.SetControlValue("HEP_State", 0, run)
+end
+
 local function updateplayer ()
   readcontrols()
   readlocostate()
@@ -287,6 +315,7 @@ local function updateplayer ()
   setheadlight()
   setditchlights()
   setrearlight()
+  sethep()
 
   -- Prevent the acknowledge button from sticking if the button on the HUD is
   -- clicked.
