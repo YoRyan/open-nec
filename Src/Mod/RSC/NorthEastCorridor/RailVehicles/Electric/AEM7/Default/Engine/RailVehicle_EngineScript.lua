@@ -163,32 +163,32 @@ local function setadu ()
     local aspect = adu:getaspect()
     local signalspeed_mph = adu:getsignalspeed_mph()
     local cs, cs1, cs2
-    if aspect == Adu.aspect.stop then
-      -- The mdoel has no Stop aspect, so we have to use Restricting.
+    if aspect == AmtrakTwoSpeedAdu.aspect.stop then
+      -- The model has no Stop aspect, so we have to use Restricting.
       cs, cs1, cs2 = 7, 0, 0
-    elseif aspect == Adu.aspect.restrict then
+    elseif aspect == AmtrakTwoSpeedAdu.aspect.restrict then
       cs, cs1, cs2 = 7, 0, 0
-    elseif aspect == Adu.aspect.approach then
+    elseif aspect == AmtrakTwoSpeedAdu.aspect.approach then
       cs, cs1, cs2 = 6, 0, 0
-    elseif aspect == Adu.aspect.approachmed then
+    elseif aspect == AmtrakTwoSpeedAdu.aspect.approachmed then
       if signalspeed_mph == 30 then
         cs, cs1, cs2 = 6, 0, 1
       elseif signalspeed_mph == 45 then
         cs, cs1, cs2 = 4, 0, 1
       end
-    elseif aspect == Adu.aspect.cabspeed then
+    elseif aspect == AmtrakTwoSpeedAdu.aspect.cabspeed then
       if signalspeed_mph == 60 then
         cs, cs1, cs2 = 3, 1, 0
       elseif signalspeed_mph == 80 then
         cs, cs1, cs2 = 2, 1, 0
       end
-    elseif aspect == Adu.aspect.cabspeedoff then
+    elseif aspect == AmtrakTwoSpeedAdu.aspect.cabspeedoff then
       if signalspeed_mph == 60 then
         cs, cs1, cs2 = 3, 0, 0
       elseif signalspeed_mph == 80 then
         cs, cs1, cs2 = 2, 0, 0
       end
-    elseif aspect == Adu.aspect.clear then
+    elseif aspect == AmtrakTwoSpeedAdu.aspect.clear then
       cs, cs1, cs2 = 1, 1, 0
     end
     RailWorks.SetControlValue("CabSignal", 0, cs)

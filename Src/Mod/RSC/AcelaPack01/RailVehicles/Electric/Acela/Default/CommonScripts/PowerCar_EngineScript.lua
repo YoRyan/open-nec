@@ -456,19 +456,19 @@ local function setadu ()
   do
     local aspect = adu:getaspect()
     local n, l, s, m, r
-    if aspect == Adu.aspect.stop then
+    if aspect == AmtrakTwoSpeedAdu.aspect.stop then
       n, l, s, m, r = 0, 0, 1, 0, 0
-    elseif aspect == Adu.aspect.restrict then
+    elseif aspect == AmtrakTwoSpeedAdu.aspect.restrict then
       n, l, s, m, r = 0, 0, 1, 0, 1
-    elseif aspect == Adu.aspect.approach then
+    elseif aspect == AmtrakTwoSpeedAdu.aspect.approach then
       n, l, s, m, r = 0, 1, 0, 0, 0
-    elseif aspect == Adu.aspect.approachmed then
+    elseif aspect == AmtrakTwoSpeedAdu.aspect.approachmed then
       n, l, s, m, r = 0, 1, 0, 1, 0
-    elseif aspect == Adu.aspect.cabspeed then
+    elseif aspect == AmtrakTwoSpeedAdu.aspect.cabspeed then
       n, l, s, m, r = 1, 0, 0, 0, 0
-    elseif aspect == Adu.aspect.cabspeedoff then
+    elseif aspect == AmtrakTwoSpeedAdu.aspect.cabspeedoff then
       n, l, s, m, r = 0, 0, 0, 0, 0
-    elseif aspect == Adu.aspect.clear then
+    elseif aspect == AmtrakTwoSpeedAdu.aspect.clear then
       n, l, s, m, r = 1, 0, 0, 0, 0
     end
     RailWorks.SetControlValue("SigN", 0, n)
