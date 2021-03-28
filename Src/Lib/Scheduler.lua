@@ -90,6 +90,8 @@ function P:sleep (time)
   self:select(time)
 end
 
+local function resumenext () return true end
+
 -- Yield control until one of the provided functions returns true, or if the
 -- timeout is reached. A nil timeout is infinite. Returns the index of the
 -- condition that became true, or nil if the timeout was reached.
@@ -98,7 +100,7 @@ function P:select (timeout, ...)
     return coroutine.yield(unpack(arg))
   else
     if timeout == 0 then
-      table.insert(arg, function () return true end)
+      table.insert(arg, resumenext)
     else
       local start = self:clock()
       table.insert(arg, function () return self:clock() >= start + timeout end)
