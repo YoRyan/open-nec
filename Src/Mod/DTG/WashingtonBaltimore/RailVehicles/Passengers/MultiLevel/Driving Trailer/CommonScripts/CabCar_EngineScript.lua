@@ -177,8 +177,8 @@ local function getdigitguide (v)
 end
 
 local function setspeedometer ()
-  local restrict = adu:isspeedrestriction()
   do
+    local restrict = adu:isspeedrestriction()
     local rspeed_mph = toroundedmph(math.abs(state.speed_mps))
     local h = getdigit(rspeed_mph, 2)
     local t = getdigit(rspeed_mph, 1)
@@ -200,24 +200,10 @@ local function setspeedometer ()
     end
     RailWorks.SetControlValue("SpeedP", 0, getdigitguide(rspeed_mph))
   end
-  do
-    local speed_mph = math.abs(state.speed_mps)*Units.mps.tomph
-    local limit_mph = adu:getspeedlimit_mph()
-    local green_mph, red_mph
-    if restrict and limit_mph ~= nil then
-      green_mph = math.min(limit_mph, speed_mph)
-      if speed_mph > limit_mph then
-        red_mph = speed_mph
-      else
-        red_mph = 0
-      end
-    else
-      green_mph = 0
-      red_mph = 0
-    end
-    RailWorks.SetControlValue("ACSES_SpeedGreen", 0, green_mph)
-    RailWorks.SetControlValue("ACSES_SpeedRed", 0, red_mph)
-  end
+  RailWorks.SetControlValue(
+    "ACSES_SpeedGreen", 0, adu:getgreenzone_mph(state.speed_mps))
+  RailWorks.SetControlValue(
+    "ACSES_SpeedRed", 0, adu:getredzone_mph(state.speed_mps))
 end
 
 local function setcablight ()

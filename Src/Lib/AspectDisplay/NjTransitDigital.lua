@@ -32,8 +32,7 @@ function P:isspeedrestriction ()
   return atcrestrict or acsesrestrict
 end
 
--- Get the current speed limit in force.
-function P:getspeedlimit_mph ()
+local function getspeedlimit_mph (self)
   local signalspeed_mph = Adu.getsignalspeed_mph(self)
   local civilspeed_mph = Adu.getcivilspeed_mph(self)
   local atccutin = self._atc:isrunning()
@@ -46,6 +45,28 @@ function P:getspeedlimit_mph ()
     return civilspeed_mph
   else
     return nil
+  end
+end
+
+-- Get the current position of the green speed zone.
+function P:getgreenzone_mph (speed_mps)
+  local aspeed_mph = math.abs(speed_mps)*Units.mps.tomph
+  local limit_mph = getspeedlimit_mph(self)
+  if self:isspeedrestriction() and limit_mph ~= nil then
+    return math.min(limit_mph, aspeed_mph)
+  else
+    return 0
+  end
+end
+
+-- Get the current position of the red speed zone.
+function P:getredzone_mph (speed_mps)
+  local aspeed_mph = math.abs(speed_mps)*Units.mps.tomph
+  local limit_mph = getspeedlimit_mph(self)
+  if self:isspeedrestriction() and limit_mph ~= nil and aspeed_mph > limit_mph then
+    return aspeed_mph
+  else
+    return 0
   end
 end
 
