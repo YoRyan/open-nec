@@ -2,6 +2,19 @@
 local P = {}
 AmtrakCombinedAdu = P
 
+P.aspect = {stop=0,
+            restrict=1,
+            approach=2,
+            approachmed30=3,
+            approachmed45=4,
+            cabspeed60=5,
+            cabspeed60off=6,
+            cabspeed80=7,
+            cabspeed80off=8,
+            clear100=9,
+            clear125=10,
+            clear150=11}
+
 -- Ensure we have inherited the properties of the base class, PiL-style.
 -- We can't run code on initialization in TS, so we do this in :new().
 local function inherit (base)
@@ -18,6 +31,54 @@ function P:new (conf)
   setmetatable(o, self)
   self.__index = self
   return o
+end
+
+-- Get the currently displayed cab signal aspect.
+function P:getaspect ()
+  local aspect, flash
+  local acsesmode = self._acses:getmode()
+  local atccode = self._atc:getpulsecode()
+  if acsesmode == Acses.mode.positivestop then
+    aspect = P.aspect.stop
+    flash = false
+  elseif acsesmode == Acses.mode.approachmed30 then
+    aspect = P.aspect.approachmed30
+    flash = false
+  elseif atccode == Nec.pulsecode.restrict then
+    aspect = P.aspect.restrict
+    flash = false
+  elseif atccode == Nec.pulsecode.approach then
+    aspect = P.aspect.approach
+    flash = false
+  elseif atccode == Nec.pulsecode.approachmed then
+    aspect = P.aspect.approachmed45
+    flash = false
+  elseif atccode == Nec.pulsecode.cabspeed60 then
+    if self._csflasher:ison() then
+      aspect = P.aspect.cabspeed60
+    else
+      aspect = P.aspect.cabspeed60off
+    end
+    flash = true
+  elseif atccode == Nec.pulsecode.cabspeed80 then
+    if self._csflasher:ison() then
+      aspect = P.aspect.cabspeed80
+    else
+      aspect = P.aspect.cabspeed80off
+    end
+    flash = true
+  elseif atccode == Nec.pulsecode.clear100 then
+    aspect = P.aspect.clear100
+    flash = false
+  elseif atccode == Nec.pulsecode.clear125 then
+    aspect = P.aspect.clear125
+    flash = false
+  elseif atccode == Nec.pulsecode.clear150 then
+    aspect = P.aspect.clear150
+    flash = false
+  end
+  self._csflasher:setflashstate(flash)
+  return aspect
 end
 
 -- Get the current speed limit in force.

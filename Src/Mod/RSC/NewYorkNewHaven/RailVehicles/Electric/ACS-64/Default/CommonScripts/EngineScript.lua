@@ -294,43 +294,45 @@ end
 local function setadu ()
   do
     local aspect = adu:getaspect()
-    local signalspeed_mph = adu:getsignalspeed_mph()
     local tg, ty, tr, bg, bw
     local text
     local s, r, m, l, cs60, cs80, n
-    if aspect == Adu.aspect.stop then
+    if aspect == AmtrakCombinedAdu.aspect.stop then
       tg, ty, tr, bg, bw = 0, 0, 1, 0, 0
       text = 12
       s, r, m, l, cs60, cs80, n = 1, 0, 0, 0, 0, 0, 0
-    elseif aspect == Adu.aspect.restrict then
+    elseif aspect == AmtrakCombinedAdu.aspect.restrict then
       tg, ty, tr, bg, bw = 0, 0, 1, 0, 1
       text = 11
       s, r, m, l, cs60, cs80, n = 0, 1, 0, 0, 0, 0, 0
-    elseif aspect == Adu.aspect.approach then
+    elseif aspect == AmtrakCombinedAdu.aspect.approach then
       tg, ty, tr, bg, bw = 0, 1, 0, 0, 0
       text = 8
       s, r, m, l, cs60, cs80, n = 0, 0, 1, 0, 0, 0, 0
-    elseif aspect == Adu.aspect.approachmed then
+    elseif aspect == AmtrakCombinedAdu.aspect.approachmed30
+        or aspect == AmtrakCombinedAdu.aspect.approachmed45 then
       tg, ty, tr, bg, bw = 0, 1, 0, 1, 0
       text = 13
       s, r, m, l, cs60, cs80, n = 0, 0, 0, 1, 0, 0, 0
-    elseif aspect == Adu.aspect.cabspeed then
+    elseif aspect == AmtrakCombinedAdu.aspect.cabspeed60 then
       tg, ty, tr, bg, bw = 1, 0, 0, 0, 0
       text = 2
-      if signalspeed_mph == 60 then
-        s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 1, 0, 0
-      elseif signalspeed_mph == 80 then
-        s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, 1, 0
-      end
-    elseif aspect == Adu.aspect.cabspeedoff then
+      s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 1, 0, 0
+    elseif aspect == AmtrakCombinedAdu.aspect.cabspeed60off then
       tg, ty, tr, bg, bw = 0, 0, 0, 0, 0
       text = 2
-      if signalspeed_mph == 60 then
-        s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 1, 0, 0
-      elseif signalspeed_mph == 80 then
-        s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, 1, 0
-      end
-    elseif aspect == Adu.aspect.clear then
+      s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 1, 0, 0
+    elseif aspect == AmtrakCombinedAdu.aspect.cabspeed80 then
+      tg, ty, tr, bg, bw = 1, 0, 0, 0, 0
+      text = 2
+      s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, 1, 0
+    elseif aspect == AmtrakCombinedAdu.aspect.cabspeed80off then
+      tg, ty, tr, bg, bw = 0, 0, 0, 0, 0
+      text = 2
+      s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, 1, 0
+    elseif aspect == AmtrakCombinedAdu.aspect.clear100
+        or aspect == AmtrakCombinedAdu.aspect.clear125
+        or aspect == AmtrakCombinedAdu.aspect.clear150 then
       tg, ty, tr, bg, bw = 1, 0, 0, 0, 0
       text = 1
       s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, 0, 1
