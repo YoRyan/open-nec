@@ -146,16 +146,24 @@ local function writelocostate ()
   RailWorks.SetControlValue(
     "Sander", 0, RailWorks.GetControlValue("VirtualSander", 0))
 
-  RailWorks.SetControlValue(
-    "ACSES_Alert", 0,
-    RailWorks.frombool(alerter:isalarm()))
-  RailWorks.SetControlValue(
-    "ACSES_AlertIncrease", 0,
-    RailWorks.frombool(adu:isatcalert() or adu:isacsesalert()))
-  alarmonoff:setflashstate(atc:isalarm() or acses:isalarm())
-  RailWorks.SetControlValue(
-    "ACSES_AlertDecrease", 0,
-    RailWorks.frombool(alarmonoff:ison()))
+  do
+    local atcalarm = atc:isalarm()
+    local acsesalarm = acses:isalarm()
+    local alertalarm = alerter:isalarm()
+    RailWorks.SetControlValue(
+      "ACSES_Alert", 0,
+      RailWorks.frombool(alertalarm))
+    RailWorks.SetControlValue(
+      "ACSES_AlertIncrease", 0,
+      RailWorks.frombool(adu:isatcalert() or adu:isacsesalert()))
+    alarmonoff:setflashstate(atcalarm or acsesalarm)
+    RailWorks.SetControlValue(
+      "ACSES_AlertDecrease", 0,
+      RailWorks.frombool(alarmonoff:ison()))
+    RailWorks.SetControlValue(
+      "AWSWarnCount", 0,
+      RailWorks.frombool(atcalarm or acsesalarm or alertalarm))
+  end
 end
 
 local function toroundedmph (v)
