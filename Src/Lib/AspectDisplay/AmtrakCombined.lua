@@ -28,6 +28,11 @@ end
 function P:new (conf)
   inherit(Adu)
   local o = Adu:new(conf)
+  o._csflasher = Flash:new{
+    scheduler = conf.scheduler,
+    off_os = Nec.cabspeedflash_s,
+    on_os = Nec.cabspeedflash_s
+  }
   setmetatable(o, self)
   self.__index = self
   return o

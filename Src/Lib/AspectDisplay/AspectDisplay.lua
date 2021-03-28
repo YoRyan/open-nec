@@ -9,11 +9,6 @@ function P:new (conf)
   local o = {
     _atc = conf.atc,
     _acses = conf.acses,
-    _csflasher = Flash:new{
-      scheduler = sched,
-      off_os = Nec.cabspeedflash_s,
-      on_os = Nec.cabspeedflash_s
-    },
     _atcalert = Tone:new{
       scheduler = sched,
       time_s = conf.atcalert_s or 1

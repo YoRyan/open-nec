@@ -26,6 +26,11 @@ end
 function P:new (conf)
   inherit(Adu)
   local o = Adu:new(conf)
+  o._csflasher = Flash:new{
+    scheduler = conf.scheduler,
+    off_os = Nec.cabspeedflash_s,
+    on_os = Nec.cabspeedflash_s
+  }
   o._sigspeedflasher = Flash:new{
     scheduler = conf.scheduler,
     off_s = 0.5,
