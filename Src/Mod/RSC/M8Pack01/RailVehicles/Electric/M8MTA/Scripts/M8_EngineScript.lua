@@ -17,9 +17,7 @@ local state = {
   trackspeed_mps = 0,
   consistlength_m = 0,
   speedlimits = {},
-  restrictsignals = {},
-
-  lasthorntime_s = nil
+  restrictsignals = {}
 }
 
 Initialise = RailWorks.wraperrors(function ()
@@ -86,10 +84,6 @@ local function readcontrols ()
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
   if state.acknowledge or change then
     alerter:acknowledge()
-  end
-
-  if RailWorks.GetControlValue("Horn", 0) > 0 then
-    state.lasthorntime_s = playersched:clock()
   end
 
   state.headlights = RailWorks.GetControlValue("Headlights", 0)
