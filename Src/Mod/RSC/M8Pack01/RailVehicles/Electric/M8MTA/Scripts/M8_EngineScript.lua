@@ -6,11 +6,11 @@ local acses
 local adu
 local alerter
 local alarmonoff
-local ditchflasher
 local spark
 local state = {
   throttle = 0,
   acknowledge = false,
+  headlights = 0,
 
   speed_mps = 0,
   acceleration_mps2 = 0,
@@ -70,13 +70,6 @@ Initialise = RailWorks.wraperrors(function ()
     scheduler = playersched,
     off_s = 0.1,
     on_s = 0.5
-  }
-
-  local ditchflash_s = 1
-  ditchflasher = Flash:new{
-    scheduler = playersched,
-    off_s = ditchflash_s,
-    on_s = ditchflash_s
   }
 
   spark = PantoSpark:new{
@@ -240,17 +233,11 @@ local function setinteriorlights ()
 end
 
 local function setditchlights ()
-  local horntime_s = 30
-  local show = state.lasthorntime_s ~= nil
-    and playersched:clock() <= state.lasthorntime_s + horntime_s
-  ditchflasher:setflashstate(show)
-  local flashleft = ditchflasher:ison()
-
-  RailWorks.ActivateNode("left_ditch_light", show and flashleft)
-  Call("Fwd_DitchLightLeft:Activate", RailWorks.frombool(show and flashleft))
-
-  RailWorks.ActivateNode("right_ditch_light", show and not flashleft)
-  Call("Fwd_DitchLightRight:Activate", RailWorks.frombool(show and not flashleft))
+  local show = state.headlights > 0.5 and state.headlights < 1.5
+  RailWorks.ActivateNode("left_ditch_light", show)
+  RailWorks.ActivateNode("right_ditch_light", show)
+  Call("Fwd_DitchLightLeft:Activate", RailWorks.frombool(show))
+  Call("Fwd_DitchLightRight:Activate", RailWorks.frombool(show))
 end
 
 local function updateplayer ()
