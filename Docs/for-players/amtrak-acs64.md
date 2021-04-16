@@ -9,7 +9,3 @@ The Open NEC mod for the ACS-64 is fully compatible and tested with Fan Railer's
 ### New features
 
 - Press Ctrl+D to disable and enable ATC, and Ctrl+F to disable and enable ACSES. Both systems are turned on by default.
-
-### Errata
-
-- The signal speed limit display cannot display 100 mph, 125 mph, or 150 mph speeds, so the track speed limit display is used to communicate these speeds.
