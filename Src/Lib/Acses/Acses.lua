@@ -555,20 +555,11 @@ end
 
 -- Receive a custom signal message.
 function P:receivemessage (message)
-  if not self._running then
-    return
-  end
-
-  -- Amtrak/NJ Transit signals
-  if string.sub(message, 1, 3) == "sig" then
-    local code = string.sub(message, 4, 4)
-    self._issigrestricting = code == "7" -- DTG "Restricting"
-        or (code == "8" and self._issigrestricting) -- DTG "Ignore"
-  -- Metro-North signals
-  elseif string.find(message, "[MN]") == 1 then
-    local code = string.sub(message, 2, 3)
-    self._issigrestricting = code == "13" or code == "14" -- DTG "Restricting"
-        or code == "15" -- DTG "Stop"
+  if self._running then
+    local pulsecode, _ = Nec.parsesigmessage(message)
+    if pulsecode ~= nil then
+      self._issigrestricting = pulsecode == Nec.pulsecode.restrict
+    end
   end
 end
 

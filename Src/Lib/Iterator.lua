@@ -258,4 +258,15 @@ function P.join (sep, ...)
   return res
 end
 
+local function iterrange (s, v)
+  if v < s then return v + 1, v + 1
+  else return nil, nil end
+end
+
+-- Produces a sequence of linear (x, x) pairs, where x ranges from 1 to n
+-- inclusive.
+function P.range (n)
+  return iterrange, n, 0
+end
+
 return P

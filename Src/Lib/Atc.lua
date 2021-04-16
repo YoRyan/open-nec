@@ -219,85 +219,19 @@ function P.amtrakpulsecodespeed_mps (pulsecode)
   end
 end
 
-local function topulsecode (self, message)
-  -- Amtrak/NJ Transit signals
-  if string.sub(message, 1, 3) == "sig" then
-    local code = string.sub(message, 4, 4)
-    -- DTG "Clear"
-    if code == "1" then
-      return Nec.pulsecode.clear125
-    elseif code == "2" then
-      return Nec.pulsecode.cabspeed80
-    elseif code == "3" then
-      return Nec.pulsecode.cabspeed60
-    -- DTG "Approach Limited (45mph)"
-    elseif code == "4" then
-      return Nec.pulsecode.approachmed
-    -- DTG "Approach Medium (30mph)"
-    elseif code == "5" then
-      return Nec.pulsecode.approachmed
-    -- DTG "Approach (30mph)"
-    elseif code == "6" then
-      return Nec.pulsecode.approach
-    elseif code == "7" then
-      return Nec.pulsecode.restrict
-    -- DTG "Ignore"
-    elseif code == "8" then
-      return self._pulsecode
-    else
-      return nil
-    end
-  -- Metro-North signals
-  elseif string.find(message, "[MN]") == 1 then
-    local code = string.sub(message, 2, 3)
-    -- DTG "Clear"
-    if code == "10" then
-      return Nec.pulsecode.clear125
-    -- DTG "Approach Limited (45mph)"
-    elseif code == "11" then
-      return Nec.pulsecode.approachmed
-    -- DTG "Approach Medium (30mph)"
-    elseif code == "12" then
-      return Nec.pulsecode.approach
-    elseif code == "13" or code == "14" then
-      return Nec.pulsecode.restrict
-    -- DTG "Stop"
-    elseif code == "15" then
-      return Nec.pulsecode.restrict
-    else
-      return nil
-    end
-  else
-    return nil
-  end
-end
-
-local function getnewpulsecode (self, message)
-  local code = topulsecode(self, message)
-  if code ~= nil then
-    return code
-  end
-  local power = Power.getchangepoint(message)
-  if power ~= nil then
-    -- Power switch signal. No change.
-    return self._pulsecode
-  end
-  self._sched:info("WARNING:\nUnknown signal '" .. message .. "'")
-  return Nec.pulsecode.restrict
-end
-
 -- Receive a custom signal message.
 function P:receivemessage (message)
-  if not self._running then
-    return
+  if self._running then
+    local newcode, _ = Nec.parsesigmessage(message)
+    if newcode ~= nil then
+      if newcode < self._pulsecode and not self._sched:isstartup() then
+        self._enforce:trigger()
+      elseif newcode > self._pulsecode then
+        self._doalert()
+      end
+      self._pulsecode = newcode
+    end
   end
-  local newcode = getnewpulsecode(self, message)
-  if newcode < self._pulsecode and not self._sched:isstartup() then
-    self._enforce:trigger()
-  elseif newcode > self._pulsecode then
-    self._doalert()
-  end
-  self._pulsecode = newcode
   if debugsignals then
     self._sched:alert(message)
   end

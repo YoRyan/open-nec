@@ -107,6 +107,93 @@ function P.GetIsEngineWithKey ()
 end
 
 --[[
+  Signal scripting
+]]
+
+P.sigmessage = {
+  RESET_SIGNAL_STATE = 0,
+  INITIALISE_SIGNAL_TO_BLOCKED = 1,
+  JUNCTION_STATE_CHANGE = 2,
+  INITIALISE_TO_PREPARED = 3,
+  REQUEST_TO_PASS_DANGER = 4,
+  OCCUPATION_INCREMENT = 10,
+  OCCUPATION_DECREMENT = 11,
+
+  SIGMSG_CUSTOM = 15
+}
+
+P.sigstate = {
+  clear = 0,
+  warning = 1,
+  blocked = 2
+}
+
+P.sigprostate = {
+  green = 0,
+  yellow = 1,
+  dblyellow = 2,
+  red = 3
+}
+
+-- Contrary to the SDK documentation, signals *can* receive messages from their
+-- own links. In addition, this function will only work from OnConsistPass or
+-- OnSignalMessage.
+function P.SendSignalMessage (message, argument, direction, link, index)
+  return Call("SendSignalMessage", message, argument, direction, link, index)
+end
+
+function P.SendConsistMessage (message, argument)
+  if argument == nil then
+    Call("SendConsistMessage", message)
+  else
+    Call("SendConsistMessage", message, argument)
+  end
+end
+
+function P.GetConnectedLink (index)
+  local link = Call("GetConnectedLink", nil, nil, index)
+  if link == -1 then return nil
+  else return link end
+end
+
+function P.GetLinkCount ()
+  return Call("GetLinkCount")
+end
+
+function P.Set2DMapSignalState (state)
+  Call("Set2DMapSignalState", state)
+end
+
+function P.Set2DMapProSignalState (state)
+  Call("Set2DMapProSignalState", state)
+end
+
+--[[
+  Undocumented signal functions - see
+  https://forums.dovetailgames.com/threads/missing-signaling-functions-in-developer-docs.16740/
+]]
+
+function P.GetLinkApproachControl (link)
+  return Call("GetLinkApproachControl", link) == 1
+end
+
+function P.GetLinkLimitedToYellow (link)
+  return Call("GetLinkLimitedToYellow", link) == 1
+end
+
+function P.GetLinkFeatherChar (link)
+  return Call("GetLinkFeatherChar", link)
+end
+
+function P.GetLinkSpeedLimit (link)
+  return Call("GetLinkSpeedLimit", link)
+end
+
+function P.GetId ()
+  return Call("GetId")
+end
+
+--[[
   Lua helper functions
 ]]
 
