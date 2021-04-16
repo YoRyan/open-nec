@@ -296,11 +296,13 @@ local function gethazardsdict (self)
   for k, hazard in iteradvancelimithazards(self) do
     hazards[k] = hazard
   end
-  if self._issigrestricting and not self._sched:isstartup() then
+  -- Positive stop disabled until we can figure out how to avoid irritating
+  -- activations in yard and platform areas.
+  --[[if self._issigrestricting and not self._sched:isstartup() then
     for k, hazard in iterstopsignalhazards(self) do
       hazards[k] = hazard
     end
-  end
+  end]]
   do
     local k, hazard = getcurrentlimithazard(self)
     hazards[k] = hazard
