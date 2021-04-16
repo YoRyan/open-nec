@@ -239,6 +239,15 @@ local function setditchlights ()
   end
 end
 
+local function setstatuslights ()
+  RailWorks.ActivateNode("LightsBlue", RailWorks.GetIsEngineWithKey())
+  -- The door open light, except I have no idea how to program it.
+  RailWorks.ActivateNode("LightsRed", false)
+  -- The brake application lights, except I have no idea how to program them.
+  RailWorks.ActivateNode("LightsYellow", false)
+  RailWorks.ActivateNode("LightsGreen", true)
+end
+
 local function updateplayer ()
   readcontrols()
   readlocostate()
@@ -249,6 +258,7 @@ local function updateplayer ()
   setspeedometer()
   setcablight()
   setditchlights()
+  setstatuslights()
 
   -- Prevent the acknowledge button from sticking if the button on the HUD is
   -- clicked.
@@ -260,6 +270,7 @@ end
 local function updateai ()
   setcablight()
   setditchlights()
+  setstatuslights()
 end
 
 Update = RailWorks.wraperrors(function (_)
