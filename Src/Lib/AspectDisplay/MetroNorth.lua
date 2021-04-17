@@ -76,9 +76,9 @@ function P:getcivilspeed_mph ()
   local sigspeed_mph = self:getsignalspeed_mph()
   local civspeed_mph = Adu.getcivilspeed_mph(self)
   local speed_mph, flash
-  if sigspeed_mph == nil and not self:getacsesindicator() then
+  if sigspeed_mph == nil and not self:getacsessound() then
     local truesigspeed_mph = Adu.getsignalspeed_mph(self)
-    if self:getatcindicator() then
+    if self:getatcsound() then
       speed_mph = truesigspeed_mph
       flash = false
     elseif truesigspeed_mph < civspeed_mph then

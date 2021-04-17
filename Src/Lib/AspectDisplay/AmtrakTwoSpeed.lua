@@ -36,11 +36,6 @@ function P:new (conf)
     off_s = 0.5,
     on_s = 1.5
   }
-  o._squareflasher = Flash:new{
-    scheduler = conf.scheduler,
-    off_s = 0.5,
-    on_s = 0.5
-  }
   setmetatable(o, self)
   self.__index = self
   return o
@@ -98,9 +93,9 @@ function P:getcivilspeed_mph ()
   local sigspeed_mph = self:getsignalspeed_mph()
   local civspeed_mph = Adu.getcivilspeed_mph(self)
   local speed_mph, flash
-  if sigspeed_mph == nil and not self:getacsesindicator() then
+  if sigspeed_mph == nil and not self:getacsessound() then
     local truesigspeed_mph = Adu.getsignalspeed_mph(self)
-    if self:getatcindicator() then
+    if self:getatcsound() then
       speed_mph = truesigspeed_mph
       flash = false
     elseif truesigspeed_mph < civspeed_mph then
@@ -124,13 +119,9 @@ end
 
 -- Get the current indicator light that is illuminated, if any.
 function P:getsquareindicator ()
-  local atcind = self:getatcindicator()
-  local acsesind = self:getacsesindicator()
-  self._squareflasher:setflashstate(atcind or acsesind)
-  local lit = self._squareflasher:ison()
-  if lit and atcind then
+  if self:getatcindicator() then
     return P.square.signal
-  elseif lit and acsesind then
+  elseif self:getacsesindicator() then
     return P.square.track
   else
     return P.square.none

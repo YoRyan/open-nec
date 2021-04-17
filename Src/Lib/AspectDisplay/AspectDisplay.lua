@@ -43,18 +43,36 @@ function P:isacsesalert ()
   return self._acsesalert:isplaying()
 end
 
--- Get the current state of the ATC indicator light.
-function P:getatcindicator ()
+-- Get the current state of the ATC alert/alarm tones.
+function P:getatcsound ()
   return self._atcalert:isplaying() or self._atc:isalarm()
 end
 
--- Get the current state of the ACSES indicator light.
-function P:getacsesindicator ()
+-- Get the current state of the ACSES alert/alarm tones.
+function P:getacsessound ()
   return self._acsesalert:isplaying() or self._acses:isalarm()
 end
 
 local function toroundedmph (v)
   return math.floor(v*Units.mps.tomph + 0.5)
+end
+
+local function atcinforce (self)
+  local atcspeed_mph = toroundedmph(self._atc:getinforcespeed_mps())
+  local acsesspeed_mph = toroundedmph(self._acses:getinforcespeed_mps())
+  return atcspeed_mph ~= 150 and atcspeed_mph <= acsesspeed_mph
+end
+
+-- Get the current state of the ATC indicator light.
+function P:getatcindicator ()
+  return self._atc:isrunning()
+    and (not self._acses:isrunning() or atcinforce(self))
+end
+
+-- Get the current state of the ACSES indicator light.
+function P:getacsesindicator ()
+  return self._acses:isrunning()
+    and (not self._atc:isrunning() or not atcinforce(self))
 end
 
 -- Get the current signal speed limit.
