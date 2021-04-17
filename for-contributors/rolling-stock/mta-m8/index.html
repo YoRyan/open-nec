@@ -123,6 +123,14 @@
 <li>
     <a href="../../../for-players/amtrak-hhp8/" class="dropdown-item">Notes for the Amtrak HHP-8</a>
 </li>
+                                    
+<li>
+    <a href="../../../for-players/marc-mp36ph/" class="dropdown-item">Notes for the MARC MP36PH</a>
+</li>
+                                    
+<li>
+    <a href="../../../for-players/marc-multilevel/" class="dropdown-item">Notes for the MARC Multilevel Cab Car</a>
+</li>
                                 </ul>
                             </li>
                         </ul>
@@ -171,6 +179,18 @@
               <ul class="nav flex-column">
               </ul>
             </li>
+            <li class="nav-item" data-level="2"><a href="#lights" class="nav-link">Lights</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#model-nodes" class="nav-link">Model nodes</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#animations" class="nav-link">Animations</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
               </ul>
             </li>
         </ul>
@@ -200,15 +220,15 @@
 <p>The combined power and brake handle. Values range from -1 to 1; negative values apply braking, while positive values apply power.</p>
 <p>The default position is 20% braking.</p>
 <h4 id="sign">SigN</h4>
-<p>Illuminates the "N" signal cab aspect lamp.</p>
+<p>Illuminates the "N" cab signal aspect lamp.</p>
 <h4 id="sigl">SigL</h4>
-<p>Illuminates the "L" signal cab aspect lamp.</p>
+<p>Illuminates the "L" cab signal aspect lamp.</p>
 <h4 id="sigm">SigM</h4>
-<p>Illuminates the "M" signal cab aspect lamp.</p>
+<p>Illuminates the "M" cab signal aspect lamp.</p>
 <h4 id="sigr">SigR</h4>
-<p>Illuminates the "R" signal cab aspect lamp.</p>
+<p>Illuminates the "R" cab signal aspect lamp.</p>
 <h4 id="sigs">SigS</h4>
-<p>Illuminates the "S" signal cab aspect lamp.</p>
+<p>Illuminates the "S" cab signal aspect lamp.</p>
 <h4 id="signalspeed">SignalSpeed</h4>
 <p>Sets the displayed signal speed limit. Only the following speeds are supported:</p>
 <ul>
@@ -288,7 +308,57 @@
 <h2 id="keyboard-shortcuts">Keyboard shortcuts</h2>
 <h4 id="acsescutin">ACSESCutIn</h4>
 <p>The status of the Ctrl-F ACSES cut in/out keyboard toggle. (ACSES cut in/out lamps are present in the model, but not functional.)</p>
-<p>The default position is 1.</p></div>
+<p>The default position is 1.</p>
+<h2 id="lights">Lights</h2>
+<h4 id="spark">Spark</h4>
+<p>The pantograph spark glow.</p>
+<h4 id="fwd_ditchlightright">Fwd_DitchLightRight</h4>
+<p>The right ditch light.</p>
+<h4 id="fwd_ditchlightleft">Fwd_DitchLightLeft</h4>
+<p>The left ditch light.</p>
+<h4 id="cablight_1">Cablight</h4>
+<p>The cab dome light.</p>
+<h4 id="pvlight_001">PVLight_001</h4>
+<h4 id="pvlight_002">PVLight_002</h4>
+<h4 id="pvlight_003">PVLight_003</h4>
+<h4 id="pvlight_004">PVLight_004</h4>
+<h4 id="pvlight_005">PVLight_005</h4>
+<h4 id="pvlight_006">PVLight_006</h4>
+<h4 id="pvlight_007">PVLight_007</h4>
+<h4 id="pvlight_008">PVLight_008</h4>
+<h4 id="pvlight_009">PVLight_009</h4>
+<h4 id="pvlight_010">PVLight_010</h4>
+<h4 id="pvlight_011">PVLight_011</h4>
+<h4 id="pvlight_012">PVLight_012</h4>
+<h4 id="halllight_001">HallLight_001</h4>
+<h4 id="halllight_002">HallLight_002</h4>
+<p>The passenger cabin lights.</p>
+<h2 id="model-nodes">Model nodes</h2>
+<h4 id="panto_spark">panto_spark</h4>
+<p>The pantograph spark billboard.</p>
+<h4 id="right_ditch_light">right_ditch_light</h4>
+<p>The right ditch light.</p>
+<h4 id="left_ditch_light">left_ditch_light</h4>
+<p>The left ditch light.</p>
+<h4 id="round_lights_off">round_lights_off</h4>
+<p>The hallway light model in the darkened state.</p>
+<h4 id="round_lights_on">round_lights_on</h4>
+<p>The hallway light model in the illuminated state.</p>
+<h4 id="sl_green">SL_green</h4>
+<p>The green marker light.</p>
+<h4 id="sl_yellow">SL_yellow</h4>
+<p>The yellow marker light.</p>
+<h4 id="sl_blue">SL_blue</h4>
+<p>The blue marker light.</p>
+<h4 id="sl_doors_l">SL_doors_L</h4>
+<p>The lefthand door indicator lights.</p>
+<h4 id="sl_doors_r">SL_doors_R</h4>
+<p>The righthand door indicator lights.</p>
+<h2 id="animations">Animations</h2>
+<h4 id="panto_1">panto</h4>
+<p>Raises the forward pantograph. The duration is 2 seconds.</p>
+<h4 id="ribbons">ribbons</h4>
+<p>Extends the pantograph gate that connects to another car on the front end. The duration is 1 second.</p></div>
             </div>
         </div>
 
