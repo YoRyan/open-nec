@@ -8,7 +8,8 @@ The Open NEC mod for the HHP-8 is fully compatible and tested with Fan Railer's 
 
 ### Bugs fixed
 
-- The locomotive will no longer get stuck in a permanent penalty state.
+- Xbox and Raildriver controls work when running with Fan Railer's mod.
+- The locomotive will no longer get sporadically stuck in a permanent penalty state.
 
 ### New features
 
