@@ -484,7 +484,15 @@ Update = RailWorks.wraperrors(function (_)
   end
 end)
 
-OnControlValueChange = RailWorks.SetControlValue
+OnControlValueChange = RailWorks.wraperrors(function (name, index, value)
+  -- Fix Xbox and Raildriver controls for Fan Railer's mod.
+  if name == "VirtualThrottle"
+      and RailWorks.ControlExists("NewVirtualThrottle", 0) then
+    RailWorks.SetControlValue("NewVirtualThrottle", 0, value)
+  end
+
+  RailWorks.SetControlValue(name, index, value)
+end)
 
 OnCustomSignalMessage = RailWorks.wraperrors(function (message)
   atc:receivemessage(message)
