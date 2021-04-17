@@ -1,6 +1,6 @@
 rem Build a distributable ZIP archive for a release.
 
-xcopy Mod Release\Assets\ /s /y
+xcopy Mod Release\Assets\ /s /y /exclude:Release-exclude.txt
 copy Readme.md Release\Readme.md
 
 del Mod.zip
