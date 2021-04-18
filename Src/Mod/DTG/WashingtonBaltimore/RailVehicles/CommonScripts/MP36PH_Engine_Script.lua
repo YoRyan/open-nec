@@ -45,7 +45,8 @@ Initialise = RailWorks.wraperrors(function ()
     iterspeedlimits = function () return pairs(state.speedlimits) end,
     iterrestrictsignals = function () return pairs(state.restrictsignals) end,
     getacknowledge = function () return state.acknowledge end,
-    doalert = function () adu:doacsesalert() end
+    doalert = function () adu:doacsesalert() end,
+    consistspeed_mps = 125*Units.mph.tomps
   }
 
   local onebeep_s = 1

@@ -54,6 +54,8 @@ function P:new (conf)
       conf.getacknowledge or function () return false end,
     _doalert =
       conf.doalert or function () end,
+    _consistspeed_mps =
+      conf.consistspeed_mps,
     _penaltylimit_mps =
       conf.penaltylimit_mps or 3*Units.mph.tomps,
     _alertlimit_mps =
@@ -282,13 +284,21 @@ local function iterstopsignalhazards (self)
   )
 end
 
-local function getcurrentlimithazard (self)
-  local speed_mps = self._trackspeed:gettrackspeed_mps()
-  return {hazardtype.currentlimit}, {
-    inforce_mps = speed_mps,
-    penalty_mps = speed_mps + self._penaltylimit_mps,
-    alert_mps = speed_mps + self._alertlimit_mps
-  }
+local function itercurrentlimithazards (self)
+  local limits = {self._trackspeed:gettrackspeed_mps()}
+  if self._consistspeed_mps ~= nil then
+    table.insert(limits, self._consistspeed_mps)
+  end
+  return Iterator.map(
+    function (_, speed_mps)
+      return {hazardtype.currentlimit}, {
+        inforce_mps = speed_mps,
+        penalty_mps = speed_mps + self._penaltylimit_mps,
+        alert_mps = speed_mps + self._alertlimit_mps
+      }
+    end,
+    ipairs(limits)
+  )
 end
 
 local function gethazardsdict (self)
@@ -303,8 +313,7 @@ local function gethazardsdict (self)
       hazards[k] = hazard
     end
   end]]
-  do
-    local k, hazard = getcurrentlimithazard(self)
+  for k, hazard in itercurrentlimithazards(self) do
     hazards[k] = hazard
   end
   return hazards
