@@ -125,7 +125,7 @@ The engineer's side task light, which can be clicked on/off.
 
 The secondman's side task light, which can be clicked on/off.
 
-#### SpeedoTens
+#### SpeedoHundreds
 
 The hundreds digit on the digital speedometer display. -1 hides the digit.
 
