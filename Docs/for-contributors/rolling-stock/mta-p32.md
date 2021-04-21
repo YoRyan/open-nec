@@ -2,7 +2,7 @@
 
 The GE P32AC-DM is a dual-mode electric and diesel locomotive that provides express service from Grand Central Terminal to Metro-North's various unelectrified branch lines.
 
-In the official release, the dual-mode switching between diesel and 3rd rail power is not fully implemented. The P32 always initializes in diesel mode, even in career scenarios that begin in Grand Central Terminal, and there is no difference in performance, sound, or visuals between the two modes.
+Unfortunately, some of the P32's scenarios and quick drive consists incorrectly set the P32 for diesel mode at startup—even when the scenario begins in Grand Central Terminal, or when the consist is labeled "Third Rail."
 
 It's not clear how much horsepower is available to the P32 in electric mode. Intuitively, there would be less power available, since the locomotive's top speed in this mode is lower. One educated [guess](https://www.nyctransitforums.com/topic/22340-p32ac-dm-question/?tab=comments#comment-312459) by Fan Railer is 2200 hp, versus about 2900 hp in diesel mode (less HEP). However, another [source](https://www.trainsim.com/vbts/showthread.php?181917-P32AC-DM-Speed-Limits) claims the full power of the locomotive is available in electric mode, and that the top speed is limited only to avoid arcing the 3rd rail.
 
