@@ -291,7 +291,7 @@ local function itercurrentlimithazards (self)
   end
   return Iterator.map(
     function (_, speed_mps)
-      return {hazardtype.currentlimit}, {
+      return {hazardtype.currentlimit, speed_mps}, {
         inforce_mps = speed_mps,
         penalty_mps = speed_mps + self._penaltylimit_mps,
         alert_mps = speed_mps + self._alertlimit_mps
