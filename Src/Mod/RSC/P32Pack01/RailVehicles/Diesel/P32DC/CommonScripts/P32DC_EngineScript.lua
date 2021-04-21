@@ -50,7 +50,7 @@ Initialise = RailWorks.wraperrors(function ()
   }
 
   local onebeep_s = 1
-  adu = MetroNorthAdu:new{
+  adu = GenesisAdu:new{
     scheduler = sched,
     atc = atc,
     atcalert_s = onebeep_s,
@@ -165,14 +165,13 @@ local function setadu ()
   do
     local aspect = adu:getaspect()
     local n, l, m, r
-    if aspect == MetroNorthAdu.aspect.stop
-        or aspect == MetroNorthAdu.aspect.restrict then
+    if aspect == GenesisAdu.aspect.restrict then
       n, l, m, r = 0, 0, 0, 1
-    elseif aspect == MetroNorthAdu.aspect.medium then
+    elseif aspect == GenesisAdu.aspect.medium then
       n, l, m, r = 0, 0, 1, 0
-    elseif aspect == MetroNorthAdu.aspect.limited then
+    elseif aspect == GenesisAdu.aspect.limited then
       n, l, m, r = 0, 1, 0, 0
-    elseif aspect == MetroNorthAdu.aspect.normal then
+    elseif aspect == GenesisAdu.aspect.clear then
       n, l, m, r = 1, 0, 0, 0
     end
     RailWorks.SetControlValue("SigN", 0, n)
@@ -199,15 +198,15 @@ local function setdisplay ()
     RailWorks.SetControlValue("SpeedoDecimal", 0, getdigit(speed_mph, -1))
   end
   do
-    local civspeed_mph = adu:getcivilspeed_mph()
-    if civspeed_mph == nil then
+    local overspeed_mph = adu:getoverspeed_mph()
+    if overspeed_mph == nil then
       RailWorks.SetControlValue("TrackHundreds", 0, -1)
       RailWorks.SetControlValue("TrackTens", 0, -1)
       RailWorks.SetControlValue("TrackUnits", 0, -1)
     else
-      RailWorks.SetControlValue("TrackHundreds", 0, getdigit(civspeed_mph, 2))
-      RailWorks.SetControlValue("TrackTens", 0, getdigit(civspeed_mph, 1))
-      RailWorks.SetControlValue("TrackUnits", 0, getdigit(civspeed_mph, 0))
+      RailWorks.SetControlValue("TrackHundreds", 0, getdigit(overspeed_mph, 2))
+      RailWorks.SetControlValue("TrackTens", 0, getdigit(overspeed_mph, 1))
+      RailWorks.SetControlValue("TrackUnits", 0, getdigit(overspeed_mph, 0))
     end
   end
   RailWorks.SetControlValue(
