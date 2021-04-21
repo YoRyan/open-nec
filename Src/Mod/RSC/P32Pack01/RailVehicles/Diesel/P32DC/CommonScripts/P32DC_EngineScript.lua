@@ -1,6 +1,9 @@
 -- Engine script for the P32AC-DM operated by Metro-North.
 
 local sched
+local atc
+local acses
+local adu
 local alerter
 local power
 local ditchflasher
@@ -23,6 +26,40 @@ local state = {
 
 Initialise = RailWorks.wraperrors(function ()
   sched = Scheduler:new{}
+
+  atc = Atc:new{
+    scheduler = sched,
+    getspeed_mps = function () return state.speed_mps end,
+    getacceleration_mps2 = function () return state.acceleration_mps2 end,
+    getacknowledge = function () return state.acknowledge end,
+    doalert = function () adu:doatcalert() end,
+    getpulsecodespeed_mps = Atc.mtapulsecodespeed_mps,
+    getbrakesuppression = function () return state.train_brake >= 0.4 end
+  }
+
+  acses = Acses:new{
+    scheduler = sched,
+    getspeed_mps = function () return state.speed_mps end,
+    gettrackspeed_mps = function () return state.trackspeed_mps end,
+    getconsistlength_m = function () return state.consistlength_m end,
+    iterspeedlimits = function () return pairs(state.speedlimits) end,
+    iterrestrictsignals = function () return pairs(state.restrictsignals) end,
+    getacknowledge = function () return state.acknowledge end,
+    doalert = function () adu:doacsesalert() end,
+    consistspeed_mps = 80*Units.mph.tomps
+  }
+
+  local onebeep_s = 1
+  adu = MetroNorthAdu:new{
+    scheduler = sched,
+    atc = atc,
+    atcalert_s = onebeep_s,
+    acses = acses,
+    acsesalert_s = onebeep_s
+  }
+
+  atc:start()
+  acses:start()
 
   alerter = Alerter:new{
     scheduler = sched,
@@ -75,7 +112,7 @@ local function readlocostate ()
 end
 
 local function writelocostate ()
-  local penalty = alerter:ispenalty()
+  local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
   local penaltybrake = 0.85
   do
     local v
@@ -101,9 +138,17 @@ local function writelocostate ()
     RailWorks.SetControlValue("DynamicBrake", 0, v)
   end
   do
-    local alarm = alerter:isalarm()
-    RailWorks.SetControlValue("AWS", 0, RailWorks.frombool(alarm))
+    local alarm = alerter:isalarm() or atc:isalarm() or acses:isalarm()
+    local alert = adu:isatcalert() or adu:isacsesalert()
+    RailWorks.SetControlValue("AWS", 0, RailWorks.frombool(alarm or alert))
     RailWorks.SetControlValue("AWSWarnCount", 0, RailWorks.frombool(alarm))
+  end
+end
+
+local function setcutin ()
+  if not sched:isstartup() then
+    atc:setrunstate(RailWorks.GetControlValue("ATCCutIn", 0) == 1)
+    acses:setrunstate(RailWorks.GetControlValue("ACSESCutIn", 0) == 1)
   end
 end
 
@@ -116,6 +161,35 @@ local function getdigit (v, place)
   end
 end
 
+local function setadu ()
+  do
+    local aspect = adu:getaspect()
+    local n, l, m, r
+    if aspect == MetroNorthAdu.aspect.stop
+        or aspect == MetroNorthAdu.aspect.restrict then
+      n, l, m, r = 0, 0, 0, 1
+    elseif aspect == MetroNorthAdu.aspect.medium then
+      n, l, m, r = 0, 0, 1, 0
+    elseif aspect == MetroNorthAdu.aspect.limited then
+      n, l, m, r = 0, 1, 0, 0
+    elseif aspect == MetroNorthAdu.aspect.normal then
+      n, l, m, r = 1, 0, 0, 0
+    end
+    RailWorks.SetControlValue("SigN", 0, n)
+    RailWorks.SetControlValue("SigL", 0, l)
+    RailWorks.SetControlValue("SigM", 0, m)
+    RailWorks.SetControlValue("SigR", 0, r)
+  end
+  do
+    local sigspeed_mph = adu:getsignalspeed_mph()
+    if sigspeed_mph == nil then
+      RailWorks.SetControlValue("SignalSpeed", 0, 1) -- hide
+    else
+      RailWorks.SetControlValue("SignalSpeed", 0, sigspeed_mph)
+    end
+  end
+end
+
 local function setdisplay ()
   do
     local speed_mph = RailWorks.GetControlValue("SpeedometerMPH", 0)
@@ -124,7 +198,18 @@ local function setdisplay ()
     RailWorks.SetControlValue("SpeedoUnits", 0, getdigit(speed_mph, 0))
     RailWorks.SetControlValue("SpeedoDecimal", 0, getdigit(speed_mph, -1))
   end
-
+  do
+    local civspeed_mph = adu:getcivilspeed_mph()
+    if civspeed_mph == nil then
+      RailWorks.SetControlValue("TrackHundreds", 0, -1)
+      RailWorks.SetControlValue("TrackTens", 0, -1)
+      RailWorks.SetControlValue("TrackUnits", 0, -1)
+    else
+      RailWorks.SetControlValue("TrackHundreds", 0, getdigit(civspeed_mph, 2))
+      RailWorks.SetControlValue("TrackTens", 0, getdigit(civspeed_mph, 1))
+      RailWorks.SetControlValue("TrackUnits", 0, getdigit(civspeed_mph, 0))
+    end
+  end
   RailWorks.SetControlValue(
     "AlerterVisual", 0, RailWorks.frombool(alerter:isalarm()))
 end
@@ -193,6 +278,8 @@ local function updateplayer ()
   sched:update()
 
   writelocostate()
+  setcutin()
+  setadu()
   setdisplay()
   setditchlights()
   setcablights()
@@ -222,6 +309,8 @@ end)
 OnControlValueChange = RailWorks.SetControlValue
 
 OnCustomSignalMessage = RailWorks.wraperrors(function (message)
+  atc:receivemessage(message)
+  acses:receivemessage(message)
 end)
 
 OnConsistMessage = RailWorks.SendConsistMessage

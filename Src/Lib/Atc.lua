@@ -219,6 +219,16 @@ function P.amtrakpulsecodespeed_mps (pulsecode)
   end
 end
 
+-- Get the speed limit, in m/s, that corresponds to a pulse code.
+-- Metro-North and LIRR speed limits.
+function P.mtapulsecodespeed_mps (pulsecode)
+  if pulsecode == Nec.pulsecode.restrict then
+    return 15*Units.mph.tomps
+  else
+    return P.amtrakpulsecodespeed_mps(pulsecode)
+  end
+end
+
 -- Receive a custom signal message.
 function P:receivemessage (message)
   if self._running then
