@@ -1,4 +1,4 @@
--- Engine script for the P32AC-DM operated by Metro-North.
+-- Engine script for the P32AC-DM operated by Amtrak and Metro-North.
 
 local sched
 local atc

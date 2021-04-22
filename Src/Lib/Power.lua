@@ -81,14 +81,19 @@ function P.getchangepoint (message)
       return P.changepoint.thirdrailstart
     elseif point == "ThirdRailEnd" then
       return P.changepoint.thirdrailend
+    -- New York to New Haven AI change points
     elseif point == "AIOverheadToThirdNow" then
       return P.changepoint.ai_to_thirdrail
     elseif point == "AIThirdToOverheadNow" then
       return P.changepoint.ai_to_overhead
+    -- North Jersey Coast Line AI change points
     elseif point == "AIOverheadToDieselNow" then
       return P.changepoint.ai_to_diesel
     elseif point == "AIDieselToOverheadNow" then
       return P.changepoint.ai_to_overhead
+    -- Hudson Line end of third rail
+    elseif point == "DieselRailStart" then
+      return P.changepoint.thirdrailend
     else
       return nil
     end

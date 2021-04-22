@@ -24,6 +24,8 @@ Rolling stock:
 - [Amtrak ACS-64](/for-players/amtrak-acs64)
     - `RSC\NewYorkNewHaven\RailVehicles\Electric\ACS-64\` (New York-New Haven version)
     - `DTG\WashingtonBaltimore\RailVehicles\Electric\ACS-64\` (Washington-Baltimore version)
+- [Amtrak P32AC-DM](/for-players/amtrak-p32)
+    - `DTG\HudsonLine\RailVehicles\Diesel\P32DC\CommonScripts\P32DC_EngineScript.out`
 - [MARC MP36PH](/for-players/marc-mp36ph)
     - `DTG\WashingtonBaltimore\RailVehicles\CommonScripts\`
 - [MARC Multilevel Cab Car](/for-players/marc-multilevel)
