@@ -1,6 +1,6 @@
 # Notes for the Amtrak P32AC-DM
 
-The GE P32AC-DM is a dual-mode electric and diesel locomotive used by Amtrak for its Empire Service and Lake Shore Limited services. Open NEC equips the P32 universal with cab signaling, ATC, and ACSES.
+The GE P32AC-DM is a dual-mode electric and diesel locomotive used by Amtrak for its Empire Service and Lake Shore Limited services. Open NEC equips the P32 with universal cab signaling, ATC, and ACSES.
 
 ### New features
 
