@@ -1,6 +1,6 @@
 # Notes for the Metro-North P32AC-DM
 
-The GE P32AC-DM is a dual-mode electric and diesel locomotive that provides express service from Grand Central Terminal to Metro-Njorth's various unelectrified branch lines. Open NEC equips the P32 universal with cab signaling, ATC, and ACSES.
+The GE P32AC-DM is a dual-mode electric and diesel locomotive that provides express service from Grand Central Terminal to Metro-North's various unelectrified branch lines. Open NEC equips the P32 universal with cab signaling, ATC, and ACSES.
 
 ### Mod compatibility
 
