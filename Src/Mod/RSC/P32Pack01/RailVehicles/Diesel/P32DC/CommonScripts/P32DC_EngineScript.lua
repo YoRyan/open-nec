@@ -274,7 +274,7 @@ do
   end
 end
 
-local function setpowermode ()
+local function setplayerpowermode ()
   if state.throttle <= 0 then
     local pwrmode = RailWorks.GetControlValue("PowerMode", 0)
     if pwrmode == 0 and state.powermode == powermode.diesel then
@@ -287,6 +287,20 @@ local function setpowermode ()
   end
   RailWorks.SetControlValue(
     "Power3rdRail", 0, RailWorks.frombool(power:isavailable(Power.types.thirdrail)))
+end
+
+local function setaipowermode ()
+  if RailWorks.GetControlValue("Regulator", 0) <= 0 then
+    local pwrmode = RailWorks.GetControlValue("PowerMode", 0)
+    -- The power mode switch on the Shoreliner cab car is reversed.
+    if pwrmode == 1 and state.powermode == powermode.diesel then
+      state.powermode = powermode.electric
+      state.lastchangetime_s = sched:clock()
+    elseif pwrmode == 0 and state.powermode == powermode.electric then
+      state.powermode = powermode.diesel
+      state.lastchangetime_s = sched:clock()
+    end
+  end
 end
 
 local function setexhaust ()
@@ -322,7 +336,7 @@ local function updateplayer ()
   setdisplay()
   setditchlights()
   setcablights()
-  setpowermode()
+  setplayerpowermode()
   setexhaust()
 
   -- Prevent the acknowledge button from sticking if the button on the HUD is
@@ -335,6 +349,7 @@ end
 local function updateai ()
   setditchlights()
   setcablights()
+  setaipowermode()
   setexhaust()
 end
 
