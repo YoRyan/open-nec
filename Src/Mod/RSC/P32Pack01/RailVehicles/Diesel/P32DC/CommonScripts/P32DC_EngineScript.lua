@@ -127,7 +127,7 @@ end
 local function writelocostate ()
   local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
   local penaltybrake = 0.85
-  local changetime_s = 10
+  local changetime_s = 20
   do
     local v
     if state.powermode == powermode.electric
