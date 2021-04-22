@@ -304,12 +304,14 @@ local function setaipowermode ()
 end
 
 local function setexhaust ()
-  -- DTG's exhaust logic
   local r, g, b, rate
+  local minrpm = 180
   local effort = RailWorks.GetTractiveEffort()
-  if state.powermode == powermode.electric then
+  if state.powermode == powermode.electric
+      or RailWorks.GetControlValue("RPM", 0) < minrpm then
     r, g, b = 0, 0, 0
     rate = 0
+  -- DTG's exhaust logic
   elseif effort < 0.1 then
     r, g, b = 0.25, 0.25, 0.25
     rate = 0.01
