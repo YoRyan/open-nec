@@ -41,6 +41,12 @@ function P:setcollectors (...)
   self._collectors = arg
 end
 
+-- Determine whether or not a particular power supply is available (regardless of
+-- which collectors are currently enabled).
+function P:isavailable (type)
+  return self._available[type]
+end
+
 -- Determine whether the locomotive is powered given the current set of power
 -- supply collectors.
 function P:haspower ()

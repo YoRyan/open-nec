@@ -38,6 +38,10 @@ function P.GetConsistLength ()
   return Call("GetConsistLength")
 end
 
+function P.GetRVNumber ()
+  return Call("GetRVNumber")
+end
+
 function P.SendConsistMessage (message, argument, direction)
   return Call("SendConsistMessage", message, tostring(argument), direction) == 1
 end

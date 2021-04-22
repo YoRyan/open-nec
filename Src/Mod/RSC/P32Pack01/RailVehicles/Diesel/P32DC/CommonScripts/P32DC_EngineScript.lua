@@ -21,8 +21,12 @@ local state = {
   speedlimits = {},
   restrictsignals = {},
 
+  powermode = nil,
+  lastchangetime_s = nil,
   lasthorntime_s = nil
 }
+
+local powermode = {diesel=0, thirdrail=1}
 
 Initialise = RailWorks.wraperrors(function ()
   sched = Scheduler:new{}
@@ -66,6 +70,15 @@ Initialise = RailWorks.wraperrors(function ()
     getspeed_mps = function () return state.speed_mps end
   }
   alerter:start()
+
+  if string.sub(RailWorks.GetRVNumber(), 1, 1) == "T" then
+    power = Power:new{available={Power.types.thirdrail}}
+    state.powermode = powermode.electric
+  else
+    power = Power:new{available={}}
+    state.powermode = powermode.diesel
+  end
+  power:setcollectors(Power.types.thirdrail)
 
   local ditchflash_s = 1
   ditchflasher = Flash:new{
@@ -114,10 +127,20 @@ end
 local function writelocostate ()
   local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
   local penaltybrake = 0.85
+  local changetime_s = 10
   do
     local v
-    if penalty then v = 0
-    else v = state.throttle end
+    if state.powermode == powermode.electric
+        and not power:haspower() then
+      v = 0
+    elseif state.lastchangetime_s ~= nil
+        and sched:clock() <= state.lastchangetime_s + changetime_s then
+      v = 0
+    elseif penalty then
+      v = 0
+    else
+      v = state.throttle
+    end
     RailWorks.SetControlValue("Regulator", 0, v)
   end
 
@@ -132,8 +155,8 @@ local function writelocostate ()
     local maxpressure_psi = 70
     local pipepress_psi =
       maxpressure_psi - RailWorks.GetControlValue("AirBrakePipePressurePSI", 0)
-    -- TODO dynamic braking is not available in electric mode
-    if pipepress_psi > 0 then v = pipepress_psi*0.01428
+    if state.powermode == powermode.electric then v = 0
+    elseif pipepress_psi > 0 then v = pipepress_psi*0.01428
     else v = 0 end
     RailWorks.SetControlValue("DynamicBrake", 0, v)
   end
@@ -251,12 +274,29 @@ do
   end
 end
 
+local function setpowermode ()
+  if state.throttle <= 0 then
+    local pwrmode = RailWorks.GetControlValue("PowerMode", 0)
+    if pwrmode == 0 and state.powermode == powermode.diesel then
+      state.powermode = powermode.electric
+      state.lastchangetime_s = sched:clock()
+    elseif pwrmode == 1 and state.powermode == powermode.electric then
+      state.powermode = powermode.diesel
+      state.lastchangetime_s = sched:clock()
+    end
+  end
+  RailWorks.SetControlValue(
+    "Power3rdRail", 0, RailWorks.frombool(power:isavailable(Power.types.thirdrail)))
+end
+
 local function setexhaust ()
   -- DTG's exhaust logic
   local r, g, b, rate
   local effort = RailWorks.GetTractiveEffort()
-  -- TODO there is no (or very minimal, for HEP) exhaust in electric mode (duh)
-  if effort < 0.1 then
+  if state.powermode == powermode.electric then
+    r, g, b = 0, 0, 0
+    rate = 0
+  elseif effort < 0.1 then
     r, g, b = 0.25, 0.25, 0.25
     rate = 0.01
   elseif effort >= 0.1 and effort < 0.5 then
@@ -282,6 +322,7 @@ local function updateplayer ()
   setdisplay()
   setditchlights()
   setcablights()
+  setpowermode()
   setexhaust()
 
   -- Prevent the acknowledge button from sticking if the button on the HUD is
@@ -308,6 +349,7 @@ end)
 OnControlValueChange = RailWorks.SetControlValue
 
 OnCustomSignalMessage = RailWorks.wraperrors(function (message)
+  power:receivemessage(message)
   atc:receivemessage(message)
   acses:receivemessage(message)
 end)
