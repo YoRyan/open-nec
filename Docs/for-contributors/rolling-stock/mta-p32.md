@@ -58,7 +58,7 @@ The alerter acknowledge button.
 
 #### PowerMode
 
-The power change switch. 1 = diesel, 0 = DC. The default setting is 1.
+The power change switch. 1 = diesel, 0 = DC. The default setting reflects the mode the locomotive starts in.
 
 #### Power3rdRail
 
