@@ -21,6 +21,7 @@ These locomotives have been made compatible with the signaling systems of the fo
 - [NEC: New York - New Haven](https://store.steampowered.com/app/258643/Train_Simulator_NEC_New_YorkNew_Haven_Route_AddOn/)
 - [North Jersey Coast Line](https://store.steampowered.com/app/325970/Train_Simulator_North_Jersey_Coast_Line_Route_AddOn/)
 - [North Jersey Coast & Morristown Lines](https://store.steampowered.com/app/500218/Train_Simulator_North_Jersey_Coast__Morristown_Lines_Route_AddOn/)
+- [Hudson Line: New York - Croton-Harmon](https://store.steampowered.com/app/896719/Train_Simulator_Hudson_Line_New_York__CrotonHarmon_Route_AddOn/)
 - [Northeast Corridor: Washington DC - Baltimore](https://store.steampowered.com/app/1429754/Train_Simulator_Northeast_Corridor_Washington_DC__Baltimore_Route_AddOn/)
 
 ## Downloads
