@@ -29,4 +29,5 @@ Rolling stock:
 - [MARC Multilevel Cab Car](/for-players/marc-multilevel)
     - `DTG\WashingtonBaltimore\RailVehicles\Passengers\MultiLevel\`
 - [Metro-North P32AC-DM](/for-players/mta-p32)
-    - `RSC\P32Pack01\RailVehicles\Diesel\P32DC\CommonScripts\P32DC_EngineScript.out`
+    - `RSC\P32Pack01\RailVehicles\Diesel\P32DC\CommonScripts\P32DC_EngineScript.out` (standalone version)
+    - `DTG\HudsonLine\RailVehicles\Diesel\P32DC\CommonScripts\P32DC_EngineScript.out` (Hudson Line version)
