@@ -161,6 +161,18 @@ The visual alerter on the driving screen.
 
 Illuminates the exclamation mark on the HUD.
 
+#### LocoHundreds
+
+The hundreds digit of the cab model's locomotive number. -1 hides the digit.
+
+#### LocoTens
+
+The tens digit of the cab model's locomotive number. -1 hides the digit.
+
+#### LocoUnits
+
+The ones digit of the cab model's locomotive number. -1 hides the digit.
+
 ### Sounds
 
 #### AWS
