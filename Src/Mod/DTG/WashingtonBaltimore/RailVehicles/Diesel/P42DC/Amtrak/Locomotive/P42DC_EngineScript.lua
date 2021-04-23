@@ -24,7 +24,25 @@ local state = {
   lastthrottletime_s = nil
 }
 
+local function getdigit (v, place)
+  local tens = math.pow(10, place)
+  if place > 0 and v < tens then
+    return -1
+  else
+    return math.floor(math.mod(v, tens*10)/tens)
+  end
+end
+
+local function setenginenumber ()
+  local number = tonumber(RailWorks.GetRVNumber()) or 0
+  RailWorks.SetControlValue("LocoHundreds", 0, getdigit(number, 2))
+  RailWorks.SetControlValue("LocoTens", 0, getdigit(number, 1))
+  RailWorks.SetControlValue("LocoUnits", 0, getdigit(number, 0))
+end
+
 Initialise = RailWorks.wraperrors(function ()
+  setenginenumber()
+
   sched = Scheduler:new{}
 
   atc = Atc:new{
@@ -161,15 +179,6 @@ local function setadu ()
   RailWorks.SetControlValue("ADU02", 0, l)
   RailWorks.SetControlValue("ADU03", 0, m)
   RailWorks.SetControlValue("ADU04", 0, r)
-end
-
-local function getdigit (v, place)
-  local tens = math.pow(10, place)
-  if place > 0 and v < tens then
-    return -1
-  else
-    return math.floor(math.mod(v, tens*10)/tens)
-  end
 end
 
 local function setdisplay ()
