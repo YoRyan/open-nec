@@ -285,10 +285,10 @@ local function setplayerpantos ()
   local rearup = pantoup and pantosel > 0.5
   frontpantoanim:setanimatedstate(frontup)
   rearpantoanim:setanimatedstate(rearup)
-  RailWorks.SendConsistMessage(messageid.raisefrontpanto, frontup, 0)
-  RailWorks.SendConsistMessage(messageid.raisefrontpanto, frontup, 1)
-  RailWorks.SendConsistMessage(messageid.raiserearpanto, rearup, 0)
-  RailWorks.SendConsistMessage(messageid.raiserearpanto, rearup, 1)
+  RailWorks.Engine_SendConsistMessage(messageid.raisefrontpanto, frontup, 0)
+  RailWorks.Engine_SendConsistMessage(messageid.raisefrontpanto, frontup, 1)
+  RailWorks.Engine_SendConsistMessage(messageid.raiserearpanto, rearup, 0)
+  RailWorks.Engine_SendConsistMessage(messageid.raiserearpanto, rearup, 1)
 
   local frontcontact = frontpantoanim:getposition() == 1
   local rearcontact = rearpantoanim:getposition() == 1
@@ -304,10 +304,10 @@ local function setaipantos ()
   local rearup = false
   frontpantoanim:setanimatedstate(frontup)
   rearpantoanim:setanimatedstate(rearup)
-  RailWorks.SendConsistMessage(messageid.raisefrontpanto, frontup, 0)
-  RailWorks.SendConsistMessage(messageid.raisefrontpanto, frontup, 1)
-  RailWorks.SendConsistMessage(messageid.raiserearpanto, rearup, 0)
-  RailWorks.SendConsistMessage(messageid.raiserearpanto, rearup, 1)
+  RailWorks.Engine_SendConsistMessage(messageid.raisefrontpanto, frontup, 0)
+  RailWorks.Engine_SendConsistMessage(messageid.raisefrontpanto, frontup, 1)
+  RailWorks.Engine_SendConsistMessage(messageid.raiserearpanto, rearup, 0)
+  RailWorks.Engine_SendConsistMessage(messageid.raiserearpanto, rearup, 1)
 end
 
 local function setslavepantos ()
@@ -336,8 +336,8 @@ end
 
 local function settilt ()
   local isolate = RailWorks.GetControlValue("TiltIsolate", 0)
-  RailWorks.SendConsistMessage(messageid.tiltisolate, isolate, 0)
-  RailWorks.SendConsistMessage(messageid.tiltisolate, isolate, 1)
+  RailWorks.Engine_SendConsistMessage(messageid.tiltisolate, isolate, 0)
+  RailWorks.Engine_SendConsistMessage(messageid.tiltisolate, isolate, 1)
 end
 
 local function setcone ()
@@ -357,18 +357,18 @@ do
     end
 
     if RailWorks.GetControlValue("DestOnOff", 0) == 1 then
-      RailWorks.SendConsistMessage(messageid.destination, id, 0)
-      RailWorks.SendConsistMessage(messageid.destination, id, 1)
+      RailWorks.Engine_SendConsistMessage(messageid.destination, id, 0)
+      RailWorks.Engine_SendConsistMessage(messageid.destination, id, 1)
     else
-      RailWorks.SendConsistMessage(messageid.destination, 0, 0)
-      RailWorks.SendConsistMessage(messageid.destination, 0, 1)
+      RailWorks.Engine_SendConsistMessage(messageid.destination, 0, 0)
+      RailWorks.Engine_SendConsistMessage(messageid.destination, 0, 1)
     end
   end
 end
 
 local function setaidest ()
-  RailWorks.SendConsistMessage(messageid.destination, 1, 0)
-  RailWorks.SendConsistMessage(messageid.destination, 1, 1)
+  RailWorks.Engine_SendConsistMessage(messageid.destination, 1, 0)
+  RailWorks.Engine_SendConsistMessage(messageid.destination, 1, 1)
 end
 
 local function setstatusscreen ()
@@ -602,5 +602,5 @@ OnConsistMessage = RailWorks.wraperrors(function (message, argument, direction)
   elseif message == messageid.raiserearpanto then
     state.raisefrontpantomsg = argument == "true"
   end
-  RailWorks.SendConsistMessage(message, argument, direction)
+  RailWorks.Engine_SendConsistMessage(message, argument, direction)
 end)

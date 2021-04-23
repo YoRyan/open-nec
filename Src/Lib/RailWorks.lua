@@ -42,7 +42,7 @@ function P.GetRVNumber ()
   return Call("GetRVNumber")
 end
 
-function P.SendConsistMessage (message, argument, direction)
+function P.Engine_SendConsistMessage (message, argument, direction)
   return Call("SendConsistMessage", message, tostring(argument), direction) == 1
 end
 
@@ -146,7 +146,7 @@ function P.SendSignalMessage (message, argument, direction, link, index)
   return Call("SendSignalMessage", message, argument, direction, link, index)
 end
 
-function P.SendConsistMessage (message, argument)
+function P.Signal_SendConsistMessage (message, argument)
   if argument == nil then
     Call("SendConsistMessage", message)
   else

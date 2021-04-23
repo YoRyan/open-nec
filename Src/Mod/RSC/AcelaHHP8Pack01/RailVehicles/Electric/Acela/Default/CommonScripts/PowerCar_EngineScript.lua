@@ -225,10 +225,10 @@ local function setplayerpantos ()
   local rearup = pantoup and pantosel > 0.5
   frontpantoanim:setanimatedstate(frontup)
   rearpantoanim:setanimatedstate(rearup)
-  RailWorks.SendConsistMessage(messageid.raisefrontpanto, frontup, 0)
-  RailWorks.SendConsistMessage(messageid.raisefrontpanto, frontup, 1)
-  RailWorks.SendConsistMessage(messageid.raiserearpanto, rearup, 0)
-  RailWorks.SendConsistMessage(messageid.raiserearpanto, rearup, 1)
+  RailWorks.Engine_SendConsistMessage(messageid.raisefrontpanto, frontup, 0)
+  RailWorks.Engine_SendConsistMessage(messageid.raisefrontpanto, frontup, 1)
+  RailWorks.Engine_SendConsistMessage(messageid.raiserearpanto, rearup, 0)
+  RailWorks.Engine_SendConsistMessage(messageid.raiserearpanto, rearup, 1)
 
   local frontcontact = frontpantoanim:getposition() == 1
   local rearcontact = rearpantoanim:getposition() == 1
@@ -244,10 +244,10 @@ local function setaipantos ()
   local rearup = false
   frontpantoanim:setanimatedstate(frontup)
   rearpantoanim:setanimatedstate(rearup)
-  RailWorks.SendConsistMessage(messageid.raisefrontpanto, frontup, 0)
-  RailWorks.SendConsistMessage(messageid.raisefrontpanto, frontup, 1)
-  RailWorks.SendConsistMessage(messageid.raiserearpanto, rearup, 0)
-  RailWorks.SendConsistMessage(messageid.raiserearpanto, rearup, 1)
+  RailWorks.Engine_SendConsistMessage(messageid.raisefrontpanto, frontup, 0)
+  RailWorks.Engine_SendConsistMessage(messageid.raisefrontpanto, frontup, 1)
+  RailWorks.Engine_SendConsistMessage(messageid.raiserearpanto, rearup, 0)
+  RailWorks.Engine_SendConsistMessage(messageid.raiserearpanto, rearup, 1)
 end
 
 local function setslavepantos ()
@@ -507,5 +507,5 @@ OnConsistMessage = RailWorks.wraperrors(function (message, argument, direction)
   elseif message == messageid.raiserearpanto then
     state.raiserearpantomsg = argument == "true"
   end
-  RailWorks.SendConsistMessage(message, argument, direction)
+  RailWorks.Engine_SendConsistMessage(message, argument, direction)
 end)

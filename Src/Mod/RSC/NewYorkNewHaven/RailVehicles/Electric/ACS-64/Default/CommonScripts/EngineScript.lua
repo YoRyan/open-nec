@@ -486,4 +486,4 @@ OnCustomSignalMessage = RailWorks.wraperrors(function (message)
   acses:receivemessage(message)
 end)
 
-OnConsistMessage = RailWorks.SendConsistMessage
+OnConsistMessage = RailWorks.Engine_SendConsistMessage
