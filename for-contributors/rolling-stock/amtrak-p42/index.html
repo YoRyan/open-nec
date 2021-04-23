@@ -8,7 +8,7 @@
         
         
         <link rel="shortcut icon" href="../../../img/favicon.ico">
-        <title>MARC Multilevel Cab Car - Open NEC Project</title>
+        <title>Amtrak P42DC - Open NEC Project</title>
         <link href="../../../css/bootstrap.min.css" rel="stylesheet">
         <link href="../../../css/font-awesome.min.css" rel="stylesheet">
         <link href="../../../css/base.css" rel="stylesheet">
@@ -68,7 +68,7 @@
 </li>
             
 <li>
-    <a href="../amtrak-p42/" class="dropdown-item">Amtrak P42DC</a>
+    <a href="./" class="dropdown-item active">Amtrak P42DC</a>
 </li>
             
 <li>
@@ -76,7 +76,7 @@
 </li>
             
 <li>
-    <a href="./" class="dropdown-item active">MARC Multilevel Cab Car</a>
+    <a href="../marc-multilevel/" class="dropdown-item">MARC Multilevel Cab Car</a>
 </li>
             
 <li>
@@ -162,12 +162,12 @@
                             </a>
                         </li>
                             <li class="nav-item">
-                                <a rel="prev" href="../marc-mp36ph/" class="nav-link">
+                                <a rel="prev" href="../amtrak-hhp8/" class="nav-link">
                                     <i class="fa fa-arrow-left"></i> Previous
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="next" href="../mta-m8/" class="nav-link">
+                                <a rel="next" href="../marc-mp36ph/" class="nav-link">
                                     Next <i class="fa fa-arrow-right"></i>
                                 </a>
                             </li>
@@ -189,9 +189,13 @@
     <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-level="1"><a href="#marc-multilevel-cab-car" class="nav-link">MARC Multilevel Cab Car</a>
+            <li class="nav-item" data-level="1"><a href="#amtrak-p42dc" class="nav-link">Amtrak P42DC</a>
               <ul class="nav flex-column">
             <li class="nav-item" data-level="2"><a href="#controls" class="nav-link">Controls</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#model-nodes" class="nav-link">Model nodes</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -199,7 +203,7 @@
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="2"><a href="#model-nodes" class="nav-link">Model nodes</a>
+            <li class="nav-item" data-level="2"><a href="#emitters" class="nav-link">Emitters</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -210,150 +214,113 @@
 </div></div>
                     <div class="col-md-9" role="main">
 
-<h1 id="marc-multilevel-cab-car">MARC Multilevel Cab Car</h1>
-<p>The Bombardier Multilevel is a bilevel coach operated by MARC. As Dovetail Games was unable to obtain a MARC license, the locomotive is unbranded. It includes a cab signaling display.</p>
+<h1 id="amtrak-p42dc">Amtrak P42DC</h1>
+<p>The GE P42DC is a diesel-electric locomotive that forms of the backbone of Amtrak's long-haul fleet. Occasionally, due to shortages of electric locomotives or due to catenary maintenance, P42's can be seen pulling trains even on the electrified Northeast Corridor. However, they are prohibited from operating into New York's Penn Station.</p>
 <h2 id="controls">Controls</h2>
 <h3 id="control-desk">Control desk</h3>
-<h4 id="throttleandbrake">ThrottleAndBrake</h4>
-<p>The combined power and dynamic braking lever. Ranges from -1 to 1. Negative values apply dynamic braking, while positive values apply power.</p>
-<h4 id="uservirtualreverser">UserVirtualReverser</h4>
-<p>The player's Expert Mode reverser lever. -1 = reverse, 0 = neutral, 1 = forward.</p>
-<h4 id="reverser">Reverser</h4>
-<p>The true reverser used by the physics model. -1 = reverse, 0 = neutral, 1 = forward.</p>
-<h4 id="virtualhorn">VirtualHorn</h4>
-<p>The horn plunger.</p>
-<p>The default position is 0.</p>
 <h4 id="horn">Horn</h4>
-<p>Sounds the horn.</p>
-<h4 id="virtualbrake">VirtualBrake</h4>
-<p>The player's Expert Mode train brake lever. Ranges from 0 to 1.</p>
-<table>
-<thead>
-<tr>
-<th>Value</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>Emergency</td>
-</tr>
-<tr>
-<td>0.8</td>
-<td>Handle off</td>
-</tr>
-<tr>
-<td>0.6</td>
-<td>Service</td>
-</tr>
-<tr>
-<td>0.4</td>
-<td>Lap</td>
-</tr>
-<tr>
-<td>0.2</td>
-<td>E-hold</td>
-</tr>
-<tr>
-<td>0</td>
-<td>Release</td>
-</tr>
-</tbody>
-</table>
-<h4 id="trainbrakecontrol">TrainBrakeControl</h4>
-<p>The true train brake setting used by the physics model.</p>
-<h3 id="left-panel">Left panel</h3>
+<p>The engineer's and secondman's horn buttons.</p>
+<h4 id="emergencybrake">EmergencyBrake</h4>
+<p>The secondman's emergency brake button.</p>
+<h4 id="cablight5">CabLight5</h4>
+<p>The cab dome light on/off switch.</p>
 <h4 id="sander">Sander</h4>
-<p>When set, the "Sanding" indicator illuminates.</p>
-<h4 id="hep_state">HEP_State</h4>
-<p>Turns on the "HEP On" indicator.</p>
-<h4 id="pantographcontrol">PantographControl</h4>
-<p>When set to 0, the "Pantograph Down" indicator illuminates. When set to 1, the "Pantograph Up" indicator illuminates.</p>
-<h4 id="handbrake">Handbrake</h4>
-<p>When set, the "Handbrake" indicator illuminates.</p>
-<h4 id="virtualbell">VirtualBell</h4>
-<p>The bell button.</p>
-<p>The default position is 0.</p>
+<p>The sander on/off button.</p>
 <h4 id="bell">Bell</h4>
-<p>Sounds the bell.</p>
-<h3 id="dashboard">Dashboard</h3>
+<p>The bell on/off button.</p>
+<h4 id="reverser">Reverser</h4>
+<p>The reverser lever. 1 = forward, 0 = neutral, -1 = reverse.</p>
+<h3 id="regulator">Regulator</h3>
+<p>The combined power lever (and the player's Expert throttle control) when within the power range. Ranges from 0 to 1.</p>
+<h3 id="dynamicbrake">DynamicBrake</h3>
+<p>The combined power lever (and the player's Expert throttle control) when within the brake range. Ranges from 0 to 1.</p>
+<h4 id="trainbrakecontrol">TrainBrakeControl</h4>
+<p>The player's Expert automatic brake control. Ranges from 0 to 1.</p>
+<h4 id="enginebrakecontrol">EngineBrakeControl</h4>
+<p>The independent brake control. Ranges from 0 to 1.</p>
 <h4 id="awsreset">AWSReset</h4>
-<p>The safety systems acknowledge button.</p>
-<p>The default position is 0.</p>
-<h4 id="speed2h">Speed2H</h4>
-<p>Sets the black hundreds digit on the speedometer display. -1 hides the digit.</p>
-<h4 id="speed2t">Speed2T</h4>
-<p>Sets the black tens digit on the speedometer display. -1 hides the digit.</p>
-<h4 id="speed2u">Speed2U</h4>
-<p>Sets the black ones digit on the speedometer display. -1 hides the digit.</p>
-<h4 id="speedh">SpeedH</h4>
-<p>Sets the green hundreds digit on the speedometer display. -1 hides the digit.</p>
-<h4 id="speedt">SpeedT</h4>
-<p>Sets the green tens digit on the speedometer display. -1 hides the digit.</p>
-<h4 id="speedu">SpeedU</h4>
-<p>Sets the green ones digit on the speedometer display. -1 hides the digit.</p>
-<h4 id="speedp">SpeedP</h4>
-<p>Moves the speedometer digits 0, 1, or 2 places over to compensate for a smaller number.</p>
-<h4 id="acses_speedgreen">ACSES_SpeedGreen</h4>
-<p>Sets the green region of the circular speed limit bar. Ranges from 0 to 120 mph.</p>
-<h4 id="acses_speedred">ACSES_SpeedRed</h4>
-<p>Sets the red region of the circular speed limit bar. Ranges from 0 to 120 mph.</p>
-<h3 id="right-panel">Right panel</h3>
-<h4 id="pantographswitch">PantographSwitch</h4>
-<p>The pantograph up/down switch. -1 = down, 0 = neutral, 1 = up.</p>
-<p>The default position is 0.</p>
-<h4 id="instrumentlights">InstrumentLights</h4>
-<p>The air gauge lights switch.</p>
-<p>The default position is 0.</p>
-<h4 id="cablight">CabLight</h4>
-<p>The cab light switch.</p>
-<p>The default position is 0.</p>
-<h4 id="virtualwipers">VirtualWipers</h4>
-<p>The wiper switch.</p>
-<p>The default position is 0.</p>
-<h4 id="wipers">Wipers</h4>
-<p>Turns on the wipers.</p>
-<h4 id="virtualsander">VirtualSander</h4>
-<p>The sander switch.</p>
-<p>The default position is 0.</p>
-<h4 id="headlightswitch">HeadlightSwitch</h4>
-<p>The headlight switch. 0 = off, 1 = dim, 2 = bright.</p>
-<p>The default position is 0.</p>
+<p>The alerter acknowledge button.</p>
+<h4 id="startup">Startup</h4>
+<p>The engine start/stop buttons. -1 = engine stop, 1 = engine run. The default setting is 1.</p>
 <h4 id="headlights">Headlights</h4>
-<p>Sets the current configuration of the headlights. 0 = off, 1 = tail lights, 2 = dim headlights, 3 = bright headlights.</p>
-<h3 id="sounds">Sounds</h3>
-<h4 id="acses_alert">ACSES_Alert</h4>
-<p>Plays a continuous beep-beep sound.</p>
-<h4 id="acses_alertincrease">ACSES_AlertIncrease</h4>
-<p>Plays a brief speed upgrade sound.</p>
-<h4 id="acses_alertdecrease">ACSES_AlertDecrease</h4>
-<p>Plays a brief speed downgrade sound.</p>
-<h2 id="lights">Lights</h2>
-<h4 id="ditch_l">Ditch_L</h4>
-<p>The left ditch light.</p>
-<h4 id="ditch_r">Ditch_R</h4>
-<p>The right ditch light.</p>
-<h4 id="cablight_1">CabLight</h4>
+<p>The headlight controls. 0 = off, 1 = front headlights, 2 = rearlights.</p>
+<h4 id="crossinglight">CrossingLight</h4>
+<p>The crossing light on/off switch.</p>
+<h3 id="miscellaneous">Miscellaneous</h3>
+<h4 id="wipers">Wipers</h4>
+<p>The wipers button.</p>
+<h4 id="adu00">ADU00</h4>
+<p>The ex-PRR aspect display "Clear" lamp.</p>
+<h4 id="adu01">ADU01</h4>
+<h4 id="adu02">ADU02</h4>
+<p>The ex-PRR aspect display "Approach Medium" lamps.</p>
+<h4 id="adu03">ADU03</h4>
+<p>The ex-PRR aspect display "Approach" lamp.</p>
+<h4 id="adu04">ADU04</h4>
+<p>The ex-PRR aspect display "Restricting" lamp.</p>
+<h4 id="adu05">ADU05</h4>
+<h4 id="adu06a">ADU06a</h4>
+<h4 id="adu06b">ADU06b</h4>
+<h4 id="adu07">ADU07</h4>
+<h4 id="adu08">ADU08</h4>
+<h4 id="adu09">ADU09</h4>
+<p>The ex-CBQ aspect display lamps.</p>
+<h4 id="cablight1">CabLight1</h4>
+<p>The engineer's forward task light, which can be clicked on/off.</p>
 <h4 id="cablight2">CabLight2</h4>
-<p>The cab dome light.</p>
+<p>The secondman's forward task light, which can be clicked on/off.</p>
+<h4 id="cablight3">CabLight3</h4>
+<p>The engineer's side task light, which can be clicked on/off.</p>
+<h4 id="cablight4">CabLight4</h4>
+<p>The secondman's side task light, which can be clicked on/off.</p>
+<h4 id="speedohundreds">SpeedoHundreds</h4>
+<p>The hundreds digit on the digital speedometer display. -1 hides the digit.</p>
+<h4 id="speedotens">SpeedoTens</h4>
+<p>The tens digit on the digital speedometer display. -1 hides the digit.</p>
+<h4 id="speedounits">SpeedoUnits</h4>
+<p>The ones digit on the digital speedometer display.</p>
+<h4 id="speedodecimal">SpeedoDecimal</h4>
+<p>The tenths digit on the digital speedometer display.</p>
+<h4 id="trackhundreds">TrackHundreds</h4>
+<p>The hundreds digit on the overspeed display. -1 hides the digit.</p>
+<h4 id="tracktens">TrackTens</h4>
+<p>The tens digit on the overspeed display. -1 hides the digit.</p>
+<h4 id="trackunits">TrackUnits</h4>
+<p>The ones digit on the overspeed display. -1 hides the digit.</p>
+<h4 id="alertervisual">AlerterVisual</h4>
+<p>The visual alerter on the driving screen.</p>
+<h4 id="locohundreds">LocoHundreds</h4>
+<p>The hundreds digit of the cab model's locomotive number. -1 hides the digit.</p>
+<h4 id="locotens">LocoTens</h4>
+<p>The tens digit of the cab model's locomotive number. -1 hides the digit.</p>
+<h4 id="locounits">LocoUnits</h4>
+<p>The ones digit of the cab model's locomotive number. -1 hides the digit.</p>
+<h3 id="sounds">Sounds</h3>
+<h4 id="alerteraudible">AlerterAudible</h4>
+<p>Plays a continuous beep-beep sound.</p>
+<h4 id="buzzer">Buzzer</h4>
+<p>Plays a buzzing sound. Intended to be used for control lockouts.</p>
 <h2 id="model-nodes">Model nodes</h2>
-<h4 id="ditch_left">ditch_left</h4>
-<p>The left ditch light.</p>
-<h4 id="ditch_right">ditch_right</h4>
-<p>The right ditch right.</p>
-<h4 id="cablights">cablights</h4>
-<p>The cab dome light.</p>
-<h4 id="lightsyellow">LightsYellow</h4>
-<p>The yellow coach status light.</p>
-<h4 id="lightsblue">LightsBlue</h4>
-<p>The blue coach status light.</p>
-<h4 id="lightsgreen">LightsGreen</h4>
-<p>The green coach status light.</p>
-<h4 id="lightsred">LightsRed</h4>
-<p>The red coach status light.</p>
-<h4 id="numberlights">NumberLights</h4>
-<p>The number plate lights.</p></div>
+<h3 id="ditch_right">ditch_right</h3>
+<h3 id="ditch_left">ditch_left</h3>
+<p>The ditch lights.</p>
+<h2 id="lights">Lights</h2>
+<h3 id="ditchlight_r">DitchLight_R</h3>
+<h3 id="ditchlight_l">DitchLight_L</h3>
+<p>The ditch lights.</p>
+<h3 id="cablight_r">CabLight_R</h3>
+<p>The engineer's side task light.</p>
+<h3 id="cablight_m">CabLight_M</h3>
+<p>The rear cab dome light.</p>
+<h3 id="cablight_l">CabLight_L</h3>
+<p>The secondman's side task light.</p>
+<h3 id="tasklight_r">TaskLight_R</h3>
+<p>The engineer's forward task light.</p>
+<h3 id="tasklight_l">TaskLight_L</h3>
+<p>The secondman's forward task light.</p>
+<h2 id="emitters">Emitters</h2>
+<h3 id="dieselexhaust">DieselExhaust</h3>
+<p>Diesel engine exhaust.</p></div>
             </div>
         </div>
 

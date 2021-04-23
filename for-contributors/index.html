@@ -68,6 +68,10 @@
 </li>
             
 <li>
+    <a href="rolling-stock/amtrak-p42/" class="dropdown-item">Amtrak P42DC</a>
+</li>
+            
+<li>
     <a href="rolling-stock/marc-mp36ph/" class="dropdown-item">MARC MP36PH</a>
 </li>
             
@@ -77,6 +81,10 @@
             
 <li>
     <a href="rolling-stock/mta-m8/" class="dropdown-item">Metro-North M8</a>
+</li>
+            
+<li>
+    <a href="rolling-stock/mta-p32/" class="dropdown-item">Metro-North P32AC-DM</a>
 </li>
     </ul>
   </li>
@@ -125,11 +133,23 @@
 </li>
                                     
 <li>
+    <a href="../for-players/amtrak-p32/" class="dropdown-item">Notes for the Amtrak P32AC-DM</a>
+</li>
+                                    
+<li>
+    <a href="../for-players/amtrak-p42/" class="dropdown-item">Notes for the Amtrak P42DC</a>
+</li>
+                                    
+<li>
     <a href="../for-players/marc-mp36ph/" class="dropdown-item">Notes for the MARC MP36PH</a>
 </li>
                                     
 <li>
     <a href="../for-players/marc-multilevel/" class="dropdown-item">Notes for the MARC Multilevel Cab Car</a>
+</li>
+                                    
+<li>
+    <a href="../for-players/mta-p32/" class="dropdown-item">Notes for the Metro-North P32AC-DM</a>
 </li>
                                 </ul>
                             </li>
@@ -196,37 +216,38 @@
 
 <h1 id="developing-for-the-project">Developing for the project</h1>
 <p>Please use the project's <a href="https://github.com/YoRYan/open-nec">homepage</a> on GitHub to file issues and submit pull requests.</p>
-<p>All code for the Open NEC project is currently written in Lua, plus some MSBuild and Batch to automate the building process.</p>
+<p>All code for the Open NEC project is currently written in Lua.</p>
 <p>Train Simulator uses Lua 5.0. It will compile .lua files, but if an .out file is present with the same filename, the bytecode will be prioritized over the source file. Therefore, we must replace the target .out file with our own compiled bytecode.</p>
 <h2 id="repository-structure">Repository structure</h2>
 <ul>
 <li><code>Src\Mod\</code> maps to Train Simulator's Assets\ folder on a 1:1 basis. Replacement Lua code goes here.</li>
 <li><code>Src\Lib\</code> contains any common Lua code. The build system automatically includes these files when linting or compiling files in Mod\.</li>
-<li><code>Src\Lua.xml</code> and <code>Src\OpenNec.proj</code> contain the MSBuild definitions used to build the project.</li>
-<li><code>Release.bat</code> is used to produce a new release.</li>
+<li><code>Makefile</code> contains the instructions for the build process. It must be run from the directory it resides in.</li>
 <li><code>Docs</code> contains the Markdown text of this manual.</li>
 </ul>
 <h2 id="building-the-project">Building the project</h2>
-<p>To compile the mod, you will need the following tools in your <code>%PATH%</code>:</p>
+<p>To compile the mod, you will need the following dependencies installed on your system:</p>
 <ul>
-<li><code>MSBuild.exe</code>: Microsoft's take on the Makefile. This comes with any installation of Visual Studio. From VS, you can <a href="https://docs.microsoft.com/en-us/dotnet/framework/tools/developer-command-prompt-for-vs">open</a> a developer console with this tool already included in <code>%PATH%</code>.</li>
-<li><code>luacheck.exe</code>: the <a href="https://github.com/mpeterv/luacheck">Luacheck</a> linter. Its static analysis capabilities are much appreciated for an untyped language like Lua. Although it was designed for Lua 5.1+, it works well enough on 5.0—with the exception of variable length arguments, which it misinterprets as "unused variables." The static Windows executable will work just fine.</li>
-<li><code>luac50.exe</code>: the Lua 5.0 <a href="https://sourceforge.net/projects/luabinaries/files/5.0.3/Tools%20Executables/">compiler</a>. This is used to compile the actual bytecode for Train Simulator.</li>
-<li><code>compressonatorcli.exe</code>: The CLI version of <a href="https://gpuopen.com/compressonator/">AMD's Compressonator</a>, a tool we use to generate DDS textures.</li>
-<li><code>serz.exe</code>: Train Simulator's .bin data packer. Included with the game.</li>
-<li><code>ConvertToDav.exe</code>: Train Simulator's .dav sound compiler. Included with the game.</li>
-<li><code>ConvertToTg.exe</code>: Train Simulator's .TgPcDx texture compiler. Included with the game.</li>
+<li>Train Simulator itself, which includes some content creation utilities.</li>
+<li><a href="https://www.gnu.org/software/make/">GNU Make</a> to run the included Makefile. A <a href="https://community.chocolatey.org/packages/make">package</a> is available on Chocolatey.</li>
+<li><a href="https://gpuopen.com/compressonator/">AMD's Compressonator</a> to generate DDS textures. A <a href="https://community.chocolatey.org/packages/compressonator-cli">package</a> is available on Chocolatey.</li>
+<li><a href="https://github.com/mpeterv/luacheck">Luacheck</a>, a Lua linter. Its static analysis capabilities are much appreciated for an untyped language like Lua. Although it was designed for Lua 5.1+, it works well enough on 5.0—with the exception of variable length arguments, which it misinterprets as "unused variables." The static Windows executable will work just fine.</li>
 </ul>
-<p>It also helps to have the following tools handy:</p>
+<p>The following tools are optional and are not needed to compile the project, but may assist you in development work:</p>
 <ul>
 <li><a href="https://sourceforge.net/projects/unluac">unluac</a> to decompile and study (to varying degrees of success) Dovetail's Lua bytecode.</li>
 <li><a href="https://www.mkdocs.org/">MkDocs</a> to build and maintain this manual's Markdown text.</li>
 <li>My <a href="https://github.com/yoryan/railsim-remote">Rail Sim Remote</a> program, which exposes Train Simulator's RailDriver interface via a REST API. You can use this in conjunction with cURL or a browser developer console to experiment with a locomotive's controls.</li>
 <li>Discord so you can join the Train Simulator community for modding tips, street cred, and comradery.</li>
 </ul>
-<p>With all of the tools installed and available in <code>%PATH%</code>, you run</p>
-<p><code>msbuild Src\\OpenNec.proj /t:build</code></p>
-<p>to build the project. The compiled files will output to the Mod\ folder, from which they can be copied into Train Simulator's Assets\ folder. But to ease testing, I recommend using symlinks instead of copying.</p>
+<p>Check the file paths in the configuration variables at the top of the Makefile. If the default values do not work for your system, you can override these values by passing new ones to make. (For example, <code>make RAILWORKS_DIR=\path\to\RailWorks</code>.)</p>
+<p>Then from the Command Prompt, run <code>make</code> in the project root directory to compile the mod. The compiled files will output to the Mod\ folder, from which they can be copied into Train Simulator's Assets\ folder. But to ease testing, I recommend using symlinks instead of copying.</p>
+<p>To speed the build up by running processes in parallel, you can pass the <code>-j</code> argument to make.</p>
+<p>Other Makefile targets of interest include:</p>
+<ul>
+<li><code>clean</code>: Delete the compiled files and start fresh.</li>
+<li><code>dist</code>: Build a distributable ZIP archive that includes the mod and its documentation.</li>
+</ul>
 <h4 id="suggested-tasksjson-for-visual-studio-code">Suggested tasks.json for Visual Studio Code</h4>
 <pre><code class="language-json">{
     // See https://go.microsoft.com/fwlink/?LinkId=733558
@@ -236,23 +257,19 @@
         {
             &quot;label&quot;: &quot;build&quot;,
             &quot;type&quot;: &quot;shell&quot;,
-            &quot;command&quot;: &quot;C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe&quot;,
+            &quot;command&quot;: &quot;C:\\ProgramData\\chocolatey\\bin\\make.exe&quot;,
             &quot;args&quot;: [
-                &quot;Src\\OpenNec.proj&quot;,
-                &quot;/t:build&quot;
+                &quot;-j&quot;
             ],
             &quot;options&quot;: {
                 &quot;env&quot;: {
-                    &quot;PATH&quot;: &quot;C:\\Users\\Ryan\\Downloads\\Programs\\lua5_0_3_Win32_bin;C:\\Users\\Ryan\\Downloads\\Programs\\luacheck;C:\\Program Files (x86)\\Steam\\steamapps\\common\\RailWorks;C:\\Compressonator_4.1.5083\\bin\\CLI&quot;
+                    &quot;PATH&quot;: &quot;C:\\Users\\Ryan\\Downloads\\Programs\\luacheck&quot;
                 }
             },
             &quot;group&quot;: {
                 &quot;kind&quot;: &quot;build&quot;,
                 &quot;isDefault&quot;: true
             },
-            &quot;presentation&quot;: {
-            },
-            &quot;problemMatcher&quot;: &quot;$msCompile&quot;
         }
     ]
 }
