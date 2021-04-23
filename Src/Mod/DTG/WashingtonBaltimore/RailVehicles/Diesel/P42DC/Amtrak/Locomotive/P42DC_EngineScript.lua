@@ -7,7 +7,6 @@ local adu
 local alerter
 local ditchflasher
 local state = {
-  dynbrake = 0,
   throttle = 0,
   train_brake = 0,
   acknowledge = false,
@@ -76,13 +75,9 @@ Initialise = RailWorks.wraperrors(function ()
 end)
 
 local function readcontrols ()
-  local dynbrake = RailWorks.GetControlValue("DynamicBrake", 0)
-  local throttle = RailWorks.GetControlValue("Regulator", 0)
+  local throttle = RailWorks.GetControlValue("ThrottleAndBrake", 0)
   local brake = RailWorks.GetControlValue("TrainBrakeControl", 0)
-  local change = dynbrake ~= state.dynbrake
-    or throttle ~= state.throttle
-    or brake ~= state.train_brake
-  state.dynbrake = dynbrake
+  local change = throttle ~= state.throttle or brake ~= state.train_brake
   state.throttle = throttle
   state.train_brake = brake
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
@@ -118,8 +113,7 @@ local function writelocostate ()
   local penaltybrake = 0.85
   -- There's no virtual throttle, so just move the combined power handle.
   if penalty then
-    RailWorks.SetControlValue("DynamicBrake", 0, 0)
-    RailWorks.SetControlValue("Regulator", 0, 0)
+    RailWorks.SetControlValue("ThrottleAndBrake", 0, 0.5)
   end
   -- There's no virtual train brake, so just move the braking handle.
   if penalty then
