@@ -33,6 +33,8 @@ Check the file paths in the configuration variables at the top of the Makefile. 
 
 Then from the Command Prompt, run `make` in the project root directory to compile the mod. The compiled files will output to the Mod\ folder, from which they can be copied into Train Simulator's Assets\ folder. But to ease testing, I recommend using symlinks instead of copying.
 
+To speed the build up by running processes in parallel, you can pass the `-j` argument to make.
+
 Other Makefile targets of interest include:
 
 - `clean`: Delete the compiled files and start fresh.
@@ -51,7 +53,7 @@ Other Makefile targets of interest include:
             "type": "shell",
             "command": "C:\\ProgramData\\chocolatey\\bin\\make.exe",
             "args": [
-                "-j12" // Parallelize the build.
+                "-j"
             ],
             "options": {
                 "env": {
