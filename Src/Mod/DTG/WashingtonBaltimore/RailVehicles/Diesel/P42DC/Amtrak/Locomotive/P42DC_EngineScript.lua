@@ -20,7 +20,8 @@ local state = {
   speedlimits = {},
   restrictsignals = {},
 
-  lasthorntime_s = nil
+  lasthorntime_s = nil,
+  lastthrottletime_s = nil
 }
 
 Initialise = RailWorks.wraperrors(function ()
@@ -124,6 +125,22 @@ local function writelocostate ()
     local alert = adu:isatcalert() or adu:isacsesalert()
     RailWorks.SetControlValue(
       "AlerterAudible", 0, RailWorks.frombool(alarm or alert))
+  end
+end
+
+local function setdynamicbraketab ()
+  local setuptime_s = 7
+  local setuppos = 0.444444
+  if state.throttle >= 0.5 then
+    state.lastthrottletime_s = sched:clock()
+  end
+  if state.lastthrottletime_s ~= nil
+      and sched:clock() < state.lastthrottletime_s + setuptime_s
+      and state.throttle < setuppos then
+    RailWorks.SetControlValue("ThrottleAndBrake", 0, setuppos)
+    RailWorks.SetControlValue("Buzzer", 0, 1)
+  else
+    RailWorks.SetControlValue("Buzzer", 0, 0)
   end
 end
 
@@ -246,6 +263,7 @@ local function updateplayer ()
   sched:update()
 
   writelocostate()
+  setdynamicbraketab()
   setadu()
   setdisplay()
   setditchlights()
