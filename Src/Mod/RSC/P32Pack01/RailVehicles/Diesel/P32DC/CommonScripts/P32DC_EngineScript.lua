@@ -240,16 +240,20 @@ local function setditchlights ()
   local horntime_s = 30
   local horn = state.lasthorntime_s ~= nil
     and sched:clock() <= state.lasthorntime_s + horntime_s
-  local flash = (state.headlights == 1 and state.crosslights) or horn
+  local flash = horn
+  local fixed = state.headlights > 0.5
+    and state.headlights < 1.5
+    and state.crosslights
+    and not flash
   ditchflasher:setflashstate(flash)
   local flashleft = ditchflasher:ison()
   do
-    local showleft = flash and flashleft
+    local showleft = fixed or (flash and flashleft)
     RailWorks.ActivateNode("ditch_left", showleft)
     Call("DitchLight_L:Activate", RailWorks.frombool(showleft))
   end
   do
-    local showright = flash and not flashleft
+    local showright = fixed or (flash and not flashleft)
     RailWorks.ActivateNode("ditch_right", showright)
     Call("DitchLight_R:Activate", RailWorks.frombool(showright))
   end
