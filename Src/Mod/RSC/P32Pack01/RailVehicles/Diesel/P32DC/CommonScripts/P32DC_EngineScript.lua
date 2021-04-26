@@ -21,6 +21,7 @@ local state = {
   speedlimits = {},
   restrictsignals = {},
 
+  isamtrak = false,
   powermode = nil,
   lastchangetime_s = nil,
   lasthorntime_s = nil
@@ -29,6 +30,8 @@ local state = {
 local powermode = {diesel=0, thirdrail=1}
 
 Initialise = RailWorks.wraperrors(function ()
+  state.isamtrak = RailWorks.ControlExists("EqReservoirPressurePSI", 0)
+
   sched = Scheduler:new{}
 
   atc = Atc:new{
@@ -50,7 +53,7 @@ Initialise = RailWorks.wraperrors(function ()
     iterrestrictsignals = function () return pairs(state.restrictsignals) end,
     getacknowledge = function () return state.acknowledge end,
     doalert = function () adu:doacsesalert() end,
-    consistspeed_mps = 80*Units.mph.tomps
+    consistspeed_mps = (state.isamtrak and 110 or 80)*Units.mph.tomps
   }
 
   local onebeep_s = 1
