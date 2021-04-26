@@ -45,7 +45,7 @@
   <Target Name="LuaBinary" Inputs="@(LuaLibrary);%(LuaBinary.Identity)" Outputs="$(OutputPath)\%(LuaBinary.RelativeDir)%(LuaBinary.Filename).out">
     <MakeDir Directories="$(OutputPath)\%(LuaBinary.RelativeDir)" Condition="!Exists('$(OutputPath)\%(LuaBinary.RelativeDir)')" />
     <Exec Command="luacheck.exe --allow-defined-top --no-unused-args @(LuaLibrary->'&quot;%(Identity)&quot;', ' ') &quot;%(LuaBinary.Identity)&quot; --read-globals=Call SysCall" IgnoreExitCode="true" />
-    <Exec Command="luac50.exe -o &quot;$(OutputPath)\%(LuaBinary.RelativeDir)%(LuaBinary.Filename).out&quot; @(LuaLibrary->'&quot;%(Identity)&quot;', ' ') &quot;%(LuaBinary.Identity)&quot;" />
+    <Exec Command="luac.exe -o &quot;$(OutputPath)\%(LuaBinary.RelativeDir)%(LuaBinary.Filename).out&quot; @(LuaLibrary->'&quot;%(Identity)&quot;', ' ') &quot;%(LuaBinary.Identity)&quot;" />
   </Target>
   <Target Name="LuaEmpty" Inputs="%(LuaEmpty.Identity)" Outputs="$(OutputPath)\%(LuaEmpty.RelativeDir)%(LuaEmpty.Filename).out">
     <MakeDir Directories="$(OutputPath)\%(LuaEmpty.RelativeDir)" Condition="!Exists('$(OutputPath)\%(LuaEmpty.RelativeDir)')" />
