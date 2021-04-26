@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ProjectSchemaDefinitions xmlns="http://schemas.microsoft.com/build/2009/properties">
+  <ItemType Name="SerzXml" />
+  <ContentType Name="SerzXml" ItemType="SerzXml" />
+  <FileExtension Name=".xml" ContentType="SerzXml" />
+</ProjectSchemaDefinitions>
