@@ -218,21 +218,12 @@ local function setspeedometer ()
     local h = getdigit(rspeed_mph, 2)
     local t = getdigit(rspeed_mph, 1)
     local u = getdigit(rspeed_mph, 0)
-    if restrict then
-      RailWorks.SetControlValue("SpeedH", 0, -1)
-      RailWorks.SetControlValue("SpeedT", 0, -1)
-      RailWorks.SetControlValue("SpeedU", 0, -1)
-      RailWorks.SetControlValue("Speed2H", 0, h)
-      RailWorks.SetControlValue("Speed2T", 0, t)
-      RailWorks.SetControlValue("Speed2U", 0, u)
-    else
-      RailWorks.SetControlValue("SpeedH", 0, h)
-      RailWorks.SetControlValue("SpeedT", 0, t)
-      RailWorks.SetControlValue("SpeedU", 0, u)
-      RailWorks.SetControlValue("Speed2H", 0, -1)
-      RailWorks.SetControlValue("Speed2T", 0, -1)
-      RailWorks.SetControlValue("Speed2U", 0, -1)
-    end
+    RailWorks.SetControlValue("SpeedH", 0, restrict and -1 or h)
+    RailWorks.SetControlValue("SpeedT", 0, restrict and -1 or t)
+    RailWorks.SetControlValue("SpeedU", 0, restrict and -1 or u)
+    RailWorks.SetControlValue("Speed2H", 0, restrict and h or -1)
+    RailWorks.SetControlValue("Speed2T", 0, restrict and t or -1)
+    RailWorks.SetControlValue("Speed2U", 0, restrict and u or -1)
     RailWorks.SetControlValue("SpeedP", 0, getdigitguide(rspeed_mph))
   end
   RailWorks.SetControlValue(
