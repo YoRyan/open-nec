@@ -13,6 +13,7 @@ local state = {
   train_brake = 0,
   acknowledge = false,
   headlights = 0,
+  destination = 1,
 
   speed_mps = 0,
   acceleration_mps2 = 0,
@@ -23,6 +24,20 @@ local state = {
 
   lasthorntime_s = nil
 }
+
+local destinations = {"Dest_Trenton",
+                      "Dest_NewYork",
+                      "Dest_LongBranch",
+                      "Dest_Hoboken",
+                      "Dest_Dover",
+                      "Dest_BayHead"}
+
+local function getrvdestination ()
+  local id = string.sub(RailWorks.GetRVNumber(), 1, 1)
+  local index = string.byte(id)
+  if index == nil then return 1
+  else return index - string.byte("A") + 1 end
+end
 
 Initialise = RailWorks.wraperrors(function ()
   sched = Scheduler:new{}
@@ -79,6 +94,8 @@ Initialise = RailWorks.wraperrors(function ()
     off_s = ditchflash_s,
     on_s = ditchflash_s
   }
+
+  state.destination = getrvdestination()
 
   RailWorks.BeginUpdate()
 end)
@@ -262,17 +279,11 @@ local function setstatuslights ()
 end
 
 local function setdestination ()
-  local signs = {"Dest_Trenton",
-                 "Dest_NewYork",
-                 "Dest_LongBranch",
-                 "Dest_Hoboken",
-                 "Dest_Dover",
-                 "Dest_BayHead"}
-  local selected = math.ceil(RailWorks.GetControlValue("Destination", 0)) - 1
-  local valid = selected >= 1 and selected <= table.getn(signs)
-  for i, node in ipairs(signs) do
+  local valid =
+    state.destination >= 1 and state.destination <= table.getn(destinations)
+  for i, node in ipairs(destinations) do
     if valid then
-      RailWorks.ActivateNode(node, i == selected)
+      RailWorks.ActivateNode(node, i == state.destination)
     else
       RailWorks.ActivateNode(node, i == 1)
     end
@@ -332,6 +343,11 @@ OnControlValueChange = RailWorks.wraperrors(function (name, index, value)
     elseif value == 3 then
       RailWorks.SetControlValue("HeadlightSwitch", 0, 2)
     end
+  end
+
+  -- Read the selected destination only when the player changes it.
+  if name == "Destination" and not sched:isstartup() then
+    state.destination = math.floor(value + 0.5) - 1
   end
 
   RailWorks.SetControlValue(name, index, value)
