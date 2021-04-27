@@ -152,16 +152,24 @@ local function writelocostate ()
     local atcalarm = atc:isalarm()
     local acsesalarm = acses:isalarm()
     local alertalarm = alerter:isalarm()
+    local alert = adu:isatcalert() or adu:isacsesalert()
+
+    -- For the North Jersey Coast Line version.
+    RailWorks.SetControlValue(
+      "AWS", 0,
+      RailWorks.frombool(atcalarm or acsesalarm or alertalarm or alert))
+    -- For all subsequent versions.
     RailWorks.SetControlValue(
       "ACSES_Alert", 0,
       RailWorks.frombool(alertalarm))
     RailWorks.SetControlValue(
       "ACSES_AlertIncrease", 0,
-      RailWorks.frombool(adu:isatcalert() or adu:isacsesalert()))
+      RailWorks.frombool(alert))
     alarmonoff:setflashstate(atcalarm or acsesalarm)
     RailWorks.SetControlValue(
       "ACSES_AlertDecrease", 0,
       RailWorks.frombool(alarmonoff:ison()))
+
     RailWorks.SetControlValue(
       "AWSWarnCount", 0,
       RailWorks.frombool(atcalarm or acsesalarm or alertalarm))
