@@ -261,6 +261,24 @@ local function setstatuslights ()
   end
 end
 
+local function setdestination ()
+  local signs = {"Dest_Trenton",
+                 "Dest_NewYork",
+                 "Dest_LongBranch",
+                 "Dest_Hoboken",
+                 "Dest_Dover",
+                 "Dest_BayHead"}
+  local selected = math.ceil(RailWorks.GetControlValue("Destination", 0)) - 1
+  local valid = selected >= 1 and selected <= table.getn(signs)
+  for i, node in ipairs(signs) do
+    if valid then
+      RailWorks.ActivateNode(node, i == selected)
+    else
+      RailWorks.ActivateNode(node, i == 1)
+    end
+  end
+end
+
 local function updateplayer ()
   readcontrols()
   readlocostate()
@@ -272,6 +290,7 @@ local function updateplayer ()
   setcablight()
   setditchlights()
   setstatuslights()
+  setdestination()
 
   -- Prevent the acknowledge button from sticking if the button on the HUD is
   -- clicked.
@@ -284,6 +303,7 @@ local function updateai ()
   setcablight()
   setditchlights()
   setstatuslights()
+  setdestination()
 end
 
 Update = RailWorks.wraperrors(function (_)
