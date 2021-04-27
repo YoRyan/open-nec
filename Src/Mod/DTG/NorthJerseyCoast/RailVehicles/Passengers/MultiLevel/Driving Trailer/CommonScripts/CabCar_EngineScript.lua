@@ -350,6 +350,15 @@ OnControlValueChange = RailWorks.wraperrors(function (name, index, value)
     state.destination = math.floor(value + 0.5) - 1
   end
 
+  -- Announce manual door control toggles.
+  if name == "DoorsManual" and not sched:isstartup() then
+    if value == 0 then
+      RailWorks.showalert("Manual Door Control Disabled")
+    elseif value == 1 then
+      RailWorks.showalert("Manual Door Control Enabled")
+    end
+  end
+
   RailWorks.SetControlValue(name, index, value)
 end)
 
