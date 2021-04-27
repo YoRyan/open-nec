@@ -253,9 +253,12 @@ local function setstatuslights ()
   RailWorks.ActivateNode("LightsBlue", RailWorks.GetIsEngineWithKey())
   -- The door open light, except I have no idea how to program it.
   RailWorks.ActivateNode("LightsRed", false)
-  -- The brake application lights, except I have no idea how to program them.
-  RailWorks.ActivateNode("LightsYellow", false)
-  RailWorks.ActivateNode("LightsGreen", true)
+  do
+    -- Match the brake indicator light logic in the carriage script.
+    local brake = RailWorks.GetControlValue("TrainBrakeControl", 0)
+    RailWorks.ActivateNode("LightsYellow", brake > 0)
+    RailWorks.ActivateNode("LightsGreen", brake <= 0)
+  end
 end
 
 local function updateplayer ()
@@ -288,8 +291,6 @@ Update = RailWorks.wraperrors(function (_)
     updateplayer()
   else
     updateai()
-    RailWorks.EndUpdate()
-    return
   end
 end)
 
