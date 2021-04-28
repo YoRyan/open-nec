@@ -16,7 +16,6 @@ local state = {
   throttle = 0,
   train_brake = 0,
   acknowledge = false,
-  headlights = 0,
   destination = 1,
 
   speed_mps = 0,
@@ -136,8 +135,6 @@ local function readcontrols ()
   if RailWorks.GetControlValue("Horn", 0) > 0 then
     state.lasthorntime_s = playersched:clock()
   end
-
-  state.headlights = RailWorks.GetControlValue("HeadlightSwitch", 0)
 end
 
 local function readlocostate ()
@@ -263,17 +260,20 @@ end
 
 local function setditchlights ()
   local horntime_s = 30
-  local show = state.lasthorntime_s ~= nil
+  local flash = state.lasthorntime_s ~= nil
     and playersched:clock() <= state.lasthorntime_s + horntime_s
-  ditchflasher:setflashstate(show)
+  local fixed = RailWorks.GetControlValue("HeadlightSwitch", 0) >= 1
+    and RailWorks.GetControlValue("DitchLights", 0) == 1
+    and not flash
+  ditchflasher:setflashstate(flash)
   local flashleft = ditchflasher:ison()
   do
-    local showleft = show and flashleft
+    local showleft = fixed or (flash and flashleft)
     RailWorks.ActivateNode("ditch_left", showleft)
     Call("Ditch_L:Activate", RailWorks.frombool(showleft))
   end
   do
-    local showright = show and not flashleft
+    local showright = fixed or (flash and not flashleft)
     RailWorks.ActivateNode("ditch_right", showright)
     Call("Ditch_R:Activate", RailWorks.frombool(showright))
   end
