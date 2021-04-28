@@ -280,9 +280,10 @@ local function setditchlights ()
 end
 
 local function setstatuslights ()
-  RailWorks.ActivateNode("LightsBlue", RailWorks.GetIsEngineWithKey())
-  -- The door open light, except I have no idea how to program it.
-  RailWorks.ActivateNode("LightsRed", false)
+  RailWorks.ActivateNode(
+    "LightsBlue", RailWorks.GetIsEngineWithKey())
+  RailWorks.ActivateNode(
+    "LightsRed", doors:isleftdooropen() or doors:isrightdooropen())
   do
     -- Match the brake indicator light logic in the carriage script.
     local brake = RailWorks.GetControlValue("TrainBrakeControl", 0)
