@@ -183,6 +183,8 @@ local function writelocostate ()
     "Wipers", 0, RailWorks.GetControlValue("VirtualWipers", 0))
   RailWorks.SetControlValue(
     "Sander", 0, RailWorks.GetControlValue("VirtualSander", 0))
+  RailWorks.SetControlValue(
+    "PantographControl", 0, RailWorks.GetControlValue("VirtualPantographControl", 0))
 
   do
     local atcalarm = atc:isalarm()
@@ -367,6 +369,21 @@ OnControlValueChange = RailWorks.wraperrors(function (name, index, value)
       RailWorks.SetControlValue("HeadlightSwitch", 0, 1)
     elseif value == 3 then
       RailWorks.SetControlValue("HeadlightSwitch", 0, 2)
+    end
+  end
+
+  -- Synchronize pantograph controls.
+  if name == "PantographSwitch" then
+    if value == -1 then
+      RailWorks.SetControlValue("VirtualPantographControl", 0, 0)
+    elseif value == 1 then
+      RailWorks.SetControlValue("VirtualPantographControl", 0, 1)
+    end
+  elseif name == "VirtualPantographControl" then
+    if value == 0 then
+      RailWorks.SetControlValue("PantographSwitch", 0, -1)
+    elseif value == 1 then
+      RailWorks.SetControlValue("PantographSwitch", 0, 1)
     end
   end
 
