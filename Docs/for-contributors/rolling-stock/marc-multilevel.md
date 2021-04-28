@@ -226,3 +226,11 @@ The red coach status light.
 #### NumberLights
 
 The number plate lights.
+
+## Animations
+
+#### Doors_L
+
+#### Doors_R
+
+Opens the passenger boarding doors. The durations are 1 second long.
