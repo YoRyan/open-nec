@@ -22,7 +22,7 @@ end
 function P:update ()
   local ismanual = RailWorks.GetControlValue("DoorsManual", 0) == 1
   if ismanual ~= self._lastmanual then
-    if self._lastmanual ~= nil then
+    if self._lastmanual ~= nil and RailWorks.GetIsEngineWithKey() then
       if ismanual then
         RailWorks.showalert("Manual Door Control", "Enabled")
       else
