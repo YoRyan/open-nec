@@ -33,9 +33,9 @@ function P:update ()
 
   if now - self._lastcycle >= self._cycle_s then
     if self._increase then
-      RailWorks.showalert(self._anim .. " switching backwards")
+      RailWorks.showalert(self._anim, "switching backwards")
     else
-      RailWorks.showalert(self._anim .. " switching forwards")
+      RailWorks.showalert(self._anim, "switching forwards")
     end
     self._increase = not self._increase
     self._lastcycle = now

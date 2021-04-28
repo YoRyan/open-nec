@@ -148,7 +148,7 @@ function P:start ()
       self._sched:run(doenforce, self)
     }
     if not self._sched:isstartup() then
-      self._sched:alert("ATC Cut In")
+      self._sched:alert("ATC", "Cut In")
     end
   end
 end
@@ -161,7 +161,7 @@ function P:stop ()
       self._sched:kill(co)
     end
     initstate(self)
-    self._sched:alert("ATC Cut Out")
+    self._sched:alert("ATC", "Cut Out")
   end
 end
 

@@ -202,13 +202,21 @@ end
 ]]
 
 -- Flash an info (middle of screen) message.
-function P.showinfo (msg)
-  SysCall("ScenarioManager:ShowMessage", "", tostring(msg), 0)
+function P.showinfo (title, msg)
+  if msg == nil then
+    SysCall("ScenarioManager:ShowMessage", "", tostring(title), 0)
+  else
+    SysCall("ScenarioManager:ShowMessage", title, tostring(msg), 0)
+  end
 end
 
 -- Flash an alert (top-right corner) message.
-function P.showalert (msg)
-  SysCall("ScenarioManager:ShowMessage", tostring(msg), "", 1)
+function P.showalert (title, msg)
+  if msg == nil then
+    SysCall("ScenarioManager:ShowMessage", tostring(title), "", 1)
+  else
+    SysCall("ScenarioManager:ShowMessage", title, tostring(msg), 1)
+  end
 end
 
 -- Run the provided function and arguments with pcall and report any errors
@@ -216,7 +224,7 @@ end
 function P.catcherrors (...)
   local success, err = pcall(unpack(arg))
   if not success then
-    P.showinfo("ERROR:\n" .. err)
+    P.showinfo("Lua Error", err)
   end
 end
 

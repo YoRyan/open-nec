@@ -508,7 +508,7 @@ function P:start ()
       self._sched:run(enforce, self)
     }
     if not self._sched:isstartup() then
-      self._sched:alert("ACSES Cut In")
+      self._sched:alert("ACSES", "Cut In")
     end
   end
 end
@@ -524,7 +524,7 @@ function P:stop ()
     self._signaltracker:kill()
     self._trackspeed:kill()
     initstate(self)
-    self._sched:alert("ACSES Cut Out")
+    self._sched:alert("ACSES", "Cut Out")
   end
 end
 

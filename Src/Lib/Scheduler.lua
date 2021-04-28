@@ -23,7 +23,7 @@ function P:run (fn, ...)
   if table.remove(resume, 1) then
     self._coroutines[co] = resume
   else
-    self:info("ERROR:\n" .. resume[1])
+    self:info("Lua Error", resume[1])
   end
   return co
 end
@@ -35,7 +35,7 @@ local function restart (self, co, ...)
       if table.remove(resume, 1) then
         return resume
       else
-        self:info("ERROR:\n" .. resume[1])
+        self:info("Lua Error", resume[1])
         return nil
       end
     end
@@ -54,12 +54,12 @@ function P:update ()
     end
   end
   -- Process message queues.
-  for _, msg in ipairs(self._infomessages) do
-    RailWorks.showinfo(msg)
+  for _, arg in ipairs(self._infomessages) do
+    RailWorks.showinfo(unpack(arg))
   end
   self._infomessages = {}
-  for _, msg in ipairs(self._alertmessages) do
-    RailWorks.showalert(msg)
+  for _, arg in ipairs(self._alertmessages) do
+    RailWorks.showalert(unpack(arg))
   end
   self._alertmessages = {}
 end
@@ -115,13 +115,13 @@ function P:select (timeout, ...)
 end
 
 -- Push a message to the info message queue.
-function P:info (msg)
-  table.insert(self._infomessages, msg)
+function P:info (...)
+  table.insert(self._infomessages, arg)
 end
 
 -- Push a message to the alert message queue.
-function P:alert (msg)
-  table.insert(self._alertmessages, msg)
+function P:alert (...)
+  table.insert(self._alertmessages, arg)
 end
 
 return P

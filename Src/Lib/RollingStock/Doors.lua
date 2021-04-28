@@ -24,9 +24,9 @@ function P:update ()
   if ismanual ~= self._lastmanual then
     if self._lastmanual ~= nil then
       if ismanual then
-        RailWorks.showalert("Manual Door Control Enabled")
+        RailWorks.showalert("Manual Door Control", "Enabled")
       else
-        RailWorks.showalert("Manual Door Control Disabled")
+        RailWorks.showalert("Manual Door Control", "Disabled")
       end
     end
     self._lastmanual = ismanual
