@@ -1,11 +1,15 @@
 -- Engine script for the Bombardier Multilevel cab car operated by NJ Transit
 -- and MARC.
 
-local sched
+local playersched
+local anysched
 local atc
 local acses
 local adu
 local alerter
+local doors
+local leftdoorsanim
+local rightdoorsanim
 local alarmonoff
 local ditchflasher
 local state = {
@@ -40,10 +44,11 @@ local function getrvdestination ()
 end
 
 Initialise = RailWorks.wraperrors(function ()
-  sched = Scheduler:new{}
+  playersched = Scheduler:new{}
+  anysched = Scheduler:new{}
 
   atc = Atc:new{
-    scheduler = sched,
+    scheduler = playersched,
     getspeed_mps = function () return state.speed_mps end,
     getacceleration_mps2 = function () return state.acceleration_mps2 end,
     getacknowledge = function () return state.acknowledge end,
@@ -52,7 +57,7 @@ Initialise = RailWorks.wraperrors(function ()
   }
 
   acses = Acses:new{
-    scheduler = sched,
+    scheduler = playersched,
     getspeed_mps = function () return state.speed_mps end,
     gettrackspeed_mps = function () return state.trackspeed_mps end,
     getconsistlength_m = function () return state.consistlength_m end,
@@ -65,7 +70,7 @@ Initialise = RailWorks.wraperrors(function ()
 
   local onebeep_s = 1
   adu = NjTransitDigitalAdu:new{
-    scheduler = sched,
+    scheduler = playersched,
     atc = atc,
     atcalert_s = onebeep_s,
     acses = acses,
@@ -75,22 +80,39 @@ Initialise = RailWorks.wraperrors(function ()
   atc:start()
   acses:start()
 
+  local doors_s = 1
+  leftdoorsanim = Animation:new{
+    scheduler = anysched,
+    animation = "Doors_L",
+    duration_s = doors_s
+  }
+  rightdoorsanim = Animation:new{
+    scheduler = anysched,
+    animation = "Doors_R",
+    duration_s = doors_s
+  }
+  doors = Doors:new{
+    scheduler = anysched,
+    leftanimation = leftdoorsanim,
+    rightanimation = rightdoorsanim
+  }
+
   alerter = Alerter:new{
-    scheduler = sched,
+    scheduler = playersched,
     getspeed_mps = function () return state.speed_mps end
   }
   alerter:start()
 
   -- Modulate the speed reduction alert sound, which normally plays just once.
   alarmonoff = Flash:new{
-    scheduler = sched,
+    scheduler = playersched,
     off_s = 0.1,
     on_s = 0.5
   }
 
   local ditchflash_s = 1
   ditchflasher = Flash:new{
-    scheduler = sched,
+    scheduler = playersched,
     off_s = ditchflash_s,
     on_s = ditchflash_s
   }
@@ -112,7 +134,7 @@ local function readcontrols ()
   end
 
   if RailWorks.GetControlValue("Horn", 0) > 0 then
-    state.lasthorntime_s = sched:clock()
+    state.lasthorntime_s = playersched:clock()
   end
 
   state.headlights = RailWorks.GetControlValue("HeadlightSwitch", 0)
@@ -242,7 +264,7 @@ end
 local function setditchlights ()
   local horntime_s = 30
   local show = state.lasthorntime_s ~= nil
-    and sched:clock() <= state.lasthorntime_s + horntime_s
+    and playersched:clock() <= state.lasthorntime_s + horntime_s
   ditchflasher:setflashstate(show)
   local flashleft = ditchflasher:ison()
   do
@@ -285,7 +307,12 @@ local function updateplayer ()
   readcontrols()
   readlocostate()
 
-  sched:update()
+  playersched:update()
+  anysched:update()
+
+  leftdoorsanim:update()
+  rightdoorsanim:update()
+  doors:update()
 
   writelocostate()
   setspeedometer()
@@ -302,6 +329,12 @@ local function updateplayer ()
 end
 
 local function updateai ()
+  anysched:update()
+
+  leftdoorsanim:update()
+  rightdoorsanim:update()
+  doors:update()
+
   setcablight()
   setditchlights()
   setstatuslights()
@@ -337,17 +370,8 @@ OnControlValueChange = RailWorks.wraperrors(function (name, index, value)
   end
 
   -- Read the selected destination only when the player changes it.
-  if name == "Destination" and not sched:isstartup() then
+  if name == "Destination" and not playersched:isstartup() then
     state.destination = math.floor(value + 0.5) - 1
-  end
-
-  -- Announce manual door control toggles.
-  if name == "DoorsManual" and not sched:isstartup() then
-    if value == 0 then
-      RailWorks.showalert("Manual Door Control Disabled")
-    elseif value == 1 then
-      RailWorks.showalert("Manual Door Control Enabled")
-    end
   end
 
   RailWorks.SetControlValue(name, index, value)
