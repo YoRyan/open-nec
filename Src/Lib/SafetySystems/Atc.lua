@@ -71,8 +71,9 @@ local function setsuppress (self)
       suppressingrate = accel_mps2 >= -self._suppressing_mps2
       suppressionrate = accel_mps2 >= -self._suppression_mps2
     end
-    self._issuppressing = suppressingrate
-    self._issuppression = self._getbrakesuppression() or suppressionrate
+    local brakesuppress = self._getbrakesuppression()
+    self._issuppressing = brakesuppress and suppressingrate
+    self._issuppression = brakesuppress and suppressionrate
     self._sched:yield()
   end
 end
