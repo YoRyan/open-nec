@@ -39,7 +39,7 @@ Initialise = RailWorks.wraperrors(function ()
     getacceleration_mps2 = function () return state.acceleration_mps2 end,
     getacknowledge = function () return state.acknowledge end,
     doalert = function () adu:doatcalert() end,
-    getbrakesuppression = function () return state.train_brake >= 0.75 end
+    getbrakesuppression = function () return state.train_brake >= 0.65 end
   }
 
   acses = Acses:new{
@@ -107,7 +107,7 @@ Initialise = RailWorks.wraperrors(function ()
 end)
 
 local function readcontrols ()
-  if RailWorks.GetControlValue("AutoSuppression", 0) == 1 then
+  if RailWorks.GetControlValue("AutoSuppression", 0) > 0 then
     RailWorks.SetControlValue("AutoSuppression", 0, 0)
     RailWorks.SetControlValue("VirtualBrake", 0, 0.75)
   end
