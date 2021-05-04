@@ -183,14 +183,19 @@ local function writelocostate ()
     else brake = 1 end
     RailWorks.SetControlValue("TrainBrakeControl", 0, brake)
   end
-
-  alarmonoff:setflashstate(atc:isalarm() or acses:isalarm())
-  RailWorks.SetControlValue(
-    "SpeedReductionAlert", 0,
-    RailWorks.frombool(alarmonoff:ison()))
-  RailWorks.SetControlValue(
-    "SpeedIncreaseAlert", 0,
-    RailWorks.frombool(adu:isatcalert() or adu:isacsesalert()))
+  do
+    local alarm = atc:isalarm() or acses:isalarm()
+    alarmonoff:setflashstate(alarm)
+    RailWorks.SetControlValue(
+      "AWSWarnCount", 0,
+      RailWorks.frombool(alarm))
+    RailWorks.SetControlValue(
+      "SpeedReductionAlert", 0,
+      RailWorks.frombool(alarmonoff:ison()))
+    RailWorks.SetControlValue(
+      "SpeedIncreaseAlert", 0,
+      RailWorks.frombool(adu:isatcalert() or adu:isacsesalert()))
+  end
 end
 
 local function setpantocontrol ()

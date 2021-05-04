@@ -358,6 +358,10 @@ Toggles between 0 and 1 with Ctrl+F. Should not be set by Lua; otherwise the val
 
 The default setting is 1.
 
+#### AWSWarnCount
+
+Illuminates the exclamation mark symbol on the HUD.
+
 ## Lights
 
 #### FrontCabLight
