@@ -173,7 +173,15 @@ local function writelocostate ()
     local v
     if penalty then v = penaltybrake
     else v = state.train_brake end
-    RailWorks.SetControlValue("TrainBrakeControl", 0, v)
+    -- DTG's nonlinear braking algorithm
+    local brake
+    if v < 0.1 then brake = 0
+    elseif v < 0.35 then brake = 0.07
+    elseif v < 0.75 then brake = 0.07 + (v - 0.35)/(0.6 - 0.35)*0.1
+    elseif v < 0.85 then brake = 0.17
+    elseif v < 1 then brake = 0.24
+    else brake = 1 end
+    RailWorks.SetControlValue("TrainBrakeControl", 0, brake)
   end
 
   alarmonoff:setflashstate(atc:isalarm() or acses:isalarm())
