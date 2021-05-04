@@ -372,8 +372,10 @@ local function setstate (self)
     local aspeed_mps = math.abs(self._getspeed_mps())
     local abovealert = aspeed_mps > currenthazard.alert_mps
     if currentid[1] == hazardtype.advancelimit then
-      local violated = state[currentid].violated or abovealert
-      local abovelimit = aspeed_mps > currenthazard.inforce_mps
+      local violated =
+        state[currentid].violated or abovealert
+      local abovelimit =
+        aspeed_mps > currenthazard.inforce_mps + self._alertlimit_mps
       state[currentid].violated = violated
       self._isabovealertcurve = violated and abovelimit
     else
