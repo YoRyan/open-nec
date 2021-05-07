@@ -1,6 +1,6 @@
-# MARC Multilevel Cab Car
+# NJ Transit/MARC Multilevel Cab Car
 
-The Bombardier Multilevel is a bilevel coach operated by MARC. As Dovetail Games was unable to obtain a MARC license, the locomotive is unbranded. It includes a cab signaling display.
+The Bombardier Multilevel is a bilevel coach operated by NJ Transit and MARC. As Dovetail Games was unable to obtain a MARC license, the MARC version is unbranded. Both variants include an NJ Transit-style cab signaling display.
 
 ## Controls
 
