@@ -28,10 +28,17 @@ Rolling stock:
     - `DTG\HudsonLine\RailVehicles\Diesel\P32DC\CommonScripts\P32DC_EngineScript.out`
 - [Amtrak P42DC](/for-players/amtrak-p42)
     - `DTG\WashingtonBaltimore\RailVehicles\Diesel\P42DC\Amtrak\Locomotive\P42DC_EngineScript.out` (Washington-Baltimore version)
+- [NJ Transit Comet V Cab Car](/for-players/njt-cometv)
+    - `DTG\NorthJerseyCoast\RailVehicles\Passengers\Comet\` (North Jersey Coast Line version)
+    - `DTG\NJT-Alp46\RailVehicles\Passengers\Comet\` (ALP-46 pack version)
+    - `DTG\F40PH2Pack01\RailVehicles\Passengers\Comet\` (F40PH pack version)
+    - `DTG\GP40PHPack01\RailVehicles\Passengers\Comet\` (G40PH pack version)
+- [NJ Transit/MARC Multilevel Cab Car](/for-players/njt-multilevel)
+    - `DTG\NorthJerseyCoast\RailVehicles\Passengers\MultiLevel\` (North Jersey Coast Line version)
+    - `DTG\NJT-Alp46\RailVehicles\Passengers\MultiLevel\` (ALP-46 pack version)
+    - `DTG\WashingtonBaltimore\RailVehicles\Passengers\MultiLevel\` (Washington-Baltimore version)
 - [MARC MP36PH](/for-players/marc-mp36ph)
     - `DTG\WashingtonBaltimore\RailVehicles\CommonScripts\`
-- [MARC Multilevel Cab Car](/for-players/marc-multilevel)
-    - `DTG\WashingtonBaltimore\RailVehicles\Passengers\MultiLevel\`
 - [Metro-North P32AC-DM](/for-players/mta-p32)
     - `RSC\P32Pack01\RailVehicles\Diesel\P32DC\CommonScripts\P32DC_EngineScript.out` (standalone version)
     - `DTG\HudsonLine\RailVehicles\Diesel\P32DC\CommonScripts\P32DC_EngineScript.out` (Hudson Line version)

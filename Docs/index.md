@@ -16,8 +16,9 @@ Locomotives overhauled by the Open NEC project include:
 - [Amtrak Siemens ACS-64](https://store.steampowered.com/app/258643/Train_Simulator_NEC_New_YorkNew_Haven_Route_AddOn/)
 - [Amtrak GE P32AC-DM](https://store.steampowered.com/app/896719/Train_Simulator_Hudson_Line_New_York__CrotonHarmon_Route_AddOn/)
 - [Amtrak GE P42DC](https://store.steampowered.com/app/1429754/Train_Simulator_Northeast_Corridor_Washington_DC__Baltimore_Route_AddOn/)
+- [NJ Transit Comet V Cab Car](https://store.steampowered.com/app/325970/Train_Simulator_North_Jersey_Coast_Line_Route_AddOn/)
+- [NJ Transit/MARC Bombardier Multilevel Cab Car](https://store.steampowered.com/app/325970/Train_Simulator_North_Jersey_Coast_Line_Route_AddOn/)
 - [MARC MPI MP36PH](https://store.steampowered.com/app/1429754/Train_Simulator_Northeast_Corridor_Washington_DC__Baltimore_Route_AddOn/)
-- [MARC Bombardier Multilevel Cab Car](https://store.steampowered.com/app/1429754/Train_Simulator_Northeast_Corridor_Washington_DC__Baltimore_Route_AddOn/)
 - [Metro-North GE P32AC-DM](https://store.steampowered.com/app/258655/Train_Simulator_MetroNorth_P32_ACDM_Genesis_Loco_AddOn/)
 
 Demonstrations:
