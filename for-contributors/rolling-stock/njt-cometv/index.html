@@ -8,7 +8,7 @@
         
         
         <link rel="shortcut icon" href="../../../img/favicon.ico">
-        <title>Amtrak HHP-8 - Open NEC Project</title>
+        <title>NJ Transit Comet V Cab Car - Open NEC Project</title>
         <link href="../../../css/bootstrap.min.css" rel="stylesheet">
         <link href="../../../css/font-awesome.min.css" rel="stylesheet">
         <link href="../../../css/base.css" rel="stylesheet">
@@ -64,7 +64,7 @@
 </li>
             
 <li>
-    <a href="./" class="dropdown-item active">Amtrak HHP-8</a>
+    <a href="../amtrak-hhp8/" class="dropdown-item">Amtrak HHP-8</a>
 </li>
             
 <li>
@@ -84,7 +84,7 @@
 </li>
             
 <li>
-    <a href="../njt-cometv/" class="dropdown-item">NJ Transit Comet V Cab Car</a>
+    <a href="./" class="dropdown-item active">NJ Transit Comet V Cab Car</a>
 </li>
             
 <li>
@@ -170,12 +170,12 @@
                             </a>
                         </li>
                             <li class="nav-item">
-                                <a rel="prev" href="../amtrak-aem7/" class="nav-link">
+                                <a rel="prev" href="../mta-p32/" class="nav-link">
                                     <i class="fa fa-arrow-left"></i> Previous
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="next" href="../amtrak-p42/" class="nav-link">
+                                <a rel="next" href="../njt-multilevel/" class="nav-link">
                                     Next <i class="fa fa-arrow-right"></i>
                                 </a>
                             </li>
@@ -197,17 +197,17 @@
     <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-level="1"><a href="#amtrak-hhp-8" class="nav-link">Amtrak HHP-8</a>
+            <li class="nav-item" data-level="1"><a href="#nj-transit-comet-v-cab-car" class="nav-link">NJ Transit Comet V Cab Car</a>
               <ul class="nav flex-column">
             <li class="nav-item" data-level="2"><a href="#controls" class="nav-link">Controls</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="2"><a href="#model-nodes" class="nav-link">Model nodes</a>
+            <li class="nav-item" data-level="2"><a href="#lights" class="nav-link">Lights</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="2"><a href="#lights" class="nav-link">Lights</a>
+            <li class="nav-item" data-level="2"><a href="#model-nodes" class="nav-link">Model nodes</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -222,46 +222,28 @@
 </div></div>
                     <div class="col-md-9" role="main">
 
-<h1 id="amtrak-hhp-8">Amtrak HHP-8</h1>
-<p>The Bombardier HHP-8 is a high-horsepower electric locomotive sold as a separate addon to the New York to Philadelphia and New York to New Haven routes. Its styling is intentionally similar to that of the Acela's.</p>
+<h1 id="nj-transit-comet-v-cab-car">NJ Transit Comet V Cab Car</h1>
+<p>The Comet V is a single-level coach operated by NJ Transit. It includes an NJ Transit-style cab signaling display. The Comet V is equipped with cab signaling, ATC, and (unlike the Comet IV cab car) ACSES.</p>
 <h2 id="controls">Controls</h2>
-<h3 id="left-panel">Left panel</h3>
-<h4 id="selpanto">SelPanto</h4>
-<p>The pantograph selection switch. 0 = front, 1 = both, 2 = rear.</p>
-<p>The default setting is 0.</p>
-<h4 id="pantographcontrol">PantographControl</h4>
-<p>The pantograph lower/raise switch. 0 = lower, 1 = raise.</p>
-<p>The default setting is 1.</p>
-<h4 id="cruisecontrol">CruiseControl</h4>
-<p>The cruise control switch. Turning this on illuminates the "cruise system" indicator.</p>
-<p>The default setting is 0.</p>
-<h4 id="wipers">Wipers</h4>
-<p>The wiper off/on switch.</p>
-<p>The default setting is 0.</p>
-<h4 id="screender">ScreenDer</h4>
-<p>The off/on switch for the righthand speedometer display.</p>
-<p>The default setting is 1.</p>
-<h4 id="screenizq">ScreenIzq</h4>
-<p>The off/on switch for the lefthand train status display.</p>
-<p>The default setting is 1.</p>
-<h4 id="dimmer">Dimmer</h4>
-<p>Turns on the control desk light. 0 = light off, 1 = light on.</p>
-<p>The default setting is 0.</p>
-<h4 id="reset">Reset</h4>
-<p>The "reset throttle/cruise" button.</p>
-<h4 id="emergencybrake">EmergencyBrake</h4>
-<p>The emergency brake button.</p>
 <h3 id="control-desk">Control desk</h3>
-<h4 id="reverser">Reverser</h4>
-<p>The player's Expert Mode reverser control. 1 = forward, 0 = neutral, -1 = reverse.</p>
-<h4 id="speedsetcontrol">SpeedSetControl</h4>
-<p>The setting of the cruise control lever. Ranges from 0.0 (0 mph) to 16.0 (160 mph).</p>
-<h4 id="virtualthrottle">VirtualThrottle</h4>
-<p>The player's Expert Mode throttle control. Ranges from 0 to 1.</p>
+<h4 id="ditchlightswitch">DitchLightSwitch</h4>
+<p>The crossing lights switch. 0 = off, 1 = manual, 2 = auto.</p>
+<h4 id="headlightswitch">HeadlightSwitch</h4>
+<p>The headlights switch. 0 = off, 1 = dim, 2 = full.</p>
+<h4 id="throttleandbrake">ThrottleAndBrake</h4>
+<p>The player's combined power and brake handle. -1 = full dynamic brake, 0 = coast, 1 = full power.</p>
 <h4 id="regulator">Regulator</h4>
-<p>The true throttle control used by the physics model. Ranges from 0 to 1.</p>
-<h4 id="trainbrakecontrol">TrainBrakeControl</h4>
-<p>The player's Expert Mode train brake control. Ranges from 0 to 1.</p>
+<p>The true throttle position used by the physics model. Ranges from 0 to 1.</p>
+<h4 id="dynamicbrake">DynamicBrake</h4>
+<p>The true dynamic brake position used by the physics model. Ranges from 0 to 1.</p>
+<h4 id="uservirtualreverser">UserVirtualReverser</h4>
+<p>The player's reverser control. -1 = reverse, 0 = neutral, 1 = forward.</p>
+<h4 id="reverser">Reverser</h4>
+<p>THe true reverser position used by the physics model.</p>
+<h4 id="virtualhorn">VirtualHorn</h4>
+<p>The player's horn control.</p>
+<h4 id="virtualbrake">VirtualBrake</h4>
+<p>The player's train brake lever. Ranges from 0 to 1.</p>
 <table>
 <thead>
 <tr>
@@ -271,7 +253,7 @@
 </thead>
 <tbody>
 <tr>
-<td>1.0</td>
+<td>1</td>
 <td>Emergency</td>
 </tr>
 <tr>
@@ -280,192 +262,126 @@
 </tr>
 <tr>
 <td>0.6</td>
-<td>Full service</td>
+<td>Service</td>
 </tr>
 <tr>
 <td>0.4</td>
-<td>Suppression</td>
+<td>Lap</td>
 </tr>
 <tr>
 <td>0.2</td>
-<td>Minimum application</td>
+<td>E-hold</td>
 </tr>
 <tr>
-<td>0.0</td>
+<td>0</td>
 <td>Release</td>
 </tr>
 </tbody>
 </table>
-<h4 id="enginebrakecontrol">EngineBrakeControl</h4>
-<p>The player's Expert Mode locomotive brake control. Ranges from 0 to 1.</p>
-<h4 id="awsreset">AWSReset</h4>
-<p>The acknowledgement plunger.</p>
+<h4 id="trainbrakecontrol">TrainBrakeControl</h4>
+<p>The true train brake position used by the physics model.</p>
+<h4 id="virtualsander">VirtualSander</h4>
+<p>The sander plunger.</p>
 <h4 id="sander">Sander</h4>
-<p>The sander button.</p>
-<h4 id="bell">Bell</h4>
-<p>The bell button.</p>
-<h4 id="headlights">Headlights</h4>
-<p>The headlights dial. 0 = off, 1 = front headlights, 2 = rear headlights.</p>
-<p>The default setting is 0.</p>
-<h4 id="groundlights">GroundLights</h4>
-<p>The ground lights dial. 0 = off, 1 = fixed, 2 = flash.</p>
-<p>The default setting is 0.</p>
-<h3 id="displays">Displays</h3>
-<h4 id="controlscreenizq">ControlScreenIzq</h4>
-<p>Replaces the train status display with an Amtrak logo. Any value except 0 shows the logo.</p>
-<p>The default setting is 0.</p>
-<h4 id="controlscreender">ControlScreenDer</h4>
-<p>Replaces the speedometer display with an Amtrak logo. Any value except 0 shows the logo.</p>
-<p>The default setting is 0.</p>
-<h4 id="status">Status</h4>
-<p>The currently selected train status display page. 0 = primary page, 1 = secondary page.</p>
-<p>The default setting is 0.</p>
-<h4 id="effort">Effort</h4>
-<p>Sets the positions of both tractive effort displays. Ranges from -80 to 160 lbs x 1000.</p>
-<h4 id="pantoindicator">PantoIndicator</h4>
-<p>Sets the status of the "pantographs" indicator. -1 = neither pantograph up, 0 = front pantograph up, 1 = both pantographs up, 2 = rear pantograph up.</p>
-<p>The default setting is 0.</p>
-<h4 id="selectlights">SelectLights</h4>
-<p>Sets the status of the "lighting" indicator. -1 = off, 0 = headlights, 1 = headlights and ground lights, 2 = head lights and flashing ground lights.</p>
-<p>The default setting is 0.</p>
-<h4 id="speedometermph">SpeedometerMPH</h4>
-<p>The position of the speedometer dial. This is not controlled by scripting.</p>
-<h4 id="speedoguide">SpeedoGuide</h4>
-<p>Number of digits to offset the speedometer number to center it on screen. 0 = no digits (for ones), 1 = one digit (for tens), 2 = two digits (for hundreds).</p>
-<p>Note that the "1" position is incorrectly rendered the same as the "2" position.</p>
-<h4 id="sphundreds">SPHundreds</h4>
-<p>The speedometer digit to display in the hundreds position. -1 to hide the digit.</p>
-<h4 id="sptens">SPTens</h4>
-<p>The speedometer digit to display in the tens position. -1 to hide the digit.</p>
-<h4 id="spunits">SPUnits</h4>
-<p>The speedometer digit to display in the ones position. -1 to hide the digit.</p>
-<h4 id="powerstate">PowerState</h4>
-<p>The power setting to display in the green box.</p>
-<table>
-<thead>
-<tr>
-<th>Value</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0</td>
-<td>0</td>
-</tr>
-<tr>
-<td>1</td>
-<td>1</td>
-</tr>
-<tr>
-<td>2</td>
-<td>2</td>
-</tr>
-<tr>
-<td>3</td>
-<td>3</td>
-</tr>
-<tr>
-<td>4</td>
-<td>4</td>
-</tr>
-<tr>
-<td>5</td>
-<td>5</td>
-</tr>
-<tr>
-<td>6</td>
-<td>6</td>
-</tr>
-<tr>
-<td>8</td>
-<td>C</td>
-</tr>
-</tbody>
-</table>
-<p>All other values blank the box.</p>
-<h3 id="right-panel">Right panel</h3>
-<h4 id="siggreen">SigGreen</h4>
-<p>Controls the green lights on the upper cab signal head. Any value above 0.5 turns on the lights.</p>
-<h4 id="sigyellow">SigYellow</h4>
-<p>Controls the yellow lights on the upper cab signal head. Any value above 0.5 turns on the lights.</p>
-<h4 id="sigred">SigRed</h4>
-<p>Controls the red lights on the upper cab signal head. Any value above 0.5 turns on the lights.</p>
-<h4 id="siglowergreen">SigLowerGreen</h4>
-<p>Controls the green lights on the lower cab signal head. Any value above 0.5 turns on the lights.</p>
-<h4 id="siglowergrey">SigLowerGrey</h4>
-<p>Controls the lunar lights on the lower cab signal head. Any value above 0.5 turns on the lights.</p>
-<h4 id="cabspeed">CabSpeed</h4>
-<p>Sets the displayed signal speed limit. Only the following values are supported:</p>
-<ul>
-<li>15</li>
-<li>20</li>
-<li>30</li>
-<li>45</li>
-<li>60</li>
-<li>80</li>
-</ul>
-<p>All other values will blank the display.</p>
-<h4 id="tshundreds">TSHundreds</h4>
-<p>The track speed digit to display in the hundreds place. -1 to hide the digit.</p>
-<h4 id="tstens">TSTens</h4>
-<p>The track speed digit to display in the tens place. -1 to hide the digit.</p>
-<h4 id="tsunits">TSUnits</h4>
-<p>The track speed digit to display in the ones place. -1 to hide the digit.</p>
-<h4 id="minimumspeed">MinimumSpeed</h4>
-<p>Turns on one of the red squares next to the signal and track speed limit displays. -1 = both off, 0 = signal speed square on, 1 = track speed square on.</p>
+<p>The true sander state used by the physics model. Also illuminates the "Sanding" indicator light.</p>
+<h3 id="dashboard">Dashboard</h3>
+<h4 id="awsreset">AWSReset</h4>
+<p>The safety systems acknowledge button.</p>
+<h4 id="speed2h">Speed2H</h4>
+<p>Sets the black hundreds digit on the speedometer display. -1 hides the digit.</p>
+<h4 id="speed2t">Speed2T</h4>
+<p>Sets the black tens digit on the speedometer display. -1 hides the digit.</p>
+<h4 id="speed2u">Speed2U</h4>
+<p>Sets the black ones digit on the speedometer display. -1 hides the digit.</p>
+<h4 id="speedh">SpeedH</h4>
+<p>Sets the green hundreds digit on the speedometer display. -1 hides the digit.</p>
+<h4 id="speedt">SpeedT</h4>
+<p>Sets the green tens digit on the speedometer display. -1 hides the digit.</p>
+<h4 id="speedu">SpeedU</h4>
+<p>Sets the green ones digit on the speedometer display. -1 hides the digit.</p>
+<h4 id="speedp">SpeedP</h4>
+<p>Moves the speedometer digits 0, 1, or 2 places over to compensate for a smaller number.</p>
+<h4 id="acses_speedgreen">ACSES_SpeedGreen</h4>
+<p>Sets the green region of the circular speed limit bar. Ranges from 0 to 120 mph.</p>
+<h4 id="acses_speedred">ACSES_SpeedRed</h4>
+<p>Sets the red region of the circular speed limit bar. Ranges from 0 to 120 mph.</p>
+<h4 id="acses_node">ACSES_Node</h4>
+<p>Illuminates the "SES" indicator light.</p>
+<h4 id="atc_node">ATC_Node</h4>
+<p>Illuminates the "CSS" indicator light.</p>
+<h3 id="left-panel">Left panel</h3>
+<h4 id="hep_state">HEP_State</h4>
+<p>Illuminates the "HEP On" indicator light.</p>
 <h4 id="handbrake">Handbrake</h4>
-<p>The handbrake dial. Setting this to the maximum illuminates the "parking brakes" indicator.</p>
-<p>The default setting is 0.</p>
-<h3 id="sounds">Sounds</h3>
-<h4 id="awswarncount">AWSWarnCount</h4>
-<p>Plays a British AWS warning horn and illuminates the exclamation mark on the HUD when set to 1.</p>
-<h4 id="speedincreasealert">SpeedIncreaseAlert</h4>
-<p>Plays a short electronic beep when set to 1.</p>
-<h3 id="keyboard-shortcuts">Keyboard shortcuts</h3>
-<h4 id="atccutin">ATCCutIn</h4>
-<p>Toggles between 0 and 1 with Ctrl+D. Should not be set by Lua; otherwise the value will desync from the keyboard shortcut.</p>
-<p>The default setting is 1.</p>
-<h4 id="acsescutin">ACSESCutIn</h4>
-<p>Toggles between 0 and 1 with Ctrl+F. Should not be set by Lua; otherwise the value will desync from the keyboard shortcut.</p>
-<p>The default setting is 1.</p>
-<h2 id="model-nodes">Model nodes</h2>
-<h4 id="front_spark01">front_spark01</h4>
-<p>One of the white billboards for the front pantograph spark.</p>
-<h4 id="front_spark02">front_spark02</h4>
-<p>One of the white billboards for the front pantograph spark.</p>
-<h4 id="rear_spark01">rear_spark01</h4>
-<p>One of the white billboards for the rear pantograph spark.</p>
-<h4 id="rear_spark02">rear_spark02</h4>
-<p>One of the white billboards for the rear pantograph spark.</p>
-<h4 id="ditch_fwd_l">ditch_fwd_l</h4>
-<p>The forward left ground light.</p>
-<h4 id="ditch_fwd_r">ditch_fwd_r</h4>
-<p>The forward right ground light.</p>
-<h4 id="ditch_bwd_l">ditch_bwd_l</h4>
-<p>The rear left ground light.</p>
-<h4 id="ditch_bwd_r">ditch_bwd_r</h4>
-<p>The rear right ground light.</p>
-<h2 id="lights">Lights</h2>
-<h4 id="spark">Spark</h4>
-<p>The blue light for the front pantograph spark.</p>
-<h4 id="spark2">Spark2</h4>
-<p>The blue light for the rear pantograph spark.</p>
+<p>When set, the "Handbrake" indicator illuminates.</p>
+<h4 id="faultreset">FaultReset</h4>
+<p>The fault reset button.</p>
+<h4 id="instrumentlights">InstrumentLights</h4>
+<p>The instrument lights switch.</p>
+<h4 id="virtualbell">VirtualBell</h4>
+<p>The player's bell button.</p>
+<h3 id="upper-panel">Upper panel</h3>
+<h4 id="emergencybrake">EmergencyBrake</h4>
+<p>The emergency brake pull cord.</p>
 <h4 id="cablight">CabLight</h4>
-<p>The cab's dome light.</p>
-<h4 id="fwd_ditchlightleft">Fwd_DitchLightLeft</h4>
-<p>The forward left ground light.</p>
-<h4 id="fwd_ditchlightright">Fwd_DitchLightRight</h4>
-<p>The forward right ground light.</p>
-<h4 id="bwd_ditchlightleft">Bwd_DitchLightLeft</h4>
-<p>The rear left ground light.</p>
-<h4 id="bwd_ditchlightright">Bwd_DitchLightRight</h4>
-<p>The rear right ground light.</p>
+<p>The cab dome light switch.</p>
+<h4 id="virtualwipers">VirtualWipers</h4>
+<p>The player's wipers control.</p>
+<h4 id="wipers">Wipers</h4>
+<p>The true wipers state used by the model.</p>
+<h4 id="pantographswitch">PantographSwitch</h4>
+<p>The pantograph switch. Ranges from -1 to 1. Note that although the control is clickable, it is not animated.</p>
+<h4 id="un_thousands">UN_thousands</h4>
+<p>The thousands digit in the unit number.</p>
+<h4 id="un_hundreds">UN_hundreds</h4>
+<p>The hundreds digit in the unit number.</p>
+<h4 id="un_tens">UN_tens</h4>
+<p>The tens digit in the unit number.</p>
+<h4 id="un_units">UN_units</h4>
+<p>The ones digit in the unit number.</p>
+<h3 id="sounds">Sounds</h3>
+<h4 id="horn">Horn</h4>
+<p>Sounds the horn.</p>
+<h4 id="bell">Bell</h4>
+<p>Rings the bell.</p>
+<h4 id="aws">AWS</h4>
+<p>Plays a continuous beep-beep sound.</p>
+<h3 id="keyboard-shortcuts">Keyboard shortcuts</h3>
+<h4 id="ditchlights">DitchLights</h4>
+<p>The J ditch lights toggle.</p>
+<h4 id="headlights">Headlights</h4>
+<p>The H/Shift+H headlights toggle. 0 = off, 1 = tail lights, 2 = dim, 3 = bright.</p>
+<h4 id="virtualpantographcontrol">VirtualPantographControl</h4>
+<p>The P pantograph toggle. 0 = down, 1 = up.</p>
+<h4 id="awswarncount">AWSWarnCount</h4>
+<p>Illuminates the exclamation mark on the HUD.</p>
+<h2 id="lights">Lights</h2>
+<h4 id="ditch_l">Ditch_L</h4>
+<p>The left ditch light.</p>
+<h4 id="ditch_r">Ditch_R</h4>
+<p>The right ditch light.</p>
+<h4 id="cablight_1">CabLight</h4>
+<h4 id="cablight2">CabLight2</h4>
+<p>The cab dome light.</p>
+<h2 id="model-nodes">Model nodes</h2>
+<h4 id="ditch_left">ditch_left</h4>
+<p>The left ditch light.</p>
+<h4 id="ditch_right">ditch_right</h4>
+<p>The right ditch right.</p>
+<h4 id="cablights">cablights</h4>
+<p>The cab dome light.</p>
+<h4 id="lightsyellow">LightsYellow</h4>
+<p>The yellow coach status light.</p>
+<h4 id="lightsblue">LightsBlue</h4>
+<p>The blue coach status light.</p>
+<h4 id="lightsgreen">LightsGreen</h4>
+<p>The green coach status light.</p>
+<h4 id="lightsred">LightsRed</h4>
+<p>The red coach status light.</p>
 <h2 id="animations">Animations</h2>
-<h4 id="frontpanto">frontPanto</h4>
-<p>Raises the front pantograph and its spark. Duration is 2 seconds.</p>
-<h4 id="rearpanto">rearPanto</h4>
-<p>Raises the rear pantograph and its spark. Duration is 2 seconds.</p></div>
+<h4 id="doors_l">Doors_L</h4>
+<h4 id="doors_r">Doors_R</h4>
+<p>Opens the passenger boarding doors. The durations are 2 seconds long.</p></div>
             </div>
         </div>
 
