@@ -148,7 +148,6 @@ def package(ctx):
         '**/*.dds',
 
         'RSC/M8Pack01/**/*',
-        'RSC/NorthEastCorridor/RailNetwork/**/*'
     ]
     root = f'{APPNAME}-{VERSION}'
     out_dir = ctx.path.find_node(out)
