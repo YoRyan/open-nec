@@ -3,7 +3,7 @@
 import itertools
 import os
 import winreg
-from zipfile import ZipFile
+from zipfile import ZipFile, ZIP_LZMA
 
 from waflib.Task import Task
 
@@ -151,7 +151,7 @@ def package(ctx):
     ]
     root = f'{APPNAME}-{VERSION}'
     out_dir = ctx.path.find_node(out)
-    with ZipFile(f'{APPNAME}-{VERSION}.zip', 'w') as zip:
+    with ZipFile(f'{APPNAME}-{VERSION}.zip', 'w', compression=ZIP_LZMA) as zip:
         for f in out_dir.ant_glob('**/*', excl=exclude):
             zip.write(f.abspath(), arcname=f'{root}/Assets/{f.path_from(out_dir)}')
         for f in ctx.path.ant_glob('Docs/**/*'):
