@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 import itertools
+import os
 import winreg
 from zipfile import ZipFile
 
@@ -14,23 +15,20 @@ top = '.'
 out = 'Mod'
 
 
-def options(opt):
-    opt.add_option('-r', '--railworks', action='store',
-                   help='Specify the path to your Train Simulator installation.')
-
-
 def configure(conf):
     # RailWorks game and utilities
-    try:
-        reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
-        key = r'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 24010'
-        rwpath, _ = winreg.QueryValueEx(winreg.OpenKey(reg, key), 'InstallLocation')
-    except OSError:
-        rwpath = r'C:\Program Files (x86)\Steam\steamapps\common\RailWorks'
-    if conf.options.railworks:
-        rwpath = conf.options.railworks
-    conf.msg('Setting Train Simulator path to', rwpath, color='CYAN')
-    conf.env.RAILWORKS = rwpath
+    conf.env.RAILWORKS = os.environ.get('RAILWORKS', None)
+    if not conf.env.RAILWORKS:
+        try:
+            reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
+            key = 'SOFTWARE\\Microsoft\\Windows\\' \
+                'CurrentVersion\\Uninstall\\Steam App 24010'
+            conf.env.RAILWORKS, _ = \
+                winreg.QueryValueEx(winreg.OpenKey(reg, key), 'InstallLocation')
+        except OSError:
+            conf.env.RAILWORKS = \
+                r'C:\Program Files (x86)\Steam\steamapps\common\RailWorks'
+    conf.msg('Setting Train Simulator path to', conf.env.RAILWORKS, color='CYAN')
 
     # other dependencies
     conf.find_program('CompressonatorCLI')
