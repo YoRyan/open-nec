@@ -3,8 +3,7 @@
 
 # Output directory
 /Mod/
-/Release/
-/Mod.zip
+/*.zip
 /site/
 
 # For projects that use the Waf build system: https://waf.io/
