@@ -84,7 +84,6 @@ def build(bld):
 
     class Luacheck(Task):
         def run(self):
-            pass
             # Use relative paths to minimize the length of the command.
             cwd = self.get_cwd()
             return self.exec_command(
