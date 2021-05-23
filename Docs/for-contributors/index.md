@@ -39,7 +39,6 @@ Some other useful WAF commands include:
 - [Programming in Lua, First Edition](https://www.lua.org/pil/contents.html)
 - [AndiS's guide to signal messages](https://forums.uktrainsim.com/viewtopic.php?f=359&t=129485)
 - [AndiS's guide to AI train behavior](https://www.trainsimdev.com/forum/viewtopic.php?p=509)
-- [NORAC signal rules](https://signals.jovet.net/rules/NORAC%20Signal%20Rules.pdf)
 
 The following tools are not needed to compile project, but they may assist you in development work:
 
@@ -55,3 +54,9 @@ The following tools are not needed to compile project, but they may assist you i
 - Write packages using PiL's suggested "privacy" [style](https://www.lua.org/pil/15.2.html), and classes using PiL's suggested "basic" [style](https://www.lua.org/pil/16.1.html). You should also check out Dovetail's own [Train Simulator SDK](https://sites.google.com/a/railsimdev.com/dtgts1sdk/reference-manual) docs—even if they are, unfortunately, incomplete.
 - I use coroutines to keep the modeling of many independent subsystems down to a manageable level of complexity. They work perfectly in Train Simulator, with the exception of `Call()` and `SysCall()`, which only work from the main coroutine. I've created the `Scheduler` package to centralize the management of coroutines. Please do learn to use it, especially its `:select()` method.
 - Lua places heavy emphasis on tables and their `pairs()` and `ipairs()` iterators. I've created the `Iterator` package to introduce useful transformations and compositions for such key-value iterators.
+
+## Reference material
+
+- [NORAC signal rules](https://signals.jovet.net/rules/NORAC%20Signal%20Rules.pdf)
+- [cActUsjUiCe's guide to the Northeast Corridor](https://forums.dovetailgames.com/threads/nec-ny-signal-tutorials.4174/)
+- [cActUsjUiCe's critique of Train Sim World](https://forums.dovetailgames.com/threads/nec-new-york-signals-atc-acses-and-how-to-fix-them.4057/)
