@@ -73,11 +73,6 @@ def build(bld):
                 f'"{self.inputs[0].abspath()}" '
                 f'/xml:"{self.outputs[0].abspath()}"')
 
-    class EmptyLuac(Task):
-        def run(self):
-            with open(self.outputs[0].abspath(), 'wb') as _:
-                pass
-
     class Luac(Task):
         def run(self):
             # Use relative paths to minimize the length of the command.
@@ -136,10 +131,6 @@ def build(bld):
         elif ext == '.xml':
             return (
                 maketask(Serz, [src], [tgt.change_ext('.bin')]),
-                )
-        elif ext == '.emptylua':
-            return (
-                maketask(EmptyLuac, [src], [tgt.change_ext('.out')]),
                 )
         elif ext == '.lua':
             libs = lualibs(src)
