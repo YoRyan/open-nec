@@ -1,5 +1,11 @@
 -- Constants, lookup tables, and code for Amtrak's Advanced Civil Speed
 -- Enforcement System.
+
+--include=SafetySystems/Acses/LimitFilter.lua
+--include=SafetySystems/Acses/ObjectTracker.lua
+--include=SafetySystems/Acses/TrackSpeed.lua
+--include=TupleDictionary.lua
+
 local P = {}
 Acses = P
 
@@ -248,7 +254,10 @@ local function iteradvancelimithazards (self)
 end
 
 local function iterstopsignalhazards (self)
-  return Iterator.map(
+  -- Positive stop disabled until we can figure out how to avoid irritating
+  -- activations in yard and platform areas.
+  return pairs({})
+  --[[return Iterator.map(
     function (id, distance_m)
       local target_m
       if distance_m > 0 then
@@ -281,7 +290,7 @@ local function iterstopsignalhazards (self)
       end,
       self._signaltracker:iterdistances_m()
     )
-  )
+  )]]
 end
 
 local function itercurrentlimithazards (self)
@@ -306,13 +315,11 @@ local function gethazardsdict (self)
   for k, hazard in iteradvancelimithazards(self) do
     hazards[k] = hazard
   end
-  -- Positive stop disabled until we can figure out how to avoid irritating
-  -- activations in yard and platform areas.
-  --[[if self._issigrestricting and not self._sched:isstartup() then
+  if self._issigrestricting and not self._sched:isstartup() then
     for k, hazard in iterstopsignalhazards(self) do
       hazards[k] = hazard
     end
-  end]]
+  end
   for k, hazard in itercurrentlimithazards(self) do
     hazards[k] = hazard
   end

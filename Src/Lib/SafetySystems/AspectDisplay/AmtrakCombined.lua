@@ -1,4 +1,8 @@
 -- A contemporary Amtrak ADU with a combined speed limit display.
+
+--include=SafetySystems/AspectDisplay/AspectDisplay.lua
+--include=Signals/NecSignals.lua
+
 local P = {}
 AmtrakCombinedAdu = P
 

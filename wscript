@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 import itertools
+import re
 import os
 import winreg
 from zipfile import ZipFile, ZIP_LZMA
@@ -38,7 +39,7 @@ def configure(conf):
 def build(bld):
     out = bld.root.make_node(bld.out_dir)
     mod = bld.path.find_node('Src/Mod')
-    lua_libs = bld.path.find_node('Src/Lib').ant_glob('**/*.lua')
+    lib = bld.path.find_node('Src/Lib')
 
     # Building tasks by hand like this is super ghetto, but it gives us precise
     # control over every step.
@@ -89,20 +90,35 @@ def build(bld):
     class Luacheck(Task):
         def run(self):
             pass
-            """
             # Use relative paths to minimize the length of the command.
             cwd = self.get_cwd()
             return self.exec_command(
                 f'luacheck --allow-defined-top --no-unused-args '
                 + ' '.join(f'"{inp.path_from(cwd)}"' for inp in self.inputs)
-                + ' --read-globals=Call SysCall')
-            """
+                + ' --read-globals Call SysCall '
+                '--ignore Initialise Update OnControlValueChange '
+                    'OnCustomSignalMessage OnConsistMessage '
+                    'OnSignalMessage OnConsistPass')
 
     def maketask(cls, inputs, outputs):
         task = cls(env=bld.env)
         task.set_inputs(inputs)
         task.set_outputs(outputs)
         return task
+
+    def lualibs(src):
+        nodes = set()
+        with open(src.abspath(), 'rt') as f:
+            for line in f:
+                m = re.search(r'^--include=([^\s]+)\s*$', line)
+                if m:
+                    path = m.group(1)
+                    node = lib.find_node(path)
+                    if not node:
+                        bld.fatal(f'Lua library not found: {path}')
+                    nodes.add(node)
+                    nodes.update(lualibs(node))
+        return nodes
 
     def maketasks(src):
         tgt = out.make_node(src.path_from(mod))
@@ -126,11 +142,12 @@ def build(bld):
                 maketask(EmptyLuac, [src], [tgt.change_ext('.out')]),
                 )
         elif ext == '.lua':
-            lint = maketask(Luacheck, [*lua_libs, src], [])
+            libs = lualibs(src)
+            lint = maketask(Luacheck, [*libs, src], [])
             lint.before = [Luac]
             return (
                 lint,
-                maketask(Luac, [*lua_libs, src], [tgt.change_ext('.out')])
+                maketask(Luac, [*libs, src], [tgt.change_ext('.out')])
             )
         else:
             return ()

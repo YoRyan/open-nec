@@ -34,6 +34,9 @@
   supported types is used, values will be automatically converted to and from
   strings for transmission via signal messages.
 ]]
+
+--include=TupleDictionary.lua
+
 local P = {}
 InterSignal = P
 

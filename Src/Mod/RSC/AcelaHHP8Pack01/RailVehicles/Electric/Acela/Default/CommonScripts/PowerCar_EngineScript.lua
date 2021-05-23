@@ -1,5 +1,20 @@
 -- Engine script for the Bombardier HHP-8 operated by Amtrak.
 
+--include=RollingStock/CruiseControl.lua
+--include=RollingStock/Power.lua
+--include=RollingStock/Spark.lua
+--include=SafetySystems/Acses/Acses.lua
+--include=SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
+--include=SafetySystems/Alerter.lua
+--include=SafetySystems/Atc.lua
+--include=Animation.lua
+--include=Flash.lua
+--include=Iterator.lua
+--include=MovingAverage.lua
+--include=RailWorks.lua
+--include=Scheduler.lua
+--include=Units.lua
+
 local playersched, anysched
 local atc
 local acses

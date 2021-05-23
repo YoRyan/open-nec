@@ -1,5 +1,18 @@
 -- Engine script for the Comet V operated by New Jersey Transit.
 
+--include=RollingStock/Doors.lua
+--include=SafetySystems/Acses/Acses.lua
+--include=SafetySystems/AspectDisplay/NjTransitDigital.lua
+--include=SafetySystems/Alerter.lua
+--include=SafetySystems/Atc.lua
+--include=Animation.lua
+--include=Flash.lua
+--include=Iterator.lua
+--include=MovingAverage.lua
+--include=RailWorks.lua
+--include=Scheduler.lua
+--include=Units.lua
+
 local playersched
 local anysched
 local atc

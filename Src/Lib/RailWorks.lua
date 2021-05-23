@@ -1,4 +1,7 @@
 -- Library for interfacing with Train Simulator system calls in a Lua-friendly way.
+
+--include=Iterator.lua
+
 local P = {}
 RailWorks = P
 

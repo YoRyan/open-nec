@@ -1,5 +1,16 @@
 -- Engine script for the MPI MP36PH operated by MARC.
 
+--include=SafetySystems/Acses/Acses.lua
+--include=SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
+--include=SafetySystems/Alerter.lua
+--include=SafetySystems/Atc.lua
+--include=Flash.lua
+--include=Iterator.lua
+--include=MovingAverage.lua
+--include=RailWorks.lua
+--include=Scheduler.lua
+--include=Units.lua
+
 local sched
 local atc
 local acses

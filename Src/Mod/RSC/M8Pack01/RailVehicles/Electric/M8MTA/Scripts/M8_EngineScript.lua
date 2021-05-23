@@ -1,5 +1,17 @@
 -- Engine script for the Kawasaki M8 operated by Metro-North.
 
+--include=RollingStock/Spark.lua
+--include=SafetySystems/Acses/Acses.lua
+--include=SafetySystems/AspectDisplay/MetroNorth.lua
+--include=SafetySystems/Alerter.lua
+--include=SafetySystems/Atc.lua
+--include=Flash.lua
+--include=Iterator.lua
+--include=MovingAverage.lua
+--include=RailWorks.lua
+--include=Scheduler.lua
+--include=Units.lua
+
 local playersched, anysched
 local atc
 local acses

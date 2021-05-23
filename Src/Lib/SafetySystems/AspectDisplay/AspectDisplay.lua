@@ -1,4 +1,7 @@
 -- Base class for an Aspect Display Unit that interfaces with ATC and ACSES.
+
+--include=RollingStock/Tone.lua
+
 local P = {}
 Adu = P
 
