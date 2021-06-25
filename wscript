@@ -128,17 +128,17 @@ def build(bld):
         if ext == '.wav':
             return (
                 maketask(ConvertToDav, [src], [tgt.change_ext('.dav')]),
-                )
+            )
         elif ext == '.png':
             dds = tgt.change_ext('.dds')
             return (
                 maketask(Compressonator, [src], [dds]),
                 maketask(ConvertToTg, [dds], [tgt.change_ext('.TgPcDx')])
-                )
+            )
         elif ext == '.xml':
             return (
                 maketask(Serz, [src], [tgt.change_ext('.bin')]),
-                )
+            )
         elif ext == '.lua':
             libs = lualibs(src)
             lint = maketask(Luacheck, [*libs, src], [])
