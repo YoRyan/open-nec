@@ -34,6 +34,7 @@ def configure(conf):
     # other dependencies
     conf.find_program('CompressonatorCLI')
     conf.find_program('luacheck')
+    conf.find_program('lua-format')
 
 
 def build(bld):
@@ -82,6 +83,13 @@ def build(bld):
                 f'-o "{self.outputs[0].path_from(cwd)}" '
                 + ' '.join(f'"{inp.path_from(cwd)}"' for inp in self.inputs))
 
+    class LuaFormat(Task):
+        def run(self):
+            config = bld.path.find_node('luaformatter.cfg')
+            return self.exec_command(
+                f'lua-format --config="{config.abspath()}" --in-place '
+                f'"{self.inputs[0].abspath()}"')
+
     class Luacheck(Task):
         def run(self):
             # Use relative paths to minimize the length of the command.
@@ -104,7 +112,7 @@ def build(bld):
         nodes = set()
         with open(src.abspath(), 'rt') as f:
             for line in f:
-                m = re.search(r'^--include=([^\s]+)\s*$', line)
+                m = re.search(r'^--\s*@include\s+([^\s]+)\s*$', line)
                 if m:
                     path = m.group(1)
                     node = lib.find_node(path)
@@ -134,9 +142,12 @@ def build(bld):
         elif ext == '.lua':
             libs = lualibs(src)
             lint = maketask(Luacheck, [*libs, src], [])
-            lint.before = [Luac]
+            lint.before = [LuaFormat]
+            format = maketask(LuaFormat, [src], [])
+            format.before = [Luac]
             return (
                 lint,
+                format,
                 maketask(Luac, [*libs, src], [tgt.change_ext('.out')])
             )
         else:

@@ -1,19 +1,17 @@
 -- Engine script for the Bombardier Multilevel cab car operated by NJ Transit
 -- and MARC.
-
---include=RollingStock/Doors.lua
---include=SafetySystems/Acses/Acses.lua
---include=SafetySystems/AspectDisplay/NjTransitDigital.lua
---include=SafetySystems/Alerter.lua
---include=SafetySystems/Atc.lua
---include=Animation.lua
---include=Flash.lua
---include=Iterator.lua
---include=MovingAverage.lua
---include=RailWorks.lua
---include=Scheduler.lua
---include=Units.lua
-
+-- @include RollingStock/Doors.lua
+-- @include SafetySystems/Acses/Acses.lua
+-- @include SafetySystems/AspectDisplay/NjTransitDigital.lua
+-- @include SafetySystems/Alerter.lua
+-- @include SafetySystems/Atc.lua
+-- @include Animation.lua
+-- @include Flash.lua
+-- @include Iterator.lua
+-- @include MovingAverage.lua
+-- @include RailWorks.lua
+-- @include Scheduler.lua
+-- @include Units.lua
 local playersched
 local anysched
 local atc
@@ -41,43 +39,48 @@ local state = {
   lasthorntime_s = nil
 }
 
-local destinations = {"Dest_Trenton",
-                      "Dest_NewYork",
-                      "Dest_LongBranch",
-                      "Dest_Hoboken",
-                      "Dest_Dover",
-                      "Dest_BayHead"}
+local destinations = {
+  "Dest_Trenton",
+  "Dest_NewYork",
+  "Dest_LongBranch",
+  "Dest_Hoboken",
+  "Dest_Dover",
+  "Dest_BayHead"
+}
 
-local function getrvdestination ()
+local function getrvdestination()
   local id = string.sub(RailWorks.GetRVNumber(), 1, 1)
   local index = string.byte(id)
-  if index == nil then return 1
-  else return index - string.byte("A") + 1 end
+  if index == nil then
+    return 1
+  else
+    return index - string.byte("A") + 1
+  end
 end
 
-Initialise = RailWorks.wraperrors(function ()
+Initialise = RailWorks.wraperrors(function()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
 
   atc = Atc:new{
     scheduler = playersched,
-    getspeed_mps = function () return state.speed_mps end,
-    getacceleration_mps2 = function () return state.acceleration_mps2 end,
-    getacknowledge = function () return state.acknowledge end,
-    doalert = function () adu:doatcalert() end,
-    getbrakesuppression = function () return state.train_brake >= 0.6 end
+    getspeed_mps = function() return state.speed_mps end,
+    getacceleration_mps2 = function() return state.acceleration_mps2 end,
+    getacknowledge = function() return state.acknowledge end,
+    doalert = function() adu:doatcalert() end,
+    getbrakesuppression = function() return state.train_brake >= 0.6 end
   }
 
   acses = Acses:new{
     scheduler = playersched,
-    getspeed_mps = function () return state.speed_mps end,
-    gettrackspeed_mps = function () return state.trackspeed_mps end,
-    getconsistlength_m = function () return state.consistlength_m end,
-    iterspeedlimits = function () return pairs(state.speedlimits) end,
-    iterrestrictsignals = function () return pairs(state.restrictsignals) end,
-    getacknowledge = function () return state.acknowledge end,
-    doalert = function () adu:doacsesalert() end,
-    consistspeed_mps = 125*Units.mph.tomps
+    getspeed_mps = function() return state.speed_mps end,
+    gettrackspeed_mps = function() return state.trackspeed_mps end,
+    getconsistlength_m = function() return state.consistlength_m end,
+    iterspeedlimits = function() return pairs(state.speedlimits) end,
+    iterrestrictsignals = function() return pairs(state.restrictsignals) end,
+    getacknowledge = function() return state.acknowledge end,
+    doalert = function() adu:doacsesalert() end,
+    consistspeed_mps = 125 * Units.mph.tomps
   }
 
   local onebeep_s = 1
@@ -111,16 +114,12 @@ Initialise = RailWorks.wraperrors(function ()
 
   alerter = Alerter:new{
     scheduler = playersched,
-    getspeed_mps = function () return state.speed_mps end
+    getspeed_mps = function() return state.speed_mps end
   }
   alerter:start()
 
   -- Modulate the speed reduction alert sound, which normally plays just once.
-  alarmonoff = Flash:new{
-    scheduler = playersched,
-    off_s = 0.1,
-    on_s = 0.5
-  }
+  alarmonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
 
   local ditchflash_s = 1
   ditchflasher = Flash:new{
@@ -134,38 +133,33 @@ Initialise = RailWorks.wraperrors(function ()
   RailWorks.BeginUpdate()
 end)
 
-local function readcontrols ()
+local function readcontrols()
   local throttle = RailWorks.GetControlValue("ThrottleAndBrake", 0)
   local vbrake = RailWorks.GetControlValue("VirtualBrake", 0)
   local change = throttle ~= state.throttle or vbrake ~= state.train_brake
   state.throttle = throttle
   state.train_brake = vbrake
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
-  if state.acknowledge or change then
-    alerter:acknowledge()
-  end
+  if state.acknowledge or change then alerter:acknowledge() end
 
   if RailWorks.GetControlValue("Horn", 0) > 0 then
     state.lasthorntime_s = playersched:clock()
   end
 end
 
-local function readlocostate ()
-  state.speed_mps =
-    RailWorks.GetControlValue("SpeedometerMPH", 0)*Units.mph.tomps
-  state.acceleration_mps2 =
-    RailWorks.GetAcceleration()
-  state.trackspeed_mps =
-    RailWorks.GetCurrentSpeedLimit(1)
-  state.consistlength_m =
-    RailWorks.GetConsistLength()
-  state.speedlimits =
-    Iterator.totable(RailWorks.iterspeedlimits(Acses.nlimitlookahead))
-  state.restrictsignals =
-    Iterator.totable(RailWorks.iterrestrictsignals(Acses.nsignallookahead))
+local function readlocostate()
+  state.speed_mps = RailWorks.GetControlValue("SpeedometerMPH", 0) *
+                      Units.mph.tomps
+  state.acceleration_mps2 = RailWorks.GetAcceleration()
+  state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
+  state.consistlength_m = RailWorks.GetConsistLength()
+  state.speedlimits = Iterator.totable(RailWorks.iterspeedlimits(
+                                         Acses.nlimitlookahead))
+  state.restrictsignals = Iterator.totable(
+                            RailWorks.iterrestrictsignals(Acses.nsignallookahead))
 end
 
-local function writelocostate ()
+local function writelocostate()
   local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
   do
     local throttle, dynbrake
@@ -181,23 +175,26 @@ local function writelocostate ()
   end
   do
     local v
-    if penalty then v = 0.6
-    else v = state.train_brake end
+    if penalty then
+      v = 0.6
+    else
+      v = state.train_brake
+    end
     RailWorks.SetControlValue("TrainBrakeControl", 0, v)
   end
 
-  RailWorks.SetControlValue(
-    "Reverser", 0, RailWorks.GetControlValue("UserVirtualReverser", 0))
-  RailWorks.SetControlValue(
-    "Horn", 0, RailWorks.GetControlValue("VirtualHorn", 0))
-  RailWorks.SetControlValue(
-    "Bell", 0, RailWorks.GetControlValue("VirtualBell", 0))
-  RailWorks.SetControlValue(
-    "Wipers", 0, RailWorks.GetControlValue("VirtualWipers", 0))
-  RailWorks.SetControlValue(
-    "Sander", 0, RailWorks.GetControlValue("VirtualSander", 0))
-  RailWorks.SetControlValue(
-    "PantographControl", 0, RailWorks.GetControlValue("VirtualPantographControl", 0))
+  RailWorks.SetControlValue("Reverser", 0,
+                            RailWorks.GetControlValue("UserVirtualReverser", 0))
+  RailWorks.SetControlValue("Horn", 0,
+                            RailWorks.GetControlValue("VirtualHorn", 0))
+  RailWorks.SetControlValue("Bell", 0,
+                            RailWorks.GetControlValue("VirtualBell", 0))
+  RailWorks.SetControlValue("Wipers", 0,
+                            RailWorks.GetControlValue("VirtualWipers", 0))
+  RailWorks.SetControlValue("Sander", 0,
+                            RailWorks.GetControlValue("VirtualSander", 0))
+  RailWorks.SetControlValue("PantographControl", 0, RailWorks.GetControlValue(
+                              "VirtualPantographControl", 0))
 
   do
     local atcalarm = atc:isalarm()
@@ -206,46 +203,41 @@ local function writelocostate ()
     local alert = adu:isatcalert() or adu:isacsesalert()
 
     -- For the North Jersey Coast Line version.
-    RailWorks.SetControlValue(
-      "AWS", 0,
-      RailWorks.frombool(atcalarm or acsesalarm or alertalarm or alert))
+    RailWorks.SetControlValue("AWS", 0, RailWorks.frombool(
+                                atcalarm or acsesalarm or alertalarm or alert))
     -- For all subsequent versions.
-    RailWorks.SetControlValue(
-      "ACSES_Alert", 0,
-      RailWorks.frombool(alertalarm))
-    RailWorks.SetControlValue(
-      "ACSES_AlertIncrease", 0,
-      RailWorks.frombool(alert))
+    RailWorks.SetControlValue("ACSES_Alert", 0, RailWorks.frombool(alertalarm))
+    RailWorks.SetControlValue("ACSES_AlertIncrease", 0,
+                              RailWorks.frombool(alert))
     alarmonoff:setflashstate(atcalarm or acsesalarm)
-    RailWorks.SetControlValue(
-      "ACSES_AlertDecrease", 0,
-      RailWorks.frombool(alarmonoff:ison()))
+    RailWorks.SetControlValue("ACSES_AlertDecrease", 0,
+                              RailWorks.frombool(alarmonoff:ison()))
 
-    RailWorks.SetControlValue(
-      "AWSWarnCount", 0,
-      RailWorks.frombool(atcalarm or acsesalarm or alertalarm))
+    RailWorks.SetControlValue("AWSWarnCount", 0, RailWorks.frombool(
+                                atcalarm or acsesalarm or alertalarm))
   end
 end
 
-local function toroundedmph (v)
-  return math.floor(v*Units.mps.tomph + 0.5)
-end
+local function toroundedmph(v) return math.floor(v * Units.mps.tomph + 0.5) end
 
-local function getdigit (v, place)
+local function getdigit(v, place)
   local tens = math.pow(10, place)
   if place ~= 0 and v < tens then
     return -1
   else
-    return math.floor(math.mod(v, tens*10)/tens)
+    return math.floor(math.mod(v, tens * 10) / tens)
   end
 end
 
-local function getdigitguide (v)
-  if v < 10 then return 0
-  else return math.floor(math.log10(v)) end
+local function getdigitguide(v)
+  if v < 10 then
+    return 0
+  else
+    return math.floor(math.log10(v))
+  end
 end
 
-local function setspeedometer ()
+local function setspeedometer()
   do
     local restrict = adu:isspeedrestriction()
     local rspeed_mph = toroundedmph(math.abs(state.speed_mps))
@@ -260,26 +252,25 @@ local function setspeedometer ()
     RailWorks.SetControlValue("Speed2U", 0, restrict and u or -1)
     RailWorks.SetControlValue("SpeedP", 0, getdigitguide(rspeed_mph))
   end
-  RailWorks.SetControlValue(
-    "ACSES_SpeedGreen", 0, adu:getgreenzone_mph(state.speed_mps))
-  RailWorks.SetControlValue(
-    "ACSES_SpeedRed", 0, adu:getredzone_mph(state.speed_mps))
+  RailWorks.SetControlValue("ACSES_SpeedGreen", 0,
+                            adu:getgreenzone_mph(state.speed_mps))
+  RailWorks.SetControlValue("ACSES_SpeedRed", 0,
+                            adu:getredzone_mph(state.speed_mps))
 end
 
-local function setcablight ()
+local function setcablight()
   local dome = RailWorks.GetControlValue("CabLight", 0)
   RailWorks.ActivateNode("cablights", dome == 1)
   Call("CabLight:Activate", dome)
   Call("CabLight2:Activate", dome)
 end
 
-local function setditchlights ()
+local function setditchlights()
   local horntime_s = 30
-  local flash = state.lasthorntime_s ~= nil
-    and playersched:clock() <= state.lasthorntime_s + horntime_s
-  local fixed = RailWorks.GetControlValue("HeadlightSwitch", 0) >= 1
-    and RailWorks.GetControlValue("DitchLights", 0) == 1
-    and not flash
+  local flash = state.lasthorntime_s ~= nil and playersched:clock() <=
+                  state.lasthorntime_s + horntime_s
+  local fixed = RailWorks.GetControlValue("HeadlightSwitch", 0) >= 1 and
+                  RailWorks.GetControlValue("DitchLights", 0) == 1 and not flash
   ditchflasher:setflashstate(flash)
   local flashleft = ditchflasher:ison()
   do
@@ -294,11 +285,10 @@ local function setditchlights ()
   end
 end
 
-local function setstatuslights ()
-  RailWorks.ActivateNode(
-    "LightsBlue", RailWorks.GetIsEngineWithKey())
-  RailWorks.ActivateNode(
-    "LightsRed", doors:isleftdooropen() or doors:isrightdooropen())
+local function setstatuslights()
+  RailWorks.ActivateNode("LightsBlue", RailWorks.GetIsEngineWithKey())
+  RailWorks.ActivateNode("LightsRed",
+                         doors:isleftdooropen() or doors:isrightdooropen())
   do
     -- Match the brake indicator light logic in the carriage script.
     local brake = RailWorks.GetControlValue("TrainBrakeControl", 0)
@@ -307,9 +297,9 @@ local function setstatuslights ()
   end
 end
 
-local function setdestination ()
-  local valid =
-    state.destination >= 1 and state.destination <= table.getn(destinations)
+local function setdestination()
+  local valid = state.destination >= 1 and state.destination <=
+                  table.getn(destinations)
   for i, node in ipairs(destinations) do
     if valid then
       RailWorks.ActivateNode(node, i == state.destination)
@@ -319,7 +309,7 @@ local function setdestination ()
   end
 end
 
-local function updateplayer ()
+local function updateplayer()
   readcontrols()
   readlocostate()
 
@@ -339,12 +329,10 @@ local function updateplayer ()
 
   -- Prevent the acknowledge button from sticking if the button on the HUD is
   -- clicked.
-  if state.acknowledge then
-    RailWorks.SetControlValue("AWSReset", 0, 0)
-  end
+  if state.acknowledge then RailWorks.SetControlValue("AWSReset", 0, 0) end
 end
 
-local function updateai ()
+local function updateai()
   anysched:update()
 
   leftdoorsanim:update()
@@ -357,7 +345,7 @@ local function updateai ()
   setdestination()
 end
 
-Update = RailWorks.wraperrors(function (_)
+Update = RailWorks.wraperrors(function(_)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer()
   else
@@ -365,50 +353,51 @@ Update = RailWorks.wraperrors(function (_)
   end
 end)
 
-OnControlValueChange = RailWorks.wraperrors(function (name, index, value)
-  -- Synchronize headlight controls.
-  if name == "HeadlightSwitch" then
-    if value == 0 then
-      RailWorks.SetControlValue("Headlights", 0, 0)
-    elseif value == 1 then
-      RailWorks.SetControlValue("Headlights", 0, 2)
-    elseif value == 2 then
-      RailWorks.SetControlValue("Headlights", 0, 3)
+OnControlValueChange = RailWorks.wraperrors(
+                         function(name, index, value)
+    -- Synchronize headlight controls.
+    if name == "HeadlightSwitch" then
+      if value == 0 then
+        RailWorks.SetControlValue("Headlights", 0, 0)
+      elseif value == 1 then
+        RailWorks.SetControlValue("Headlights", 0, 2)
+      elseif value == 2 then
+        RailWorks.SetControlValue("Headlights", 0, 3)
+      end
+    elseif name == "Headlights" then
+      if value == 0 or value == 1 then
+        RailWorks.SetControlValue("HeadlightSwitch", 0, 0)
+      elseif value == 2 then
+        RailWorks.SetControlValue("HeadlightSwitch", 0, 1)
+      elseif value == 3 then
+        RailWorks.SetControlValue("HeadlightSwitch", 0, 2)
+      end
     end
-  elseif name == "Headlights" then
-    if value == 0 or value == 1 then
-      RailWorks.SetControlValue("HeadlightSwitch", 0, 0)
-    elseif value == 2 then
-      RailWorks.SetControlValue("HeadlightSwitch", 0, 1)
-    elseif value == 3 then
-      RailWorks.SetControlValue("HeadlightSwitch", 0, 2)
+
+    -- Synchronize pantograph controls.
+    if name == "PantographSwitch" then
+      if value == -1 then
+        RailWorks.SetControlValue("VirtualPantographControl", 0, 0)
+      elseif value == 1 then
+        RailWorks.SetControlValue("VirtualPantographControl", 0, 1)
+      end
+    elseif name == "VirtualPantographControl" then
+      if value == 0 then
+        RailWorks.SetControlValue("PantographSwitch", 0, -1)
+      elseif value == 1 then
+        RailWorks.SetControlValue("PantographSwitch", 0, 1)
+      end
     end
-  end
 
-  -- Synchronize pantograph controls.
-  if name == "PantographSwitch" then
-    if value == -1 then
-      RailWorks.SetControlValue("VirtualPantographControl", 0, 0)
-    elseif value == 1 then
-      RailWorks.SetControlValue("VirtualPantographControl", 0, 1)
+    -- Read the selected destination only when the player changes it.
+    if name == "Destination" and not playersched:isstartup() then
+      state.destination = math.floor(value + 0.5) - 1
     end
-  elseif name == "VirtualPantographControl" then
-    if value == 0 then
-      RailWorks.SetControlValue("PantographSwitch", 0, -1)
-    elseif value == 1 then
-      RailWorks.SetControlValue("PantographSwitch", 0, 1)
-    end
-  end
 
-  -- Read the selected destination only when the player changes it.
-  if name == "Destination" and not playersched:isstartup() then
-    state.destination = math.floor(value + 0.5) - 1
-  end
+    RailWorks.SetControlValue(name, index, value)
+  end)
 
-  RailWorks.SetControlValue(name, index, value)
-end)
-
-OnCustomSignalMessage = RailWorks.wraperrors(function (message)
+OnCustomSignalMessage = RailWorks.wraperrors(function(message)
   atc:receivemessage(message)
   acses:receivemessage(message)
 end)

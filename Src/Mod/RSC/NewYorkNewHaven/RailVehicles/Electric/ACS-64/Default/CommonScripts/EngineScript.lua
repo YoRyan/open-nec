@@ -1,18 +1,16 @@
 -- Engine script for the Siemens ACS-64 operated by Amtrak.
-
---include=RollingStock/Power.lua
---include=RollingStock/Spark.lua
---include=SafetySystems/Acses/Acses.lua
---include=SafetySystems/AspectDisplay/AmtrakCombined.lua
---include=SafetySystems/Alerter.lua
---include=SafetySystems/Atc.lua
---include=Flash.lua
---include=Iterator.lua
---include=MovingAverage.lua
---include=RailWorks.lua
---include=Scheduler.lua
---include=Units.lua
-
+-- @include RollingStock/Power.lua
+-- @include RollingStock/Spark.lua
+-- @include SafetySystems/Acses/Acses.lua
+-- @include SafetySystems/AspectDisplay/AmtrakCombined.lua
+-- @include SafetySystems/Alerter.lua
+-- @include SafetySystems/Atc.lua
+-- @include Flash.lua
+-- @include Iterator.lua
+-- @include MovingAverage.lua
+-- @include RailWorks.lua
+-- @include Scheduler.lua
+-- @include Units.lua
 local playersched, anysched
 local atc
 local acses
@@ -42,29 +40,29 @@ local state = {
   lasthorntime_s = nil
 }
 
-Initialise = RailWorks.wraperrors(function ()
+Initialise = RailWorks.wraperrors(function()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
 
   atc = Atc:new{
     scheduler = playersched,
-    getspeed_mps = function () return state.speed_mps end,
-    getacceleration_mps2 = function () return state.acceleration_mps2 end,
-    getacknowledge = function () return state.acknowledge end,
-    doalert = function () adu:doatcalert() end,
-    getbrakesuppression = function () return state.train_brake >= 0.65 end
+    getspeed_mps = function() return state.speed_mps end,
+    getacceleration_mps2 = function() return state.acceleration_mps2 end,
+    getacknowledge = function() return state.acknowledge end,
+    doalert = function() adu:doatcalert() end,
+    getbrakesuppression = function() return state.train_brake >= 0.65 end
   }
 
   acses = Acses:new{
     scheduler = playersched,
-    getspeed_mps = function () return state.speed_mps end,
-    gettrackspeed_mps = function () return state.trackspeed_mps end,
-    getconsistlength_m = function () return state.consistlength_m end,
-    iterspeedlimits = function () return pairs(state.speedlimits) end,
-    iterrestrictsignals = function () return pairs(state.restrictsignals) end,
-    getacknowledge = function () return state.acknowledge end,
-    doalert = function () adu:doacsesalert() end,
-    consistspeed_mps = 125*Units.mph.tomps
+    getspeed_mps = function() return state.speed_mps end,
+    gettrackspeed_mps = function() return state.trackspeed_mps end,
+    getconsistlength_m = function() return state.consistlength_m end,
+    iterspeedlimits = function() return pairs(state.speedlimits) end,
+    iterrestrictsignals = function() return pairs(state.restrictsignals) end,
+    getacknowledge = function() return state.acknowledge end,
+    doalert = function() adu:doacsesalert() end,
+    consistspeed_mps = 125 * Units.mph.tomps
   }
 
   local alert_s = 1
@@ -81,22 +79,18 @@ Initialise = RailWorks.wraperrors(function ()
 
   alerter = Alerter:new{
     scheduler = playersched,
-    getspeed_mps = function () return state.speed_mps end
+    getspeed_mps = function() return state.speed_mps end
   }
   alerter:start()
 
-  power = Power:new{available={Power.types.overhead}}
+  power = Power:new{available = {Power.types.overhead}}
 
   local avgsamples = 30
-  tracteffort = Average:new{nsamples=avgsamples}
-  acceleration = Average:new{nsamples=avgsamples}
+  tracteffort = Average:new{nsamples = avgsamples}
+  acceleration = Average:new{nsamples = avgsamples}
 
   -- Modulate the speed reduction alert sound, which normally plays just once.
-  alarmonoff = Flash:new{
-    scheduler = playersched,
-    off_s = 0.1,
-    on_s = 0.5
-  }
+  alarmonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
 
   local suppressflash_s = 0.5
   suppressflasher = Flash:new{
@@ -112,14 +106,12 @@ Initialise = RailWorks.wraperrors(function ()
     on_s = ditchflash_s
   }
 
-  spark = PantoSpark:new{
-    scheduler = anysched
-  }
+  spark = PantoSpark:new{scheduler = anysched}
 
   RailWorks.BeginUpdate()
 end)
 
-local function readcontrols ()
+local function readcontrols()
   if RailWorks.GetControlValue("AutoSuppression", 0) > 0 then
     RailWorks.SetControlValue("AutoSuppression", 0, 0)
     RailWorks.SetControlValue("VirtualBrake", 0, 0.75)
@@ -131,9 +123,7 @@ local function readcontrols ()
   state.throttle = throttle
   state.train_brake = vbrake
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
-  if state.acknowledge or change then
-    alerter:acknowledge()
-  end
+  if state.acknowledge or change then alerter:acknowledge() end
 
   if RailWorks.GetControlValue("Horn", 0) > 0 then
     state.lasthorntime_s = playersched:clock()
@@ -143,19 +133,16 @@ local function readcontrols ()
   state.ditchlights = RailWorks.GetControlValue("DitchLight", 0)
 end
 
-local function readlocostate ()
-  state.speed_mps =
-    RailWorks.GetControlValue("SpeedometerMPH", 0)*Units.mph.tomps
-  state.acceleration_mps2 =
-    RailWorks.GetAcceleration()
-  state.trackspeed_mps =
-    RailWorks.GetCurrentSpeedLimit(1)
-  state.consistlength_m =
-    RailWorks.GetConsistLength()
-  state.speedlimits =
-    Iterator.totable(RailWorks.iterspeedlimits(Acses.nlimitlookahead))
-  state.restrictsignals =
-    Iterator.totable(RailWorks.iterrestrictsignals(Acses.nsignallookahead))
+local function readlocostate()
+  state.speed_mps = RailWorks.GetControlValue("SpeedometerMPH", 0) *
+                      Units.mph.tomps
+  state.acceleration_mps2 = RailWorks.GetAcceleration()
+  state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
+  state.consistlength_m = RailWorks.GetConsistLength()
+  state.speedlimits = Iterator.totable(RailWorks.iterspeedlimits(
+                                         Acses.nlimitlookahead))
+  state.restrictsignals = Iterator.totable(
+                            RailWorks.iterrestrictsignals(Acses.nsignallookahead))
 
   if RailWorks.GetControlValue("PantographControl", 0) == 1 then
     power:setcollectors(Power.types.overhead)
@@ -164,7 +151,7 @@ local function readlocostate ()
   end
 end
 
-local function writelocostate ()
+local function writelocostate()
   local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
   local penaltybrake = 0.85
   do
@@ -175,43 +162,49 @@ local function writelocostate ()
     else
       local min = RailWorks.GetControlMinimum("ThrottleAndBrake", 0)
       local max = RailWorks.GetControlMaximum("ThrottleAndBrake", 0)
-      local mid = (max + min)/2
-      throttle = math.max(state.throttle - mid, 0)/(max - mid)
-      dynbrake = math.max(mid - state.throttle, 0)/(mid - min)
+      local mid = (max + min) / 2
+      throttle = math.max(state.throttle - mid, 0) / (max - mid)
+      dynbrake = math.max(mid - state.throttle, 0) / (mid - min)
     end
     RailWorks.SetControlValue("Regulator", 0, throttle)
     RailWorks.SetControlValue("DynamicBrake", 0, dynbrake)
   end
   do
     local v
-    if penalty then v = penaltybrake
-    else v = state.train_brake end
+    if penalty then
+      v = penaltybrake
+    else
+      v = state.train_brake
+    end
     -- DTG's nonlinear braking algorithm
     local brake
-    if v < 0.1 then brake = 0
-    elseif v < 0.35 then brake = 0.07
-    elseif v < 0.75 then brake = 0.07 + (v - 0.35)/(0.6 - 0.35)*0.1
-    elseif v < 0.85 then brake = 0.17
-    elseif v < 1 then brake = 0.24
-    else brake = 1 end
+    if v < 0.1 then
+      brake = 0
+    elseif v < 0.35 then
+      brake = 0.07
+    elseif v < 0.75 then
+      brake = 0.07 + (v - 0.35) / (0.6 - 0.35) * 0.1
+    elseif v < 0.85 then
+      brake = 0.17
+    elseif v < 1 then
+      brake = 0.24
+    else
+      brake = 1
+    end
     RailWorks.SetControlValue("TrainBrakeControl", 0, brake)
   end
   do
     local alarm = atc:isalarm() or acses:isalarm()
     alarmonoff:setflashstate(alarm)
-    RailWorks.SetControlValue(
-      "AWSWarnCount", 0,
-      RailWorks.frombool(alarm))
-    RailWorks.SetControlValue(
-      "SpeedReductionAlert", 0,
-      RailWorks.frombool(alarmonoff:ison()))
-    RailWorks.SetControlValue(
-      "SpeedIncreaseAlert", 0,
-      RailWorks.frombool(adu:isatcalert() or adu:isacsesalert()))
+    RailWorks.SetControlValue("AWSWarnCount", 0, RailWorks.frombool(alarm))
+    RailWorks.SetControlValue("SpeedReductionAlert", 0,
+                              RailWorks.frombool(alarmonoff:ison()))
+    RailWorks.SetControlValue("SpeedIncreaseAlert", 0, RailWorks.frombool(
+                                adu:isatcalert() or adu:isacsesalert()))
   end
 end
 
-local function setpantocontrol ()
+local function setpantocontrol()
   if RailWorks.GetControlValue("PantographDownButton", 0) == 1 then
     RailWorks.SetControlValue("PantographDownButton", 0, 0)
     RailWorks.SetControlValue("PantographControl", 0, 0)
@@ -221,7 +214,7 @@ local function setpantocontrol ()
   end
 end
 
-local function setpantosparks ()
+local function setpantosparks()
   local frontcontact = false
   local rearcontact = RailWorks.GetControlValue("PantographControl", 0) == 1
   spark:setsparkstate(frontcontact or rearcontact)
@@ -245,35 +238,36 @@ local function setpantosparks ()
   Call("Spark2:Activate", RailWorks.frombool(rearcontact and isspark))
 end
 
-local function toroundedmph (v)
-  return math.floor(v*Units.mps.tomph + 0.5)
-end
+local function toroundedmph(v) return math.floor(v * Units.mps.tomph + 0.5) end
 
-local function getdigit (v, place)
+local function getdigit(v, place)
   local tens = math.pow(10, place)
   if place ~= 0 and v < tens then
     return -1
   else
-    return math.floor(math.mod(v, tens*10)/tens)
+    return math.floor(math.mod(v, tens * 10) / tens)
   end
 end
 
-local function getdigitguide (v)
-  if v < 10 then return 0
-  else return math.floor(math.log10(v)) end
+local function getdigitguide(v)
+  if v < 10 then
+    return 0
+  else
+    return math.floor(math.log10(v))
+  end
 end
 
-local function setscreen ()
+local function setscreen()
   do
-    local maxeffort_klbs = 71*71/80.5
-    tracteffort:sample(RailWorks.GetTractiveEffort()*maxeffort_klbs)
+    local maxeffort_klbs = 71 * 71 / 80.5
+    tracteffort:sample(RailWorks.GetTractiveEffort() * maxeffort_klbs)
 
     local effort_klbs = math.abs(tracteffort:get())
     local reffort_klbs = math.floor(effort_klbs + 0.5)
     RailWorks.SetControlValue("effort_tens", 0, getdigit(reffort_klbs, 1))
     RailWorks.SetControlValue("effort_units", 0, getdigit(reffort_klbs, 0))
     RailWorks.SetControlValue("effort_guide", 0, getdigitguide(reffort_klbs))
-    RailWorks.SetControlValue("AbsTractiveEffort", 0, effort_klbs*365/80)
+    RailWorks.SetControlValue("AbsTractiveEffort", 0, effort_klbs * 365 / 80)
   end
   do
     local speed_mph = toroundedmph(state.speed_mps)
@@ -284,7 +278,7 @@ local function setscreen ()
   end
   do
     acceleration:sample(state.acceleration_mps2)
-    local accel_mphmin = math.abs(acceleration:get()*134.2162)
+    local accel_mphmin = math.abs(acceleration:get() * 134.2162)
     local raccel_mphmin = math.floor(accel_mphmin + 0.5)
     RailWorks.SetControlValue("accel_hundreds", 0, getdigit(raccel_mphmin, 2))
     RailWorks.SetControlValue("accel_tens", 0, getdigit(raccel_mphmin, 1))
@@ -306,19 +300,18 @@ local function setscreen ()
     end
     RailWorks.SetControlValue("ScreenSuppression", 0, RailWorks.frombool(light))
   end
-  RailWorks.SetControlValue(
-    "ScreenAlerter", 0,
-    RailWorks.frombool(alerter:isalarm()))
+  RailWorks.SetControlValue("ScreenAlerter", 0,
+                            RailWorks.frombool(alerter:isalarm()))
 end
 
-local function setcutin ()
+local function setcutin()
   if not playersched:isstartup() then
     atc:setrunstate(RailWorks.GetControlValue("ATCCutIn", 0) == 1)
     acses:setrunstate(RailWorks.GetControlValue("ACSESCutIn", 0) == 1)
   end
 end
 
-local function setadu ()
+local function setadu()
   do
     local aspect = adu:getaspect()
     local tg, ty, tr, bg, bw
@@ -336,8 +329,8 @@ local function setadu ()
       tg, ty, tr, bg, bw = 0, 1, 0, 0, 0
       text = 8
       s, r, m, l, cs60, cs80, n = 0, 0, 1, 0, 0, 0, 0
-    elseif aspect == AmtrakCombinedAdu.aspect.approachmed30
-        or aspect == AmtrakCombinedAdu.aspect.approachmed45 then
+    elseif aspect == AmtrakCombinedAdu.aspect.approachmed30 or aspect ==
+      AmtrakCombinedAdu.aspect.approachmed45 then
       tg, ty, tr, bg, bw = 0, 1, 0, 1, 0
       text = 13
       s, r, m, l, cs60, cs80, n = 0, 0, 0, 1, 0, 0, 0
@@ -357,9 +350,9 @@ local function setadu ()
       tg, ty, tr, bg, bw = 0, 0, 0, 0, 0
       text = 2
       s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, 1, 0
-    elseif aspect == AmtrakCombinedAdu.aspect.clear100
-        or aspect == AmtrakCombinedAdu.aspect.clear125
-        or aspect == AmtrakCombinedAdu.aspect.clear150 then
+    elseif aspect == AmtrakCombinedAdu.aspect.clear100 or aspect ==
+      AmtrakCombinedAdu.aspect.clear125 or aspect ==
+      AmtrakCombinedAdu.aspect.clear150 then
       tg, ty, tr, bg, bw = 1, 0, 0, 0, 0
       text = 1
       s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, 0, 1
@@ -389,10 +382,10 @@ local function setadu ()
       RailWorks.SetControlValue("SpeedLimit_tens", 0, getdigit(speed_mph, 1))
       RailWorks.SetControlValue("SpeedLimit_units", 0, getdigit(speed_mph, 0))
     end
-    RailWorks.SetControlValue(
-      "SigModeATC", 0, RailWorks.frombool(adu:getatcindicator()))
-    RailWorks.SetControlValue(
-      "SigModeACSES", 0, RailWorks.frombool(adu:getacsesindicator()))
+    RailWorks.SetControlValue("SigModeATC", 0,
+                              RailWorks.frombool(adu:getatcindicator()))
+    RailWorks.SetControlValue("SigModeACSES", 0,
+                              RailWorks.frombool(adu:getacsesindicator()))
   end
   do
     local ttp_s = adu:gettimetopenalty_s()
@@ -418,7 +411,7 @@ local function setadu ()
   end
 end
 
-local function setcablights ()
+local function setcablights()
   do
     local dome = RailWorks.GetControlValue("CabLight", 0)
     Call("FrontLight:Activate", dome)
@@ -441,10 +434,10 @@ local function setcablights ()
   end
 end
 
-local function setditchlights ()
+local function setditchlights()
   local horntime_s = 30
-  local horn = state.lasthorntime_s ~= nil
-    and playersched:clock() <= state.lasthorntime_s + horntime_s
+  local horn = state.lasthorntime_s ~= nil and playersched:clock() <=
+                 state.lasthorntime_s + horntime_s
   local fixed = state.headlights == 1 and state.ditchlights == 1
   local flash = (state.headlights == 1 and state.ditchlights == 2) or horn
   ditchflasher:setflashstate(flash)
@@ -465,7 +458,7 @@ local function setditchlights ()
   Call("RearDitchLightR:Activate", RailWorks.frombool(false))
 end
 
-local function updateplayer ()
+local function updateplayer()
   readcontrols()
   readlocostate()
 
@@ -483,12 +476,10 @@ local function updateplayer ()
 
   -- Prevent the acknowledge button from sticking if the button on the HUD is
   -- clicked.
-  if state.acknowledge then
-    RailWorks.SetControlValue("AWSReset", 0, 0)
-  end
+  if state.acknowledge then RailWorks.SetControlValue("AWSReset", 0, 0) end
 end
 
-local function updateai ()
+local function updateai()
   anysched:update()
 
   setpantosparks()
@@ -496,7 +487,7 @@ local function updateai ()
   setditchlights()
 end
 
-Update = RailWorks.wraperrors(function (_)
+Update = RailWorks.wraperrors(function(_)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer()
   else
@@ -506,7 +497,7 @@ end)
 
 OnControlValueChange = RailWorks.SetControlValue
 
-OnCustomSignalMessage = RailWorks.wraperrors(function (message)
+OnCustomSignalMessage = RailWorks.wraperrors(function(message)
   power:receivemessage(message)
   atc:receivemessage(message)
   acses:receivemessage(message)

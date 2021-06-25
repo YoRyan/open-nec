@@ -19,15 +19,16 @@ To compile the mod, you will need the following tools in your `%PATH%`:
 
 - `python.exe`: a recent copy of [Python 3](https://www.python.org/) is required. Our build system uses WAF, which runs on Python.
 - `luacheck.exe`: the [Luacheck](https://github.com/mpeterv/luacheck) linter. Its static analysis capabilities are much appreciated for an untyped language like Lua. Although it was designed for Lua 5.1+, it works well enough on 5.0—with the exception of variable length arguments, which it misinterprets as "unused variables." The static Windows executable will work just fine.
+- `lua-format.exe`: the [LuaFormatter](https://github.com/Koihik/LuaFormatter) code formatter. You can obtain a [Windows executable](https://github.com/Koihik/vscode-lua-format/tree/master/bin/win32) from the repository for the official Visual Studio Code extension.
 - `compressonatorcli.exe`: The CLI version of [AMD's Compressonator](https://gpuopen.com/compressonator/), a tool we use to generate DDS textures.
 
 In the root directory of the project, run `python waf configure` to confirm that your system has met all of these requirements.
 
 The build process also needs to be informed of the location of Train Simulator—the game comes with several essential command-line utilities. The WAF script attempts to infer its location using the Steam uninstallation path in the Registry. If this autodetection fails, you should set the `%RAILWORKS%` environment variable to the path to your copy of Train Simulator.
 
-If all looks good after the configure step, run `python waf build` to compile the project. The compiled files will output to the Mod\ folder, from which they can be copied into Train Simulator's Assets\ folder. But to ease testing, I recommend using symlinks instead of copying.
+If all looks good after the configure step, run `python waf build` to compile the project. The compiled files will output to the Mod\ folder, from which they can be copied into Train Simulator's Assets\ folder. (But to ease testing, I recommend using symlinks instead of copying.) The build process will also run LuaFormatter on the code to enforce a consistent style.
 
-Some other useful WAF commands include:
+Other useful WAF commands include:
 
 - `python waf clean`: delete compiled files in the Mod\\ folder.
 - `python waf distclean`: delete the Mod\\ folder entirely.

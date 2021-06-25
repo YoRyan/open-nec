@@ -35,7 +35,7 @@
   strings for transmission via signal messages.
 ]]
 
---include=TupleDictionary.lua
+-- @include TupleDictionary.lua
 
 local P = {}
 InterSignal = P

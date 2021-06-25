@@ -1,16 +1,14 @@
 -- Engine script for the MPI MP36PH operated by MARC.
-
---include=SafetySystems/Acses/Acses.lua
---include=SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
---include=SafetySystems/Alerter.lua
---include=SafetySystems/Atc.lua
---include=Flash.lua
---include=Iterator.lua
---include=MovingAverage.lua
---include=RailWorks.lua
---include=Scheduler.lua
---include=Units.lua
-
+-- @include SafetySystems/Acses/Acses.lua
+-- @include SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
+-- @include SafetySystems/Alerter.lua
+-- @include SafetySystems/Atc.lua
+-- @include Flash.lua
+-- @include Iterator.lua
+-- @include MovingAverage.lua
+-- @include RailWorks.lua
+-- @include Scheduler.lua
+-- @include Units.lua
 local sched
 local atc
 local acses
@@ -36,28 +34,28 @@ local state = {
   lasthorntime_s = nil
 }
 
-Initialise = RailWorks.wraperrors(function ()
+Initialise = RailWorks.wraperrors(function()
   sched = Scheduler:new{}
 
   atc = Atc:new{
     scheduler = sched,
-    getspeed_mps = function () return state.speed_mps end,
-    getacceleration_mps2 = function () return state.acceleration_mps2 end,
-    getacknowledge = function () return state.acknowledge end,
-    doalert = function () adu:doatcalert() end,
-    getbrakesuppression = function () return state.train_brake >= 0.75 end
+    getspeed_mps = function() return state.speed_mps end,
+    getacceleration_mps2 = function() return state.acceleration_mps2 end,
+    getacknowledge = function() return state.acknowledge end,
+    doalert = function() adu:doatcalert() end,
+    getbrakesuppression = function() return state.train_brake >= 0.75 end
   }
 
   acses = Acses:new{
     scheduler = sched,
-    getspeed_mps = function () return state.speed_mps end,
-    gettrackspeed_mps = function () return state.trackspeed_mps end,
-    getconsistlength_m = function () return state.consistlength_m end,
-    iterspeedlimits = function () return pairs(state.speedlimits) end,
-    iterrestrictsignals = function () return pairs(state.restrictsignals) end,
-    getacknowledge = function () return state.acknowledge end,
-    doalert = function () adu:doacsesalert() end,
-    consistspeed_mps = 125*Units.mph.tomps
+    getspeed_mps = function() return state.speed_mps end,
+    gettrackspeed_mps = function() return state.trackspeed_mps end,
+    getconsistlength_m = function() return state.consistlength_m end,
+    iterspeedlimits = function() return pairs(state.speedlimits) end,
+    iterrestrictsignals = function() return pairs(state.restrictsignals) end,
+    getacknowledge = function() return state.acknowledge end,
+    doalert = function() adu:doacsesalert() end,
+    consistspeed_mps = 125 * Units.mph.tomps
   }
 
   local onebeep_s = 1
@@ -74,7 +72,7 @@ Initialise = RailWorks.wraperrors(function ()
 
   alerter = Alerter:new{
     scheduler = sched,
-    getspeed_mps = function () return state.speed_mps end
+    getspeed_mps = function() return state.speed_mps end
   }
   alerter:start()
 
@@ -88,7 +86,7 @@ Initialise = RailWorks.wraperrors(function ()
   RailWorks.BeginUpdate()
 end)
 
-local function readcontrols ()
+local function readcontrols()
   local throttle = RailWorks.GetControlValue("ThrottleAndBrake", 0)
   local vbrake = RailWorks.GetControlValue("VirtualBrake", 0)
   local change = throttle ~= state.throttle or vbrake ~= state.train_brake
@@ -96,9 +94,7 @@ local function readcontrols ()
   state.train_brake = vbrake
   state.indep_brake = RailWorks.GetControlValue("VirtualEngineBrakeControl", 0)
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
-  if state.acknowledge or change then
-    alerter:acknowledge()
-  end
+  if state.acknowledge or change then alerter:acknowledge() end
 
   if RailWorks.GetControlValue("Horn", 0) > 0 then
     state.lasthorntime_s = sched:clock()
@@ -109,22 +105,19 @@ local function readcontrols ()
   state.pulselights = RailWorks.GetControlValue("DitchLights", 0)
 end
 
-local function readlocostate ()
-  state.speed_mps =
-    RailWorks.GetControlValue("SpeedometerMPH", 0)*Units.mph.tomps
-  state.acceleration_mps2 =
-    RailWorks.GetAcceleration()
-  state.trackspeed_mps =
-    RailWorks.GetCurrentSpeedLimit(1)
-  state.consistlength_m =
-    RailWorks.GetConsistLength()
-  state.speedlimits =
-    Iterator.totable(RailWorks.iterspeedlimits(Acses.nlimitlookahead))
-  state.restrictsignals =
-    Iterator.totable(RailWorks.iterrestrictsignals(Acses.nsignallookahead))
+local function readlocostate()
+  state.speed_mps = RailWorks.GetControlValue("SpeedometerMPH", 0) *
+                      Units.mph.tomps
+  state.acceleration_mps2 = RailWorks.GetAcceleration()
+  state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
+  state.consistlength_m = RailWorks.GetConsistLength()
+  state.speedlimits = Iterator.totable(RailWorks.iterspeedlimits(
+                                         Acses.nlimitlookahead))
+  state.restrictsignals = Iterator.totable(
+                            RailWorks.iterrestrictsignals(Acses.nsignallookahead))
 end
 
-local function writelocostate ()
+local function writelocostate()
   local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
   do
     local throttle, dynbrake
@@ -140,8 +133,11 @@ local function writelocostate ()
   end
   do
     local v
-    if penalty then v = 0.85
-    else v = state.train_brake end
+    if penalty then
+      v = 0.85
+    else
+      v = state.train_brake
+    end
     RailWorks.SetControlValue("TrainBrakeControl", 0, v)
   end
   RailWorks.SetControlValue("EngineBrakeControl", 0, state.indep_brake)
@@ -153,28 +149,26 @@ local function writelocostate ()
   end
 end
 
-local function toroundedmph (v)
-  return math.floor(v*Units.mps.tomph + 0.5)
-end
+local function toroundedmph(v) return math.floor(v * Units.mps.tomph + 0.5) end
 
-local function getdigit (v, place)
+local function getdigit(v, place)
   local tens = math.pow(10, place)
   if place ~= 0 and v < tens then
     return -1
   else
-    return math.floor(math.mod(v, tens*10)/tens)
+    return math.floor(math.mod(v, tens * 10) / tens)
   end
 end
 
-local function setspeedometer ()
+local function setspeedometer()
   local speed_mph = toroundedmph(state.speed_mps)
-  RailWorks.SetControlValue("SpeedoDots", 0, math.floor(speed_mph/2))
+  RailWorks.SetControlValue("SpeedoDots", 0, math.floor(speed_mph / 2))
   RailWorks.SetControlValue("SpeedoHundreds", 0, getdigit(speed_mph, 2))
   RailWorks.SetControlValue("SpeedoTens", 0, getdigit(speed_mph, 1))
   RailWorks.SetControlValue("SpeedoUnits", 0, getdigit(speed_mph, 0))
 end
 
-local function setadu ()
+local function setadu()
   do
     local aspect = adu:getaspect()
     local n, l, s, m, r
@@ -219,30 +213,28 @@ local function setadu ()
       RailWorks.SetControlValue("TSUnits", 0, getdigit(civilspeed_mph, 0))
     end
   end
-  RailWorks.SetControlValue(
-    "MaximumSpeedLimitIndicator", 0, adu:getsquareindicator())
+  RailWorks.SetControlValue("MaximumSpeedLimitIndicator", 0,
+                            adu:getsquareindicator())
 end
 
-local function setcablight ()
+local function setcablight()
   Call("Cablight:Activate", RailWorks.GetControlValue("CabLight", 0))
 end
 
-local function setheadlight ()
-  local isdim = state.headlights >= 0.44
-    and state.headlights < 1.49
-    and state.headlights ~= 1 -- set by AI?
-  local isbright = state.headlights >= 1.49
-    or state.headlights == 1 -- set by AI?
+local function setheadlight()
+  local isdim = state.headlights >= 0.44 and state.headlights < 1.49 and
+                  state.headlights ~= 1 -- set by AI?
+  local isbright = state.headlights >= 1.49 or state.headlights == 1 -- set by AI?
   Call("Headlight_01_Dim:Activate", RailWorks.frombool(isdim or isbright))
   Call("Headlight_02_Dim:Activate", RailWorks.frombool(isdim or isbright))
   Call("Headlight_01_Bright:Activate", RailWorks.frombool(isbright))
   Call("Headlight_02_Bright:Activate", RailWorks.frombool(isbright))
 end
 
-local function setditchlights ()
+local function setditchlights()
   local horntime_s = 30
-  local horn = state.lasthorntime_s ~= nil
-    and sched:clock() <= state.lasthorntime_s + horntime_s
+  local horn = state.lasthorntime_s ~= nil and sched:clock() <=
+                 state.lasthorntime_s + horntime_s
   local flash = state.pulselights == 1 or horn
   local fixed = state.headlights == 3 and not flash
   ditchflasher:setflashstate(flash)
@@ -260,7 +252,7 @@ local function setditchlights ()
   RailWorks.ActivateNode("lights_dim", fixed or flash)
 end
 
-local function setrearlight ()
+local function setrearlight()
   local isdim = state.rearlights >= 1 and state.rearlights < 2
   local isbright = state.rearlights == 2
   Call("Rearlight_01_Dim:Activate", RailWorks.frombool(isdim or isbright))
@@ -269,7 +261,7 @@ local function setrearlight ()
   Call("Rearlight_02_Bright:Activate", RailWorks.frombool(isbright))
 end
 
-local function sethep ()
+local function sethep()
   -- TODO: Unlike DTG's implementation, there is no startup delay, but I doubt
   -- anybody would really notice or care.
   local run = RailWorks.GetControlValue("HEP_State", 0)
@@ -297,7 +289,7 @@ local function sethep ()
   RailWorks.SetControlValue("HEP_State", 0, run)
 end
 
-local function updateplayer ()
+local function updateplayer()
   readcontrols()
   readlocostate()
 
@@ -314,19 +306,17 @@ local function updateplayer ()
 
   -- Prevent the acknowledge button from sticking if the button on the HUD is
   -- clicked.
-  if state.acknowledge then
-    RailWorks.SetControlValue("AWSReset", 0, 0)
-  end
+  if state.acknowledge then RailWorks.SetControlValue("AWSReset", 0, 0) end
 end
 
-local function updateai ()
+local function updateai()
   setcablight()
   setheadlight()
   setditchlights()
   setrearlight()
 end
 
-Update = RailWorks.wraperrors(function (_)
+Update = RailWorks.wraperrors(function(_)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer()
   else
@@ -338,7 +328,7 @@ end)
 
 OnControlValueChange = RailWorks.SetControlValue
 
-OnCustomSignalMessage = RailWorks.wraperrors(function (message)
+OnCustomSignalMessage = RailWorks.wraperrors(function(message)
   atc:receivemessage(message)
   acses:receivemessage(message)
 end)

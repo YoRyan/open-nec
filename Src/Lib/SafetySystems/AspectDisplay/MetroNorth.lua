@@ -3,8 +3,8 @@
 -- We assume it is not possible to display 60, 80, 100, 125, or 150 mph signal
 -- speeds, so we will use the track speed limit display to present them.
 
---include=SafetySystems/AspectDisplay/AspectDisplay.lua
---include=Signals/NecSignals.lua
+-- @include SafetySystems/AspectDisplay/AspectDisplay.lua
+-- @include Signals/NecSignals.lua
 
 local P = {}
 MetroNorthAdu = P

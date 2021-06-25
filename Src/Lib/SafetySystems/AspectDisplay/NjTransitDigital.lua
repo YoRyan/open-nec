@@ -1,8 +1,8 @@
 -- An NJT-style integrated digital speedometer and ADU display. Maximum speed is
 -- 120 mph.
 
---include=SafetySystems/AspectDisplay/AspectDisplay.lua
---include=Signals/NecSignals.lua
+-- @include SafetySystems/AspectDisplay/AspectDisplay.lua
+-- @include Signals/NecSignals.lua
 
 local P = {}
 NjTransitDigitalAdu = P
