@@ -185,17 +185,14 @@ local function writelocostate()
   do
     local throttle = penalty and 0 or math.max(state.throttle, 0)
     RailWorks.SetControlValue("Regulator", 0, throttle)
-    local dynbrake = penalty and 0 or math.max(-state.throttle, 0)
-    RailWorks.SetControlValue("DynamicBrake", 0, dynbrake)
   end
   do
-    local v
-    if penalty then
-      v = 0.6
-    else
-      v = state.train_brake
-    end
+    local v = penalty and 0.6 or state.train_brake
     RailWorks.SetControlValue("TrainBrakeControl", 0, v)
+  end
+  do
+    local psi = RailWorks.GetControlValue("AirBrakePipePressurePSI", 0)
+    RailWorks.SetControlValue("DynamicBrake", 0, math.min((110 - psi) / 16, 1))
   end
 
   RailWorks.SetControlValue("Reverser", 0,
