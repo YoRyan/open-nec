@@ -238,17 +238,17 @@ end
 
 local function setspeedometer()
   do
-    local restrict = adu:isspeedrestriction()
+    local isclear = adu:isclearsignal()
     local rspeed_mph = toroundedmph(math.abs(state.speed_mps))
     local h = getdigit(rspeed_mph, 2)
     local t = getdigit(rspeed_mph, 1)
     local u = getdigit(rspeed_mph, 0)
-    RailWorks.SetControlValue("SpeedH", 0, restrict and -1 or h)
-    RailWorks.SetControlValue("SpeedT", 0, restrict and -1 or t)
-    RailWorks.SetControlValue("SpeedU", 0, restrict and -1 or u)
-    RailWorks.SetControlValue("Speed2H", 0, restrict and h or -1)
-    RailWorks.SetControlValue("Speed2T", 0, restrict and t or -1)
-    RailWorks.SetControlValue("Speed2U", 0, restrict and u or -1)
+    RailWorks.SetControlValue("SpeedH", 0, isclear and h or -1)
+    RailWorks.SetControlValue("SpeedT", 0, isclear and t or -1)
+    RailWorks.SetControlValue("SpeedU", 0, isclear and u or -1)
+    RailWorks.SetControlValue("Speed2H", 0, isclear and -1 or h)
+    RailWorks.SetControlValue("Speed2T", 0, isclear and -1 or t)
+    RailWorks.SetControlValue("Speed2U", 0, isclear and -1 or u)
     RailWorks.SetControlValue("SpeedP", 0, getdigitguide(rspeed_mph))
   end
   RailWorks.SetControlValue("ACSES_SpeedGreen", 0,

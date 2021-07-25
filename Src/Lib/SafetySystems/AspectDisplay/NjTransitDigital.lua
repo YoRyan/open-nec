@@ -25,20 +25,16 @@ function P:new (conf)
   return o
 end
 
--- Determine whether there is a speed restriction in effect.
-function P:isspeedrestriction ()
+-- Determine whether or not the current ATC aspect is a clear one.
+function P:isclearsignal ()
   local atccode = self._atc:getpulsecode()
-  local atcrestrict = atccode ~= Nec.pulsecode.clear125
-    and atccode ~= Nec.pulsecode.clear150
-    and self._atc:isrunning()
-  local acsesrestrict = self._acses:isalarm()
-    or self._acses:getmode() ~= Acses.mode.normal
-  return atcrestrict or acsesrestrict
+  return atccode == Nec.pulsecode.clear125
+    or atccode == Nec.pulsecode.clear150
 end
 
 local function getspeedlimit_mph (self)
   local signalspeed_mph = Adu.getsignalspeed_mph(self)
-  local civilspeed_mph = Adu.getcivilspeed_mph(self)
+  local civilspeed_mph = self._acses:getcurvespeed_mps(self)*Units.mps.tomph
   local atccutin = self._atc:isrunning()
   local acsescutin = self._acses:isrunning()
   if atccutin and acsescutin then
@@ -52,25 +48,27 @@ local function getspeedlimit_mph (self)
   end
 end
 
--- Get the current position of the green speed zone.
+-- Get the current position of the green speed zone given the current speed.
 function P:getgreenzone_mph (speed_mps)
-  local aspeed_mph = math.abs(speed_mps)*Units.mps.tomph
-  local limit_mph = getspeedlimit_mph(self)
-  if self:isspeedrestriction() and limit_mph ~= nil then
-    return math.min(limit_mph, aspeed_mph)
-  else
+  if not self._acses:isrunning() and self:isclearsignal() then
     return 0
+  else
+    return getspeedlimit_mph(self) or 0
   end
 end
 
--- Get the current position of the red speed zone.
+-- Get the current position of the red speed zone given the current speed.
 function P:getredzone_mph (speed_mps)
-  local aspeed_mph = math.abs(speed_mps)*Units.mps.tomph
-  local limit_mph = getspeedlimit_mph(self)
-  if self:isspeedrestriction() and limit_mph ~= nil and aspeed_mph > limit_mph then
-    return aspeed_mph
-  else
+  if not self._acses:isrunning() and self:isclearsignal() then
     return 0
+  else
+    local aspeed_mph = math.abs(speed_mps)*Units.mps.tomph
+    local limit_mph = getspeedlimit_mph(self) or 0
+    if aspeed_mph > limit_mph then
+      return aspeed_mph
+    else
+      return 0
+    end
   end
 end
 
