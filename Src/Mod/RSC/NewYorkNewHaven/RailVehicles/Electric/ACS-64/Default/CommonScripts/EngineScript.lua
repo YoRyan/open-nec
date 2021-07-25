@@ -20,7 +20,6 @@ local power
 local tracteffort
 local acceleration
 local alarmonoff
-local suppressflasher
 local ditchflasher
 local spark
 local state = {
@@ -91,13 +90,6 @@ Initialise = RailWorks.wraperrors(function()
 
   -- Modulate the speed reduction alert sound, which normally plays just once.
   alarmonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
-
-  local suppressflash_s = 0.5
-  suppressflasher = Flash:new{
-    scheduler = playersched,
-    off_s = suppressflash_s,
-    on_s = suppressflash_s
-  }
 
   local ditchflash_s = 1
   ditchflasher = Flash:new{
@@ -286,20 +278,8 @@ local function setscreen()
     RailWorks.SetControlValue("accel_guide", 0, getdigitguide(raccel_mphmin))
     RailWorks.SetControlValue("AccelerationMPHPM", 0, accel_mphmin)
   end
-  do
-    local suppressing = atc:issuppressing()
-    local suppression = atc:issuppression()
-    suppressflasher:setflashstate(suppressing and not suppression)
-    local light
-    if suppression then
-      light = true
-    elseif suppressing and suppressflasher:ison() then
-      light = true
-    else
-      light = false
-    end
-    RailWorks.SetControlValue("ScreenSuppression", 0, RailWorks.frombool(light))
-  end
+  RailWorks.SetControlValue("ScreenSuppression", 0,
+                            RailWorks.frombool(atc:issuppression()))
   RailWorks.SetControlValue("ScreenAlerter", 0,
                             RailWorks.frombool(alerter:isalarm()))
 end

@@ -8,7 +8,6 @@
 -- @include Animation.lua
 -- @include Flash.lua
 -- @include Iterator.lua
--- @include MovingAverage.lua
 -- @include RailWorks.lua
 -- @include Scheduler.lua
 -- @include Units.lua

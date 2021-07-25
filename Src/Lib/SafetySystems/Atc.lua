@@ -4,17 +4,13 @@ local P = {}
 Atc = P
 
 local debugsignals = false
-local naccelsamples = 24
 local stopspeed_mps = 0.01
 
 local function initstate (self)
   self._running = false
   self._isalarm = false
-  self._issuppressing = false
-  self._issuppression = false
   self._ispenalty = false
   self._pulsecode = Nec.pulsecode.restrict
-  self._accelaverage_mps2 = Average:new{nsamples=naccelsamples}
   self._enforce = Event:new{scheduler=self._sched}
   self._coroutines = {}
 end
@@ -31,11 +27,6 @@ function P:new (conf)
     _getbrakesuppression = conf.getbrakesuppression or function () return false end,
     _doalert = conf.doalert or function () end,
     _countdown_s = conf.countdown_s or 7,
-    -- Rates are taken fom the Train Sim World: Northeast Corridor New York manual.
-    -- The units are given as m/s/s, but the implied rates would be impossible to
-    -- achieve, so I suspect they are supposed to be mph/s.
-    _suppressing_mps2 = conf.suppressing_mps2 or -0.5*Units.mph.tomps,
-    _suppression_mps2 = conf.suppression_mps2 or -1.5*Units.mph.tomps,
     _speedmargin_mps = conf.speedmargin_mps or 3*Units.mph.tomps
   }
   setmetatable(o, self)
@@ -59,25 +50,6 @@ function P:isrunning ()
   return self._running
 end
 
-local function setsuppress (self)
-  while true do
-    self._accelaverage_mps2:sample(self._getacceleration_mps2())
-    local accel_mps2 = self._accelaverage_mps2:get()
-    local suppressingrate, suppressionrate
-    if self._getspeed_mps() >= 0 then
-      suppressingrate = accel_mps2 <= self._suppressing_mps2
-      suppressionrate = accel_mps2 <= self._suppression_mps2
-    else
-      suppressingrate = accel_mps2 >= -self._suppressing_mps2
-      suppressionrate = accel_mps2 >= -self._suppression_mps2
-    end
-    local brakesuppress = self._getbrakesuppression()
-    self._issuppressing = brakesuppress and suppressingrate
-    self._issuppression = brakesuppress and suppressionrate
-    self._sched:yield()
-  end
-end
-
 local function penalty (self)
   self._isalarm = true
   self._ispenalty = true
@@ -99,8 +71,8 @@ local function doenforce (self)
       nil,
       function () return self._enforce:poll() end,
       function () return not iscomplying(self) end)
-    -- Alarm phase. Acknowledge the alarm and reach the initial suppressing
-    -- deceleration rate.
+    -- Alarm phase. Acknowledge the alarm and place the brakes into
+    -- suppression.
     self._isalarm = true
     local acknowledged
     do
@@ -110,30 +82,20 @@ local function doenforce (self)
         function ()
           -- The player need only acknowledge the alarm once.
           ack = ack or self._getacknowledge()
-          return ack and (self._issuppressing or iscomplying(self))
+          return ack and (self:issuppression() or iscomplying(self))
         end
       ) ~= nil
     end
     if acknowledged then
-      -- Suppressing phase. Reach the suppression deceleration rate.
       self._isalarm = false
-      local suppressed = self._sched:select(
-        self._countdown_s,
-        function () return self._issuppression end,
-        function () return iscomplying(self) end
-      ) ~= nil
-      if suppressed then
-        -- Suppression phase. Maintain the suppression deceleration rate
-        -- until the train complies with the speed limit.
-        self._sched:select(
-          nil,
-          function () return not self._issuppression end,
-          function () return iscomplying(self) end)
-        -- From here, return to the beginning of the loop, either to wait for
-        -- the next enforcement action or to repeat it immediately.
-      else
-        penalty(self)
-      end
+      -- Suppression phase. Maintain this state until the train complies with
+      -- the speed limit.
+      self._sched:select(
+        nil,
+        function () return not self:issuppression() end,
+        function () return iscomplying(self) end)
+      -- From here, return to the beginning of the loop, either to wait for
+      -- the next enforcement action or to repeat it immediately.
     else
       penalty(self)
     end
@@ -144,10 +106,7 @@ end
 function P:start ()
   if not self._running then
     self._running = true
-    self._coroutines = {
-      self._sched:run(setsuppress, self),
-      self._sched:run(doenforce, self)
-    }
+    self._coroutines = {self._sched:run(doenforce, self)}
     if not self._sched:isstartup() then
       self._sched:alert("ATC", "Cut In")
     end
@@ -181,14 +140,9 @@ function P:isalarm ()
   return self._isalarm
 end
 
--- Returns true when the suppressing deceleration rate is achieved.
-function P:issuppressing ()
-  return self._issuppressing
-end
-
--- Returns true when the suppression deceleration rate is achieved.
+-- Returns true when the suppression state is achieved.
 function P:issuppression ()
-  return self._issuppression
+  return self._getbrakesuppression()
 end
 
 -- Returns true when a penalty brake is applied.
