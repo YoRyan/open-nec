@@ -248,6 +248,13 @@ local function setspeedometer()
                             adu:getredzone_mph(state.speed_mps))
 end
 
+local function setcutin()
+  -- Reverse the polarities so that safety systems are on by default.
+  -- ACSES and ATC shortcuts are reversed on NJT stock.
+  atc:setrunstate(RailWorks.GetControlValue("ACSES", 0) == 0)
+  acses:setrunstate(RailWorks.GetControlValue("ATC", 0) == 0)
+end
+
 local function setcablight()
   local dome = RailWorks.GetControlValue("CabLight", 0)
   RailWorks.ActivateNode("cablights", dome == 1)
@@ -312,6 +319,7 @@ local function updateplayer()
 
   writelocostate()
   setspeedometer()
+  setcutin()
   setcablight()
   setditchlights()
   setstatuslights()
