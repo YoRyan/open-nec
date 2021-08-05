@@ -17,7 +17,7 @@ There is also a known bug with the June 4, 2020 version of Fan Railer's mod: The
 - The original New York-Philadelphia destination signs have been replaced with new signs that cover every station stop on the Acela's route from Washington to Boston.
     - In addition, you may hold the destination selector to the left or to the right to continuously scroll through destinations.
 - In addition to ATC and ACSES, an alerter has been installed.
-- Press Ctrl+D to disable and enable ATC, and Ctrl+F to disable and enable ACSES. Both systems are turned on by default.
+- Press Ctrl+D to disable and enable ATC, and Ctrl+F to disable and enable ACSES. Both systems are turned on by default. If both systems are turned off, the alerter is also turned off.
 
 ### Errata
 

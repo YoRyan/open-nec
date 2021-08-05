@@ -7,3 +7,4 @@ The Open NEC Project modifies the Multilevel cab car to include functional cab s
 ### New features
 
 - For the MARC version, the destination signs have been retextured to show "MARC", "No Passengers", "Union Station", "Penn Station", "Martin State Airport", and "Perryville".
+- Press Ctrl+D to disable and enable ATC, and Ctrl+F to disable and enable ACSES. Both systems are turned on by default. There is also an alerter that, if both ATC and ACSES are turned off, is also turned off.
