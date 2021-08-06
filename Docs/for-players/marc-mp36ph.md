@@ -4,6 +4,10 @@ The MPI MP36PH is a diesel locomotive included with the Washington to Baltimore 
 
 The Open NEC Project modifies the MP36PH to include functional cab signaling, ATC, and ACSES systems.
 
+### New features
+
+- Press Ctrl+D to disable and enable ATC, and Ctrl+F to disable and enable ACSES. Both systems are turned on by default. There is also an alerter that, if both ATC and ACSES are turned off, is also turned off.
+
 ### Errata
 
 - The advanced braking feature is temporarily not implemented.

@@ -167,6 +167,15 @@ local function setspeedometer()
   RailWorks.SetControlValue("SpeedoUnits", 0, getdigit(speed_mph, 0))
 end
 
+local function setcutin()
+  -- Reverse the polarities so that safety systems are on by default.
+  local atcon = RailWorks.GetControlValue("ATCCutIn", 0) == 0
+  local acseson = RailWorks.GetControlValue("ACSESCutIn", 0) == 0
+  atc:setrunstate(atcon)
+  acses:setrunstate(acseson)
+  alerter:setrunstate(atcon or acseson)
+end
+
 local function setadu()
   do
     local aspect = adu:getaspect()
@@ -296,6 +305,7 @@ local function updateplayer()
 
   writelocostate()
   setspeedometer()
+  setcutin()
   setadu()
   setcablight()
   setheadlight()

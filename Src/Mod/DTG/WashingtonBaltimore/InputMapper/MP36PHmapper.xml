@@ -1,0 +1,794 @@
+<?xml version="1.0" encoding="utf-8"?>
+<cBlueprintLoader xmlns:d="http://www.kuju.com/TnT/2003/Delta" d:version="1.0">
+	<Blueprint>
+		<cInputMapperBlueprint>
+			<RemapperName d:type="cDeltaString">MP36PHmapper</RemapperName>
+			<Map>
+				<iInputMapper-cInputMapEntry d:id="56966">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_H</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">Headlights</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="56976">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_H</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">Headlights</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="56986">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_H</Button>
+					<ShiftButton d:type="cDeltaString">Shift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">Headlights</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="56996">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_H</Button>
+					<ShiftButton d:type="cDeltaString">Shift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">Headlights</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57006">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_R</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">Rearlights</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57016">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_R</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">Rearlights</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57026">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_R</Button>
+					<ShiftButton d:type="cDeltaString">Shift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">Rearlights</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57036">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_R</Button>
+					<ShiftButton d:type="cDeltaString">Shift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">Headlights</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57046">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_U</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">ToggleControl</Name>
+					<Parameter d:type="cDeltaString">GlarePanels</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57056">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_V</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">ToggleControl</Name>
+					<Parameter d:type="cDeltaString">Wipers</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57066">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_Backspace</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">EmergencyBrake</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57076">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_W</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">Reverser</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57086">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_W</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">Reverser</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57096">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_S</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">Reverser</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57106">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_S</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">Reverser</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57116">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_A</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">ThrottleAndBrake</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57126">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_A</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">ThrottleAndBrake</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57136">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_D</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">ThrottleAndBrake</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57146">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_D</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">ThrottleAndBrake</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57156">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_Apostophe</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">VirtualBrake</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57166">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_Apostophe</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">VirtualBrake</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57176">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_SemiColon</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">VirtualBrake</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57186">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_SemiColon</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">VirtualBrake</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57196">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_Right_Bracket</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">VirtualEngineBrakeControl</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57206">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_Right_Bracket</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">VirtualEngineBrakeControl</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57216">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_Left_Bracket</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">VirtualEngineBrakeControl</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57226">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_Left_Bracket</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">VirtualEngineBrakeControl</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57236">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_Slash</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">ToggleControl</Name>
+					<Parameter d:type="cDeltaString">HandBrake</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57246">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_Q</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">AWSReset</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57256">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_Q</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">AWSReset</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57266">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_Z</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">ToggleControl</Name>
+					<Parameter d:type="cDeltaString">EngineStart</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57276">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_Z</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">ToggleControl</Name>
+					<Parameter d:type="cDeltaString">EngineStop</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57286">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_X</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">Sander</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57296">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_X</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">Sander</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57306">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_Space</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">Horn</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57316">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_Space</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">Horn</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57326">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_Period</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">VirtualDynamicBrake</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57336">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_Period</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">VirtualDynamicBrake</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57346">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_Comma</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">VirtualDynamicBrake</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57356">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_Comma</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">VirtualDynamicBrake</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57366">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_Q</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">WarningSystemReset</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57376">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_Q</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">WarningSystemReset</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57386">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_Z</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">StartShutdown</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57396">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_Z</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">StartShutdown</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57406">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_K</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">ToggleControl</Name>
+					<Parameter d:type="cDeltaString">StepsLight</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57416">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_J</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">ToggleControl</Name>
+					<Parameter d:type="cDeltaString">DitchLights</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57426">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_L</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">ToggleControl</Name>
+					<Parameter d:type="cDeltaString">CabLight</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57436">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_I</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">ToggleControl</Name>
+					<Parameter d:type="cDeltaString">GaugeLights</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57446">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_Z</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">ToggleControl</Name>
+					<Parameter d:type="cDeltaString">Startup</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57456">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_B</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">ToggleControl</Name>
+					<Parameter d:type="cDeltaString">Bell</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57466">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Controller</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">JoystickButton03</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">Horn</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57476">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Controller</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">JoystickButton03</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">Horn</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57486">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_1</Button>
+					<ShiftButton d:type="cDeltaString">Shift_Control</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">BrakeDifficulty</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57496">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_2</Button>
+					<ShiftButton d:type="cDeltaString">Shift_Control</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">BrakeDifficulty</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57506">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_1</Button>
+					<ShiftButton d:type="cDeltaString">Shift_Control</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">BrakeDifficulty</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57516">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_2</Button>
+					<ShiftButton d:type="cDeltaString">Shift_Control</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">BrakeDifficulty</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57526">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_Right_Bracket</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">VirtualEngineBrakeControl</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57536">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_Right_Bracket</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">VirtualEngineBrakeControl</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57546">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_Left_Bracket</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">VirtualEngineBrakeControl</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57556">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_Left_Bracket</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">VirtualEngineBrakeControl</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57566">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_N</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">ToggleControl</Name>
+					<Parameter d:type="cDeltaString">NumberLights</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57576">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_S</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">ToggleControl</Name>
+					<Parameter d:type="cDeltaString">SimpleChangeDirection</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57586">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_A</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">SimpleThrottle</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57596">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_A</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">SimpleThrottle</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57606">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_D</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">SimpleThrottle</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57616">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_D</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStop</Name>
+					<Parameter d:type="cDeltaString">SimpleThrottle</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57626">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_Q</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">IncreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">AWSReset</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57636">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonUp</ButtonState>
+					<Button d:type="cDeltaString">Key_Q</Button>
+					<ShiftButton d:type="cDeltaString">NoShift</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">DecreaseControlStart</Name>
+					<Parameter d:type="cDeltaString">AWSReset</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57646">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_Z</Button>
+					<ShiftButton d:type="cDeltaString">Shift_Control</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">ToggleControl</Name>
+					<Parameter d:type="cDeltaString">HEP</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<!-- OpenNEC: Make Ctrl+D and Ctrl+F toggle ATC and ACSES. -->
+				<iInputMapper-cInputMapEntry d:id="57656">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_D</Button>
+					<ShiftButton d:type="cDeltaString">Control</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">ToggleControl</Name>
+					<Parameter d:type="cDeltaString">ATCCutIn</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<iInputMapper-cInputMapEntry d:id="57666">
+					<State d:type="sInt32">0</State>
+					<Device d:type="cDeltaString">Keyboard</Device>
+					<ButtonState d:type="cDeltaString">ButtonDown</ButtonState>
+					<Button d:type="cDeltaString">Key_F</Button>
+					<ShiftButton d:type="cDeltaString">Control</ShiftButton>
+					<Axis d:type="cDeltaString">NoAxis</Axis>
+					<Name d:type="cDeltaString">ToggleControl</Name>
+					<Parameter d:type="cDeltaString">ACSESCutIn</Parameter>
+					<NewState d:type="sInt32">0</NewState>
+				</iInputMapper-cInputMapEntry>
+				<!-- End OpenNEC. -->
+			</Map>
+			<MapItem/>
+		</cInputMapperBlueprint>
+	</Blueprint>
+</cBlueprintLoader>
