@@ -554,6 +554,7 @@
 					<Parameter d:type="cDeltaString">ACSESCutIn</Parameter>
 					<NewState d:type="sInt32">0</NewState>
 				</iInputMapper-cInputMapEntry>
+				<!-- OpenNEC: Make the Q key operate the acknowledge plunger. -->
 				<iInputMapper-cInputMapEntry d:id="43587">
 					<State d:type="sInt32">0</State>
 					<Device d:type="cDeltaString">Keyboard</Device>
@@ -576,6 +577,7 @@
 					<Parameter d:type="cDeltaString">AWSReset</Parameter>
 					<NewState d:type="sInt32">0</NewState>
 				</iInputMapper-cInputMapEntry>
+				<!-- End OpenNEC. -->
 			</Map>
 			<MapItem>
 				<iInputMapper-cInputMapEntry d:id="43588">
