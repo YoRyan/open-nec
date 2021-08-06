@@ -65,42 +65,77 @@ end
 -- Parse a signal message. Returns the communicated ATC and ACSES status codes.
 -- Returns nil if the message cannot be parsed.
 function P.parsesigmessage (message)
-  -- Signals that have been upgraded to use "native" messages
-  local _, _, pulsecodestr, acsescodestr =
-    string.find(message, "%.OpenNEC%.cab%.%.([^%.]+)%.([^%.]+)")
-  if pulsecodestr ~= nil then
-    return tonumber(pulsecodestr), tonumber(acsescodestr)
-  -- Amtrak/NJ Transit signals
-  elseif string.sub(message, 1, 3) == "sig" then
-    local code = string.sub(message, 4, 4)
-    if code == "1" then
-      return P.pulsecode.clear125, P.acsescode.none
-    elseif code == "2" then
-      return P.pulsecode.cabspeed80, P.acsescode.none
-    elseif code == "3" then
-      return P.pulsecode.cabspeed60, P.acsescode.none
-    elseif code == "4" then
-      return P.pulsecode.approachmed, P.acsescode.none
-    elseif code == "5" then
-      return P.pulsecode.approachmed, P.acsescode.approachmed30
-    elseif code == "6" then
-      return P.pulsecode.approach, P.acsescode.none
-    elseif code == "7" then
-      return P.pulsecode.restrict, P.acsescode.none
+  -- OpenNEC signals
+  do
+    local _, _, pulsecode, acsescode =
+      string.find(message, "%.OpenNEC%.cab%.%.([^%.]+)%.([^%.]+)")
+    if pulsecode ~= nil then
+      return tonumber(pulsecode), tonumber(acsescode)
     end
+  end
+  -- Washington-Baltimore signals
+  do
+    local _, _, sig, speed = string.find(message, "sig(%d)speed(%d+)")
+    if sig ~= nil then
+      if sig == "1" and speed == "150" then
+        return P.pulsecode.clear150, P.acsescode.none
+      elseif sig == "1" and speed == "125" then
+        return P.pulsecode.clear125, P.acsescode.none
+      elseif sig == "1" and speed == "100" then
+        return P.pulsecode.clear100, P.acsescode.none
+      elseif sig == "2" and speed == "100" then
+        return P.pulsecode.clear100, P.acsescode.none
+      elseif sig == "2" and speed == "80" then
+        return P.pulsecode.cabspeed80, P.acsescode.none
+      elseif sig == "3" and speed == "60" then
+        return P.pulsecode.cabspeed60, P.acsescode.none
+      elseif sig == "4" and speed == "45" then
+        return P.pulsecode.approachmed, P.acsescode.none
+      elseif sig == "5" and speed == "30" then
+        return P.pulsecode.approachmed, P.acsescode.approachmed30
+      elseif sig == "6" and speed == "30" then
+        return P.pulsecode.approach, P.acsescode.none
+      elseif sig == "7" and speed == "20" then
+        return P.pulsecode.restrict, P.acsescode.none
+      end
+    end
+  end
+  -- Amtrak/NJ Transit signals
+  do
+    local _, _, sig = string.find(message, "sig(%d)")
+    if sig ~= nil then
+      if sig == "1" then
+        return P.pulsecode.clear125, P.acsescode.none
+      elseif sig == "2" then
+        return P.pulsecode.cabspeed80, P.acsescode.none
+      elseif sig == "3" then
+        return P.pulsecode.cabspeed60, P.acsescode.none
+      elseif sig == "4" then
+        return P.pulsecode.approachmed, P.acsescode.none
+      elseif sig == "5" then
+        return P.pulsecode.approachmed, P.acsescode.approachmed30
+      elseif sig == "6" then
+        return P.pulsecode.approach, P.acsescode.none
+      elseif sig == "7" then
+        return P.pulsecode.restrict, P.acsescode.none
+      end
+    end
+  end
   -- Metro-North signals
-  elseif string.find(message, "[MN]") == 1 then
-    local code = string.sub(message, 2, 3)
-    if code == "10" then
-      return P.pulsecode.clear125, P.acsescode.none
-    elseif code == "11" then
-      return P.pulsecode.approachmed, P.acsescode.none
-    elseif code == "12" then
-      return P.pulsecode.approach, P.acsescode.none
-    elseif code == "13" or code == "14" then
-      return P.pulsecode.restrict, P.acsescode.none
-    elseif code == "15" then
-      return P.pulsecode.restrict, P.acsescode.none
+  do
+    local _, _, code = string.find(message, "[MN](%d%d)")
+    if code ~= nil then
+      if code == "10" then
+        return P.pulsecode.clear125, P.acsescode.none
+      elseif code == "11" then
+        return P.pulsecode.approachmed, P.acsescode.none
+      elseif code == "12" then
+        return P.pulsecode.approach, P.acsescode.none
+      elseif code == "13" or code == "14" then
+        return P.pulsecode.restrict, P.acsescode.none
+      elseif code == "15" then
+        return P.pulsecode.restrict, P.acsescode.none
+      end
     end
   end
   return nil, nil
