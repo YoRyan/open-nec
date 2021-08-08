@@ -10,6 +10,7 @@ Adu = P
 function P:new (conf)
   local sched = conf.scheduler
   local o = {
+    _cabsig = conf.cabsignal,
     _atc = conf.atc,
     _acses = conf.acses,
     _atcalert = Tone:new{

@@ -37,12 +37,12 @@ end
 
 -- Get the currently displayed cab signal aspect.
 function P:getaspect ()
-  local atcmode = self._atc:getpulsecode()
-  if atcmode == Nec.pulsecode.restrict then
+  local atccode = self._atc:getpulsecode()
+  if atccode == Nec.pulsecode.restrict then
     return P.aspect.restrict
-  elseif atcmode == Nec.pulsecode.approach then
+  elseif atccode == Nec.pulsecode.approach then
     return P.aspect.medium
-  elseif atcmode == Nec.pulsecode.approachmed then
+  elseif atccode == Nec.pulsecode.approachmed then
     return P.aspect.limited
   else
     return P.aspect.clear

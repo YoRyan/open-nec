@@ -3,23 +3,22 @@
 local P = {}
 Atc = P
 
-local debugsignals = false
 local stopspeed_mps = 0.01
 
 local function initstate (self)
   self._running = false
   self._isalarm = false
   self._ispenalty = false
-  self._pulsecode = Nec.pulsecode.restrict
+  self._lastpulsecode = nil
   self._enforce = Event:new{scheduler=self._sched}
   self._coroutines = {}
 end
 
--- From the main coroutine, create a new Atc context. This will add coroutines
--- to the provided scheduler.
+-- From the main coroutine, create a new Atc context.
 function P:new (conf)
   local o = {
     _sched = conf.scheduler,
+    _cabsig = conf.cabsignal,
     _getspeed_mps = conf.getspeed_mps or function () return 0 end,
     _getacceleration_mps2 = conf.getacceleration_mps2 or function () return 0 end,
     _getacknowledge = conf.getacknowledge or function () return false end,
@@ -50,6 +49,14 @@ function P:isrunning ()
   return self._running
 end
 
+local function setstate (self)
+  local pulsecode = self._cabsig:getpulsecode()
+  if self._lastpulsecode ~= nil and pulsecode < self._lastpulsecode then
+    self._enforce:trigger()
+  end
+  self._lastpulsecode = pulsecode
+end
+
 local function penalty (self)
   self._isalarm = true
   self._ispenalty = true
@@ -61,7 +68,7 @@ local function penalty (self)
 end
 
 local function iscomplying (self)
-  local limit_mps = self._getpulsecodespeed_mps(self._pulsecode)
+  local limit_mps = self:getinforcespeed_mps()
   return self._getspeed_mps() <= limit_mps + self._speedmargin_mps
 end
 
@@ -106,7 +113,10 @@ end
 function P:start ()
   if not self._running then
     self._running = true
-    self._coroutines = {self._sched:run(doenforce, self)}
+    self._coroutines = {
+      self._sched:run(setstate, self),
+      self._sched:run(doenforce, self)
+    }
     if not self._sched:isstartup() then
       self._sched:alert("ATC", "Cut In")
     end
@@ -125,14 +135,18 @@ function P:stop ()
   end
 end
 
--- Get the current pulse code in effect.
+-- Get the current pulse code aspect in effect.
 function P:getpulsecode ()
-  return self._pulsecode
+  if self._running then
+    return self._cabsig:getpulsecode()
+  else
+    return Nec.pulsecode.restrict
+  end
 end
 
 -- Get the current signal speed limit in force.
 function P:getinforcespeed_mps ()
-  return self._getpulsecodespeed_mps(self._pulsecode)
+  return self._getpulsecodespeed_mps(self._cabsig:getpulsecode())
 end
 
 -- Returns true when the alarm is sounding.
@@ -181,24 +195,6 @@ function P.mtapulsecodespeed_mps (pulsecode)
     return 15*Units.mph.tomps
   else
     return P.amtrakpulsecodespeed_mps(pulsecode)
-  end
-end
-
--- Receive a custom signal message.
-function P:receivemessage (message)
-  if self._running then
-    local newcode, _ = Nec.parsesigmessage(message)
-    if newcode ~= nil then
-      if newcode < self._pulsecode and not self._sched:isstartup() then
-        self._enforce:trigger()
-      elseif newcode > self._pulsecode then
-        self._doalert()
-      end
-      self._pulsecode = newcode
-    end
-  end
-  if debugsignals then
-    self._sched:alert(message)
   end
 end
 

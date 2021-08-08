@@ -5,6 +5,7 @@
 -- @include SafetySystems/AspectDisplay/NjTransitDigital.lua
 -- @include SafetySystems/Alerter.lua
 -- @include SafetySystems/Atc.lua
+-- @include Signals/CabSignal.lua
 -- @include Animation.lua
 -- @include Flash.lua
 -- @include Iterator.lua
@@ -13,6 +14,7 @@
 -- @include Units.lua
 local playersched
 local anysched
+local cabsig
 local atc
 local acses
 local adu
@@ -61,8 +63,11 @@ Initialise = RailWorks.wraperrors(function()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
 
+  cabsig = CabSignal:new{scheduler = playersched}
+
   atc = Atc:new{
     scheduler = playersched,
+    cabsignal = cabsig,
     getspeed_mps = function() return state.speed_mps end,
     getacceleration_mps2 = function() return state.acceleration_mps2 end,
     getacknowledge = function() return state.acknowledge end,
@@ -72,6 +77,7 @@ Initialise = RailWorks.wraperrors(function()
 
   acses = Acses:new{
     scheduler = playersched,
+    cabsignal = cabsig,
     getspeed_mps = function() return state.speed_mps end,
     gettrackspeed_mps = function() return state.trackspeed_mps end,
     getconsistlength_m = function() return state.consistlength_m end,
@@ -85,6 +91,7 @@ Initialise = RailWorks.wraperrors(function()
   local onebeep_s = 1
   adu = NjTransitDigitalAdu:new{
     scheduler = playersched,
+    cabsignal = cabsig,
     atc = atc,
     atcalert_s = onebeep_s,
     acses = acses,
@@ -399,8 +406,7 @@ OnControlValueChange = RailWorks.wraperrors(
   end)
 
 OnCustomSignalMessage = RailWorks.wraperrors(function(message)
-  atc:receivemessage(message)
-  acses:receivemessage(message)
+  cabsig:receivemessage(message)
 end)
 
 OnConsistMessage = RailWorks.Engine_SendConsistMessage

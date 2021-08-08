@@ -31,7 +31,6 @@ local function initstate (self)
   self._currenthazardid = {}
   self._isabovealertcurve = false
   self._isabovepenaltycurve = false
-  self._issigrestricting = true
   self._movingdirection = direction.forward
   self._limitfilter = nil
   self._trackspeed = nil
@@ -46,6 +45,8 @@ function P:new (conf)
   local o = {
     _sched =
       conf.scheduler,
+    _cabsig =
+      conf.cabsignal,
     _getspeed_mps =
       conf.getspeed_mps or function () return 0 end,
     _gettrackspeed_mps =
@@ -315,7 +316,8 @@ local function gethazardsdict (self)
   for k, hazard in iteradvancelimithazards(self) do
     hazards[k] = hazard
   end
-  if self._issigrestricting and not self._sched:isstartup() then
+  local isrestricting = self._cabsig:getpulsecode() == Nec.pulsecode.restrict
+  if isrestricting and not self._sched:isstartup() then
     for k, hazard in iterstopsignalhazards(self) do
       hazards[k] = hazard
     end
@@ -570,16 +572,6 @@ function P:getmode ()
     return P.mode.positivestop
   else
     return P.mode.normal
-  end
-end
-
--- Receive a custom signal message.
-function P:receivemessage (message)
-  if self._running then
-    local pulsecode, _ = Nec.parsesigmessage(message)
-    if pulsecode ~= nil then
-      self._issigrestricting = pulsecode == Nec.pulsecode.restrict
-    end
   end
 end
 
