@@ -97,6 +97,7 @@ Initialise = RailWorks.wraperrors(function()
     scheduler = sched,
     getspeed_mps = function() return state.speed_mps end
   }
+  alerter:start()
 
   local ditchflash_s = 1
   ditchflasher = Flash:new{
@@ -151,6 +152,16 @@ local function writelocostate()
     local alert = adu:isatcalert() or adu:isacsesalert()
     RailWorks.SetControlValue("AlerterAudible", 0,
                               RailWorks.frombool(alarm or alert))
+  end
+end
+
+local function setcutin()
+  if not sched:isstartup() then
+    local atcon = RailWorks.GetControlValue("ATCCutIn", 0) == 1
+    local acseson = RailWorks.GetControlValue("ACSESCutIn", 0) == 1
+    atc:setrunstate(atcon)
+    acses:setrunstate(acseson)
+    alerter:setrunstate(atcon or acseson)
   end
 end
 
@@ -282,6 +293,7 @@ local function updateplayer()
   sched:update()
 
   writelocostate()
+  setcutin()
   setdynamicbraketab()
   setadu()
   setdisplay()
