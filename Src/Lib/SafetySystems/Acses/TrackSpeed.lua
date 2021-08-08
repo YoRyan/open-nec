@@ -65,7 +65,7 @@ function P:new (conf)
     _limittracker = conf.speedlimittracker,
     _gettrackspeed_mps = conf.gettrackspeed_mps or function () return 0 end,
     _getconsistlength_m = conf.getconsistlength_m or function () return 0 end,
-    _sensedspeed_mps = 0
+    _sensedspeed_mps = nil
   }
   setmetatable(o, self)
   self.__index = self

@@ -295,10 +295,14 @@ local function iterstopsignalhazards (self)
 end
 
 local function itercurrentlimithazards (self)
-  local limits = {self._trackspeed:gettrackspeed_mps()}
-  if self._consistspeed_mps ~= nil then
-    table.insert(limits, self._consistspeed_mps)
+  local limits = {}
+  local insertnonnil = function (t, v)
+    if v ~= nil then
+      table.insert(t, v)
+    end
   end
+  insertnonnil(limits, self._trackspeed:gettrackspeed_mps())
+  insertnonnil(limits, self._consistspeed_mps)
   return Iterator.map(
     function (_, speed_mps)
       return {hazardtype.currentlimit, speed_mps}, {
