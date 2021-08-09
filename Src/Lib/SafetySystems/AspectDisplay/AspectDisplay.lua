@@ -96,4 +96,9 @@ function P:getcivilspeed_mph ()
   return toroundedmph(self._acses:getinforcespeed_mps())
 end
 
+-- Get the current civil (track) braking curve speed limit.
+function P:getcivilcurvespeed_mph ()
+  return toroundedmph(self._acses:getcurvespeed_mps())
+end
+
 return P

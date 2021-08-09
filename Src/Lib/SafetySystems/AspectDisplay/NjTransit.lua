@@ -33,18 +33,14 @@ end
 
 -- Get the combined ATC/ACSES speed limit.
 function P:getcombinedlimit_mph ()
-  local signalspeed_mph = Adu.getsignalspeed_mph(self)
-  local civilspeed_mph = self._acses:getcurvespeed_mps(self)*Units.mps.tomph
-  local atccutin = self._atc:isrunning()
-  local acsescutin = self._acses:isrunning()
-  if atccutin and acsescutin then
-    return math.min(signalspeed_mph, civilspeed_mph)
-  elseif atccutin then
-    return signalspeed_mph
-  elseif acsescutin then
-    return civilspeed_mph
+  local atc_mph = self._atc:isrunning() and Adu.getsignalspeed_mph(self)
+    or nil
+  local acses_mph = self._acses:isrunning() and Adu.getcivilcurvespeed_mph(self)
+    or nil
+  if atc_mph ~= nil and acses_mph ~= nil then
+    return math.min(atc_mph, acses_mph)
   else
-    return nil
+    return atc_mph ~= nil and atc_mph or acses_mph
   end
 end
 

@@ -92,18 +92,12 @@ end
 
 -- Get the current speed limit in force.
 function P:getspeedlimit_mph ()
-  local signalspeed_mph = Adu.getsignalspeed_mph(self)
-  local civilspeed_mph = Adu.getcivilspeed_mph(self)
-  local atccutin = self:atccutin()
-  local acsescutin = self:acsescutin()
-  if atccutin and acsescutin then
-    return math.min(signalspeed_mph, civilspeed_mph)
-  elseif atccutin then
-    return signalspeed_mph
-  elseif acsescutin then
-    return civilspeed_mph
+  local atc_mph = self:atccutin() and Adu.getsignalspeed_mph(self) or nil
+  local acses_mph = self.acsescutin() and Adu.getcivilspeed_mph(self) or nil
+  if atc_mph ~= nil and acses_mph ~= nil then
+    return math.min(atc_mph, acses_mph)
   else
-    return nil
+    return atc_mph ~= nil and atc_mph or acses_mph
   end
 end
 
