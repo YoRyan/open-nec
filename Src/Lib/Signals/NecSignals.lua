@@ -2,18 +2,18 @@
 local P = {}
 Nec = P
 
-P.pulsecode = {restrict=0,
-               approach=1,
-               approachmed=2,
-               cabspeed60=3,
-               cabspeed80=4,
-               clear100=5,
-               clear125=6,
-               clear150=7}
+P.pulsecode = {
+  restrict = 0,
+  approach = 1,
+  approachmed = 2,
+  cabspeed60 = 3,
+  cabspeed80 = 4,
+  clear100 = 5,
+  clear125 = 6,
+  clear150 = 7
+}
 
-P.acsescode = {none=0,
-               approachmed45to30=1,
-               approachmed30=2}
+P.acsescode = {none = 0, approachmed45to30 = 1, approachmed30 = 2}
 
 P.cabspeedflash_s = 0.5
 
@@ -33,13 +33,11 @@ P.waysideflash_s = 0.5
 
 -- Determine if the provided wayside head state will require a continuous flash
 -- effect.
-function P.iswaysideflash (head)
-  return head >= P.waysidehead.flashgreen
-end
+function P.iswaysideflash(head) return head >= P.waysidehead.flashgreen end
 
 -- Get the Amtrak/NJ Transit signal message that corresponds to a combo of ATC
 -- and ACSES status codes. Is backwards compatible with Dovetail engine scripts.
-function P.amtraksigmessage (pulsecode, acsescode)
+function P.amtraksigmessage(pulsecode, acsescode)
   local prefix
   if pulsecode == P.pulsecode.restrict then
     prefix = "sig8"
@@ -51,27 +49,24 @@ function P.amtraksigmessage (pulsecode, acsescode)
     prefix = "sig3"
   elseif pulsecode == P.pulsecode.cabspeed80 then
     prefix = "sig2"
-  elseif pulsecode == P.pulsecode.clear100
-      or pulsecode == P.pulsecode.clear125
-      or pulsecode == P.pulsecode.clear150 then
+  elseif pulsecode == P.pulsecode.clear100 or pulsecode == P.pulsecode.clear125 or
+    pulsecode == P.pulsecode.clear150 then
     prefix = "sig1"
   else
     prefix = "sig0"
   end
-  return prefix .. "spd0.OpenNEC.cab.."
-    .. tostring(pulsecode) .. "." .. tostring(acsescode)
+  return prefix .. "spd0.OpenNEC.cab.." .. tostring(pulsecode) .. "." ..
+           tostring(acsescode)
 end
 
 -- Parse a signal message. Returns the communicated ATC and ACSES status codes.
 -- Returns nil if the message cannot be parsed.
-function P.parsesigmessage (message)
+function P.parsesigmessage(message)
   -- OpenNEC signals
   do
-    local _, _, pulsecode, acsescode =
-      string.find(message, "%.OpenNEC%.cab%.%.([^%.]+)%.([^%.]+)")
-    if pulsecode ~= nil then
-      return tonumber(pulsecode), tonumber(acsescode)
-    end
+    local _, _, pulsecode, acsescode = string.find(message,
+                                                   "%.OpenNEC%.cab%.%.([^%.]+)%.([^%.]+)")
+    if pulsecode ~= nil then return tonumber(pulsecode), tonumber(acsescode) end
   end
   -- Washington-Baltimore signals
   do

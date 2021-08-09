@@ -6,16 +6,14 @@ CabSignal = P
 
 local debugsignals = false
 
-local function initstate (self)
+local function initstate(self)
   self._pulsecode = Nec.pulsecode.restrict
   self._acsescode = Nec.acsescode.none
 end
 
 -- From the main coroutine, create a new CabSignal context.
-function P:new (conf)
-  local o = {
-    _sched = conf.scheduler
-  }
+function P:new(conf)
+  local o = {_sched = conf.scheduler}
   setmetatable(o, self)
   self.__index = self
   initstate(o)
@@ -23,25 +21,19 @@ function P:new (conf)
 end
 
 -- Receive a custom signal message and update the stored state.
-function P:receivemessage (message)
+function P:receivemessage(message)
   local pulsecode, acsescode = Nec.parsesigmessage(message)
   if pulsecode ~= nil then
     self._pulsecode = pulsecode
     self._acsescode = acsescode
   end
-  if debugsignals then
-    self._sched:alert(message)
-  end
+  if debugsignals then self._sched:alert(message) end
 end
 
 -- Get the current cab signal pulse code.
-function P:getpulsecode ()
-  return self._pulsecode
-end
+function P:getpulsecode() return self._pulsecode end
 
 -- Get the current ACSES status code.
-function P:getacsescode ()
-  return self._acsescode
-end
+function P:getacsescode() return self._acsescode end
 
 return P

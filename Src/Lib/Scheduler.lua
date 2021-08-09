@@ -4,7 +4,7 @@ local P = {}
 Scheduler = P
 
 -- From the main coroutine, create a new Scheduler context.
-function P:new (_)
+function P:new(_)
   local o = {
     _clock = 0,
     _infomessages = {},
@@ -17,7 +17,7 @@ function P:new (_)
 end
 
 -- From the main coroutine, create and start a new coroutine.
-function P:run (fn, ...)
+function P:run(fn, ...)
   local co = coroutine.create(fn)
   local resume = {coroutine.resume(co, unpack(arg))}
   if table.remove(resume, 1) then
@@ -28,7 +28,7 @@ function P:run (fn, ...)
   return co
 end
 
-local function restart (self, co, ...)
+local function restart(self, co, ...)
   for i, cond in ipairs(arg) do
     if cond() then
       local resume = {coroutine.resume(co, i)}
@@ -44,7 +44,7 @@ local function restart (self, co, ...)
 end
 
 -- From the main coroutine, update all active coroutines.
-function P:update ()
+function P:update()
   self._clock = RailWorks.GetSimulationTime()
   for co, conds in pairs(self._coroutines) do
     if coroutine.status(co) == "dead" then
@@ -54,48 +54,34 @@ function P:update ()
     end
   end
   -- Process message queues.
-  for _, arg in ipairs(self._infomessages) do
-    RailWorks.showinfo(unpack(arg))
-  end
+  for _, arg in ipairs(self._infomessages) do RailWorks.showinfo(unpack(arg)) end
   self._infomessages = {}
-  for _, arg in ipairs(self._alertmessages) do
-    RailWorks.showalert(unpack(arg))
-  end
+  for _, arg in ipairs(self._alertmessages) do RailWorks.showalert(unpack(arg)) end
   self._alertmessages = {}
 end
 
 -- Delete a coroutine from the scheduler.
-function P:kill (co)
-  self._coroutines[co] = nil
-end
+function P:kill(co) self._coroutines[co] = nil end
 
 -- Determine whether the simulator was just initialized a few seconds ago, so as
 -- not to nag the player with annoying alerts.
-function P:isstartup ()
-  return self:clock() < 3
-end
+function P:isstartup() return self:clock() < 3 end
 
 -- Get the clock time of the current update.
-function P:clock ()
-  return self._clock
-end
+function P:clock() return self._clock end
 
 -- Yield control until the next frame.
-function P:yield ()
-  self:select(0)
-end
+function P:yield() self:select(0) end
 
 -- Freeze execution for the given time.
-function P:sleep (time)
-  self:select(time)
-end
+function P:sleep(time) self:select(time) end
 
-local function resumenext () return true end
+local function resumenext() return true end
 
 -- Yield control until one of the provided functions returns true, or if the
 -- timeout is reached. A nil timeout is infinite. Returns the index of the
 -- condition that became true, or nil if the timeout was reached.
-function P:select (timeout, ...)
+function P:select(timeout, ...)
   if timeout == nil then
     return coroutine.yield(unpack(arg))
   else
@@ -103,7 +89,7 @@ function P:select (timeout, ...)
       table.insert(arg, resumenext)
     else
       local start = self:clock()
-      table.insert(arg, function () return self:clock() >= start + timeout end)
+      table.insert(arg, function() return self:clock() >= start + timeout end)
     end
     local which = coroutine.yield(unpack(arg))
     if which == table.getn(arg) then
@@ -115,13 +101,9 @@ function P:select (timeout, ...)
 end
 
 -- Push a message to the info message queue.
-function P:info (...)
-  table.insert(self._infomessages, arg)
-end
+function P:info(...) table.insert(self._infomessages, arg) end
 
 -- Push a message to the alert message queue.
-function P:alert (...)
-  table.insert(self._alertmessages, arg)
-end
+function P:alert(...) table.insert(self._alertmessages, arg) end
 
 return P

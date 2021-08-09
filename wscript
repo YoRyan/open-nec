@@ -102,8 +102,8 @@ def build(bld):
                     'OnCustomSignalMessage OnConsistMessage '
                     'OnSignalMessage OnConsistPass')
 
-    def maketask(cls, inputs, outputs):
-        task = cls(env=bld.env)
+    def maketask(cls, inputs, outputs, **kwargs):
+        task = cls(env=bld.env, **kwargs)
         task.set_inputs(inputs)
         task.set_outputs(outputs)
         return task
@@ -141,10 +141,10 @@ def build(bld):
             )
         elif ext == '.lua':
             libs = lualibs(src)
-            lint = maketask(Luacheck, [*libs, src], [])
-            lint.before = [LuaFormat]
-            format = maketask(LuaFormat, [src], [])
-            format.before = [Luac]
+            lint = maketask(Luacheck, [*libs, src], [],
+                            always_run=True, before=[LuaFormat])
+            format = maketask(LuaFormat, [*libs, src], [],
+                              always_run=True, before=[Luac])
             return (
                 lint,
                 format,
