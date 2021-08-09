@@ -2,7 +2,7 @@
 -- and MARC.
 -- @include RollingStock/Doors.lua
 -- @include SafetySystems/Acses/Acses.lua
--- @include SafetySystems/AspectDisplay/NjTransitDigital.lua
+-- @include SafetySystems/AspectDisplay/NjTransit.lua
 -- @include SafetySystems/Alerter.lua
 -- @include SafetySystems/Atc.lua
 -- @include Signals/CabSignal.lua
@@ -89,7 +89,7 @@ Initialise = RailWorks.wraperrors(function()
   }
 
   local onebeep_s = 1
-  adu = NjTransitDigitalAdu:new{
+  adu = NjTransitAdu:new{
     scheduler = playersched,
     cabsignal = cabsig,
     atc = atc,

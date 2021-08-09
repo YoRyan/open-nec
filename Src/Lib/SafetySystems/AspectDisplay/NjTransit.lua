@@ -1,11 +1,10 @@
--- An NJT-style integrated digital speedometer and ADU display. Maximum speed is
--- 120 mph.
+-- An NJT-style integrated speedometer and ADU display.
 
 -- @include SafetySystems/AspectDisplay/AspectDisplay.lua
 -- @include Signals/NecSignals.lua
 
 local P = {}
-NjTransitDigitalAdu = P
+NjTransitAdu = P
 
 -- Ensure we have inherited the properties of the base class, PiL-style.
 -- We can't run code on initialization in TS, so we do this in :new().
@@ -16,7 +15,7 @@ local function inherit (base)
   end
 end
 
--- Create a new NjTransitDigitalAdu context.
+-- Create a new NjTransitAdu context.
 function P:new (conf)
   inherit(Adu)
   local o = Adu:new(conf)
@@ -32,7 +31,8 @@ function P:isclearsignal ()
     or atccode == Nec.pulsecode.clear150
 end
 
-local function getspeedlimit_mph (self)
+-- Get the combined ATC/ACSES speed limit.
+function P:getcombinedlimit_mph ()
   local signalspeed_mph = Adu.getsignalspeed_mph(self)
   local civilspeed_mph = self._acses:getcurvespeed_mps(self)*Units.mps.tomph
   local atccutin = self._atc:isrunning()
@@ -53,7 +53,7 @@ function P:getgreenzone_mph (speed_mps)
   if not self._acses:isrunning() and self:isclearsignal() then
     return 0
   else
-    return getspeedlimit_mph(self) or 0
+    return self:getcombinedlimit_mph() or 0
   end
 end
 
@@ -63,7 +63,7 @@ function P:getredzone_mph (speed_mps)
     return 0
   else
     local aspeed_mph = math.abs(speed_mps)*Units.mps.tomph
-    local limit_mph = getspeedlimit_mph(self) or 0
+    local limit_mph = self:getcombinedlimit_mph() or 0
     if aspeed_mph > limit_mph then
       return aspeed_mph
     else
