@@ -295,23 +295,19 @@ local function iterstopsignalhazards (self)
 end
 
 local function itercurrentlimithazards (self)
-  local limits = {}
-  local insertnonnil = function (t, v)
-    if v ~= nil then
-      table.insert(t, v)
-    end
-  end
-  insertnonnil(limits, self._trackspeed:gettrackspeed_mps())
-  insertnonnil(limits, self._consistspeed_mps)
-  return Iterator.map(
-    function (_, speed_mps)
-      return {hazardtype.currentlimit, speed_mps}, {
-        inforce_mps = speed_mps,
-        penalty_mps = speed_mps + self._penaltylimit_mps,
-        alert_mps = speed_mps + self._alertlimit_mps
-      }
-    end,
-    ipairs(limits)
+  local track_mps =
+    self._trackspeed:gettrackspeed_mps()
+  local consist_mps =
+    self._consistspeed_mps
+  local limit_mps =
+    (consist_mps ~= nil and math.min(track_mps, consist_mps) or track_mps) or 0
+  return Iterator.singleton(
+    {hazardtype.currentlimit, limit_mps},
+    {
+      inforce_mps = limit_mps,
+      penalty_mps = limit_mps + self._penaltylimit_mps,
+      alert_mps = limit_mps + self._alertlimit_mps
+    }
   )
 end
 

@@ -269,4 +269,17 @@ function P.range (n)
   return iterrange, n, 0
 end
 
+-- An iterator that returns a single key-value pair.
+function P.singleton (k, v)
+  local returned = false
+  return function ()
+    if not returned then
+      returned = true
+      return k, v
+    else
+      return nil, nil
+    end
+  end, nil, nil
+end
+
 return P
