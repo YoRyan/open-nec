@@ -6,6 +6,7 @@
 -- @include Signals/CabSignal.lua
 -- @include Flash.lua
 -- @include Iterator.lua
+-- @include Misc.lua
 -- @include RailWorks.lua
 -- @include Scheduler.lua
 -- @include Units.lua
@@ -35,7 +36,7 @@ local state = {
   lasthorntime_s = nil
 }
 
-Initialise = RailWorks.wraperrors(function()
+Initialise = Misc.wraperrors(function()
   sched = Scheduler:new{}
 
   cabsig = CabSignal:new{scheduler = sched}
@@ -117,10 +118,10 @@ local function readlocostate()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
   state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
   state.consistlength_m = RailWorks.GetConsistLength()
-  state.speedlimits = Iterator.totable(RailWorks.iterspeedlimits(
+  state.speedlimits = Iterator.totable(Misc.iterspeedlimits(
                                          Acses.nlimitlookahead))
   state.restrictsignals = Iterator.totable(
-                            RailWorks.iterrestrictsignals(Acses.nsignallookahead))
+                            Misc.iterrestrictsignals(Acses.nsignallookahead))
 end
 
 local function writelocostate()
@@ -150,8 +151,8 @@ local function writelocostate()
   do
     local alert = adu:isatcalert() or adu:isacsesalert()
     local alarm = atc:isalarm() or acses:isalarm() or alerter:isalarm()
-    RailWorks.SetControlValue("TMS", 0, RailWorks.frombool(alert or alarm))
-    RailWorks.SetControlValue("AWSWarnCount", 0, RailWorks.frombool(alarm))
+    RailWorks.SetControlValue("TMS", 0, Misc.intbool(alert or alarm))
+    RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alarm))
   end
 end
 
@@ -240,10 +241,10 @@ local function setheadlight()
   local isdim = state.headlights >= 0.44 and state.headlights < 1.49 and
                   state.headlights ~= 1 -- set by AI?
   local isbright = state.headlights >= 1.49 or state.headlights == 1 -- set by AI?
-  Call("Headlight_01_Dim:Activate", RailWorks.frombool(isdim or isbright))
-  Call("Headlight_02_Dim:Activate", RailWorks.frombool(isdim or isbright))
-  Call("Headlight_01_Bright:Activate", RailWorks.frombool(isbright))
-  Call("Headlight_02_Bright:Activate", RailWorks.frombool(isbright))
+  Call("Headlight_01_Dim:Activate", Misc.intbool(isdim or isbright))
+  Call("Headlight_02_Dim:Activate", Misc.intbool(isdim or isbright))
+  Call("Headlight_01_Bright:Activate", Misc.intbool(isbright))
+  Call("Headlight_02_Bright:Activate", Misc.intbool(isbright))
 end
 
 local function setditchlights()
@@ -257,12 +258,12 @@ local function setditchlights()
   do
     local showleft = fixed or (flash and flashleft)
     RailWorks.ActivateNode("ditch_left", showleft)
-    Call("Ditch_L:Activate", RailWorks.frombool(showleft))
+    Call("Ditch_L:Activate", Misc.intbool(showleft))
   end
   do
     local showright = fixed or (flash and not flashleft)
     RailWorks.ActivateNode("ditch_right", showright)
-    Call("Ditch_R:Activate", RailWorks.frombool(showright))
+    Call("Ditch_R:Activate", Misc.intbool(showright))
   end
   RailWorks.ActivateNode("lights_dim", fixed or flash)
 end
@@ -270,10 +271,10 @@ end
 local function setrearlight()
   local isdim = state.rearlights >= 1 and state.rearlights < 2
   local isbright = state.rearlights == 2
-  Call("Rearlight_01_Dim:Activate", RailWorks.frombool(isdim or isbright))
-  Call("Rearlight_02_Dim:Activate", RailWorks.frombool(isdim or isbright))
-  Call("Rearlight_01_Bright:Activate", RailWorks.frombool(isbright))
-  Call("Rearlight_02_Bright:Activate", RailWorks.frombool(isbright))
+  Call("Rearlight_01_Dim:Activate", Misc.intbool(isdim or isbright))
+  Call("Rearlight_02_Dim:Activate", Misc.intbool(isdim or isbright))
+  Call("Rearlight_01_Bright:Activate", Misc.intbool(isbright))
+  Call("Rearlight_02_Bright:Activate", Misc.intbool(isbright))
 end
 
 local function sethep()
@@ -332,7 +333,7 @@ local function updateai()
   setrearlight()
 end
 
-Update = RailWorks.wraperrors(function(_)
+Update = Misc.wraperrors(function(_)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer()
   else
@@ -344,7 +345,7 @@ end)
 
 OnControlValueChange = RailWorks.SetControlValue
 
-OnCustomSignalMessage = RailWorks.wraperrors(function(message)
+OnCustomSignalMessage = Misc.wraperrors(function(message)
   cabsig:receivemessage(message)
 end)
 

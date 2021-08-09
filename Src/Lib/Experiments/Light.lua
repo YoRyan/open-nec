@@ -1,4 +1,7 @@
 -- Continuously turn a light on and off.
+
+-- @include Misc.lua
+
 local P = {}
 LightExperiment = P
 
@@ -24,7 +27,7 @@ function P:update ()
   if time - onoff_s >= self._lasttime then
     self._lasttime = time
     self._show = not self._show
-    Call(self._light .. ":Activate", RailWorks.frombool(self._show))
+    Call(self._light .. ":Activate", Misc.intbool(self._show))
   end
 end
 

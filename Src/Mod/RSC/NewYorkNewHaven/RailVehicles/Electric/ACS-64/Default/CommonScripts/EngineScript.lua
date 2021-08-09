@@ -8,6 +8,7 @@
 -- @include Signals/CabSignal.lua
 -- @include Flash.lua
 -- @include Iterator.lua
+-- @include Misc.lua
 -- @include MovingAverage.lua
 -- @include RailWorks.lua
 -- @include Scheduler.lua
@@ -41,7 +42,7 @@ local state = {
   lasthorntime_s = nil
 }
 
-Initialise = RailWorks.wraperrors(function()
+Initialise = Misc.wraperrors(function()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
 
@@ -138,10 +139,10 @@ local function readlocostate()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
   state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
   state.consistlength_m = RailWorks.GetConsistLength()
-  state.speedlimits = Iterator.totable(RailWorks.iterspeedlimits(
+  state.speedlimits = Iterator.totable(Misc.iterspeedlimits(
                                          Acses.nlimitlookahead))
   state.restrictsignals = Iterator.totable(
-                            RailWorks.iterrestrictsignals(Acses.nsignallookahead))
+                            Misc.iterrestrictsignals(Acses.nsignallookahead))
 
   if RailWorks.GetControlValue("PantographControl", 0) == 1 then
     power:setcollectors(Power.types.overhead)
@@ -195,10 +196,10 @@ local function writelocostate()
   do
     local alarm = atc:isalarm() or acses:isalarm()
     alarmonoff:setflashstate(alarm)
-    RailWorks.SetControlValue("AWSWarnCount", 0, RailWorks.frombool(alarm))
+    RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alarm))
     RailWorks.SetControlValue("SpeedReductionAlert", 0,
-                              RailWorks.frombool(alarmonoff:ison()))
-    RailWorks.SetControlValue("SpeedIncreaseAlert", 0, RailWorks.frombool(
+                              Misc.intbool(alarmonoff:ison()))
+    RailWorks.SetControlValue("SpeedIncreaseAlert", 0, Misc.intbool(
                                 adu:isatcalert() or adu:isacsesalert()))
   end
 end
@@ -218,7 +219,7 @@ local function setpantosparks()
   local rearcontact = RailWorks.GetControlValue("PantographControl", 0) == 1
   spark:setsparkstate(frontcontact or rearcontact)
   local isspark = spark:isspark()
-  RailWorks.SetControlValue("Spark", 0, RailWorks.frombool(isspark))
+  RailWorks.SetControlValue("Spark", 0, Misc.intbool(isspark))
 
   RailWorks.ActivateNode("PantoBsparkA", frontcontact and isspark)
   RailWorks.ActivateNode("PantoBsparkB", frontcontact and isspark)
@@ -226,7 +227,7 @@ local function setpantosparks()
   RailWorks.ActivateNode("PantoBsparkD", frontcontact and isspark)
   RailWorks.ActivateNode("PantoBsparkE", frontcontact and isspark)
   RailWorks.ActivateNode("PantoBsparkF", frontcontact and isspark)
-  Call("Spark1:Activate", RailWorks.frombool(frontcontact and isspark))
+  Call("Spark1:Activate", Misc.intbool(frontcontact and isspark))
 
   RailWorks.ActivateNode("PantoAsparkA", rearcontact and isspark)
   RailWorks.ActivateNode("PantoAsparkB", rearcontact and isspark)
@@ -234,7 +235,7 @@ local function setpantosparks()
   RailWorks.ActivateNode("PantoAsparkD", rearcontact and isspark)
   RailWorks.ActivateNode("PantoAsparkE", rearcontact and isspark)
   RailWorks.ActivateNode("PantoAsparkF", rearcontact and isspark)
-  Call("Spark2:Activate", RailWorks.frombool(rearcontact and isspark))
+  Call("Spark2:Activate", Misc.intbool(rearcontact and isspark))
 end
 
 local function toroundedmph(v) return math.floor(v * Units.mps.tomph + 0.5) end
@@ -286,9 +287,9 @@ local function setscreen()
     RailWorks.SetControlValue("AccelerationMPHPM", 0, accel_mphmin)
   end
   RailWorks.SetControlValue("ScreenSuppression", 0,
-                            RailWorks.frombool(atc:issuppression()))
+                            Misc.intbool(atc:issuppression()))
   RailWorks.SetControlValue("ScreenAlerter", 0,
-                            RailWorks.frombool(alerter:isalarm()))
+                            Misc.intbool(alerter:isalarm()))
 end
 
 local function setcutin()
@@ -373,9 +374,9 @@ local function setadu()
       RailWorks.SetControlValue("SpeedLimit_units", 0, getdigit(speed_mph, 0))
     end
     RailWorks.SetControlValue("SigModeATC", 0,
-                              RailWorks.frombool(adu:getatcindicator()))
+                              Misc.intbool(adu:getatcindicator()))
     RailWorks.SetControlValue("SigModeACSES", 0,
-                              RailWorks.frombool(adu:getacsesindicator()))
+                              Misc.intbool(adu:getacsesindicator()))
   end
   do
     local ttp_s = adu:gettimetopenalty_s()
@@ -391,13 +392,13 @@ local function setadu()
   end
   do
     local cutin = adu:atccutin()
-    RailWorks.SetControlValue("SigATCCutIn", 0, RailWorks.frombool(cutin))
-    RailWorks.SetControlValue("SigATCCutOut", 0, RailWorks.frombool(not cutin))
+    RailWorks.SetControlValue("SigATCCutIn", 0, Misc.intbool(cutin))
+    RailWorks.SetControlValue("SigATCCutOut", 0, Misc.intbool(not cutin))
   end
   do
     local cutin = adu:acsescutin()
-    RailWorks.SetControlValue("SigACSESCutIn", 0, RailWorks.frombool(cutin))
-    RailWorks.SetControlValue("SigACSESCutOut", 0, RailWorks.frombool(not cutin))
+    RailWorks.SetControlValue("SigACSESCutIn", 0, Misc.intbool(cutin))
+    RailWorks.SetControlValue("SigACSESCutOut", 0, Misc.intbool(not cutin))
   end
 end
 
@@ -410,11 +411,11 @@ local function setcablights()
   do
     local control = RailWorks.GetControlValue("DeskConsoleLight", 0)
 
-    local desk = RailWorks.frombool(control >= 1 and control < 3)
+    local desk = Misc.intbool(control >= 1 and control < 3)
     Call("Front_DeskLight_01:Activate", desk)
     Call("Rear_DeskLight_01:Activate", desk)
 
-    local console = RailWorks.frombool(control >= 2)
+    local console = Misc.intbool(control >= 2)
     Call("Front_ConsoleLight_01:Activate", console)
     Call("Front_ConsoleLight_02:Activate", console)
     Call("Front_ConsoleLight_03:Activate", console)
@@ -435,17 +436,17 @@ local function setditchlights()
   do
     local showleft = fixed or (flash and flashleft)
     RailWorks.ActivateNode("ditch_fwd_l", showleft)
-    Call("FrontDitchLightL:Activate", RailWorks.frombool(showleft))
+    Call("FrontDitchLightL:Activate", Misc.intbool(showleft))
   end
   do
     local showright = fixed or (flash and not flashleft)
     RailWorks.ActivateNode("ditch_fwd_r", showright)
-    Call("FrontDitchLightR:Activate", RailWorks.frombool(showright))
+    Call("FrontDitchLightR:Activate", Misc.intbool(showright))
   end
   RailWorks.ActivateNode("ditch_rev_l", false)
-  Call("RearDitchLightL:Activate", RailWorks.frombool(false))
+  Call("RearDitchLightL:Activate", Misc.intbool(false))
   RailWorks.ActivateNode("ditch_rev_r", false)
-  Call("RearDitchLightR:Activate", RailWorks.frombool(false))
+  Call("RearDitchLightR:Activate", Misc.intbool(false))
 end
 
 local function updateplayer()
@@ -477,7 +478,7 @@ local function updateai()
   setditchlights()
 end
 
-Update = RailWorks.wraperrors(function(_)
+Update = Misc.wraperrors(function(_)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer()
   else
@@ -487,7 +488,7 @@ end)
 
 OnControlValueChange = RailWorks.SetControlValue
 
-OnCustomSignalMessage = RailWorks.wraperrors(function(message)
+OnCustomSignalMessage = Misc.wraperrors(function(message)
   power:receivemessage(message)
   cabsig:receivemessage(message)
 end)

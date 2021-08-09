@@ -8,6 +8,7 @@
 -- @include Signals/CabSignal.lua
 -- @include Flash.lua
 -- @include Iterator.lua
+-- @include Misc.lua
 -- @include RailWorks.lua
 -- @include Scheduler.lua
 -- @include Units.lua
@@ -34,7 +35,7 @@ local state = {
   restrictsignals = {}
 }
 
-Initialise = RailWorks.wraperrors(function()
+Initialise = Misc.wraperrors(function()
   sched = Scheduler:new{}
 
   cabsig = CabSignal:new{scheduler = sched}
@@ -112,10 +113,10 @@ local function readlocostate()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
   state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
   state.consistlength_m = RailWorks.GetConsistLength()
-  state.speedlimits = Iterator.totable(RailWorks.iterspeedlimits(
+  state.speedlimits = Iterator.totable(Misc.iterspeedlimits(
                                          Acses.nlimitlookahead))
   state.restrictsignals = Iterator.totable(
-                            RailWorks.iterrestrictsignals(Acses.nsignallookahead))
+                            Misc.iterrestrictsignals(Acses.nsignallookahead))
   if RailWorks.GetControlValue("PantographControl", 0) == 1 then
     power:setcollectors(Power.types.overhead)
   else
@@ -161,16 +162,16 @@ local function writelocostate()
   RailWorks.SetControlValue("DynamicCurrent", 0,
                             math.abs(RailWorks.GetControlValue("Ammeter", 0)))
 
-  RailWorks.SetControlValue("AWS", 0, RailWorks.frombool(
+  RailWorks.SetControlValue("AWS", 0, Misc.intbool(
                               atc:isalarm() or acses:isalarm() or
                                 alerter:isalarm()))
   RailWorks.SetControlValue("AWSWarnCount", 0,
-                            RailWorks.frombool(alerter:isalarm()))
+                            Misc.intbool(alerter:isalarm()))
   do
     local alert = adu:isatcalert() or adu:isacsesalert()
     local alarm = atc:isalarm() or acses:isalarm()
     RailWorks.SetControlValue("OverSpeedAlert", 0,
-                              RailWorks.frombool(alert or alarm))
+                              Misc.intbool(alert or alarm))
   end
 end
 
@@ -236,7 +237,7 @@ local function setcutin()
   acses:setrunstate(speedcontrol)
 end
 
-Update = RailWorks.wraperrors(function(_)
+Update = Misc.wraperrors(function(_)
   if not RailWorks.GetIsEngineWithKey() then
     RailWorks.EndUpdate()
     return
@@ -259,7 +260,7 @@ end)
 
 OnControlValueChange = RailWorks.SetControlValue
 
-OnCustomSignalMessage = RailWorks.wraperrors(function(message)
+OnCustomSignalMessage = Misc.wraperrors(function(message)
   power:receivemessage(message)
   cabsig:receivemessage(message)
 end)

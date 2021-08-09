@@ -6,6 +6,7 @@
 -- @include Signals/CabSignal.lua
 -- @include Flash.lua
 -- @include Iterator.lua
+-- @include Misc.lua
 -- @include RailWorks.lua
 -- @include Scheduler.lua
 -- @include Units.lua
@@ -50,7 +51,7 @@ local function setenginenumber()
   RailWorks.SetControlValue("LocoUnits", 0, getdigit(number, 0))
 end
 
-Initialise = RailWorks.wraperrors(function()
+Initialise = Misc.wraperrors(function()
   setenginenumber()
 
   sched = Scheduler:new{}
@@ -132,10 +133,10 @@ local function readlocostate()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
   state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
   state.consistlength_m = RailWorks.GetConsistLength()
-  state.speedlimits = Iterator.totable(RailWorks.iterspeedlimits(
+  state.speedlimits = Iterator.totable(Misc.iterspeedlimits(
                                          Acses.nlimitlookahead))
   state.restrictsignals = Iterator.totable(
-                            RailWorks.iterrestrictsignals(Acses.nsignallookahead))
+                            Misc.iterrestrictsignals(Acses.nsignallookahead))
 end
 
 local function writelocostate()
@@ -151,7 +152,7 @@ local function writelocostate()
     local alarm = alerter:isalarm() or atc:isalarm() or acses:isalarm()
     local alert = adu:isatcalert() or adu:isacsesalert()
     RailWorks.SetControlValue("AlerterAudible", 0,
-                              RailWorks.frombool(alarm or alert))
+                              Misc.intbool(alarm or alert))
   end
 end
 
@@ -218,7 +219,7 @@ local function setdisplay()
     end
   end
   RailWorks.SetControlValue("AlerterVisual", 0,
-                            RailWorks.frombool(alerter:isalarm()))
+                            Misc.intbool(alerter:isalarm()))
 end
 
 local function setditchlights()
@@ -233,18 +234,18 @@ local function setditchlights()
   do
     local showleft = fixed or (flash and flashleft)
     RailWorks.ActivateNode("ditch_left", showleft)
-    Call("DitchLight_L:Activate", RailWorks.frombool(showleft))
+    Call("DitchLight_L:Activate", Misc.intbool(showleft))
   end
   do
     local showright = fixed or (flash and not flashleft)
     RailWorks.ActivateNode("ditch_right", showright)
-    Call("DitchLight_R:Activate", RailWorks.frombool(showright))
+    Call("DitchLight_R:Activate", Misc.intbool(showright))
   end
 end
 
 local setcablights
 do
-  local function activate(v) return RailWorks.frombool(v > 0.8) end
+  local function activate(v) return Misc.intbool(v > 0.8) end
   setcablights = function()
     -- engineer's side task light
     Call("CabLight_R:Activate",
@@ -312,7 +313,7 @@ local function updateai()
   setexhaust()
 end
 
-Update = RailWorks.wraperrors(function(_)
+Update = Misc.wraperrors(function(_)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer()
   else
@@ -322,7 +323,7 @@ end)
 
 OnControlValueChange = RailWorks.SetControlValue
 
-OnCustomSignalMessage = RailWorks.wraperrors(function(message)
+OnCustomSignalMessage = Misc.wraperrors(function(message)
   cabsig:receivemessage(message)
 end)
 

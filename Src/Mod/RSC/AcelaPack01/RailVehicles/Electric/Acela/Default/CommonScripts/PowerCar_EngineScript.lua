@@ -11,6 +11,7 @@
 -- @include Animation.lua
 -- @include Flash.lua
 -- @include Iterator.lua
+-- @include Misc.lua
 -- @include MovingAverage.lua
 -- @include RailWorks.lua
 -- @include Scheduler.lua
@@ -88,7 +89,7 @@ local function playawsclear()
   state.awsclearcount = math.mod(state.awsclearcount + 1, 2)
 end
 
-Initialise = RailWorks.wraperrors(function()
+Initialise = Misc.wraperrors(function()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
 
@@ -224,10 +225,10 @@ local function readlocostate()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
   state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
   state.consistlength_m = RailWorks.GetConsistLength()
-  state.speedlimits = Iterator.totable(RailWorks.iterspeedlimits(
+  state.speedlimits = Iterator.totable(Misc.iterspeedlimits(
                                          Acses.nlimitlookahead))
   state.restrictsignals = Iterator.totable(
-                            RailWorks.iterrestrictsignals(Acses.nsignallookahead))
+                            Misc.iterrestrictsignals(Acses.nsignallookahead))
 end
 
 local function haspower() return power:haspower() and state.startup end
@@ -281,7 +282,7 @@ local function writelocostate()
     RailWorks.SetControlValue("DynamicBrake", 0, v)
   end
 
-  RailWorks.SetControlValue("AWSWarnCount", 0, RailWorks.frombool(
+  RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(
                               alerter:isalarm() or atc:isalarm() or
                                 acses:isalarm()))
   RailWorks.SetControlValue("AWSClearCount", 0, state.awsclearcount)
@@ -337,11 +338,11 @@ local function setpantosparks()
 
   RailWorks.ActivateNode("Front_spark01", frontcontact and isspark)
   RailWorks.ActivateNode("Front_spark02", frontcontact and isspark)
-  Call("Spark:Activate", RailWorks.frombool(frontcontact and isspark))
+  Call("Spark:Activate", Misc.intbool(frontcontact and isspark))
 
   RailWorks.ActivateNode("Rear_spark01", rearcontact and isspark)
   RailWorks.ActivateNode("Rear_spark02", rearcontact and isspark)
-  Call("Spark2:Activate", RailWorks.frombool(rearcontact and isspark))
+  Call("Spark2:Activate", Misc.intbool(rearcontact and isspark))
 end
 
 local function settilt()
@@ -362,7 +363,7 @@ do
     local selected = destscroller:getselected()
     local destination, id = unpack(destinations[selected])
     if lastselected ~= selected then
-      RailWorks.showalert(destination)
+      Misc.showalert(destination)
       lastselected = selected
     end
 
@@ -383,7 +384,7 @@ end
 
 local function setstatusscreen()
   RailWorks.SetControlValue("ControlScreenIzq", 0,
-                            RailWorks.frombool(not haspower()))
+                            Misc.intbool(not haspower()))
   do
     local frontpantoup = frontpantoanim:getposition() == 1
     local rearpantoup = rearpantoanim:getposition() == 1
@@ -433,7 +434,7 @@ end
 
 local function setdrivescreen()
   RailWorks.SetControlValue("ControlScreenDer", 0,
-                            RailWorks.frombool(not haspower()))
+                            Misc.intbool(not haspower()))
   do
     local speed_mph = toroundedmph(state.speed_mps)
     RailWorks.SetControlValue("SPHundreds", 0, getdigit(speed_mph, 2))
@@ -529,13 +530,13 @@ local function setgroundlights()
     local showleft = fixed or (flash and flashleft)
     RailWorks.ActivateNode("LeftOn", showleft)
     RailWorks.ActivateNode("DitchLightsL", showleft)
-    Call("DitchLightLeft:Activate", RailWorks.frombool(showleft))
+    Call("DitchLightLeft:Activate", Misc.intbool(showleft))
   end
   do
     local showright = fixed or (flash and not flashleft)
     RailWorks.ActivateNode("RightOn", showright)
     RailWorks.ActivateNode("DitchLightsR", showright)
-    Call("DitchLightRight:Activate", RailWorks.frombool(showright))
+    Call("DitchLightRight:Activate", Misc.intbool(showright))
   end
 end
 
@@ -590,7 +591,7 @@ local function updateslave()
   setgroundlights()
 end
 
-Update = RailWorks.wraperrors(function(_)
+Update = Misc.wraperrors(function(_)
   -- -> [slave][coach]...[coach][player] ->
   -- -> [ai   ][coach]...[coach][ai    ] ->
   if RailWorks.GetIsEngineWithKey() then
@@ -604,12 +605,12 @@ end)
 
 OnControlValueChange = RailWorks.SetControlValue
 
-OnCustomSignalMessage = RailWorks.wraperrors(function(message)
+OnCustomSignalMessage = Misc.wraperrors(function(message)
   power:receivemessage(message)
   cabsig:receivemessage(message)
 end)
 
-OnConsistMessage = RailWorks.wraperrors(function(message, argument, direction)
+OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
   -- Cross the pantograph states. We assume the slave engine is flipped.
   if message == messageid.raisefrontpanto then
     state.raiserearpantomsg = argument == "true"

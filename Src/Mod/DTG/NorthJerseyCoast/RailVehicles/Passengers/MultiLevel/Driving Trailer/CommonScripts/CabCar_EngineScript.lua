@@ -9,6 +9,7 @@
 -- @include Animation.lua
 -- @include Flash.lua
 -- @include Iterator.lua
+-- @include Misc.lua
 -- @include RailWorks.lua
 -- @include Scheduler.lua
 -- @include Units.lua
@@ -59,7 +60,7 @@ local function getrvdestination()
   end
 end
 
-Initialise = RailWorks.wraperrors(function()
+Initialise = Misc.wraperrors(function()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
 
@@ -159,10 +160,10 @@ local function readlocostate()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
   state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
   state.consistlength_m = RailWorks.GetConsistLength()
-  state.speedlimits = Iterator.totable(RailWorks.iterspeedlimits(
+  state.speedlimits = Iterator.totable(Misc.iterspeedlimits(
                                          Acses.nlimitlookahead))
   state.restrictsignals = Iterator.totable(
-                            RailWorks.iterrestrictsignals(Acses.nsignallookahead))
+                            Misc.iterrestrictsignals(Acses.nsignallookahead))
 end
 
 local function writelocostate()
@@ -200,17 +201,17 @@ local function writelocostate()
     local alert = adu:isatcalert() or adu:isacsesalert()
 
     -- For the North Jersey Coast Line version.
-    RailWorks.SetControlValue("AWS", 0, RailWorks.frombool(
+    RailWorks.SetControlValue("AWS", 0, Misc.intbool(
                                 atcalarm or acsesalarm or alertalarm or alert))
     -- For all subsequent versions.
-    RailWorks.SetControlValue("ACSES_Alert", 0, RailWorks.frombool(alertalarm))
+    RailWorks.SetControlValue("ACSES_Alert", 0, Misc.intbool(alertalarm))
     RailWorks.SetControlValue("ACSES_AlertIncrease", 0,
-                              RailWorks.frombool(alert))
+                              Misc.intbool(alert))
     alarmonoff:setflashstate(atcalarm or acsesalarm)
     RailWorks.SetControlValue("ACSES_AlertDecrease", 0,
-                              RailWorks.frombool(alarmonoff:ison()))
+                              Misc.intbool(alarmonoff:ison()))
 
-    RailWorks.SetControlValue("AWSWarnCount", 0, RailWorks.frombool(
+    RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(
                                 atcalarm or acsesalarm or alertalarm))
   end
 end
@@ -283,12 +284,12 @@ local function setditchlights()
   do
     local showleft = fixed or (flash and flashleft)
     RailWorks.ActivateNode("ditch_left", showleft)
-    Call("Ditch_L:Activate", RailWorks.frombool(showleft))
+    Call("Ditch_L:Activate", Misc.intbool(showleft))
   end
   do
     local showright = fixed or (flash and not flashleft)
     RailWorks.ActivateNode("ditch_right", showright)
-    Call("Ditch_R:Activate", RailWorks.frombool(showright))
+    Call("Ditch_R:Activate", Misc.intbool(showright))
   end
 end
 
@@ -353,7 +354,7 @@ local function updateai()
   setdestination()
 end
 
-Update = RailWorks.wraperrors(function(_)
+Update = Misc.wraperrors(function(_)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer()
   else
@@ -361,7 +362,7 @@ Update = RailWorks.wraperrors(function(_)
   end
 end)
 
-OnControlValueChange = RailWorks.wraperrors(
+OnControlValueChange = Misc.wraperrors(
                          function(name, index, value)
     -- Synchronize headlight controls.
     if name == "HeadlightSwitch" then
@@ -405,7 +406,7 @@ OnControlValueChange = RailWorks.wraperrors(
     RailWorks.SetControlValue(name, index, value)
   end)
 
-OnCustomSignalMessage = RailWorks.wraperrors(function(message)
+OnCustomSignalMessage = Misc.wraperrors(function(message)
   cabsig:receivemessage(message)
 end)
 

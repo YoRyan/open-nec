@@ -10,6 +10,7 @@
 -- @include Animation.lua
 -- @include Flash.lua
 -- @include Iterator.lua
+-- @include Misc.lua
 -- @include MovingAverage.lua
 -- @include RailWorks.lua
 -- @include Scheduler.lua
@@ -53,7 +54,7 @@ local messageid = {
   raiserearpanto = 1208
 }
 
-Initialise = RailWorks.wraperrors(function()
+Initialise = Misc.wraperrors(function()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
 
@@ -167,10 +168,10 @@ local function readlocostate()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
   state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
   state.consistlength_m = RailWorks.GetConsistLength()
-  state.speedlimits = Iterator.totable(RailWorks.iterspeedlimits(
+  state.speedlimits = Iterator.totable(Misc.iterspeedlimits(
                                          Acses.nlimitlookahead))
   state.restrictsignals = Iterator.totable(
-                            RailWorks.iterrestrictsignals(Acses.nsignallookahead))
+                            Misc.iterrestrictsignals(Acses.nsignallookahead))
 end
 
 local function getdigit(v, place)
@@ -219,10 +220,10 @@ local function writelocostate()
     RailWorks.SetControlValue("DynamicBrake", 0, v)
   end
 
-  RailWorks.SetControlValue("AWSWarnCount", 0, RailWorks.frombool(
+  RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(
                               alerter:isalarm() or atc:isalarm() or
                                 acses:isalarm()))
-  RailWorks.SetControlValue("SpeedIncreaseAlert", 0, RailWorks.frombool(
+  RailWorks.SetControlValue("SpeedIncreaseAlert", 0, Misc.intbool(
                               adu:isatcalert() or adu:isacsesalert()))
 end
 
@@ -276,16 +277,16 @@ local function setpantosparks()
 
   RailWorks.ActivateNode("front_spark01", frontcontact and isspark)
   RailWorks.ActivateNode("front_spark02", frontcontact and isspark)
-  Call("Spark:Activate", RailWorks.frombool(frontcontact and isspark))
+  Call("Spark:Activate", Misc.intbool(frontcontact and isspark))
 
   RailWorks.ActivateNode("rear_spark01", rearcontact and isspark)
   RailWorks.ActivateNode("rear_spark02", rearcontact and isspark)
-  Call("Spark2:Activate", RailWorks.frombool(rearcontact and isspark))
+  Call("Spark2:Activate", Misc.intbool(rearcontact and isspark))
 end
 
 local function setstatusscreen()
   RailWorks.SetControlValue("ControlScreenIzq", 0,
-                            RailWorks.frombool(not power:haspower()))
+                            Misc.intbool(not power:haspower()))
   do
     local frontpantoup = frontpantoanim:getposition() == 1
     local rearpantoup = rearpantoanim:getposition() == 1
@@ -335,7 +336,7 @@ end
 
 local function setdrivescreen()
   RailWorks.SetControlValue("ControlScreenDer", 0,
-                            RailWorks.frombool(not power:haspower()))
+                            Misc.intbool(not power:haspower()))
   do
     local speed_mph = toroundedmph(state.speed_mps)
     RailWorks.SetControlValue("SPHundreds", 0, getdigit(speed_mph, 2))
@@ -428,17 +429,17 @@ local function setgroundlights()
   do
     local showleft = fixed or (flash and flashleft)
     RailWorks.ActivateNode("ditch_fwd_l", showleft)
-    Call("Fwd_DitchLightLeft:Activate", RailWorks.frombool(showleft))
+    Call("Fwd_DitchLightLeft:Activate", Misc.intbool(showleft))
   end
   do
     local showright = fixed or (flash and not flashleft)
     RailWorks.ActivateNode("ditch_fwd_r", showright)
-    Call("Fwd_DitchLightRight:Activate", RailWorks.frombool(showright))
+    Call("Fwd_DitchLightRight:Activate", Misc.intbool(showright))
   end
   RailWorks.ActivateNode("ditch_bwd_l", false)
-  Call("Bwd_DitchLightLeft:Activate", RailWorks.frombool(false))
+  Call("Bwd_DitchLightLeft:Activate", Misc.intbool(false))
   RailWorks.ActivateNode("ditch_bwd_r", false)
-  Call("Bwd_DitchLightRight:Activate", RailWorks.frombool(false))
+  Call("Bwd_DitchLightRight:Activate", Misc.intbool(false))
 end
 
 local function updateplayer()
@@ -487,7 +488,7 @@ local function updateslave()
   setgroundlights()
 end
 
-Update = RailWorks.wraperrors(function(_)
+Update = Misc.wraperrors(function(_)
   -- -> [slave][coach]...[coach][player] ->
   -- -> [ai   ][coach]...[coach][ai    ] ->
   if RailWorks.GetIsEngineWithKey() then
@@ -499,7 +500,7 @@ Update = RailWorks.wraperrors(function(_)
   end
 end)
 
-OnControlValueChange = RailWorks.wraperrors(
+OnControlValueChange = Misc.wraperrors(
                          function(name, index, value)
     -- Fix Xbox and Raildriver controls for Fan Railer's mod.
     if name == "VirtualThrottle" and
@@ -510,12 +511,12 @@ OnControlValueChange = RailWorks.wraperrors(
     RailWorks.SetControlValue(name, index, value)
   end)
 
-OnCustomSignalMessage = RailWorks.wraperrors(function(message)
+OnCustomSignalMessage = Misc.wraperrors(function(message)
   power:receivemessage(message)
   cabsig:receivemessage(message)
 end)
 
-OnConsistMessage = RailWorks.wraperrors(function(message, argument, direction)
+OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
   if message == messageid.raisefrontpanto then
     state.raisefrontpantomsg = argument == "true"
   elseif message == messageid.raiserearpanto then

@@ -7,6 +7,7 @@
 -- @include Signals/CabSignal.lua
 -- @include Flash.lua
 -- @include Iterator.lua
+-- @include Misc.lua
 -- @include RailWorks.lua
 -- @include Scheduler.lua
 -- @include Units.lua
@@ -31,7 +32,7 @@ local state = {
   restrictsignals = {}
 }
 
-Initialise = RailWorks.wraperrors(function()
+Initialise = Misc.wraperrors(function()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
 
@@ -103,10 +104,10 @@ local function readlocostate()
   state.acceleration_mps2 = RailWorks.GetAcceleration()
   state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
   state.consistlength_m = RailWorks.GetConsistLength()
-  state.speedlimits = Iterator.totable(RailWorks.iterspeedlimits(
+  state.speedlimits = Iterator.totable(Misc.iterspeedlimits(
                                          Acses.nlimitlookahead))
   state.restrictsignals = Iterator.totable(
-                            RailWorks.iterrestrictsignals(Acses.nsignallookahead))
+                            Misc.iterrestrictsignals(Acses.nsignallookahead))
 end
 
 local function writelocostate()
@@ -126,10 +127,10 @@ local function writelocostate()
 
   alarmonoff:setflashstate(atc:isalarm() or acses:isalarm())
   RailWorks.SetControlValue("SpeedReductionAlert", 0,
-                            RailWorks.frombool(alarmonoff:ison()))
-  RailWorks.SetControlValue("SpeedIncreaseAlert", 0, RailWorks.frombool(
+                            Misc.intbool(alarmonoff:ison()))
+  RailWorks.SetControlValue("SpeedIncreaseAlert", 0, Misc.intbool(
                               adu:isatcalert() or adu:isacsesalert()))
-  RailWorks.SetControlValue("AWS", 0, RailWorks.frombool(alerter:isalarm()))
+  RailWorks.SetControlValue("AWS", 0, Misc.intbool(alerter:isalarm()))
 end
 
 local function round(v) return math.floor(v + 0.5) end
@@ -217,7 +218,7 @@ local function setpantospark()
 
   local isspark = spark:isspark()
   RailWorks.ActivateNode("panto_spark", isspark)
-  Call("Spark:Activate", RailWorks.frombool(isspark))
+  Call("Spark:Activate", Misc.intbool(isspark))
 end
 
 local function setinteriorlights()
@@ -231,8 +232,8 @@ local function setditchlights()
   local show = state.headlights > 0.5 and state.headlights < 1.5
   RailWorks.ActivateNode("left_ditch_light", show)
   RailWorks.ActivateNode("right_ditch_light", show)
-  Call("Fwd_DitchLightLeft:Activate", RailWorks.frombool(show))
-  Call("Fwd_DitchLightRight:Activate", RailWorks.frombool(show))
+  Call("Fwd_DitchLightLeft:Activate", Misc.intbool(show))
+  Call("Fwd_DitchLightRight:Activate", Misc.intbool(show))
 end
 
 local function updateplayer()
@@ -259,7 +260,7 @@ local function updateai()
   setditchlights()
 end
 
-Update = RailWorks.wraperrors(function(_)
+Update = Misc.wraperrors(function(_)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer()
   else
@@ -269,7 +270,7 @@ end)
 
 OnControlValueChange = RailWorks.SetControlValue
 
-OnCustomSignalMessage = RailWorks.wraperrors(function(message)
+OnCustomSignalMessage = Misc.wraperrors(function(message)
   cabsig:receivemessage(message)
 end)
 

@@ -1,5 +1,8 @@
 -- Library for managing concurrent coroutines that are updated from a single
 -- update loop.
+
+-- @include Misc.lua
+
 local P = {}
 Scheduler = P
 
@@ -54,9 +57,9 @@ function P:update()
     end
   end
   -- Process message queues.
-  for _, arg in ipairs(self._infomessages) do RailWorks.showinfo(unpack(arg)) end
+  for _, arg in ipairs(self._infomessages) do Misc.showinfo(unpack(arg)) end
   self._infomessages = {}
-  for _, arg in ipairs(self._alertmessages) do RailWorks.showalert(unpack(arg)) end
+  for _, arg in ipairs(self._alertmessages) do Misc.showalert(unpack(arg)) end
   self._alertmessages = {}
 end
 

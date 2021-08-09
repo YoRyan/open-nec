@@ -1,5 +1,8 @@
 -- Manual door control for rolling stock that supports it, as well as animation
 -- control for cab cars.
+
+-- @include Misc.lua
+
 local P = {}
 Doors = P
 
@@ -24,9 +27,9 @@ function P:update ()
   if ismanual ~= self._lastmanual then
     if self._lastmanual ~= nil and RailWorks.GetIsEngineWithKey() then
       if ismanual then
-        RailWorks.showalert("Door Close Control", "Manual")
+        Misc.showalert("Door Close Control", "Manual")
       else
-        RailWorks.showalert("Door Close Control", "Automatic")
+        Misc.showalert("Door Close Control", "Automatic")
       end
     end
     self._lastmanual = ismanual
