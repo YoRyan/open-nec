@@ -1,6 +1,7 @@
 -- Base class for an Aspect Display Unit that interfaces with ATC and ACSES.
 
 -- @include RollingStock/Tone.lua
+-- @include Misc.lua
 
 local P = {}
 Adu = P
@@ -57,13 +58,11 @@ function P:getacsessound ()
   return self._acsesalert:isplaying() or self._acses:isalarm()
 end
 
-local function toroundedmph (v)
-  return math.floor(v*Units.mps.tomph + 0.5)
-end
-
 local function atcinforce (self)
-  local atcspeed_mph = toroundedmph(self._atc:getinforcespeed_mps())
-  local acsesspeed_mph = toroundedmph(self._acses:getinforcespeed_mps())
+  local atcspeed_mph =
+    Misc.round(self._atc:getinforcespeed_mps() * Units.mps.tomph)
+  local acsesspeed_mph =
+    Misc.round(self._acses:getinforcespeed_mps() * Units.mps.tomph)
   return atcspeed_mph ~= 150 and atcspeed_mph <= acsesspeed_mph
 end
 
@@ -87,18 +86,18 @@ function P:getsignalspeed_mph ()
   elseif acsesmode == Acses.mode.approachmed30 then
     return 30
   else
-    return toroundedmph(self._atc:getinforcespeed_mps())
+    return Misc.round(self._atc:getinforcespeed_mps() * Units.mps.tomph)
   end
 end
 
 -- Get the current civil (track) speed limit.
 function P:getcivilspeed_mph ()
-  return toroundedmph(self._acses:getinforcespeed_mps())
+  return Misc.round(self._acses:getinforcespeed_mps() * Units.mps.tomph)
 end
 
 -- Get the current civil (track) braking curve speed limit.
 function P:getcivilcurvespeed_mph ()
-  return toroundedmph(self._acses:getcurvespeed_mps())
+  return Misc.round(self._acses:getcurvespeed_mps() * Units.mps.tomph)
 end
 
 return P
