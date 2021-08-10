@@ -6,7 +6,7 @@ The Open NEC Project is a massive, work-in-progress systems overhaul mod for [Tr
 
 To make this all possible, the project provides drop-in replacements for Dovetail's Lua bytecode. With control of the Lua scripting, we have complete control over the behavior of locomotive's systems, as well as the route's signaling system. Thus, we can fix bugs and make dramatic improvements to the gameplay experience.
 
-Currently, the project consists of a single enhancement mod for several Amtrak locomotives, as well as complete Automatic Train Control (ATC) and Advanced Civil Speed Enforcement System (ACSES) implementations.
+Currently, the project enhances most of the Northeast Corridor locomotives available for Train Simulator, adding complete Automatic Train Control (ATC) and Advanced Civil Speed Enforcement System (ACSES) implementations.
 
 Locomotives overhauled by the Open NEC project include:
 
@@ -29,5 +29,58 @@ Demonstrations:
 ## Overview
 
 This website is divided into several sections. In the [Get the mod](installation) chapter, you can find information on obtaining and installing the mod and when you can expect the next release. In the [For players](for-players) chapter, you can learn how to navigate the newly improved Northeast Corridor with your newly upgraded equipment. In the [For contributors](for-contributors) chapter, developers can find information on how to contribute to the project, as well as technical documentation on Dovetail's content.
+
+## Release history
+
+The current stable release is Open NEC version **0.5.0**.
+
+#### v0.5.0 (May 22, 2021)
+
+- Support for the NJ Transit Comet V and Multilevel Cab Car.
+- ATC:
+   - Logic has been changed to require target deceleration rate AND brake lever in suppression.
+- Amtrak ACS-64:
+   - Fix overpowered train brakes.
+- Amtrak P32/P42 and MNRR P32:
+    - Ditch lights will now flash when switched on.
+    - Equipment speed limit raised to 110 mph for Amtrak locos.
+- Bombardier Multilevel:
+    - Brake light indicators reinstated.
+    - Manual door control reinstated.
+    - Destination sign control reinstated.
+    - MARC Multilevel destination signs texture swapped for MARC destinations.
+
+#### v0.4.0 (April 23, 2021)
+
+- Support for the Amtrak and Metro-North P32AC-DM.
+- Support for the Amtrak P42DC (paths are set for the Washington-Baltimore version).
+- Official support for the Hudson Line route.
+- Amtrak Acela:
+    - Critical: Fix broken destination signs and MU pantograph operation.
+
+#### v0.3.0 (April 17, 2021)
+
+- Support for the Amtrak ACS-64.
+- Support for the MARC MP36PH and Multilevel Cab Car.
+- ACSES:
+    - Temporarily disable positive stop as it is a nuisance in yards and stations.
+- Amtrak Acela:
+    - Fix ditch lights rendering even when turned off.
+- Amtrak HHP-8:
+    - Fix ditch lights rendering even when turned off.
+    - Fix Xbox and Raildriver controls when running with Fan Railer's mod.
+
+#### v0.2.0 (March 17, 2021)
+
+- Support for the Amtrak Acela Express.
+- Support for the Amtrak HHP-8.
+
+#### v0.1.0-beta (March 9, 2021)
+
+The first public release!
+
+- Support for the Amtrak AEM-7.
+- Support for all Dovetail Northeast Corridor routes.
+- Complete CSS, ATC, and ACSES implementations.
 
 ![Project logo](opennec-logo.svg)
