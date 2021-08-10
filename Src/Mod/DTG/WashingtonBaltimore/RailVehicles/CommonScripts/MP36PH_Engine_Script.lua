@@ -312,10 +312,6 @@ local function updateplayer()
   setditchlights()
   setrearlight()
   sethep()
-
-  -- Prevent the acknowledge button from sticking if the button on the HUD is
-  -- clicked.
-  if state.acknowledge then RailWorks.SetControlValue("AWSReset", 0, 0) end
 end
 
 local function updateai()

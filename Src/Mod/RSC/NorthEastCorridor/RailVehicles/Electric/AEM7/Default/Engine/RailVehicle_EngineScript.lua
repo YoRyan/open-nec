@@ -252,10 +252,6 @@ Update = Misc.wraperrors(function(_)
   setadu()
   setcablight()
   setcutin()
-
-  -- Prevent the acknowledge button from sticking if the button on the HUD is
-  -- clicked.
-  if state.acknowledge then RailWorks.SetControlValue("AWSReset", 0, 0) end
 end)
 
 OnControlValueChange = RailWorks.SetControlValue
