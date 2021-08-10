@@ -23,7 +23,7 @@ local hazardtype = {currentlimit=0, advancelimit=1, stopsignal=2}
 
 local function initstate (self)
   self._running = false
-  self._inforcespeed_mps = self._consistspeed_mps
+  self._inforcespeed_mps = self._consistspeed_mps or 0
   self._curvespeed_mps = 0
   self._timetopenalty_s = nil
   self._isalarm = false
@@ -302,7 +302,7 @@ local function itercurrentlimithazards (self)
   if track_mps ~= nil and consist_mps ~= nil then
     limit_mps = math.min(track_mps, consist_mps)
   else
-    limit_mps = track_mps ~= nil and track_mps or consist_mps
+    limit_mps = track_mps or consist_mps
   end
   if limit_mps == nil then
     return Iterator.empty()
