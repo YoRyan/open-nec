@@ -23,7 +23,7 @@ local hazardtype = {currentlimit=0, advancelimit=1, stopsignal=2}
 
 local function initstate (self)
   self._running = false
-  self._inforcespeed_mps = 0
+  self._inforcespeed_mps = self._consistspeed_mps
   self._curvespeed_mps = 0
   self._timetopenalty_s = nil
   self._isalarm = false
