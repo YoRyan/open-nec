@@ -104,7 +104,7 @@ end
 
 -- Get the current civil (track) braking curve speed limit.
 function P:getcivilcurvespeed_mph ()
-  local acsesspeed_mps = self._acses:getinforcespeed_mps()
+  local acsesspeed_mps = self._acses:getcurvespeed_mps()
   if acsesspeed_mps then
     return Misc.round(acsesspeed_mps * Units.mps.tomph)
   else
