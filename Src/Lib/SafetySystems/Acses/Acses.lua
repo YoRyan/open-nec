@@ -370,57 +370,69 @@ local function setstate (self)
         TupleDict.pairs(hazards)
       )
     )
-    local currenthazard = hazards[currentid]
-    self._currenthazardid = currentid
-    self._curvespeed_mps = math.max(0, currenthazard.alert_mps - 1*Units.mph.tomps)
-    self._ispositivestop = currentid[1] == hazardtype.stopsignal
-
-    -- Set the current time to penalty.
-    local maxttp_s = 60
-    local ttp_s = currenthazard.timetopenalty_s
-    if not self._ispenalty and ttp_s ~= nil and ttp_s <= maxttp_s then
-      self._timetopenalty_s = ttp_s
-    else
+    if currentid == nil then
+      self._currenthazardid = {}
+      self._curvespeed_mps = 0
+      self._ispositivestop = false
+      -- Set the current time to penalty.
       self._timetopenalty_s = nil
-    end
-
-    -- Check for violation of the alert and/or penalty curves.
-    local aspeed_mps = math.abs(self._getspeed_mps())
-    local abovealert = aspeed_mps > currenthazard.alert_mps
-    if currentid[1] == hazardtype.advancelimit then
-      local violated =
-        state[currentid].violated or abovealert
-      local abovelimit =
-        aspeed_mps > currenthazard.inforce_mps + self._alertlimit_mps
-      state[currentid].violated = violated
-      self._isabovealertcurve = violated and abovelimit
+      -- Check for violation of the alert and/or penalty curves.
+      self._isabovealertcurve = false
+      self._isabovepenaltycurve = false
+      -- No change to the in-force speed.
     else
-      self._isabovealertcurve = abovealert
-    end
-    self._isabovepenaltycurve = aspeed_mps > currenthazard.penalty_mps
+      local currenthazard = hazards[currentid]
+      self._currenthazardid = currentid
+      self._curvespeed_mps = math.max(0, currenthazard.alert_mps - 1*Units.mph.tomps)
+      self._ispositivestop = currentid[1] == hazardtype.stopsignal
 
-    -- Get the most restrictive hazard in effect that also has an in-force speed.
-    local inforceid = Iterator.min(
-      Iterator.ltcomp,
-      Iterator.map(
-        function (k, hazard)
-          if k[1] == hazardtype.advancelimit then
-            if state[k] ~= nil and state[k].violated then
-              return k, hazard.alert_mps
+      -- Set the current time to penalty.
+      local maxttp_s = 60
+      local ttp_s = currenthazard.timetopenalty_s
+      if not self._ispenalty and ttp_s ~= nil and ttp_s <= maxttp_s then
+        self._timetopenalty_s = ttp_s
+      else
+        self._timetopenalty_s = nil
+      end
+
+      -- Check for violation of the alert and/or penalty curves.
+      local aspeed_mps = math.abs(self._getspeed_mps())
+      local abovealert = aspeed_mps > currenthazard.alert_mps
+      if currentid[1] == hazardtype.advancelimit then
+        local violated =
+          state[currentid].violated or abovealert
+        local abovelimit =
+          aspeed_mps > currenthazard.inforce_mps + self._alertlimit_mps
+        state[currentid].violated = violated
+        self._isabovealertcurve = violated and abovelimit
+      else
+        self._isabovealertcurve = abovealert
+      end
+      self._isabovepenaltycurve = aspeed_mps > currenthazard.penalty_mps
+
+      -- Get the most restrictive hazard in effect that also has an in-force speed.
+      local inforceid = Iterator.min(
+        Iterator.ltcomp,
+        Iterator.map(
+          function (k, hazard)
+            if k[1] == hazardtype.advancelimit then
+              if state[k] ~= nil and state[k].violated then
+                return k, hazard.alert_mps
+              else
+                return nil, nil
+              end
             else
-              return nil, nil
+              return k, hazard.alert_mps
             end
-          else
-            return k, hazard.alert_mps
-          end
-        end,
-        Iterator.filter(
-          function (_, hazard) return hazard.inforce_mps ~= nil end,
-          TupleDict.pairs(hazards)
+          end,
+          Iterator.filter(
+            function (_, hazard) return hazard.inforce_mps ~= nil end,
+            TupleDict.pairs(hazards)
+          )
         )
       )
-    )
-    setinforcespeed_mps(self, hazards[inforceid].inforce_mps)
+      setinforcespeed_mps(self, hazards[inforceid].inforce_mps)
+    end
 
     -- Activate the debug views if enabled.
     if self._getacknowledge() then
