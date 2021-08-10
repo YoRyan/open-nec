@@ -50,11 +50,15 @@ function P:isrunning ()
 end
 
 local function setstate (self)
-  local pulsecode = self._cabsig:getpulsecode()
-  if self._lastpulsecode ~= nil and pulsecode < self._lastpulsecode then
-    self._enforce:trigger()
+  while true do
+    local pulsecode = self._cabsig:getpulsecode()
+    if self._lastpulsecode ~= nil then
+      if pulsecode < self._lastpulsecode then self._enforce:trigger()
+      elseif pulsecode > self._lastpulsecode then self._doalert() end
+    end
+    self._lastpulsecode = pulsecode
+    self._sched:yield()
   end
-  self._lastpulsecode = pulsecode
 end
 
 local function penalty (self)
