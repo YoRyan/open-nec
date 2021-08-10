@@ -38,11 +38,15 @@ function P:update ()
 
   local leftopen = RailWorks.GetControlValue("DoorsOpenCloseLeft", 0) == 1
   self._leftopen = leftopen or (ismanual and self._leftopen and not doclose)
-  self._leftanimation:setanimatedstate(self._leftopen)
+  if self._leftanimation ~= nil then
+    self._leftanimation:setanimatedstate(self._leftopen)
+  end
 
   local rightopen = RailWorks.GetControlValue("DoorsOpenCloseRight", 0) == 1
   self._rightopen = rightopen or (ismanual and self._rightopen and not doclose)
-  self._rightanimation:setanimatedstate(self._rightopen)
+  if self._rightanimation ~= nil then
+    self._rightanimation:setanimatedstate(self._rightopen)
+  end
 end
 
 -- Returns true if the lefthand doors are currently open.
