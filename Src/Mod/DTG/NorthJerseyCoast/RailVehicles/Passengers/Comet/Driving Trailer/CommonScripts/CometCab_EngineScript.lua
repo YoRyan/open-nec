@@ -68,15 +68,6 @@ local function getrvnumber()
   end
 end
 
-local function getdigit(v, place)
-  local tens = math.pow(10, place)
-  if place ~= 0 and v < tens then
-    return -1
-  else
-    return math.floor(math.mod(v, tens * 10) / tens)
-  end
-end
-
 Initialise = Misc.wraperrors(function()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
@@ -151,10 +142,10 @@ Initialise = Misc.wraperrors(function()
 
   do
     local rvn = getrvnumber()
-    RailWorks.SetControlValue("UN_thousands", 0, getdigit(rvn, 3))
-    RailWorks.SetControlValue("UN_hundreds", 0, getdigit(rvn, 2))
-    RailWorks.SetControlValue("UN_tens", 0, getdigit(rvn, 1))
-    RailWorks.SetControlValue("UN_units", 0, getdigit(rvn, 0))
+    RailWorks.SetControlValue("UN_thousands", 0, Misc.getdigit(rvn, 3))
+    RailWorks.SetControlValue("UN_hundreds", 0, Misc.getdigit(rvn, 2))
+    RailWorks.SetControlValue("UN_tens", 0, Misc.getdigit(rvn, 1))
+    RailWorks.SetControlValue("UN_units", 0, Misc.getdigit(rvn, 0))
   end
   state.destination = getrvdestination()
 
@@ -224,30 +215,20 @@ local function writelocostate()
   end
 end
 
-local function toroundedmph(v) return math.floor(v * Units.mps.tomph + 0.5) end
-
-local function getdigitguide(v)
-  if v < 10 then
-    return 0
-  else
-    return math.floor(math.log10(v))
-  end
-end
-
 local function setspeedometer()
   do
     local isclear = adu:isclearsignal()
-    local rspeed_mph = toroundedmph(math.abs(state.speed_mps))
-    local h = getdigit(rspeed_mph, 2)
-    local t = getdigit(rspeed_mph, 1)
-    local u = getdigit(rspeed_mph, 0)
+    local rspeed_mph = Misc.round(math.abs(state.speed_mps) * Units.mps.tomph)
+    local h = Misc.getdigit(rspeed_mph, 2)
+    local t = Misc.getdigit(rspeed_mph, 1)
+    local u = Misc.getdigit(rspeed_mph, 0)
     RailWorks.SetControlValue("SpeedH", 0, isclear and h or -1)
     RailWorks.SetControlValue("SpeedT", 0, isclear and t or -1)
     RailWorks.SetControlValue("SpeedU", 0, isclear and u or -1)
     RailWorks.SetControlValue("Speed2H", 0, isclear and -1 or h)
     RailWorks.SetControlValue("Speed2T", 0, isclear and -1 or t)
     RailWorks.SetControlValue("Speed2U", 0, isclear and -1 or u)
-    RailWorks.SetControlValue("SpeedP", 0, getdigitguide(rspeed_mph))
+    RailWorks.SetControlValue("SpeedP", 0, Misc.getdigitguide(rspeed_mph))
   end
 
   RailWorks.SetControlValue("ACSES_SpeedGreen", 0,

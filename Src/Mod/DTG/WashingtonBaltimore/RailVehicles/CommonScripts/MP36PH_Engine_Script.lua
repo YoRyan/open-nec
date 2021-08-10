@@ -156,23 +156,12 @@ local function writelocostate()
   end
 end
 
-local function toroundedmph(v) return math.floor(v * Units.mps.tomph + 0.5) end
-
-local function getdigit(v, place)
-  local tens = math.pow(10, place)
-  if place ~= 0 and v < tens then
-    return -1
-  else
-    return math.floor(math.mod(v, tens * 10) / tens)
-  end
-end
-
 local function setspeedometer()
-  local speed_mph = toroundedmph(state.speed_mps)
+  local speed_mph = Misc.round(state.speed_mps * Units.mps.tomph)
   RailWorks.SetControlValue("SpeedoDots", 0, math.floor(speed_mph / 2))
-  RailWorks.SetControlValue("SpeedoHundreds", 0, getdigit(speed_mph, 2))
-  RailWorks.SetControlValue("SpeedoTens", 0, getdigit(speed_mph, 1))
-  RailWorks.SetControlValue("SpeedoUnits", 0, getdigit(speed_mph, 0))
+  RailWorks.SetControlValue("SpeedoHundreds", 0, Misc.getdigit(speed_mph, 2))
+  RailWorks.SetControlValue("SpeedoTens", 0, Misc.getdigit(speed_mph, 1))
+  RailWorks.SetControlValue("SpeedoUnits", 0, Misc.getdigit(speed_mph, 0))
 end
 
 local function setcutin()
@@ -224,9 +213,12 @@ local function setadu()
       RailWorks.SetControlValue("TSTens", 0, 0)
       RailWorks.SetControlValue("TSUnits", 0, -1)
     else
-      RailWorks.SetControlValue("TSHundreds", 0, getdigit(civilspeed_mph, 2))
-      RailWorks.SetControlValue("TSTens", 0, getdigit(civilspeed_mph, 1))
-      RailWorks.SetControlValue("TSUnits", 0, getdigit(civilspeed_mph, 0))
+      RailWorks.SetControlValue(
+        "TSHundreds", 0, Misc.getdigit(civilspeed_mph, 2))
+      RailWorks.SetControlValue(
+        "TSTens", 0, Misc.getdigit(civilspeed_mph, 1))
+      RailWorks.SetControlValue(
+        "TSUnits", 0, Misc.getdigit(civilspeed_mph, 0))
     end
   end
   RailWorks.SetControlValue("MaximumSpeedLimitIndicator", 0,

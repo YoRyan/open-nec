@@ -174,15 +174,6 @@ local function readlocostate()
                             Misc.iterrestrictsignals(Acses.nsignallookahead))
 end
 
-local function getdigit(v, place)
-  local tens = math.pow(10, place)
-  if place ~= 0 and v < tens then
-    return -1
-  else
-    return math.floor(math.mod(v, tens * 10) / tens)
-  end
-end
-
 local function writelocostate()
   local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
   local penaltybrake = 0.6
@@ -324,25 +315,15 @@ local function setstatusscreen()
   end
 end
 
-local function toroundedmph(v) return math.floor(v * Units.mps.tomph + 0.5) end
-
-local function getdigitguide(v)
-  if v < 10 then
-    return 0
-  else
-    return math.floor(math.log10(v))
-  end
-end
-
 local function setdrivescreen()
   RailWorks.SetControlValue("ControlScreenDer", 0,
                             Misc.intbool(not power:haspower()))
   do
-    local speed_mph = toroundedmph(state.speed_mps)
-    RailWorks.SetControlValue("SPHundreds", 0, getdigit(speed_mph, 2))
-    RailWorks.SetControlValue("SPTens", 0, getdigit(speed_mph, 1))
-    RailWorks.SetControlValue("SPUnits", 0, getdigit(speed_mph, 0))
-    RailWorks.SetControlValue("SpeedoGuide", 0, getdigitguide(speed_mph))
+    local speed_mph = Misc.round(state.speed_mps * Units.mps.tomph)
+    RailWorks.SetControlValue("SPHundreds", 0, Misc.getdigit(speed_mph, 2))
+    RailWorks.SetControlValue("SPTens", 0, Misc.getdigit(speed_mph, 1))
+    RailWorks.SetControlValue("SPUnits", 0, Misc.getdigit(speed_mph, 0))
+    RailWorks.SetControlValue("SpeedoGuide", 0, Misc.getdigitguide(speed_mph))
   end
   do
     local v
@@ -405,9 +386,12 @@ local function setadu()
       RailWorks.SetControlValue("TSTens", 0, -1)
       RailWorks.SetControlValue("TSUnits", 0, -1)
     else
-      RailWorks.SetControlValue("TSHundreds", 0, getdigit(civilspeed_mph, 2))
-      RailWorks.SetControlValue("TSTens", 0, getdigit(civilspeed_mph, 1))
-      RailWorks.SetControlValue("TSUnits", 0, getdigit(civilspeed_mph, 0))
+      RailWorks.SetControlValue(
+        "TSHundreds", 0, Misc.getdigit(civilspeed_mph, 2))
+      RailWorks.SetControlValue(
+        "TSTens", 0, Misc.getdigit(civilspeed_mph, 1))
+      RailWorks.SetControlValue(
+        "TSUnits", 0, Misc.getdigit(civilspeed_mph, 0))
     end
   end
   RailWorks.SetControlValue("MinimumSpeed", 0, adu:getsquareindicator())

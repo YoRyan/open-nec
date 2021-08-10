@@ -238,25 +238,6 @@ local function setpantosparks()
   Call("Spark2:Activate", Misc.intbool(rearcontact and isspark))
 end
 
-local function toroundedmph(v) return math.floor(v * Units.mps.tomph + 0.5) end
-
-local function getdigit(v, place)
-  local tens = math.pow(10, place)
-  if place ~= 0 and v < tens then
-    return -1
-  else
-    return math.floor(math.mod(v, tens * 10) / tens)
-  end
-end
-
-local function getdigitguide(v)
-  if v < 10 then
-    return 0
-  else
-    return math.floor(math.log10(v))
-  end
-end
-
 local function setscreen()
   do
     local maxeffort_klbs = 71 * 71 / 80.5
@@ -264,27 +245,40 @@ local function setscreen()
 
     local effort_klbs = math.abs(tracteffort:get())
     local reffort_klbs = math.floor(effort_klbs + 0.5)
-    RailWorks.SetControlValue("effort_tens", 0, getdigit(reffort_klbs, 1))
-    RailWorks.SetControlValue("effort_units", 0, getdigit(reffort_klbs, 0))
-    RailWorks.SetControlValue("effort_guide", 0, getdigitguide(reffort_klbs))
-    RailWorks.SetControlValue("AbsTractiveEffort", 0, effort_klbs * 365 / 80)
+    RailWorks.SetControlValue(
+      "effort_tens", 0, Misc.getdigit(reffort_klbs, 1))
+    RailWorks.SetControlValue(
+      "effort_units", 0, Misc.getdigit(reffort_klbs, 0))
+    RailWorks.SetControlValue(
+      "effort_guide", 0, Misc.getdigitguide(reffort_klbs))
+    RailWorks.SetControlValue(
+      "AbsTractiveEffort", 0, effort_klbs * 365 / 80)
   end
   do
-    local speed_mph = toroundedmph(state.speed_mps)
-    RailWorks.SetControlValue("SpeedDigit_hundreds", 0, getdigit(speed_mph, 2))
-    RailWorks.SetControlValue("SpeedDigit_tens", 0, getdigit(speed_mph, 1))
-    RailWorks.SetControlValue("SpeedDigit_units", 0, getdigit(speed_mph, 0))
-    RailWorks.SetControlValue("SpeedDigit_guide", 0, getdigitguide(speed_mph))
+    local speed_mph = Misc.round(state.speed_mps * Units.mps.tomph)
+    RailWorks.SetControlValue(
+      "SpeedDigit_hundreds", 0, Misc.getdigit(speed_mph, 2))
+    RailWorks.SetControlValue(
+      "SpeedDigit_tens", 0, Misc.getdigit(speed_mph, 1))
+    RailWorks.SetControlValue(
+      "SpeedDigit_units", 0, Misc.getdigit(speed_mph, 0))
+    RailWorks.SetControlValue(
+      "SpeedDigit_guide", 0, Misc.getdigitguide(speed_mph))
   end
   do
     acceleration:sample(state.acceleration_mps2)
     local accel_mphmin = math.abs(acceleration:get() * 134.2162)
     local raccel_mphmin = math.floor(accel_mphmin + 0.5)
-    RailWorks.SetControlValue("accel_hundreds", 0, getdigit(raccel_mphmin, 2))
-    RailWorks.SetControlValue("accel_tens", 0, getdigit(raccel_mphmin, 1))
-    RailWorks.SetControlValue("accel_units", 0, getdigit(raccel_mphmin, 0))
-    RailWorks.SetControlValue("accel_guide", 0, getdigitguide(raccel_mphmin))
-    RailWorks.SetControlValue("AccelerationMPHPM", 0, accel_mphmin)
+    RailWorks.SetControlValue(
+      "accel_hundreds", 0, Misc.getdigit(raccel_mphmin, 2))
+    RailWorks.SetControlValue(
+      "accel_tens", 0, Misc.getdigit(raccel_mphmin, 1))
+    RailWorks.SetControlValue(
+      "accel_units", 0, Misc.getdigit(raccel_mphmin, 0))
+    RailWorks.SetControlValue(
+      "accel_guide", 0, Misc.getdigitguide(raccel_mphmin))
+    RailWorks.SetControlValue(
+      "AccelerationMPHPM", 0, accel_mphmin)
   end
   RailWorks.SetControlValue("ScreenSuppression", 0,
                             Misc.intbool(atc:issuppression()))
@@ -369,9 +363,12 @@ local function setadu()
       RailWorks.SetControlValue("SpeedLimit_tens", 0, -1)
       RailWorks.SetControlValue("SpeedLimit_units", 0, -1)
     else
-      RailWorks.SetControlValue("SpeedLimit_hundreds", 0, getdigit(speed_mph, 2))
-      RailWorks.SetControlValue("SpeedLimit_tens", 0, getdigit(speed_mph, 1))
-      RailWorks.SetControlValue("SpeedLimit_units", 0, getdigit(speed_mph, 0))
+      RailWorks.SetControlValue(
+        "SpeedLimit_hundreds", 0, Misc.getdigit(speed_mph, 2))
+      RailWorks.SetControlValue(
+        "SpeedLimit_tens", 0, Misc.getdigit(speed_mph, 1))
+      RailWorks.SetControlValue(
+        "SpeedLimit_units", 0, Misc.getdigit(speed_mph, 0))
     end
     RailWorks.SetControlValue("SigModeATC", 0,
                               Misc.intbool(adu:getatcindicator()))
@@ -385,9 +382,9 @@ local function setadu()
       RailWorks.SetControlValue("Penalty_tens", 0, -1)
       RailWorks.SetControlValue("Penalty_units", 0, -1)
     else
-      RailWorks.SetControlValue("Penalty_hundreds", 0, getdigit(ttp_s, 2))
-      RailWorks.SetControlValue("Penalty_tens", 0, getdigit(ttp_s, 1))
-      RailWorks.SetControlValue("Penalty_units", 0, getdigit(ttp_s, 0))
+      RailWorks.SetControlValue("Penalty_hundreds", 0, Misc.getdigit(ttp_s, 2))
+      RailWorks.SetControlValue("Penalty_tens", 0, Misc.getdigit(ttp_s, 1))
+      RailWorks.SetControlValue("Penalty_units", 0, Misc.getdigit(ttp_s, 0))
     end
   end
   do

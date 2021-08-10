@@ -113,4 +113,27 @@ function P.iterrestrictsignals (n, maxdistance_m)
     {restrictsignalsbydistance(0, n, maxdistance_m)})
 end
 
+-- Round a number.
+function P.round (v)
+  if v > 0 then return math.floor(v + 0.5)
+  else return math.floor(v - 0.5) end
+end
+
+-- Get the digit of the provided value in the 10^(place) place. If the digit
+-- should not be shown because the value is too small, then return -1.
+function P.getdigit (v, place)
+  v = math.abs(v)
+  local tens = math.pow(10, place)
+  if place > 0 and v < tens then return -1
+  else return math.floor(math.mod(v / tens, 10)) end
+end
+
+-- Get the number of places to offset a value to display it in a digital cab
+-- control.
+function P.getdigitguide (v)
+  v = math.abs(v)
+  if v < 10 then return 0
+  else return math.floor(math.log10(v)) end
+end
+
 return P

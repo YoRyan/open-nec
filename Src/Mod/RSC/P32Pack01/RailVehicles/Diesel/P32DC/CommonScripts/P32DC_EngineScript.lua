@@ -197,15 +197,6 @@ local function setcutin()
   end
 end
 
-local function getdigit(v, place)
-  local tens = math.pow(10, place)
-  if place > 0 and v < tens then
-    return -1
-  else
-    return math.floor(math.mod(v, tens * 10) / tens)
-  end
-end
-
 local function setadu()
   do
     local aspect = adu:getaspect()
@@ -237,10 +228,10 @@ end
 local function setdisplay()
   do
     local speed_mph = RailWorks.GetControlValue("SpeedometerMPH", 0)
-    RailWorks.SetControlValue("SpeedoHundreds", 0, getdigit(speed_mph, 2))
-    RailWorks.SetControlValue("SpeedoTens", 0, getdigit(speed_mph, 1))
-    RailWorks.SetControlValue("SpeedoUnits", 0, getdigit(speed_mph, 0))
-    RailWorks.SetControlValue("SpeedoDecimal", 0, getdigit(speed_mph, -1))
+    RailWorks.SetControlValue("SpeedoHundreds", 0, Misc.getdigit(speed_mph, 2))
+    RailWorks.SetControlValue("SpeedoTens", 0, Misc.getdigit(speed_mph, 1))
+    RailWorks.SetControlValue("SpeedoUnits", 0, Misc.getdigit(speed_mph, 0))
+    RailWorks.SetControlValue("SpeedoDecimal", 0, Misc.getdigit(speed_mph, -1))
   end
   do
     local overspeed_mph = adu:getoverspeed_mph()
@@ -249,9 +240,12 @@ local function setdisplay()
       RailWorks.SetControlValue("TrackTens", 0, -1)
       RailWorks.SetControlValue("TrackUnits", 0, -1)
     else
-      RailWorks.SetControlValue("TrackHundreds", 0, getdigit(overspeed_mph, 2))
-      RailWorks.SetControlValue("TrackTens", 0, getdigit(overspeed_mph, 1))
-      RailWorks.SetControlValue("TrackUnits", 0, getdigit(overspeed_mph, 0))
+      RailWorks.SetControlValue(
+        "TrackHundreds", 0, Misc.getdigit(overspeed_mph, 2))
+      RailWorks.SetControlValue(
+        "TrackTens", 0, Misc.getdigit(overspeed_mph, 1))
+      RailWorks.SetControlValue(
+        "TrackUnits", 0, Misc.getdigit(overspeed_mph, 0))
     end
   end
   RailWorks.SetControlValue("AlerterVisual", 0,
