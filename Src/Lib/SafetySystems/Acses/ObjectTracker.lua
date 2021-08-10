@@ -1,5 +1,8 @@
 -- Assigns persistent unique identifiers to trackside objects that are sensed by
 -- their relative distances from the player.
+
+-- @include Iterator.lua
+
 local P = {}
 AcsesTracker = P
 
@@ -95,11 +98,16 @@ end
 ]]
 function P:new (conf)
   local o = {
-    _sched = conf.scheduler,
-    _getspeed_mps = conf.getspeed_mps or function () return 0 end,
-    _iterbydistance = conf.iterbydistance or function () return pairs({}) end,
-    _objects = {},
-    _distances_m = {},
+    _sched =
+      conf.scheduler,
+    _getspeed_mps =
+      conf.getspeed_mps or function () return 0 end,
+    _iterbydistance =
+      conf.iterbydistance or function () return Iterator.empty() end,
+    _objects =
+      {},
+    _distances_m =
+      {},
     --[[
       Track objects will briefly disappear before they reappear in the reverse
       direction - the exact distance is possibly the locomotive length? We call
@@ -108,7 +116,8 @@ function P:new (conf)
       d < 0|invisible|d > 0
       ---->|_________|<----
     ]]
-    _passing_m = {}
+    _passing_m =
+      {}
   }
   setmetatable(o, self)
   self.__index = self

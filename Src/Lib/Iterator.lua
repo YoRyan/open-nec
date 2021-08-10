@@ -94,14 +94,12 @@ function P.ifilter (fn, ...)
   end, nil, nil
 end
 
-local function empty () return pairs({}) end
-
 -- Combine the provided iterators into a single iterator. The iterators should
 -- be supplied as function/invariant/value triplets packed into tables --
 -- e.g., {pairs({ ... })} .
 function P.concat (...)
   if arg.n < 1 then
-    return empty()
+    return P.empty()
   end
   local i = 1
   local f, s, k = unpack(arg[i])
@@ -131,7 +129,7 @@ end
 ]]
 function P.iconcat (...)
   if arg.n < 1 then
-    return empty()
+    return P.empty()
   end
   local i = 1
   local j = 0
@@ -162,11 +160,11 @@ end
 ]]
 function P.chain (...)
   if arg.n < 1 then
-    return empty()
+    return P.empty()
   end
   local f, s, k = unpack(arg)
   local v
-  local fi, si, ki = empty()
+  local fi, si, ki = P.empty()
   return function ()
     while true do
       local vi
@@ -281,5 +279,10 @@ function P.singleton (k, v)
     end
   end, nil, nil
 end
+
+local empty = {}
+
+-- An empty iterator.
+function P.empty () return pairs(empty) end
 
 return P

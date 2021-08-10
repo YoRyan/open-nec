@@ -4,6 +4,7 @@
 -- @include SafetySystems/Acses/LimitFilter.lua
 -- @include SafetySystems/Acses/ObjectTracker.lua
 -- @include SafetySystems/Acses/TrackSpeed.lua
+-- @include Iterator.lua
 -- @include TupleDictionary.lua
 
 local P = {}
@@ -54,9 +55,9 @@ function P:new (conf)
     _getconsistlength_m =
       conf.getconsistlength_m or function () return 0 end,
     _iterspeedlimits =
-      conf.iterspeedlimits or function () return pairs({}) end,
+      conf.iterspeedlimits or function () return Iterator.empty() end,
     _iterrestrictsignals =
-      conf.iterrestrictsignals or function () return pairs({}) end,
+      conf.iterrestrictsignals or function () return Iterator.empty() end,
     _getacknowledge =
       conf.getacknowledge or function () return false end,
     _doalert =
@@ -257,7 +258,7 @@ end
 local function iterstopsignalhazards (self)
   -- Positive stop disabled until we can figure out how to avoid irritating
   -- activations in yard and platform areas.
-  return pairs({})
+  return Iterator.empty()
   --[[return Iterator.map(
     function (id, distance_m)
       local target_m
@@ -295,20 +296,26 @@ local function iterstopsignalhazards (self)
 end
 
 local function itercurrentlimithazards (self)
-  local track_mps =
-    self._trackspeed:gettrackspeed_mps()
-  local consist_mps =
-    self._consistspeed_mps
-  local limit_mps =
-    (consist_mps ~= nil and math.min(track_mps, consist_mps) or track_mps) or 0
-  return Iterator.singleton(
-    {hazardtype.currentlimit, limit_mps},
-    {
-      inforce_mps = limit_mps,
-      penalty_mps = limit_mps + self._penaltylimit_mps,
-      alert_mps = limit_mps + self._alertlimit_mps
-    }
-  )
+  local track_mps = self._trackspeed:gettrackspeed_mps()
+  local consist_mps = self._consistspeed_mps
+  local limit_mps
+  if track_mps ~= nil and consist_mps ~= nil then
+    limit_mps = math.min(track_mps, consist_mps)
+  else
+    limit_mps = track_mps ~= nil and track_mps or consist_mps
+  end
+  if limit_mps == nil then
+    return Iterator.empty()
+  else
+    return Iterator.singleton(
+      {hazardtype.currentlimit, limit_mps},
+      {
+        inforce_mps = limit_mps,
+        penalty_mps = limit_mps + self._penaltylimit_mps,
+        alert_mps = limit_mps + self._alertlimit_mps
+      }
+    )
+  end
 end
 
 local function gethazardsdict (self)

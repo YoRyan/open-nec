@@ -1,13 +1,18 @@
 -- A speed limits filter that selects posts with valid speeds and with the
 -- appropriate speed limit type.
+
+-- @include Iterator.lua
+
 local P = {}
 AcsesLimits = P
 
 -- From the main coroutine, create a new speed limit filter context.
 function P:new (conf)
   local o = {
-    _iterspeedlimits = conf.iterspeedlimits or function () return pairs({}) end,
-    _hastype2limits = false
+    _iterspeedlimits =
+      conf.iterspeedlimits or function () return Iterator.empty() end,
+    _hastype2limits =
+      false
   }
   setmetatable(o, self)
   self.__index = self
