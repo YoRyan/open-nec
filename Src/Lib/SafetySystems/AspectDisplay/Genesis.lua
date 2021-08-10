@@ -77,7 +77,8 @@ function P:getoverspeed_mph ()
   local speed_mph, isalarm
   if sigspeed_mph == nil then
     local truesigspeed_mph = Adu.getsignalspeed_mph(self)
-    if truesigspeed_mph < civspeed_mph then
+    if truesigspeed_mph ~= nil and civspeed_mph ~= nil
+        and truesigspeed_mph < civspeed_mph then
       speed_mph = truesigspeed_mph
       isalarm = self._atc:isalarm()
     else

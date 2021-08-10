@@ -146,7 +146,11 @@ end
 
 -- Get the current signal speed limit in force.
 function P:getinforcespeed_mps ()
-  return self._getpulsecodespeed_mps(self._cabsig:getpulsecode())
+  if self:isrunning() then
+    return self._getpulsecodespeed_mps(self._cabsig:getpulsecode())
+  else
+    return nil
+  end
 end
 
 -- Returns true when the alarm is sounding.

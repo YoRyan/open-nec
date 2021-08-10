@@ -23,8 +23,8 @@ local hazardtype = {currentlimit=0, advancelimit=1, stopsignal=2}
 
 local function initstate (self)
   self._running = false
-  self._inforcespeed_mps = self._consistspeed_mps or 0
-  self._curvespeed_mps = 0
+  self._inforcespeed_mps = nil
+  self._curvespeed_mps = nil
   self._timetopenalty_s = nil
   self._isalarm = false
   self._ispenalty = false
@@ -336,7 +336,7 @@ local function gethazardsdict (self)
 end
 
 local function setinforcespeed_mps (self, v)
-  if self._inforcespeed_mps ~= v then
+  if self._inforcespeed_mps ~= nil and self._inforcespeed_mps ~= v then
     self._sched:yield() -- Give other coroutines the opportunity to set the alarm.
     if not self._isalarm then
       self._doalert()
@@ -372,14 +372,15 @@ local function setstate (self)
     )
     if currentid == nil then
       self._currenthazardid = {}
-      self._curvespeed_mps = 0
+      self._curvespeed_mps = nil
       self._ispositivestop = false
       -- Set the current time to penalty.
       self._timetopenalty_s = nil
       -- Check for violation of the alert and/or penalty curves.
       self._isabovealertcurve = false
       self._isabovepenaltycurve = false
-      -- No change to the in-force speed.
+      -- Get the most restrictive hazard in effect that also has an in-force speed.
+      setinforcespeed_mps(self, nil)
     else
       local currenthazard = hazards[currentid]
       self._currenthazardid = currentid
@@ -431,7 +432,8 @@ local function setstate (self)
           )
         )
       )
-      setinforcespeed_mps(self, hazards[inforceid].inforce_mps)
+      setinforcespeed_mps(
+        self, inforceid and hazards[inforceid].inforce_mps or nil)
     end
 
     -- Activate the debug views if enabled.

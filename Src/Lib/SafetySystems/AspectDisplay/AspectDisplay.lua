@@ -58,46 +58,58 @@ function P:getacsessound ()
   return self._acsesalert:isplaying() or self._acses:isalarm()
 end
 
-local function atcinforce (self)
-  local atcspeed_mph =
-    Misc.round(self._atc:getinforcespeed_mps() * Units.mps.tomph)
-  local acsesspeed_mph =
-    Misc.round(self._acses:getinforcespeed_mps() * Units.mps.tomph)
-  return atcspeed_mph ~= 150 and atcspeed_mph <= acsesspeed_mph
-end
-
 -- Get the current state of the ATC indicator light.
 function P:getatcindicator ()
-  return self._atc:isrunning()
-    and (not self._acses:isrunning() or atcinforce(self))
+  local atcspeed_mps = self._atc:getinforcespeed_mps()
+  local acsesspeed_mps = self._acses:getinforcespeed_mps()
+  return atcspeed_mps ~= nil
+    and Misc.round(atcspeed_mps * Units.mps.tomph) ~= 150
+    and (acsesspeed_mps == nil or atcspeed_mps <= acsesspeed_mps)
 end
 
 -- Get the current state of the ACSES indicator light.
 function P:getacsesindicator ()
-  return self._acses:isrunning()
-    and (not self._atc:isrunning() or not atcinforce(self))
+  local atcspeed_mps = self._atc:getinforcespeed_mps()
+  local acsesspeed_mps = self._acses:getinforcespeed_mps()
+  return acsesspeed_mps ~= nil
+    and (atcspeed_mps == nil
+           or Misc.round(atcspeed_mps * Units.mps.tomph) == 150
+           or acsesspeed_mps < atcspeed_mps)
 end
 
 -- Get the current signal speed limit.
 function P:getsignalspeed_mph ()
   local acsesmode = self._acses:getmode()
+  local atcspeed_mps = self._atc:getinforcespeed_mps()
   if acsesmode == Acses.mode.positivestop then
     return 0
   elseif acsesmode == Acses.mode.approachmed30 then
     return 30
+  elseif atcspeed_mps ~= nil then
+    return Misc.round(atcspeed_mps * Units.mps.tomph)
   else
-    return Misc.round(self._atc:getinforcespeed_mps() * Units.mps.tomph)
+    return nil
   end
 end
 
 -- Get the current civil (track) speed limit.
 function P:getcivilspeed_mph ()
-  return Misc.round(self._acses:getinforcespeed_mps() * Units.mps.tomph)
+  local acsesspeed_mps = self._acses:getinforcespeed_mps()
+  if acsesspeed_mps ~= nil then
+    return Misc.round(acsesspeed_mps * Units.mps.tomph)
+  else
+    return nil
+  end
 end
 
 -- Get the current civil (track) braking curve speed limit.
 function P:getcivilcurvespeed_mph ()
-  return Misc.round(self._acses:getcurvespeed_mps() * Units.mps.tomph)
+  local acsesspeed_mps = self._acses:getinforcespeed_mps()
+  if acsesspeed_mps then
+    return Misc.round(acsesspeed_mps * Units.mps.tomph)
+  else
+    return nil
+  end
 end
 
 return P

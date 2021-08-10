@@ -85,7 +85,8 @@ function P:getcivilspeed_mph ()
     if self:getatcsound() then
       speed_mph = truesigspeed_mph
       flash = false
-    elseif truesigspeed_mph < civspeed_mph then
+    elseif truesigspeed_mph ~= nil and civspeed_mph
+        and truesigspeed_mph < civspeed_mph then
       if self._sigspeedflasher:ison() then
         speed_mph = truesigspeed_mph
       else
