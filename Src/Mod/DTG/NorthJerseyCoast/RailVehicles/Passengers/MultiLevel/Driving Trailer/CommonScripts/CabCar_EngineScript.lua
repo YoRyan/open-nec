@@ -240,11 +240,8 @@ end
 local function setcutin()
   -- Reverse the polarities so that safety systems are on by default.
   -- ACSES and ATC shortcuts are reversed on NJT stock.
-  local atcon = RailWorks.GetControlValue("ACSES", 0) == 0
-  local acseson = RailWorks.GetControlValue("ATC", 0) == 0
-  atc:setrunstate(atcon)
-  acses:setrunstate(acseson)
-  alerter:setrunstate(atcon or acseson)
+  atc:setrunstate(RailWorks.GetControlValue("ACSES", 0) == 0)
+  acses:setrunstate(RailWorks.GetControlValue("ATC", 0) == 0)
 end
 
 local function setcablight()

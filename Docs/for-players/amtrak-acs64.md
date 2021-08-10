@@ -8,4 +8,4 @@ The Open NEC mod for the ACS-64 is fully compatible and tested with Fan Railer's
 
 ### New features
 
-- Press Ctrl+D to disable and enable ATC, and Ctrl+F to disable and enable ACSES. Both systems are turned on by default. There is also an alerter that, if both ATC and ACSES are turned off, is also turned off.
+- Press Ctrl+D to disable and enable ATC, and Ctrl+F to disable and enable ACSES. Both systems are turned on by default.

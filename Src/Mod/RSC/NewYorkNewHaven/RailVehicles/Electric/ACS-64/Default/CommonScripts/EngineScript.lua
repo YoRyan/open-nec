@@ -288,11 +288,8 @@ end
 
 local function setcutin()
   if not playersched:isstartup() then
-    local atcon = RailWorks.GetControlValue("ATCCutIn", 0) == 1
-    local acseson = RailWorks.GetControlValue("ACSESCutIn", 0) == 1
-    atc:setrunstate(atcon)
-    acses:setrunstate(acseson)
-    alerter:setrunstate(atcon or acseson)
+    atc:setrunstate(RailWorks.GetControlValue("ATCCutIn", 0) == 1)
+    acses:setrunstate(RailWorks.GetControlValue("ACSESCutIn", 0) == 1)
   end
 end
 
