@@ -224,6 +224,12 @@ The fuel pump indicator light.
 
 The HEP switch. The default state is 1 (on).
 
+#### UnitT
+
+#### UnitU
+
+Sets the digits of the unit number in the center pillar. The "45-" digits at the beginning of the number are static textures.
+
 ### Keyboard shortcuts
 
 #### ATC
