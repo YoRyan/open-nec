@@ -20,6 +20,7 @@ local adu
 local alerter
 local doors
 local ditchflasher
+local decreaseonoff
 local state = {
   throttle = 0,
   train_brake = 0,
@@ -114,6 +115,9 @@ Initialise = Misc.wraperrors(function()
     on_s = ditchflash_s
   }
 
+  -- Modulate the speed reduction alert sound, which normally plays just once.
+  decreaseonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
+
   readrvnumber()
   RailWorks.BeginUpdate()
 end)
@@ -168,6 +172,19 @@ local function writelocostate()
   elseif handbrake == -1 then
     RailWorks.SetControlValue("HandBrake", 0, 0)
   end
+
+  local vigilalarm = alerter:isalarm()
+  local safetyalarm = atc:isalarm() or acses:isalarm()
+  local safetyalert = adu:isatcalert() or adu:isacsesalert()
+  RailWorks.SetControlValue(
+    "AWSWarnCount", 0, Misc.intbool(vigilalarm or safetyalarm))
+  RailWorks.SetControlValue(
+    "ACSES_Alert", 0, Misc.intbool(vigilalarm))
+  decreaseonoff:setflashstate(safetyalarm)
+  RailWorks.SetControlValue(
+    "ACSES_AlertDecrease", 0, Misc.intbool(decreaseonoff:ison()))
+  RailWorks.SetControlValue(
+    "ACSES_AlertIncrease", 0, Misc.intbool(safetyalert))
 
   RailWorks.SetControlValue(
     "Horn", 0, RailWorks.GetControlValue("VirtualHorn", 0))
