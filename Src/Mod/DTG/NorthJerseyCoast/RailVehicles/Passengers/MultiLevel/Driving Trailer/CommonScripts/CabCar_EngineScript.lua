@@ -288,6 +288,20 @@ local function setstatuslights()
   end
 end
 
+local function setcoachlights()
+  -- TODO: Impose startup delay?
+  local lightson = RailWorks.GetControlValue("HEP", 0) == 1
+  Call("Carriage Light 1:Activate", Misc.intbool(lightson))
+  Call("Carriage Light 2:Activate", Misc.intbool(lightson))
+  Call("Carriage Light 3:Activate", Misc.intbool(lightson))
+  Call("Carriage Light 4:Activate", Misc.intbool(lightson))
+  Call("Carriage Light 5:Activate", Misc.intbool(lightson))
+  Call("Carriage Light 6:Activate", Misc.intbool(lightson))
+  Call("Carriage Light 7:Activate", Misc.intbool(lightson))
+  Call("Carriage Light 8:Activate", Misc.intbool(lightson))
+  RailWorks.ActivateNode("1_1000_LitInteriorLights", lightson)
+end
+
 local function showdestination(idx)
   local valid = idx >= 1 and idx <= table.getn(destinations)
   for i, node in ipairs(destinations) do
@@ -327,6 +341,7 @@ local function updateplayer()
   setcablight()
   setditchlights()
   setstatuslights()
+  setcoachlights()
   setdestination()
 end
 
@@ -340,6 +355,7 @@ local function updateai()
   setcablight()
   setditchlights()
   setstatuslights()
+  setcoachlights()
   setdestination()
 end
 
