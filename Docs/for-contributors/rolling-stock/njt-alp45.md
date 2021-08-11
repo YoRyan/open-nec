@@ -206,6 +206,24 @@ The ACSES cut out light.
 
 The ACSES cut in light.
 
+### Sounds
+
+#### ACSES_Alert
+
+Plays a continuous, rapid beep-beep sound.
+
+#### ACSES_AlertIncrease
+
+Plays a short upgrade tone.
+
+#### ACSES_AlertDecrease
+
+Plays a short downgrade tone.
+
+#### ExteriorSounds
+
+Plays some background noise.
+
 ### Miscellaneous
 
 #### VirtualEmergencyBrake
@@ -231,6 +249,10 @@ The HEP switch. The default state is 1 (on).
 Sets the digits of the unit number in the center pillar. The "45-" digits at the beginning of the number are static textures.
 
 ### Keyboard shortcuts
+
+#### AWSWarnCount
+
+The exclamation mark indicator on the HUD.
 
 #### ATC
 
