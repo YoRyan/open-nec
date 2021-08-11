@@ -98,7 +98,7 @@ The true sander state used by the physics model.
 
 The model position for the bell switch. Ranges from -1 to 1.
 
-#### VirtualSander
+#### VirtualBell
 
 The bell click toggle, also operated by the B key.
 
