@@ -32,7 +32,7 @@ function P:isclearsignal ()
 end
 
 -- Get the combined ATC/ACSES speed limit.
-function P:getcombinedlimit_mph ()
+local function getcombinedlimit_mph (self)
   local atc_mph = self._atc:isrunning() and Adu.getsignalspeed_mph(self)
     or nil
   local acses_mph = self._acses:isrunning() and Adu.getcivilcurvespeed_mph(self)
@@ -49,7 +49,7 @@ function P:getgreenzone_mph (speed_mps)
   if not self._acses:isrunning() and self:isclearsignal() then
     return 0
   else
-    return self:getcombinedlimit_mph() or 0
+    return getcombinedlimit_mph(self) or 0
   end
 end
 
@@ -59,7 +59,7 @@ function P:getredzone_mph (speed_mps)
     return 0
   else
     local aspeed_mph = math.abs(speed_mps)*Units.mps.tomph
-    local limit_mph = self:getcombinedlimit_mph() or 0
+    local limit_mph = getcombinedlimit_mph(self) or 0
     if aspeed_mph > limit_mph then
       return aspeed_mph
     else
