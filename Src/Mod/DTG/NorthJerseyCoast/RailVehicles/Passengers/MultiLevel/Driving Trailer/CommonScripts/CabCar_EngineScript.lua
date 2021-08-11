@@ -29,7 +29,7 @@ local state = {
   throttle = 0,
   train_brake = 0,
   acknowledge = false,
-  destination = 1,
+  rv_destination = nil,
 
   speed_mps = 0,
   acceleration_mps2 = 0,
@@ -41,6 +41,10 @@ local state = {
   lasthorntime_s = nil
 }
 
+local messageid = {
+  destination = 10100
+}
+
 local destinations = {
   "Dest_Trenton",
   "Dest_NewYork",
@@ -50,14 +54,16 @@ local destinations = {
   "Dest_BayHead"
 }
 
-local function getrvdestination()
-  local id = string.sub(RailWorks.GetRVNumber(), 1, 1)
-  local index = string.byte(id)
-  if index == nil then
-    return 1
+local function readrvnumber()
+  local _, _, deststr =
+    string.find(RailWorks.GetRVNumber(), "(%a)")
+  local dest
+  if deststr ~= nil then
+    dest = string.byte(string.upper(deststr)) - string.byte("A") + 1
   else
-    return index - string.byte("A") + 1
+    dest = nil
   end
+  state.rv_destination = dest
 end
 
 Initialise = Misc.wraperrors(function()
@@ -135,8 +141,7 @@ Initialise = Misc.wraperrors(function()
     on_s = ditchflash_s
   }
 
-  state.destination = getrvdestination()
-
+  readrvnumber()
   RailWorks.BeginUpdate()
 end)
 
@@ -283,15 +288,25 @@ local function setstatuslights()
   end
 end
 
-local function setdestination()
-  local valid = state.destination >= 1 and state.destination <=
-                  table.getn(destinations)
+local function showdestination(idx)
+  local valid = idx >= 1 and idx <= table.getn(destinations)
   for i, node in ipairs(destinations) do
     if valid then
-      RailWorks.ActivateNode(node, i == state.destination)
+      RailWorks.ActivateNode(node, i == idx)
     else
       RailWorks.ActivateNode(node, i == 1)
     end
+  end
+end
+
+local function setdestination()
+  -- Broadcast the rail vehicle-derived destination, if any.
+  if state.rv_destination ~= nil and anysched:isstartup() then
+    RailWorks.Engine_SendConsistMessage(
+      messageid.destination, state.rv_destination, 0)
+    RailWorks.Engine_SendConsistMessage(
+      messageid.destination, state.rv_destination, 1)
+    showdestination(state.rv_destination)
   end
 end
 
@@ -372,9 +387,11 @@ OnControlValueChange = Misc.wraperrors(
       end
     end
 
-    -- Read the selected destination only when the player changes it.
-    if name == "Destination" and not playersched:isstartup() then
-      state.destination = math.floor(value + 0.5) - 1
+    -- The player has changed the destination sign.
+    if name == "Destination" and not anysched:isstartup() then
+      RailWorks.Engine_SendConsistMessage(messageid.destination, value, 0)
+      RailWorks.Engine_SendConsistMessage(messageid.destination, value, 1)
+      showdestination(value)
     end
 
     RailWorks.SetControlValue(name, index, value)
@@ -384,4 +401,11 @@ OnCustomSignalMessage = Misc.wraperrors(function(message)
   cabsig:receivemessage(message)
 end)
 
-OnConsistMessage = RailWorks.Engine_SendConsistMessage
+OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
+  -- Render the received destination sign.
+  if message == messageid.destination then
+    showdestination(tonumber(argument))
+  end
+
+  RailWorks.Engine_SendConsistMessage(message, argument, direction)
+end)
