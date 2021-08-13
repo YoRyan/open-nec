@@ -92,7 +92,7 @@ Initialise = Misc.wraperrors(function()
   alerter:start()
 
   power = Power:new{
-    sched = anysched,
+    scheduler = anysched,
     available = {Power.supply.overhead},
     modes = {[0] = function (connected)
       return state.pantoup and connected[Power.supply.overhead]

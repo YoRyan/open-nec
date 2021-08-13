@@ -97,7 +97,7 @@ Initialise = Misc.wraperrors(function()
   local iselectric = string.sub(RailWorks.GetRVNumber(), 1, 1) == "T"
   local initmode = iselectric and powermode.thirdrail or powermode.diesel
   power = Power:new{
-    sched = anysched,
+    scheduler = anysched,
     available = iselectric and {Power.supply.thirdrail} or {},
     modes = {
       [powermode.thirdrail] = function(connected)

@@ -110,7 +110,7 @@ Initialise = Misc.wraperrors(function()
   }
 
   power = Power:new{
-    sched = anysched,
+    scheduler = anysched,
     available = {Power.supply.overhead},
     modes = {[0] = function (connected)
       local contact = frontpantoanim:getposition() == 1

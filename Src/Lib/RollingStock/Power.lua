@@ -49,7 +49,7 @@ function P:new (conf)
   -- the identifier of the mode to initialize in
   local init_mode = conf.init_mode or firstmode
   local o = {
-    _sched = conf.sched,
+    _sched = conf.scheduler,
     _transition_s = conf.transition_s or 10,
     _getcantransition = conf.getcantransition or function () return false end,
     _getselectedmode = conf.getselectedmode or function () return firstmode end,
