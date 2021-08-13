@@ -110,7 +110,7 @@ Initialise = Misc.wraperrors(function()
     transition_s = 20,
     getcantransition = function() return state.throttle <= 0 end,
     getselectedmode = function() return state.powermode end,
-    getaimode = function(cp)
+    selectaimode = function(cp)
       if cp == Power.changepoint.ai_to_thirdrail then
         return powermode.thirdrail
       elseif cp == Power.changepoint.ai_to_diesel then

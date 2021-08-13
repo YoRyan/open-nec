@@ -54,7 +54,7 @@ function P:new (conf)
     _getcantransition = conf.getcantransition or function () return false end,
     _getselectedmode = conf.getselectedmode or function () return firstmode end,
     -- maps an AI change point to the next power mode to change to
-    _getaimode = conf.getaimode or function (cp) return nil end,
+    _selectaimode = conf.getaimode or function (cp) return nil end,
     _available = {},
     _modes = modes,
     _current_mode = init_mode,
