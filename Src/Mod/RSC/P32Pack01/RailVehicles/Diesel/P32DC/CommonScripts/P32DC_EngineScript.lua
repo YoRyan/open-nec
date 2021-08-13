@@ -1,5 +1,4 @@
 -- Engine script for the P32AC-DM operated by Amtrak and Metro-North.
-
 -- @include RollingStock/Power.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/Genesis.lua
@@ -12,7 +11,6 @@
 -- @include RailWorks.lua
 -- @include Scheduler.lua
 -- @include Units.lua
-
 local powermode = {thirdrail = 0, diesel = 1}
 
 local playersched, anysched
@@ -103,9 +101,7 @@ Initialise = Misc.wraperrors(function()
       [powermode.thirdrail] = function(connected)
         return connected[Power.supply.thirdrail]
       end,
-      [powermode.diesel] = function(connected)
-        return true
-      end
+      [powermode.diesel] = function(connected) return true end
     },
     init_mode = initmode,
     transition_s = 20,
@@ -150,7 +146,7 @@ local function readcontrols()
   state.crosslights = RailWorks.GetControlValue("CrossingLight", 0) == 1
   if not playersched:isstartup() then
     state.powermode = math.floor(tonumber(
-      RailWorks.GetControlValue("PowerMode", 0)))
+                                   RailWorks.GetControlValue("PowerMode", 0)))
   end
 end
 
@@ -180,13 +176,17 @@ local function writelocostate()
   do
     -- DTG's "blended braking" algorithm
     local v
-    local maxpressure_psi =
-      70
-    local pipepress_psi =
-      maxpressure_psi - RailWorks.GetControlValue("AirBrakePipePressurePSI", 0)
-    if power:getmode() == powermode.thirdrail then v = 0
-    elseif pipepress_psi > 0 then v = pipepress_psi * 0.01428
-    else v = 0 end
+    local maxpressure_psi = 70
+    local pipepress_psi = maxpressure_psi -
+                            RailWorks.GetControlValue("AirBrakePipePressurePSI",
+                                                      0)
+    if power:getmode() == powermode.thirdrail then
+      v = 0
+    elseif pipepress_psi > 0 then
+      v = pipepress_psi * 0.01428
+    else
+      v = 0
+    end
     RailWorks.SetControlValue("DynamicBrake", 0, v)
   end
   do
@@ -195,8 +195,8 @@ local function writelocostate()
     RailWorks.SetControlValue("AWS", 0, Misc.intbool(alarm or alert))
     RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alarm))
   end
-  RailWorks.SetControlValue(
-    "Power3rdRail", 0, Misc.intbool(power:isavailable(Power.supply.thirdrail)))
+  RailWorks.SetControlValue("Power3rdRail", 0, Misc.intbool(
+                              power:isavailable(Power.supply.thirdrail)))
 end
 
 local function setslavestate()
@@ -204,12 +204,11 @@ local function setslavestate()
   state.throttle = RailWorks.GetControlValue("Regulator", 0)
   if not anysched:isstartup() then
     -- The polarity of the power state control is reversed in the cab car.
-    local mode = math.floor(tonumber(
-      RailWorks.GetControlValue("PowerMode", 0)))
+    local mode = math.floor(tonumber(RailWorks.GetControlValue("PowerMode", 0)))
     state.powermode = 1 - mode
     -- Read power availability state.
-    local available = RailWorks.GetControlValue("Power3rdRail", 0) == 1
-      and {Power.supply.thirdrail} or {}
+    local available = RailWorks.GetControlValue("Power3rdRail", 0) == 1 and
+                        {Power.supply.thirdrail} or {}
     power:setavailable(unpack(available))
   end
   RailWorks.SetPowerProportion(-1, power:haspower() and 1 or 0)
@@ -265,16 +264,13 @@ local function setdisplay()
       RailWorks.SetControlValue("TrackTens", 0, -1)
       RailWorks.SetControlValue("TrackUnits", 0, -1)
     else
-      RailWorks.SetControlValue(
-        "TrackHundreds", 0, Misc.getdigit(overspeed_mph, 2))
-      RailWorks.SetControlValue(
-        "TrackTens", 0, Misc.getdigit(overspeed_mph, 1))
-      RailWorks.SetControlValue(
-        "TrackUnits", 0, Misc.getdigit(overspeed_mph, 0))
+      RailWorks.SetControlValue("TrackHundreds", 0,
+                                Misc.getdigit(overspeed_mph, 2))
+      RailWorks.SetControlValue("TrackTens", 0, Misc.getdigit(overspeed_mph, 1))
+      RailWorks.SetControlValue("TrackUnits", 0, Misc.getdigit(overspeed_mph, 0))
     end
   end
-  RailWorks.SetControlValue("AlerterVisual", 0,
-                            Misc.intbool(alerter:isalarm()))
+  RailWorks.SetControlValue("AlerterVisual", 0, Misc.intbool(alerter:isalarm()))
 end
 
 local function setditchlights()
@@ -325,7 +321,7 @@ local function setexhaust()
   local minrpm = 180
   local effort = RailWorks.GetTractiveEffort()
   if power:getmode() == powermode.thirdrail or
-      RailWorks.GetControlValue("RPM", 0) < minrpm then
+    RailWorks.GetControlValue("RPM", 0) < minrpm then
     r, g, b = 0, 0, 0
     rate = 0
     -- DTG's exhaust logic
@@ -377,9 +373,13 @@ local function updateai()
 end
 
 Update = Misc.wraperrors(function(_)
-  if RailWorks.GetIsEngineWithKey() then updateplayer()
-  elseif RailWorks.GetIsPlayer() then updateslave()
-  else updateai() end
+  if RailWorks.GetIsEngineWithKey() then
+    updateplayer()
+  elseif RailWorks.GetIsPlayer() then
+    updateslave()
+  else
+    updateai()
+  end
 end)
 
 OnControlValueChange = RailWorks.SetControlValue
@@ -389,9 +389,7 @@ OnCustomSignalMessage = Misc.wraperrors(function(message)
     power:receiveplayermessage(message)
   else
     local newmode = power:receiveaimessage(message)
-    if newmode ~= nil then
-      RailWorks.SetControlValue("PowerMode", 0, newmode)
-    end
+    if newmode ~= nil then RailWorks.SetControlValue("PowerMode", 0, newmode) end
   end
   cabsig:receivemessage(message)
 end)

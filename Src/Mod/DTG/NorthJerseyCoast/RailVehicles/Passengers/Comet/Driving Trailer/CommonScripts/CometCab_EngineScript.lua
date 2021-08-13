@@ -40,9 +40,7 @@ local state = {
   lasthorntime_s = nil
 }
 
-local messageid = {
-  destination = 10100
-}
+local messageid = {destination = 10100}
 
 local destinations = {
   "Dest_Trenton",
@@ -54,8 +52,8 @@ local destinations = {
 }
 
 local function readrvnumber()
-  local _, _, deststr, unitstr =
-    string.find(RailWorks.GetRVNumber(), "(%a)(%d+)")
+  local _, _, deststr, unitstr = string.find(RailWorks.GetRVNumber(),
+                                             "(%a)(%d+)")
   local dest, unit
   if deststr ~= nil then
     dest = string.byte(string.upper(deststr)) - string.byte("A") + 1
@@ -309,10 +307,10 @@ end
 local function setdestination()
   -- Broadcast the rail vehicle-derived destination, if any.
   if state.rv_destination ~= nil and anysched:isstartup() then
-    RailWorks.Engine_SendConsistMessage(
-      messageid.destination, state.rv_destination, 0)
-    RailWorks.Engine_SendConsistMessage(
-      messageid.destination, state.rv_destination, 1)
+    RailWorks.Engine_SendConsistMessage(messageid.destination,
+                                        state.rv_destination, 0)
+    RailWorks.Engine_SendConsistMessage(messageid.destination,
+                                        state.rv_destination, 1)
     showdestination(state.rv_destination)
   end
 end
@@ -360,66 +358,65 @@ Update = Misc.wraperrors(function(_)
   end
 end)
 
-OnControlValueChange = Misc.wraperrors(
-                         function(name, index, value)
-    -- Synchronize headlight controls.
-    if name == "HeadlightSwitch" then
-      if value == 0 then
-        RailWorks.SetControlValue("Headlights", 0, 0)
-      elseif value == 1 then
-        RailWorks.SetControlValue("Headlights", 0, 2)
-      elseif value == 2 then
-        RailWorks.SetControlValue("Headlights", 0, 3)
-      end
-    elseif name == "Headlights" then
-      if value == 0 or value == 1 then
-        RailWorks.SetControlValue("HeadlightSwitch", 0, 0)
-      elseif value == 2 then
-        RailWorks.SetControlValue("HeadlightSwitch", 0, 1)
-      elseif value == 3 then
-        RailWorks.SetControlValue("HeadlightSwitch", 0, 2)
-      end
+OnControlValueChange = Misc.wraperrors(function(name, index, value)
+  -- Synchronize headlight controls.
+  if name == "HeadlightSwitch" then
+    if value == 0 then
+      RailWorks.SetControlValue("Headlights", 0, 0)
+    elseif value == 1 then
+      RailWorks.SetControlValue("Headlights", 0, 2)
+    elseif value == 2 then
+      RailWorks.SetControlValue("Headlights", 0, 3)
     end
-
-    -- Synchronize pantograph controls.
-    if name == "PantographSwitch" then
-      if value == -1 then
-        RailWorks.SetControlValue("VirtualPantographControl", 0, 0)
-      elseif value == 1 then
-        RailWorks.SetControlValue("VirtualPantographControl", 0, 1)
-      end
-    elseif name == "VirtualPantographControl" then
-      if value == 0 then
-        RailWorks.SetControlValue("PantographSwitch", 0, -1)
-      elseif value == 1 then
-        RailWorks.SetControlValue("PantographSwitch", 0, 1)
-      end
+  elseif name == "Headlights" then
+    if value == 0 or value == 1 then
+      RailWorks.SetControlValue("HeadlightSwitch", 0, 0)
+    elseif value == 2 then
+      RailWorks.SetControlValue("HeadlightSwitch", 0, 1)
+    elseif value == 3 then
+      RailWorks.SetControlValue("HeadlightSwitch", 0, 2)
     end
+  end
 
-    -- Synchronize ditch light controls.
-    if name == "DitchLightSwitch" then
-      if value == 0 or value == 2 then
-        RailWorks.SetControlValue("DitchLights", 0, 0)
-      elseif value == 1 then
-        RailWorks.SetControlValue("DitchLights", 0, 1)
-      end
-    elseif name == "DitchLights" then
-      if value == 0 then
-        RailWorks.SetControlValue("DitchLightSwitch", 0, 2)
-      elseif value == 1 then
-        RailWorks.SetControlValue("DitchLightSwitch", 0, 1)
-      end
+  -- Synchronize pantograph controls.
+  if name == "PantographSwitch" then
+    if value == -1 then
+      RailWorks.SetControlValue("VirtualPantographControl", 0, 0)
+    elseif value == 1 then
+      RailWorks.SetControlValue("VirtualPantographControl", 0, 1)
     end
-
-    -- The player has changed the destination sign.
-    if name == "Destination" and not anysched:isstartup() then
-      RailWorks.Engine_SendConsistMessage(messageid.destination, value, 0)
-      RailWorks.Engine_SendConsistMessage(messageid.destination, value, 1)
-      showdestination(value)
+  elseif name == "VirtualPantographControl" then
+    if value == 0 then
+      RailWorks.SetControlValue("PantographSwitch", 0, -1)
+    elseif value == 1 then
+      RailWorks.SetControlValue("PantographSwitch", 0, 1)
     end
+  end
 
-    RailWorks.SetControlValue(name, index, value)
-  end)
+  -- Synchronize ditch light controls.
+  if name == "DitchLightSwitch" then
+    if value == 0 or value == 2 then
+      RailWorks.SetControlValue("DitchLights", 0, 0)
+    elseif value == 1 then
+      RailWorks.SetControlValue("DitchLights", 0, 1)
+    end
+  elseif name == "DitchLights" then
+    if value == 0 then
+      RailWorks.SetControlValue("DitchLightSwitch", 0, 2)
+    elseif value == 1 then
+      RailWorks.SetControlValue("DitchLightSwitch", 0, 1)
+    end
+  end
+
+  -- The player has changed the destination sign.
+  if name == "Destination" and not anysched:isstartup() then
+    RailWorks.Engine_SendConsistMessage(messageid.destination, value, 0)
+    RailWorks.Engine_SendConsistMessage(messageid.destination, value, 1)
+    showdestination(value)
+  end
+
+  RailWorks.SetControlValue(name, index, value)
+end)
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
   cabsig:receivemessage(message)
@@ -427,9 +424,7 @@ end)
 
 OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
   -- Render the received destination sign.
-  if message == messageid.destination then
-    showdestination(tonumber(argument))
-  end
+  if message == messageid.destination then showdestination(tonumber(argument)) end
 
   RailWorks.Engine_SendConsistMessage(message, argument, direction)
 end)

@@ -2,7 +2,7 @@
 local P = {}
 Tone = P
 
-local function run (self)
+local function run(self)
   while true do
     self._event:waitfor()
     self._play = true
@@ -13,12 +13,12 @@ end
 
 -- From the main coroutine, create a new Tone context. This will add a coroutine
 -- to the provided scheduler.
-function P:new (conf)
+function P:new(conf)
   local sched = conf.scheduler
   local o = {
     _sched = sched,
     _time_s = conf.time_s or 1,
-    _event = Event:new{scheduler=sched},
+    _event = Event:new{scheduler = sched},
     _play = false
   }
   setmetatable(o, self)
@@ -28,13 +28,9 @@ function P:new (conf)
 end
 
 -- Trigger the tone.
-function P:trigger ()
-  self._event:trigger()
-end
+function P:trigger() self._event:trigger() end
 
 -- Determine whether the underlying sound should play.
-function P:isplaying ()
-  return self._play
-end
+function P:isplaying() return self._play end
 
 return P

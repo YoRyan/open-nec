@@ -3,7 +3,7 @@ local P = {}
 Animation = P
 
 -- From the main coroutine, create a new Animation context.
-function P:new (conf)
+function P:new(conf)
   local sched = conf.scheduler
   local o = {
     _sched = sched,
@@ -19,37 +19,33 @@ function P:new (conf)
 end
 
 -- From the main coroutine, update this animation.
-function P:update ()
+function P:update()
   local now_s = self._sched:clock()
   local dt_s = now_s - self._lastclock_s
   self._lastclock_s = now_s
 
   if self._animate and self._position ~= 1 then
-    self._position = math.min(self._position + dt_s/self._duration_s, 1)
+    self._position = math.min(self._position + dt_s / self._duration_s, 1)
     RailWorks.AddTime(self._animation, dt_s)
   elseif not self._animate and self._position ~= 0 then
-    self._position = math.max(self._position - dt_s/self._duration_s, 0)
+    self._position = math.max(self._position - dt_s / self._duration_s, 0)
     RailWorks.AddTime(self._animation, -dt_s)
   end
 end
 
 -- Get the current position of this animation, scaled from 0 (not started) to
 -- 1 (complete).
-function P:getposition ()
-  return self._position
-end
+function P:getposition() return self._position end
 
 -- From the main coroutine, set the current position of this animation, scaled
 -- from 0 (not started) to 1 (complete). The animation may still run depending
 -- on the value passed to setanimatedstate().
-function P:setposition (pos)
+function P:setposition(pos)
   self._position = pos
-  RailWorks.SetTime(self._animation, pos*self._duration_s)
+  RailWorks.SetTime(self._animation, pos * self._duration_s)
 end
 
 -- Set the target state of this animation.
-function P:setanimatedstate (state)
-  self._animate = state
-end
+function P:setanimatedstate(state) self._animate = state end
 
 return P

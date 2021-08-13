@@ -13,16 +13,16 @@ P.changepoint = {
   ai_to_diesel = 12
 }
 
-local function connect (self, supply) self._available[supply] = true end
+local function connect(self, supply) self._available[supply] = true end
 
-local function disconnect (self, supply) self._available[supply] = nil end
+local function disconnect(self, supply) self._available[supply] = nil end
 
-local function run (self)
+local function run(self)
   while true do
     -- Wait for the player to start a transition.
-    self._sched:select(nil, function ()
-      return self._getselectedmode() ~= self._current_mode
-        and self._getcantransition()
+    self._sched:select(nil, function()
+      return self._getselectedmode() ~= self._current_mode and
+               self._getcantransition()
     end)
     self._last_mode = self._current_mode
     self._current_mode = self._getselectedmode()
@@ -36,7 +36,7 @@ end
 
 -- From the main coroutine, create a new Power context. This will add a
 -- coroutine to the provided scheduler.
-function P:new (conf)
+function P:new(conf)
   -- an array of power supplies that are available at spawn
   local available = conf.available or {}
   -- a dictionary that represents all operating modes of the locomotive; the key
@@ -51,10 +51,10 @@ function P:new (conf)
   local o = {
     _sched = conf.scheduler,
     _transition_s = conf.transition_s or 10,
-    _getcantransition = conf.getcantransition or function () return false end,
-    _getselectedmode = conf.getselectedmode or function () return firstmode end,
+    _getcantransition = conf.getcantransition or function() return false end,
+    _getselectedmode = conf.getselectedmode or function() return firstmode end,
     -- maps an AI change point to the next power mode to change to
-    _selectaimode = conf.getaimode or function (cp) return nil end,
+    _selectaimode = conf.getaimode or function(cp) return nil end,
     _available = {},
     _modes = modes,
     _current_mode = init_mode,
@@ -72,27 +72,27 @@ function P:new (conf)
 end
 
 -- Determine whether or not a particular power supply is available.
-function P:isavailable (supply) return self._available[supply] end
+function P:isavailable(supply) return self._available[supply] end
 
 -- Set the currently available power supplies without using signal messages.
-function P:setavailable (...)
+function P:setavailable(...)
   for _, supply in ipairs(arg) do connect(self, supply) end
 end
 
 -- Get the current selected power mode. In a transition phase, this will return
 -- the next mode.
-function P:getmode () return self._current_mode end
+function P:getmode() return self._current_mode end
 
 -- Set the current power mode without going through a transition.
-function P:setmode (newmode) self._current_mode = newmode end
+function P:setmode(newmode) self._current_mode = newmode end
 
 -- Get information about the current mode transition, if any. Returns last
 -- mode, next mode, and remaining transition time, or nil if there is no
 -- transition.
-function P:gettransition ()
+function P:gettransition()
   if self._transitionstart ~= nil then
-    local remaining_s =
-      self._transition_s - (self._sched:clock() - self._transitionstart)
+    local remaining_s = self._transition_s -
+                          (self._sched:clock() - self._transitionstart)
     return self._last_mode, self._current_mode, remaining_s
   else
     return nil, nil, nil
@@ -102,14 +102,14 @@ end
 -- Determine whether or not the locomotive has power available. This is true
 -- when the locomotive is not in a transition phase and the selected power
 -- mode is available for use.
-function P:haspower ()
+function P:haspower()
   local isavailable = self._modes[self._current_mode]
   return self._transitionstart == nil and isavailable(self._available)
 end
 
 -- Get the change point type that corresponds to a signal message. If nil, then
 -- the message is of an unknown format.
-local function getchangepoint (message)
+local function getchangepoint(message)
   if string.sub(message, 1, 1) == "P" then
     local point = string.sub(message, 3)
     if point == "OverheadStart" then
@@ -141,7 +141,7 @@ local function getchangepoint (message)
   end
 end
 
-local function receivechangepoint (self, cp)
+local function receivechangepoint(self, cp)
   if cp == P.changepoint.thirdrailstart then
     connect(self, P.supply.thirdrail)
   elseif cp == P.changepoint.thirdrailend then
@@ -155,7 +155,7 @@ end
 
 -- Receive a custom signal message as a player. Change points will connect or
 -- disconnect power supplies.
-function P:receiveplayermessage (message)
+function P:receiveplayermessage(message)
   local cp = getchangepoint(message)
   receivechangepoint(self, cp)
 end
@@ -163,7 +163,7 @@ end
 -- Receive a custom signal message as an AI. Change points will switch power
 -- modes without a transition phase. If there is a power mode change, switch
 -- to the new mode, then return it; else, return nil.
-function P:receiveaimessage (message)
+function P:receiveaimessage(message)
   local cp = getchangepoint(message)
   receivechangepoint(self, cp)
 

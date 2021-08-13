@@ -2,27 +2,26 @@
 local P = {}
 Flash = P
 
-local function cycle (self)
+local function cycle(self)
   self._ison = true
-  local event = self._sched:select(
-    self._on_s, function () return not self._flash end)
+  local event = self._sched:select(self._on_s,
+                                   function() return not self._flash end)
   self._ison = false
   if event == nil then
-    self._sched:select(
-      self._off_s, function () return not self._flash end)
+    self._sched:select(self._off_s, function() return not self._flash end)
   end
 end
 
-local function run (self)
+local function run(self)
   while true do
-    self._sched:select(nil, function () return self._flash end)
+    self._sched:select(nil, function() return self._flash end)
     cycle(self)
   end
 end
 
 -- From the main coroutine, create a new Flash context. This will add a coroutine
 -- to the provided scheduler.
-function P:new (conf)
+function P:new(conf)
   local sched = conf.scheduler
   local o = {
     _sched = sched,
@@ -39,13 +38,9 @@ end
 
 -- From the main coroutine, start or stop the flash sequence based on the
 -- provided condition.
-function P:setflashstate (cond)
-  self._flash = cond
-end
+function P:setflashstate(cond) self._flash = cond end
 
 -- Returns true if the flasher in the "on" phase.
-function P:ison ()
-  return self._ison
-end
+function P:ison() return self._ison end
 
 return P

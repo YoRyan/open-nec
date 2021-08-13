@@ -3,31 +3,33 @@ local P = {}
 RangeScroll = P
 
 -- Specifies the scroller's current direction.
-P.direction = {previous=0, neutral=1, next=2}
+P.direction = {previous = 0, neutral = 1, next = 2}
 
-local function scrollprevious (self, start_s)
+local function scrollprevious(self, start_s)
   local event
   repeat
     self._selected = math.max(self._selected - 1, 1)
-    event = self._sched:select(self._move_s,
-      function () return self._getdirection() ~= P.direction.previous end)
+    event = self._sched:select(self._move_s, function()
+      return self._getdirection() ~= P.direction.previous
+    end)
   until event == 1
 end
 
-local function scrollnext (self, start_s)
+local function scrollnext(self, start_s)
   local event
   repeat
     self._selected = math.min(self._selected + 1, self._limit)
-    event = self._sched:select(self._move_s,
-      function () return self._getdirection() ~= P.direction.next end)
+    event = self._sched:select(self._move_s, function()
+      return self._getdirection() ~= P.direction.next
+    end)
   until event == 1
 end
 
-local function run (self)
+local function run(self)
   while true do
-    local event = self._sched:select(nil,
-      function () return self._getdirection() == P.direction.previous end,
-      function () return self._getdirection() == P.direction.next end)
+    local event = self._sched:select(nil, function()
+      return self._getdirection() == P.direction.previous
+    end, function() return self._getdirection() == P.direction.next end)
     if event == 1 then
       scrollprevious(self, self._sched:clock())
     elseif event == 2 then
@@ -38,10 +40,11 @@ end
 
 -- From the main coroutine, create a new RangeScroll context. This will add a
 -- coroutine to the provided scheduler.
-function P:new (conf)
+function P:new(conf)
   local o = {
     _sched = conf.scheduler,
-    _getdirection = conf.getdirection or function () return P.direction.neutral end,
+    _getdirection = conf.getdirection or
+      function() return P.direction.neutral end,
     _limit = conf.limit or 1,
     _move_s = conf.move_s or 1,
     _selected = conf.selected or 1
@@ -53,8 +56,6 @@ function P:new (conf)
 end
 
 -- Returns the currently selected number.
-function P:getselected ()
-  return self._selected
-end
+function P:getselected() return self._selected end
 
 return P

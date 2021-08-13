@@ -152,11 +152,13 @@ Initialise = Misc.wraperrors(function()
   power = Power:new{
     scheduler = anysched,
     available = {Power.supply.overhead},
-    modes = {[0] = function (connected)
-      local contact = frontpantoanim:getposition() == 1
-        or rearpantoanim:getposition() == 1
-      return contact and connected[Power.supply.overhead]
-    end}
+    modes = {
+      [0] = function(connected)
+        local contact = frontpantoanim:getposition() == 1 or
+                          rearpantoanim:getposition() == 1
+        return contact and connected[Power.supply.overhead]
+      end
+    }
   }
 
   frontpantoanim = Animation:new{
@@ -374,8 +376,7 @@ local function setaidest()
 end
 
 local function setstatusscreen()
-  RailWorks.SetControlValue("ControlScreenIzq", 0,
-                            Misc.intbool(not haspower()))
+  RailWorks.SetControlValue("ControlScreenIzq", 0, Misc.intbool(not haspower()))
   do
     local frontpantoup = frontpantoanim:getposition() == 1
     local rearpantoup = rearpantoanim:getposition() == 1
@@ -414,8 +415,7 @@ local function setstatusscreen()
 end
 
 local function setdrivescreen()
-  RailWorks.SetControlValue("ControlScreenDer", 0,
-                            Misc.intbool(not haspower()))
+  RailWorks.SetControlValue("ControlScreenDer", 0, Misc.intbool(not haspower()))
   do
     local speed_mph = Misc.round(state.speed_mps * Units.mps.tomph)
     RailWorks.SetControlValue("SPHundreds", 0, Misc.getdigit(speed_mph, 2))
@@ -482,12 +482,10 @@ local function setadu()
       RailWorks.SetControlValue("TSTens", 0, -1)
       RailWorks.SetControlValue("TSUnits", 0, -1)
     else
-      RailWorks.SetControlValue(
-        "TSHundreds", 0, Misc.getdigit(civilspeed_mph, 2))
-      RailWorks.SetControlValue(
-        "TSTens", 0, Misc.getdigit(civilspeed_mph, 1))
-      RailWorks.SetControlValue(
-        "TSUnits", 0, Misc.getdigit(civilspeed_mph, 0))
+      RailWorks.SetControlValue("TSHundreds", 0,
+                                Misc.getdigit(civilspeed_mph, 2))
+      RailWorks.SetControlValue("TSTens", 0, Misc.getdigit(civilspeed_mph, 1))
+      RailWorks.SetControlValue("TSUnits", 0, Misc.getdigit(civilspeed_mph, 0))
     end
   end
   RailWorks.SetControlValue("MaximumSpeedLimitIndicator", 0,

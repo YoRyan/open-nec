@@ -213,12 +213,10 @@ local function setadu()
       RailWorks.SetControlValue("TSTens", 0, 0)
       RailWorks.SetControlValue("TSUnits", 0, -1)
     else
-      RailWorks.SetControlValue(
-        "TSHundreds", 0, Misc.getdigit(civilspeed_mph, 2))
-      RailWorks.SetControlValue(
-        "TSTens", 0, Misc.getdigit(civilspeed_mph, 1))
-      RailWorks.SetControlValue(
-        "TSUnits", 0, Misc.getdigit(civilspeed_mph, 0))
+      RailWorks.SetControlValue("TSHundreds", 0,
+                                Misc.getdigit(civilspeed_mph, 2))
+      RailWorks.SetControlValue("TSTens", 0, Misc.getdigit(civilspeed_mph, 1))
+      RailWorks.SetControlValue("TSUnits", 0, Misc.getdigit(civilspeed_mph, 0))
     end
   end
   RailWorks.SetControlValue("MaximumSpeedLimitIndicator", 0,

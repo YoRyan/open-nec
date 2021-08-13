@@ -1,25 +1,25 @@
 -- A 2000's-era Amtrak ADU with a separate signal and track speed limit displays.
 -- We assume it is not possible to display 100, 125, or 150 mph signal speeds,
 -- so we will use the track speed limit display to present them.
-
 -- @include SafetySystems/AspectDisplay/AspectDisplay.lua
 -- @include Signals/NecSignals.lua
-
 local P = {}
 AmtrakTwoSpeedAdu = P
 
-P.aspect = {stop=0,
-            restrict=1,
-            approach=2,
-            approachmed=3,
-            cabspeed=4,
-            cabspeedoff=5,
-            clear=6}
-P.square = {none=-1, signal=0, track=1}
+P.aspect = {
+  stop = 0,
+  restrict = 1,
+  approach = 2,
+  approachmed = 3,
+  cabspeed = 4,
+  cabspeedoff = 5,
+  clear = 6
+}
+P.square = {none = -1, signal = 0, track = 1}
 
 -- Ensure we have inherited the properties of the base class, PiL-style.
 -- We can't run code on initialization in TS, so we do this in :new().
-local function inherit (base)
+local function inherit(base)
   if getmetatable(base) == nil then
     base.__index = base
     setmetatable(P, base)
@@ -27,7 +27,7 @@ local function inherit (base)
 end
 
 -- Create a new AmtrakTwoSpeedAdu context.
-function P:new (conf)
+function P:new(conf)
   inherit(Adu)
   local o = Adu:new(conf)
   o._csflasher = Flash:new{
@@ -46,15 +46,15 @@ function P:new (conf)
 end
 
 -- Get the currently displayed cab signal aspect.
-function P:getaspect ()
+function P:getaspect()
   local aspect, flash
   local acsesmode = self._acses:getmode()
   local atccode = self._atc:getpulsecode()
   if acsesmode == Acses.mode.positivestop then
     aspect = P.aspect.stop
     flash = false
-  elseif acsesmode == Acses.mode.approachmed30
-      or atccode == Nec.pulsecode.approachmed then
+  elseif acsesmode == Acses.mode.approachmed30 or atccode ==
+    Nec.pulsecode.approachmed then
     aspect = P.aspect.approachmed
     flash = false
   elseif atccode == Nec.pulsecode.restrict then
@@ -63,17 +63,16 @@ function P:getaspect ()
   elseif atccode == Nec.pulsecode.approach then
     aspect = P.aspect.approach
     flash = false
-  elseif atccode == Nec.pulsecode.cabspeed60
-      or atccode == Nec.pulsecode.cabspeed80 then
+  elseif atccode == Nec.pulsecode.cabspeed60 or atccode ==
+    Nec.pulsecode.cabspeed80 then
     if self._csflasher:ison() then
       aspect = P.aspect.cabspeed
     else
       aspect = P.aspect.cabspeedoff
     end
     flash = true
-  elseif atccode == Nec.pulsecode.clear100
-      or atccode == Nec.pulsecode.clear125
-      or atccode == Nec.pulsecode.clear150 then
+  elseif atccode == Nec.pulsecode.clear100 or atccode == Nec.pulsecode.clear125 or
+    atccode == Nec.pulsecode.clear150 then
     aspect = P.aspect.clear
     flash = false
   end
@@ -82,7 +81,7 @@ function P:getaspect ()
 end
 
 -- Get the current signal speed limit.
-function P:getsignalspeed_mph ()
+function P:getsignalspeed_mph()
   local speed_mph = Adu.getsignalspeed_mph(self)
   if speed_mph == 100 or speed_mph == 125 or speed_mph == 150 then
     return nil
@@ -93,7 +92,7 @@ end
 
 -- Get the current civil (track) speed limit, which is combined with the signal
 -- speed limit if that limit cannot be displayed by the ADU model.
-function P:getcivilspeed_mph ()
+function P:getcivilspeed_mph()
   local sigspeed_mph = self:getsignalspeed_mph()
   local civspeed_mph = Adu.getcivilspeed_mph(self)
   local speed_mph, flash
@@ -102,8 +101,8 @@ function P:getcivilspeed_mph ()
     if self:getatcsound() then
       speed_mph = truesigspeed_mph
       flash = false
-    elseif truesigspeed_mph ~= nil and civspeed_mph ~= nil
-        and truesigspeed_mph < civspeed_mph then
+    elseif truesigspeed_mph ~= nil and civspeed_mph ~= nil and truesigspeed_mph <
+      civspeed_mph then
       if self._sigspeedflasher:ison() then
         speed_mph = truesigspeed_mph
       else
@@ -123,7 +122,7 @@ function P:getcivilspeed_mph ()
 end
 
 -- Get the current indicator light that is illuminated, if any.
-function P:getsquareindicator ()
+function P:getsquareindicator()
   if self:getatcindicator() then
     return P.square.signal
   elseif self:getacsesindicator() then

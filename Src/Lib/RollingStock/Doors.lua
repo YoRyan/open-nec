@@ -1,13 +1,11 @@
 -- Manual door control for rolling stock that supports it, as well as animation
 -- control for cab cars.
-
 -- @include Misc.lua
-
 local P = {}
 Doors = P
 
 -- From the main coroutine, create a new Doors context.
-function P:new (conf)
+function P:new(conf)
   local o = {
     _sched = conf.scheduler,
     _leftanimation = conf.leftanimation,
@@ -22,7 +20,7 @@ function P:new (conf)
 end
 
 -- From the main coroutine, update the door state.
-function P:update ()
+function P:update()
   local ismanual = RailWorks.GetControlValue("DoorsManual", 0) == 1
   if ismanual ~= self._lastmanual then
     if self._lastmanual ~= nil and RailWorks.GetIsEngineWithKey() then
@@ -50,7 +48,7 @@ function P:update ()
 end
 
 -- Returns true if the lefthand doors are currently open.
-function P:isleftdooropen ()
+function P:isleftdooropen()
   if self._leftanimation ~= nil then
     return self._leftopen and self._leftanimation:getposition() == 1
   else
@@ -59,7 +57,7 @@ function P:isleftdooropen ()
 end
 
 -- Returns true if the righthand doors are currently open.
-function P:isrightdooropen ()
+function P:isrightdooropen()
   if self._rightanimation ~= nil then
     return self._rightopen and self._rightanimation:getposition() == 1
   else

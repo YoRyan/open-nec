@@ -112,11 +112,13 @@ Initialise = Misc.wraperrors(function()
   power = Power:new{
     scheduler = anysched,
     available = {Power.supply.overhead},
-    modes = {[0] = function (connected)
-      local contact = frontpantoanim:getposition() == 1
-        or rearpantoanim:getposition() == 1
-      return contact and connected[Power.supply.overhead]
-    end}
+    modes = {
+      [0] = function(connected)
+        local contact = frontpantoanim:getposition() == 1 or
+                          rearpantoanim:getposition() == 1
+        return contact and connected[Power.supply.overhead]
+      end
+    }
   }
 
   frontpantoanim = Animation:new{
@@ -383,12 +385,10 @@ local function setadu()
       RailWorks.SetControlValue("TSTens", 0, -1)
       RailWorks.SetControlValue("TSUnits", 0, -1)
     else
-      RailWorks.SetControlValue(
-        "TSHundreds", 0, Misc.getdigit(civilspeed_mph, 2))
-      RailWorks.SetControlValue(
-        "TSTens", 0, Misc.getdigit(civilspeed_mph, 1))
-      RailWorks.SetControlValue(
-        "TSUnits", 0, Misc.getdigit(civilspeed_mph, 0))
+      RailWorks.SetControlValue("TSHundreds", 0,
+                                Misc.getdigit(civilspeed_mph, 2))
+      RailWorks.SetControlValue("TSTens", 0, Misc.getdigit(civilspeed_mph, 1))
+      RailWorks.SetControlValue("TSUnits", 0, Misc.getdigit(civilspeed_mph, 0))
     end
   end
   RailWorks.SetControlValue("MinimumSpeed", 0, adu:getsquareindicator())
@@ -477,16 +477,15 @@ Update = Misc.wraperrors(function(_)
   end
 end)
 
-OnControlValueChange = Misc.wraperrors(
-                         function(name, index, value)
-    -- Fix Xbox and Raildriver controls for Fan Railer's mod.
-    if name == "VirtualThrottle" and
-      RailWorks.ControlExists("NewVirtualThrottle", 0) then
-      RailWorks.SetControlValue("NewVirtualThrottle", 0, value)
-    end
+OnControlValueChange = Misc.wraperrors(function(name, index, value)
+  -- Fix Xbox and Raildriver controls for Fan Railer's mod.
+  if name == "VirtualThrottle" and
+    RailWorks.ControlExists("NewVirtualThrottle", 0) then
+    RailWorks.SetControlValue("NewVirtualThrottle", 0, value)
+  end
 
-    RailWorks.SetControlValue(name, index, value)
-  end)
+  RailWorks.SetControlValue(name, index, value)
+end)
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
   power:receiveplayermessage(message)

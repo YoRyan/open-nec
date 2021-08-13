@@ -93,9 +93,11 @@ Initialise = Misc.wraperrors(function()
   power = Power:new{
     scheduler = sched,
     available = {Power.supply.overhead},
-    modes = {[0] = function (connected)
-      return state.pantoup and connected[Power.supply.overhead]
-    end}
+    modes = {
+      [0] = function(connected)
+        return state.pantoup and connected[Power.supply.overhead]
+      end
+    }
   }
 
   RailWorks.BeginUpdate()
@@ -168,13 +170,11 @@ local function writelocostate()
   RailWorks.SetControlValue("AWS", 0, Misc.intbool(
                               atc:isalarm() or acses:isalarm() or
                                 alerter:isalarm()))
-  RailWorks.SetControlValue("AWSWarnCount", 0,
-                            Misc.intbool(alerter:isalarm()))
+  RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alerter:isalarm()))
   do
     local alert = adu:isatcalert() or adu:isacsesalert()
     local alarm = atc:isalarm() or acses:isalarm()
-    RailWorks.SetControlValue("OverSpeedAlert", 0,
-                              Misc.intbool(alert or alarm))
+    RailWorks.SetControlValue("OverSpeedAlert", 0, Misc.intbool(alert or alarm))
   end
 end
 

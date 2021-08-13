@@ -142,8 +142,7 @@ local function writelocostate()
   do
     local alarm = alerter:isalarm() or atc:isalarm() or acses:isalarm()
     local alert = adu:isatcalert() or adu:isacsesalert()
-    RailWorks.SetControlValue("AlerterAudible", 0,
-                              Misc.intbool(alarm or alert))
+    RailWorks.SetControlValue("AlerterAudible", 0, Misc.intbool(alarm or alert))
   end
 end
 
@@ -204,16 +203,13 @@ local function setdisplay()
       RailWorks.SetControlValue("TrackTens", 0, -1)
       RailWorks.SetControlValue("TrackUnits", 0, -1)
     else
-      RailWorks.SetControlValue(
-        "TrackHundreds", 0, Misc.getdigit(overspeed_mph, 2))
-      RailWorks.SetControlValue(
-        "TrackTens", 0, Misc.getdigit(overspeed_mph, 1))
-      RailWorks.SetControlValue(
-        "TrackUnits", 0, Misc.getdigit(overspeed_mph, 0))
+      RailWorks.SetControlValue("TrackHundreds", 0,
+                                Misc.getdigit(overspeed_mph, 2))
+      RailWorks.SetControlValue("TrackTens", 0, Misc.getdigit(overspeed_mph, 1))
+      RailWorks.SetControlValue("TrackUnits", 0, Misc.getdigit(overspeed_mph, 0))
     end
   end
-  RailWorks.SetControlValue("AlerterVisual", 0,
-                            Misc.intbool(alerter:isalarm()))
+  RailWorks.SetControlValue("AlerterVisual", 0, Misc.intbool(alerter:isalarm()))
 end
 
 local function setditchlights()

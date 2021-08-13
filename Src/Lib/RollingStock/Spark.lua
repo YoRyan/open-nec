@@ -2,18 +2,18 @@
 local P = {}
 PantoSpark = P
 
-local function run (self)
+local function run(self)
   while true do
-    self._sched:select(nil, function () return self._spark end)
-    self._isspark = math.random() < self._duration_s/self._meantimebetween_s
-    self._sched:select(self._duration_s, function () return not self._spark end)
+    self._sched:select(nil, function() return self._spark end)
+    self._isspark = math.random() < self._duration_s / self._meantimebetween_s
+    self._sched:select(self._duration_s, function() return not self._spark end)
     self._isspark = false
   end
 end
 
 -- From the main coroutine, create a new PantoSpark context. This will add a
 -- coroutine to the provided scheduler.
-function P:new (conf)
+function P:new(conf)
   local o = {
     _sched = conf.scheduler,
     _duration_s = conf.duration_s or 0.2,
@@ -29,13 +29,9 @@ end
 
 -- From the main coroutine, start or stop generating sparks depending on the
 -- provided condition.
-function P:setsparkstate (cond)
-  self._spark = cond
-end
+function P:setsparkstate(cond) self._spark = cond end
 
 -- Returns true if the spark should render.
-function P:isspark ()
-  return self._isspark
-end
+function P:isspark() return self._isspark end
 
 return P

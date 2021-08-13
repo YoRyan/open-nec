@@ -1,27 +1,27 @@
 -- A contemporary Amtrak ADU with a combined speed limit display.
-
 -- @include SafetySystems/AspectDisplay/AspectDisplay.lua
 -- @include Signals/NecSignals.lua
-
 local P = {}
 AmtrakCombinedAdu = P
 
-P.aspect = {stop=0,
-            restrict=1,
-            approach=2,
-            approachmed30=3,
-            approachmed45=4,
-            cabspeed60=5,
-            cabspeed60off=6,
-            cabspeed80=7,
-            cabspeed80off=8,
-            clear100=9,
-            clear125=10,
-            clear150=11}
+P.aspect = {
+  stop = 0,
+  restrict = 1,
+  approach = 2,
+  approachmed30 = 3,
+  approachmed45 = 4,
+  cabspeed60 = 5,
+  cabspeed60off = 6,
+  cabspeed80 = 7,
+  cabspeed80off = 8,
+  clear100 = 9,
+  clear125 = 10,
+  clear150 = 11
+}
 
 -- Ensure we have inherited the properties of the base class, PiL-style.
 -- We can't run code on initialization in TS, so we do this in :new().
-local function inherit (base)
+local function inherit(base)
   if getmetatable(base) == nil then
     base.__index = base
     setmetatable(P, base)
@@ -29,7 +29,7 @@ local function inherit (base)
 end
 
 -- Create a new AmtrakCombinedAdu context.
-function P:new (conf)
+function P:new(conf)
   inherit(Adu)
   local o = Adu:new(conf)
   o._csflasher = Flash:new{
@@ -43,7 +43,7 @@ function P:new (conf)
 end
 
 -- Get the currently displayed cab signal aspect.
-function P:getaspect ()
+function P:getaspect()
   local aspect, flash
   local acsesmode = self._acses:getmode()
   local atccode = self._atc:getpulsecode()
@@ -91,7 +91,7 @@ function P:getaspect ()
 end
 
 -- Get the current speed limit in force.
-function P:getspeedlimit_mph ()
+function P:getspeedlimit_mph()
   local atc_mph = self:atccutin() and Adu.getsignalspeed_mph(self) or nil
   local acses_mph = self:acsescutin() and Adu.getcivilspeed_mph(self) or nil
   if atc_mph ~= nil and acses_mph ~= nil then
@@ -102,7 +102,7 @@ function P:getspeedlimit_mph ()
 end
 
 -- Get the current time to penalty counter, if any.
-function P:gettimetopenalty_s ()
+function P:gettimetopenalty_s()
   if self._acses:getmode() == Acses.mode.positivestop then
     local ttp_s = self._acses:gettimetopenalty_s()
     if ttp_s ~= nil then
@@ -116,13 +116,9 @@ function P:gettimetopenalty_s ()
 end
 
 -- Get the current state of the ATC system.
-function P:atccutin ()
-  return self._atc:isrunning()
-end
+function P:atccutin() return self._atc:isrunning() end
 
 -- Get the current state of the ACSES system.
-function P:acsescutin ()
-  return self._acses:isrunning()
-end
+function P:acsescutin() return self._acses:isrunning() end
 
 return P
