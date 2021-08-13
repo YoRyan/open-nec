@@ -74,6 +74,11 @@ end
 -- Determine whether or not a particular power supply is available.
 function P:isavailable (supply) return self._available[supply] end
 
+-- Set the currently available power supplies without using signal messages.
+function P:setavailable (...)
+  for _, supply in ipairs(arg) do connect(self, supply) end
+end
+
 -- Get the current selected power mode. In a transition phase, this will return
 -- the next mode.
 function P:getmode () return self._current_mode end

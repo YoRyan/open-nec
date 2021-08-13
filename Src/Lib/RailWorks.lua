@@ -113,6 +113,10 @@ function P.GetIsEngineWithKey ()
   return Call("GetIsEngineWithKey") == 1
 end
 
+function P.SetPowerProportion (index, value)
+  Call("SetPowerProportion", index, value)
+end
+
 --[[
   Signal scripting
 ]]

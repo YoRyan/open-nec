@@ -15,7 +15,7 @@
 
 local powermode = {thirdrail = 0, diesel = 1}
 
-local sched
+local playersched, anysched
 local cabsig
 local atc
 local acses
@@ -46,12 +46,13 @@ local state = {
 Initialise = Misc.wraperrors(function()
   state.isamtrak = RailWorks.ControlExists("EqReservoirPressurePSI", 0)
 
-  sched = Scheduler:new{}
+  playersched = Scheduler:new{}
+  anysched = Scheduler:new{}
 
-  cabsig = CabSignal:new{scheduler = sched}
+  cabsig = CabSignal:new{scheduler = playersched}
 
   atc = Atc:new{
-    scheduler = sched,
+    scheduler = playersched,
     cabsignal = cabsig,
     getspeed_mps = function() return state.speed_mps end,
     getacceleration_mps2 = function() return state.acceleration_mps2 end,
@@ -62,7 +63,7 @@ Initialise = Misc.wraperrors(function()
   }
 
   acses = Acses:new{
-    scheduler = sched,
+    scheduler = playersched,
     cabsignal = cabsig,
     getspeed_mps = function() return state.speed_mps end,
     gettrackspeed_mps = function() return state.trackspeed_mps end,
@@ -76,7 +77,7 @@ Initialise = Misc.wraperrors(function()
 
   local onebeep_s = 1
   adu = GenesisAdu:new{
-    scheduler = sched,
+    scheduler = playersched,
     cabsignal = cabsig,
     atc = atc,
     atcalert_s = onebeep_s,
@@ -88,7 +89,7 @@ Initialise = Misc.wraperrors(function()
   acses:start()
 
   alerter = Alerter:new{
-    scheduler = sched,
+    scheduler = playersched,
     getspeed_mps = function() return state.speed_mps end
   }
   alerter:start()
@@ -96,7 +97,7 @@ Initialise = Misc.wraperrors(function()
   local iselectric = string.sub(RailWorks.GetRVNumber(), 1, 1) == "T"
   local initmode = iselectric and powermode.thirdrail or powermode.diesel
   power = Power:new{
-    sched = sched,
+    sched = anysched,
     available = iselectric and {Power.supply.thirdrail} or {},
     modes = {
       [powermode.thirdrail] = function(connected)
@@ -124,7 +125,7 @@ Initialise = Misc.wraperrors(function()
 
   local ditchflash_s = 1
   ditchflasher = Flash:new{
-    scheduler = sched,
+    scheduler = playersched,
     off_s = ditchflash_s,
     on_s = ditchflash_s
   }
@@ -142,12 +143,12 @@ local function readcontrols()
   if state.acknowledge or change then alerter:acknowledge() end
 
   if RailWorks.GetControlValue("Horn", 0) > 0 then
-    state.lasthorntime_s = sched:clock()
+    state.lasthorntime_s = playersched:clock()
   end
 
   state.headlights = RailWorks.GetControlValue("Headlights", 0)
   state.crosslights = RailWorks.GetControlValue("CrossingLight", 0) == 1
-  if not sched:isstartup() then
+  if not playersched:isstartup() then
     state.powermode = math.floor(tonumber(
       RailWorks.GetControlValue("PowerMode", 0)))
   end
@@ -166,16 +167,11 @@ local function readlocostate()
 end
 
 local function writelocostate()
-  local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
   local penaltybrake = 0.85
-  do
-    local v
-    if not power:haspower() then v = 0
-    elseif penalty then v = 0
-    else v = state.throttle end
-    RailWorks.SetControlValue("Regulator", 0, v)
-  end
 
+  local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
+  RailWorks.SetControlValue("Regulator", 0, penalty and 0 or state.throttle)
+  RailWorks.SetPowerProportion(-1, power:haspower() and 1 or 0)
   -- There's no virtual train brake, so just move the braking handle.
   if penalty then
     RailWorks.SetControlValue("TrainBrakeControl", 0, penaltybrake)
@@ -203,8 +199,24 @@ local function writelocostate()
     "Power3rdRail", 0, Misc.intbool(power:isavailable(Power.supply.thirdrail)))
 end
 
+local function setslavestate()
+  -- Read throttle and power mode from the lead locomotive.
+  state.throttle = RailWorks.GetControlValue("Regulator", 0)
+  if not anysched:isstartup() then
+    -- The polarity of the power state control is reversed in the cab car.
+    local mode = math.floor(tonumber(
+      RailWorks.GetControlValue("PowerMode", 0)))
+    state.powermode = 1 - mode
+    -- Read power availability state.
+    local available = RailWorks.GetControlValue("Power3rdRail", 0) == 1
+      and {Power.supply.thirdrail} or {}
+    power:setavailable(unpack(available))
+  end
+  RailWorks.SetPowerProportion(-1, power:haspower() and 1 or 0)
+end
+
 local function setcutin()
-  if not sched:isstartup() then
+  if not playersched:isstartup() then
     atc:setrunstate(RailWorks.GetControlValue("ATCCutIn", 0) == 1)
     acses:setrunstate(RailWorks.GetControlValue("ACSESCutIn", 0) == 1)
   end
@@ -267,7 +279,7 @@ end
 
 local function setditchlights()
   local horntime_s = 30
-  local horn = state.lasthorntime_s ~= nil and sched:clock() <=
+  local horn = state.lasthorntime_s ~= nil and playersched:clock() <=
                  state.lasthorntime_s + horntime_s
   local flash = horn
   local fixed = state.headlights > 0.5 and state.headlights < 1.5 and
@@ -335,7 +347,8 @@ local function updateplayer()
   readcontrols()
   readlocostate()
 
-  sched:update()
+  playersched:update()
+  anysched:update()
 
   writelocostate()
   setcutin()
@@ -346,18 +359,27 @@ local function updateplayer()
   setexhaust()
 end
 
+local function updateslave()
+  anysched:update()
+
+  setslavestate()
+  setditchlights()
+  setcablights()
+  setexhaust()
+end
+
 local function updateai()
+  anysched:update()
+
   setditchlights()
   setcablights()
   setexhaust()
 end
 
 Update = Misc.wraperrors(function(_)
-  if RailWorks.GetIsEngineWithKey() then
-    updateplayer()
-  else
-    updateai()
-  end
+  if RailWorks.GetIsEngineWithKey() then updateplayer()
+  elseif RailWorks.GetIsPlayer() then updateslave()
+  else updateai() end
 end)
 
 OnControlValueChange = RailWorks.SetControlValue
