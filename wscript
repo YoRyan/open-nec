@@ -86,11 +86,9 @@ def build(bld):
     class LuaFormat(Task):
         def run(self):
             config = bld.path.find_node('luaformatter.cfg')
-            # Use relative paths to minimize the length of the command.
-            cwd = self.get_cwd()
             return self.exec_command(
                 f'lua-format --config="{config.abspath()}" --in-place '
-                + ' '.join(f'"{inp.path_from(cwd)}"' for inp in self.inputs))
+                f'"{self.inputs[0].abspath()}"')
 
     class Luacheck(Task):
         def run(self):
@@ -145,11 +143,11 @@ def build(bld):
             libs = lualibs(src)
             lint = maketask(Luacheck, [*libs, src], [],
                             always_run=True, before=[LuaFormat])
-            format = maketask(LuaFormat, [*libs, src], [],
-                              always_run=True, before=[Luac])
+            formats = (maketask(LuaFormat, file, [], always_run=True, before=[Luac])
+                       for file in [*libs, src])
             return (
                 lint,
-                format,
+                *formats,
                 maketask(Luac, [*libs, src], [tgt.change_ext('.out')])
             )
         else:
