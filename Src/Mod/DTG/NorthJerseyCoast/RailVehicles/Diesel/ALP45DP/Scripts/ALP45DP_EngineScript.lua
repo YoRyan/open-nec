@@ -1,5 +1,4 @@
 -- Engine script for the dual-power ALP-45DP operated by New Jersey Transit.
-
 -- @include RollingStock/Doors.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/NjTransit.lua
@@ -11,7 +10,6 @@
 -- @include RailWorks.lua
 -- @include Scheduler.lua
 -- @include Units.lua
-
 local playersched, anysched
 local cabsig
 local atc
@@ -38,13 +36,11 @@ local state = {
   lastwipertime_s = nil
 }
 
-local messageid = {
-  destination = 10100
-}
+local messageid = {destination = 10100}
 
 local function readrvnumber()
-  local _, _, deststr, unitstr =
-    string.find(RailWorks.GetRVNumber(), "(%a)(%d+)")
+  local _, _, deststr, unitstr = string.find(RailWorks.GetRVNumber(),
+                                             "(%a)(%d+)")
   local dest, unit
   if deststr ~= nil then
     dest = string.byte(string.upper(deststr)) - string.byte("A") + 1
@@ -176,18 +172,16 @@ local function writelocostate()
   local vigilalarm = alerter:isalarm()
   local safetyalarm = atc:isalarm() or acses:isalarm()
   local safetyalert = adu:isatcalert() or adu:isacsesalert()
-  RailWorks.SetControlValue(
-    "AWSWarnCount", 0, Misc.intbool(vigilalarm or safetyalarm))
-  RailWorks.SetControlValue(
-    "ACSES_Alert", 0, Misc.intbool(vigilalarm))
+  RailWorks.SetControlValue("AWSWarnCount", 0,
+                            Misc.intbool(vigilalarm or safetyalarm))
+  RailWorks.SetControlValue("ACSES_Alert", 0, Misc.intbool(vigilalarm))
   decreaseonoff:setflashstate(safetyalarm)
-  RailWorks.SetControlValue(
-    "ACSES_AlertDecrease", 0, Misc.intbool(decreaseonoff:ison()))
-  RailWorks.SetControlValue(
-    "ACSES_AlertIncrease", 0, Misc.intbool(safetyalert))
+  RailWorks.SetControlValue("ACSES_AlertDecrease", 0,
+                            Misc.intbool(decreaseonoff:ison()))
+  RailWorks.SetControlValue("ACSES_AlertIncrease", 0, Misc.intbool(safetyalert))
 
-  RailWorks.SetControlValue(
-    "Horn", 0, RailWorks.GetControlValue("VirtualHorn", 0))
+  RailWorks.SetControlValue("Horn", 0,
+                            RailWorks.GetControlValue("VirtualHorn", 0))
 end
 
 local function setspeedometer()
@@ -210,14 +204,23 @@ local function setspeedometer()
   local atccode = atc:getpulsecode()
   local acsesmode = acses:getmode()
   local sig
-  if acsesmode == Acses.mode.positivestop then sig = 8
-  elseif acsesmode == Acses.mode.approachmed30 then sig = 5
-  elseif atccode == Nec.pulsecode.restrict then sig = 7
-  elseif atccode == Nec.pulsecode.approach then sig = 6
-  elseif atccode == Nec.pulsecode.approachmed then sig = 4
-  elseif atccode == Nec.pulsecode.cabspeed60 then sig = 3
-  elseif atccode == Nec.pulsecode.cabspeed80 then sig = 2
-  else sig = 1 end
+  if acsesmode == Acses.mode.positivestop then
+    sig = 8
+  elseif acsesmode == Acses.mode.approachmed30 then
+    sig = 5
+  elseif atccode == Nec.pulsecode.restrict then
+    sig = 7
+  elseif atccode == Nec.pulsecode.approach then
+    sig = 6
+  elseif atccode == Nec.pulsecode.approachmed then
+    sig = 4
+  elseif atccode == Nec.pulsecode.cabspeed60 then
+    sig = 3
+  elseif atccode == Nec.pulsecode.cabspeed80 then
+    sig = 2
+  else
+    sig = 1
+  end
   RailWorks.SetControlValue("ACSES_SignalDisplay", 0, sig)
 
   RailWorks.SetControlValue("ATC_Node", 0, Misc.intbool(atc:isalarm()))
@@ -249,9 +252,8 @@ local function setcablights()
   RailWorks.SetControlValue("DeskLightSwitch", 0, desk)
   Call("DeskLight:Activate", desk)
 
-  RailWorks.SetControlValue(
-    "InstrumentLightsSwitch", 0,
-    RailWorks.GetControlValue("InstrumentLights", 0))
+  RailWorks.SetControlValue("InstrumentLightsSwitch", 0,
+                            RailWorks.GetControlValue("InstrumentLights", 0))
 end
 
 local function setditchlights()
@@ -276,10 +278,9 @@ local function setditchlights()
 end
 
 local function setstatuslights()
-  RailWorks.ActivateNode(
-    "LightsBlue", RailWorks.GetIsEngineWithKey())
-  RailWorks.ActivateNode(
-    "LightsRed", doors:isleftdooropen() or doors:isrightdooropen())
+  RailWorks.ActivateNode("LightsBlue", RailWorks.GetIsEngineWithKey())
+  RailWorks.ActivateNode("LightsRed",
+                         doors:isleftdooropen() or doors:isrightdooropen())
 
   -- Match the brake indicator light logic in the carriage script.
   local brake = RailWorks.GetControlValue("TrainBrakeControl", 0)
@@ -291,14 +292,14 @@ local function setwipers()
   local intwipetime_s = 3
   local wiperon = RailWorks.GetControlValue("VirtualWipers", 0) == 1
   local wiperint = RailWorks.GetControlValue("WipersInt", 0) == 1
-  RailWorks.SetControlValue(
-    "WipersSwitch", 0, wiperon and (wiperint and -1 or 1) or 0)
+  RailWorks.SetControlValue("WipersSwitch", 0,
+                            wiperon and (wiperint and -1 or 1) or 0)
   local wipe
   if wiperint then
     if wiperon then
       local now = playersched:clock()
-      if state.lastwipertime_s == nil
-          or now - state.lastwipertime_s >= intwipetime_s then
+      if state.lastwipertime_s == nil or now - state.lastwipertime_s >=
+        intwipetime_s then
         wipe = true
         state.lastwipertime_s = now
       else
@@ -326,10 +327,10 @@ end
 local function setdestination()
   -- Broadcast the rail vehicle-derived destination, if any.
   if state.rv_destination ~= nil and anysched:isstartup() then
-    RailWorks.Engine_SendConsistMessage(
-      messageid.destination, state.rv_destination, 0)
-    RailWorks.Engine_SendConsistMessage(
-      messageid.destination, state.rv_destination, 1)
+    RailWorks.Engine_SendConsistMessage(messageid.destination,
+                                        state.rv_destination, 0)
+    RailWorks.Engine_SendConsistMessage(messageid.destination,
+                                        state.rv_destination, 1)
   end
 end
 
@@ -364,39 +365,41 @@ local function updateai()
 end
 
 Update = Misc.wraperrors(function(_)
-  if RailWorks.GetIsEngineWithKey() then updateplayer()
-  else updateai() end
+  if RailWorks.GetIsEngineWithKey() then
+    updateplayer()
+  else
+    updateai()
+  end
 end)
 
-OnControlValueChange = Misc.wraperrors(
-                         function(name, index, value)
-    -- Synchronize headlight controls.
-    if name == "HeadlightSwitch" then
-      if value == -1 then
-        RailWorks.SetControlValue("Headlights", 0, 2)
-      elseif value == 0 then
-        RailWorks.SetControlValue("Headlights", 0, 0)
-      elseif value == 1 then
-        RailWorks.SetControlValue("Headlights", 0, 1)
-      end
-    elseif name == "Headlights" then
-      if value == 0 then
-        RailWorks.SetControlValue("HeadlightSwitch", 0, 0)
-      elseif value == 1 then
-        RailWorks.SetControlValue("HeadlightSwitch", 0, 1)
-      elseif value == 2 then
-        RailWorks.SetControlValue("HeadlightSwitch", 0, -1)
-      end
+OnControlValueChange = Misc.wraperrors(function(name, index, value)
+  -- Synchronize headlight controls.
+  if name == "HeadlightSwitch" then
+    if value == -1 then
+      RailWorks.SetControlValue("Headlights", 0, 2)
+    elseif value == 0 then
+      RailWorks.SetControlValue("Headlights", 0, 0)
+    elseif value == 1 then
+      RailWorks.SetControlValue("Headlights", 0, 1)
     end
-
-    -- The player has changed the destination sign.
-    if name == "Destination" and not anysched:isstartup() then
-      RailWorks.Engine_SendConsistMessage(messageid.destination, value, 0)
-      RailWorks.Engine_SendConsistMessage(messageid.destination, value, 1)
+  elseif name == "Headlights" then
+    if value == 0 then
+      RailWorks.SetControlValue("HeadlightSwitch", 0, 0)
+    elseif value == 1 then
+      RailWorks.SetControlValue("HeadlightSwitch", 0, 1)
+    elseif value == 2 then
+      RailWorks.SetControlValue("HeadlightSwitch", 0, -1)
     end
+  end
 
-    RailWorks.SetControlValue(name, index, value)
-  end)
+  -- The player has changed the destination sign.
+  if name == "Destination" and not anysched:isstartup() then
+    RailWorks.Engine_SendConsistMessage(messageid.destination, value, 0)
+    RailWorks.Engine_SendConsistMessage(messageid.destination, value, 1)
+  end
+
+  RailWorks.SetControlValue(name, index, value)
+end)
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
   cabsig:receivemessage(message)
