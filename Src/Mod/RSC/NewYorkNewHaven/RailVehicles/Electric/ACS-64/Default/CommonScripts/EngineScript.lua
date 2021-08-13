@@ -31,6 +31,7 @@ local state = {
   acknowledge = false,
   headlights = 0,
   ditchlights = 0,
+  pantoup = false,
 
   speed_mps = 0,
   acceleration_mps2 = 0,
@@ -90,7 +91,13 @@ Initialise = Misc.wraperrors(function()
   }
   alerter:start()
 
-  power = Power:new{available = {Power.types.overhead}}
+  power = Power:new{
+    sched = anysched,
+    available = {Power.supply.overhead},
+    modes = {[0] = function (connected)
+      return state.pantoup and connected[Power.supply.overhead]
+    end}
+  }
 
   local avgsamples = 30
   tracteffort = Average:new{nsamples = avgsamples}
@@ -131,6 +138,7 @@ local function readcontrols()
 
   state.headlights = RailWorks.GetControlValue("Headlights", 0)
   state.ditchlights = RailWorks.GetControlValue("DitchLight", 0)
+  state.pantoup = RailWorks.GetControlValue("PantographControl", 0) == 1
 end
 
 local function readlocostate()
@@ -143,12 +151,6 @@ local function readlocostate()
                                          Acses.nlimitlookahead))
   state.restrictsignals = Iterator.totable(
                             Misc.iterrestrictsignals(Acses.nsignallookahead))
-
-  if RailWorks.GetControlValue("PantographControl", 0) == 1 then
-    power:setcollectors(Power.types.overhead)
-  else
-    power:setcollectors()
-  end
 end
 
 local function writelocostate()
@@ -479,7 +481,7 @@ end)
 OnControlValueChange = RailWorks.SetControlValue
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
-  power:receivemessage(message)
+  power:receiveplayermessage(message)
   cabsig:receivemessage(message)
 end)
 

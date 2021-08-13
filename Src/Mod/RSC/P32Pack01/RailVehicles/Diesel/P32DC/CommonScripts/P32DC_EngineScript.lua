@@ -1,4 +1,5 @@
 -- Engine script for the P32AC-DM operated by Amtrak and Metro-North.
+
 -- @include RollingStock/Power.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/Genesis.lua
@@ -11,6 +12,9 @@
 -- @include RailWorks.lua
 -- @include Scheduler.lua
 -- @include Units.lua
+
+local powermode = {thirdrail = 0, diesel = 1}
+
 local sched
 local cabsig
 local atc
@@ -25,6 +29,7 @@ local state = {
   acknowledge = false,
   headlights = 0,
   crosslights = false,
+  powermode = powermode.thirdrail,
 
   speed_mps = 0,
   acceleration_mps2 = 0,
@@ -34,12 +39,9 @@ local state = {
   restrictsignals = {},
 
   isamtrak = false,
-  powermode = nil,
   lastchangetime_s = nil,
   lasthorntime_s = nil
 }
-
-local powermode = {diesel = 0, thirdrail = 1}
 
 Initialise = Misc.wraperrors(function()
   state.isamtrak = RailWorks.ControlExists("EqReservoirPressurePSI", 0)
@@ -91,14 +93,34 @@ Initialise = Misc.wraperrors(function()
   }
   alerter:start()
 
-  if string.sub(RailWorks.GetRVNumber(), 1, 1) == "T" then
-    power = Power:new{available = {Power.types.thirdrail}}
-    state.powermode = powermode.electric
-  else
-    power = Power:new{available = {}}
-    state.powermode = powermode.diesel
-  end
-  power:setcollectors(Power.types.thirdrail)
+  local iselectric = string.sub(RailWorks.GetRVNumber(), 1, 1) == "T"
+  local initmode = iselectric and powermode.thirdrail or powermode.diesel
+  power = Power:new{
+    sched = sched,
+    available = iselectric and {Power.supply.thirdrail} or {},
+    modes = {
+      [powermode.thirdrail] = function(connected)
+        return connected[Power.supply.thirdrail]
+      end,
+      [powermode.diesel] = function(connected)
+        return true
+      end
+    },
+    init_mode = initmode,
+    transition_s = 20,
+    getcantransition = function() return state.throttle <= 0 end,
+    getselectedmode = function() return state.powermode end,
+    getaimode = function(cp)
+      if cp == Power.changepoint.ai_to_thirdrail then
+        return powermode.thirdrail
+      elseif cp == Power.changepoint.ai_to_diesel then
+        return powermode.diesel
+      else
+        return nil
+      end
+    end
+  }
+  state.powermode = initmode
 
   local ditchflash_s = 1
   ditchflasher = Flash:new{
@@ -125,6 +147,10 @@ local function readcontrols()
 
   state.headlights = RailWorks.GetControlValue("Headlights", 0)
   state.crosslights = RailWorks.GetControlValue("CrossingLight", 0) == 1
+  if not sched:isstartup() then
+    state.powermode = math.floor(tonumber(
+      RailWorks.GetControlValue("PowerMode", 0)))
+  end
 end
 
 local function readlocostate()
@@ -142,19 +168,11 @@ end
 local function writelocostate()
   local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
   local penaltybrake = 0.85
-  local changetime_s = 20
   do
     local v
-    if state.powermode == powermode.electric and not power:haspower() then
-      v = 0
-    elseif state.lastchangetime_s ~= nil and sched:clock() <=
-      state.lastchangetime_s + changetime_s then
-      v = 0
-    elseif penalty then
-      v = 0
-    else
-      v = state.throttle
-    end
+    if not power:haspower() then v = 0
+    elseif penalty then v = 0
+    else v = state.throttle end
     RailWorks.SetControlValue("Regulator", 0, v)
   end
 
@@ -166,17 +184,13 @@ local function writelocostate()
   do
     -- DTG's "blended braking" algorithm
     local v
-    local maxpressure_psi = 70
-    local pipepress_psi = maxpressure_psi -
-                            RailWorks.GetControlValue("AirBrakePipePressurePSI",
-                                                      0)
-    if state.powermode == powermode.electric then
-      v = 0
-    elseif pipepress_psi > 0 then
-      v = pipepress_psi * 0.01428
-    else
-      v = 0
-    end
+    local maxpressure_psi =
+      70
+    local pipepress_psi =
+      maxpressure_psi - RailWorks.GetControlValue("AirBrakePipePressurePSI", 0)
+    if power:getmode() == powermode.thirdrail then v = 0
+    elseif pipepress_psi > 0 then v = pipepress_psi * 0.01428
+    else v = 0 end
     RailWorks.SetControlValue("DynamicBrake", 0, v)
   end
   do
@@ -185,6 +199,8 @@ local function writelocostate()
     RailWorks.SetControlValue("AWS", 0, Misc.intbool(alarm or alert))
     RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alarm))
   end
+  RailWorks.SetControlValue(
+    "Power3rdRail", 0, Misc.intbool(power:isavailable(Power.supply.thirdrail)))
 end
 
 local function setcutin()
@@ -292,33 +308,12 @@ do
   end
 end
 
-local function setpowermode()
-  local pwrmode = RailWorks.GetControlValue("PowerMode", 0)
-  if pwrmode == 0 and state.powermode == powermode.diesel then
-    state.powermode = powermode.electric
-    state.lastchangetime_s = sched:clock()
-  elseif pwrmode == 1 and state.powermode == powermode.electric then
-    state.powermode = powermode.diesel
-    state.lastchangetime_s = sched:clock()
-  end
-end
-
-local function setplayerpowermode()
-  if state.throttle <= 0 then setpowermode() end
-  RailWorks.SetControlValue("Power3rdRail", 0, Misc.intbool(
-                              power:isavailable(Power.types.thirdrail)))
-end
-
-local function setaipowermode()
-  if RailWorks.GetControlValue("Regulator", 0) <= 0 then setpowermode() end
-end
-
 local function setexhaust()
   local r, g, b, rate
   local minrpm = 180
   local effort = RailWorks.GetTractiveEffort()
-  if state.powermode == powermode.electric or
-    RailWorks.GetControlValue("RPM", 0) < minrpm then
+  if power:getmode() == powermode.thirdrail or
+      RailWorks.GetControlValue("RPM", 0) < minrpm then
     r, g, b = 0, 0, 0
     rate = 0
     -- DTG's exhaust logic
@@ -348,14 +343,12 @@ local function updateplayer()
   setdisplay()
   setditchlights()
   setcablights()
-  setplayerpowermode()
   setexhaust()
 end
 
 local function updateai()
   setditchlights()
   setcablights()
-  setaipowermode()
   setexhaust()
 end
 
@@ -370,7 +363,14 @@ end)
 OnControlValueChange = RailWorks.SetControlValue
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
-  power:receivemessage(message)
+  if RailWorks.GetIsEngineWithKey() then
+    power:receiveplayermessage(message)
+  else
+    local newmode = power:receiveaimessage(message)
+    if newmode ~= nil then
+      RailWorks.SetControlValue("PowerMode", 0, newmode)
+    end
+  end
   cabsig:receivemessage(message)
 end)
 

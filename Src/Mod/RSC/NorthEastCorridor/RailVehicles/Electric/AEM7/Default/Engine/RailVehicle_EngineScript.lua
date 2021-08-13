@@ -26,6 +26,7 @@ local state = {
   acknowledge = false,
   cruisespeed_mps = 0,
   cruiseenabled = false,
+  pantoup = false,
 
   speed_mps = 0,
   acceleration_mps2 = 0,
@@ -89,7 +90,13 @@ Initialise = Misc.wraperrors(function()
   }
   alerter:start()
 
-  power = Power:new{available = {Power.types.overhead}}
+  power = Power:new{
+    sched = sched,
+    available = {Power.supply.overhead},
+    modes = {[0] = function (connected)
+      return state.pantoup and connected[Power.supply.overhead]
+    end}
+  }
 
   RailWorks.BeginUpdate()
 end)
@@ -102,6 +109,7 @@ local function readcontrols()
   state.train_brake = vbrake
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
   if state.acknowledge or change then alerter:acknowledge() end
+  state.pantoup = RailWorks.GetControlValue("PantographControl", 0) == 1
 end
 
 local function readlocostate()
@@ -117,11 +125,6 @@ local function readlocostate()
                                          Acses.nlimitlookahead))
   state.restrictsignals = Iterator.totable(
                             Misc.iterrestrictsignals(Acses.nsignallookahead))
-  if RailWorks.GetControlValue("PantographControl", 0) == 1 then
-    power:setcollectors(Power.types.overhead)
-  else
-    power:setcollectors()
-  end
 end
 
 local function writelocostate()
@@ -257,7 +260,7 @@ end)
 OnControlValueChange = RailWorks.SetControlValue
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
-  power:receivemessage(message)
+  power:receiveplayermessage(message)
   cabsig:receivemessage(message)
 end)
 

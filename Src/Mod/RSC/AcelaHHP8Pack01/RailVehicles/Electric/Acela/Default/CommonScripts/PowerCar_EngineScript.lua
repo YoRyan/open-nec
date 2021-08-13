@@ -109,7 +109,15 @@ Initialise = Misc.wraperrors(function()
     getenabled = function() return state.cruiseenabled end
   }
 
-  power = Power:new{available = {Power.types.overhead}}
+  power = Power:new{
+    sched = anysched,
+    available = {Power.supply.overhead},
+    modes = {[0] = function (connected)
+      local contact = frontpantoanim:getposition() == 1
+        or rearpantoanim:getposition() == 1
+      return contact and connected[Power.supply.overhead]
+    end}
+  }
 
   frontpantoanim = Animation:new{
     scheduler = anysched,
@@ -230,14 +238,6 @@ local function setplayerpantos()
   RailWorks.Engine_SendConsistMessage(messageid.raisefrontpanto, frontup, 1)
   RailWorks.Engine_SendConsistMessage(messageid.raiserearpanto, rearup, 0)
   RailWorks.Engine_SendConsistMessage(messageid.raiserearpanto, rearup, 1)
-
-  local frontcontact = frontpantoanim:getposition() == 1
-  local rearcontact = rearpantoanim:getposition() == 1
-  if frontcontact or rearcontact then
-    power:setcollectors(Power.types.overhead)
-  else
-    power:setcollectors()
-  end
 end
 
 local function setaipantos()
@@ -489,7 +489,7 @@ OnControlValueChange = Misc.wraperrors(
   end)
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
-  power:receivemessage(message)
+  power:receiveplayermessage(message)
   cabsig:receivemessage(message)
 end)
 
