@@ -143,7 +143,7 @@ def build(bld):
             libs = lualibs(src)
             lint = maketask(Luacheck, [*libs, src], [],
                             always_run=True, before=[LuaFormat])
-            formats = (maketask(LuaFormat, file, [], always_run=True, before=[Luac])
+            formats = (maketask(LuaFormat, [file], [], always_run=True, before=[Luac])
                        for file in [*libs, src])
             return (
                 lint,
