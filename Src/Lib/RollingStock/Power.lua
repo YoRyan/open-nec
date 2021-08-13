@@ -86,7 +86,8 @@ function P:setmode (newmode) self._current_mode = newmode end
 -- transition.
 function P:gettransition ()
   if self._transitionstart ~= nil then
-    local remaining_s = self._sched:clock() - self._transitionstart
+    local remaining_s =
+      self._transition_s - (self._sched:clock() - self._transitionstart)
     return self._last_mode, self._current_mode, remaining_s
   else
     return nil, nil, nil
