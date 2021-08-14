@@ -166,8 +166,13 @@ local function writelocostate()
   local penaltybrake = 0.85
 
   local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
-  RailWorks.SetControlValue("Regulator", 0, penalty and 0 or state.throttle)
-  RailWorks.SetPowerProportion(-1, power:haspower() and 1 or 0)
+  local throttle
+  if penalty or not power:haspower() then
+    throttle = 0
+  else
+    throttle = state.throttle
+  end
+  RailWorks.SetControlValue("Regulator", 0, throttle)
   -- There's no virtual train brake, so just move the braking handle.
   if penalty then
     RailWorks.SetControlValue("TrainBrakeControl", 0, penaltybrake)
@@ -211,7 +216,7 @@ local function setslavestate()
                         {Power.supply.thirdrail} or {}
     power:setavailable(unpack(available))
   end
-  RailWorks.SetPowerProportion(-1, power:haspower() and 1 or 0)
+  RailWorks.SetPowerProportion(-1, Misc.intbool(power:haspower()))
 end
 
 local function setcutin()
