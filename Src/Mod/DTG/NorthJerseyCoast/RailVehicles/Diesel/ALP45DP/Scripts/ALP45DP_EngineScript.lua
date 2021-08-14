@@ -205,8 +205,9 @@ end
 
 local function writelocostate()
   local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
+  local haspower = power:haspower()
   local throttle
-  if penalty or not power:haspower() then
+  if penalty or not haspower then
     throttle = 0
   else
     throttle = math.max(state.throttle, 0)
@@ -214,8 +215,15 @@ local function writelocostate()
   RailWorks.SetControlValue("Regulator", 0, throttle)
   RailWorks.SetControlValue("TrainBrakeControl", 0,
                             penalty and 0.6 or state.train_brake)
-  RailWorks.SetPowerProportion(-1, power:getmode() == powermode.diesel and
-                                 dieselpower or 1)
+  local proportion
+  if not haspower then
+    proportion = 0
+  elseif power:getmode() == powermode.diesel then
+    proportion = dieselpower
+  else
+    proportion = 1
+  end
+  RailWorks.SetPowerProportion(-1, proportion)
 
   local psi = RailWorks.GetControlValue("AirBrakePipePressurePSI", 0)
   local dynbrake = math.min((110 - psi) / 16, 1)
