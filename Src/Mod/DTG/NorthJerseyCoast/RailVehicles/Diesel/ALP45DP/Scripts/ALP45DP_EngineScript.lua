@@ -33,7 +33,7 @@ local state = {
   train_brake = 0,
   acknowledge = false,
   powermode = powermode.init,
-  pantoup = false,
+  pantocmd = false,
   rv_destination = nil,
 
   speed_mps = 0,
@@ -175,17 +175,18 @@ local function readcontrols()
 
   local pantocmd = RailWorks.GetControlValue("PantographSwitch", 0)
   if pantocmd == -1 then
-    state.pantoup = false
+    state.pantocmd = false
   elseif pantocmd == 1 then
-    state.pantoup = true
+    state.pantocmd = true
   end
 
   local faultreset = RailWorks.GetControlValue("FaultReset", 0) == 1
-  if state.powermode == powermode.diesel and state.pantoup then
-    state.powermode = powermode.overhead
-  elseif state.powermode == powermode.overhead and faultreset then
-    state.powermode = powermode.diesel
-    state.pantoup = false
+  if power:gettransition() == nil then
+    if state.powermode == powermode.diesel and state.pantocmd then
+      state.powermode = powermode.overhead
+    elseif state.powermode == powermode.overhead and faultreset then
+      state.powermode = powermode.diesel
+    end
   end
   if faultreset then RailWorks.SetControlValue("FaultReset", 0, 0) end
 end
@@ -249,12 +250,10 @@ local function writelocostate()
 
   RailWorks.SetControlValue("Horn", 0,
                             RailWorks.GetControlValue("VirtualHorn", 0))
-  RailWorks.SetControlValue("PantographControl", 0, Misc.intbool(state.pantoup))
-  pantoanim:setanimatedstate(state.pantoup)
 end
 
 local function setpowermode()
-  local exhaust, dieselrpm
+  local exhaust, dieselrpm, raisepanto
   if state.powermode == powermode.init then
     -- The PowerMode control takes some time to settle, so read it after
     -- startup.
@@ -266,28 +265,49 @@ local function setpowermode()
         power:setavailable(Power.supply.overhead)
         pantoanim:setanimatedstate(true)
         pantoanim:setposition(1)
-        state.pantoup = true
+        state.pantocmd = true
       else
         power:setavailable()
         pantoanim:setanimatedstate(false)
         pantoanim:setposition(0)
-        state.pantoup = false
+        state.pantocmd = false
       end
     end
     exhaust = false
     dieselrpm = 0
+    raisepanto = false
   else
-    -- normal operation
-    RailWorks.SetControlValue("PowerMode", 0, state.powermode)
-    local iselectric = power:getmode() == powermode.overhead
-    exhaust = not iselectric
-    dieselrpm = iselectric and 0 or RailWorks.GetControlValue("RPM", 0)
+    local before, after, remaining_s = power:gettransition()
+    local rpm = RailWorks.GetControlValue("RPM", 0)
+    if before == powermode.overhead and after == powermode.diesel then
+      exhaust = remaining_s <= 30
+      dieselrpm = remaining_s <= 60 and rpm or 0
+      -- Lower the pantograph at the end of the transition to diesel.
+      if remaining_s <= 2 then state.pantocmd = false end
+      raisepanto = state.pantocmd
+    elseif before == powermode.diesel and after == powermode.overhead then
+      exhaust = remaining_s > 60
+      dieselrpm = remaining_s > 30 and rpm or 0
+      raisepanto = state.pantocmd
+    else
+      -- normal operation
+      local iselectric = power:getmode() == powermode.overhead
+      exhaust = not iselectric
+      dieselrpm = iselectric and 0 or rpm
+      raisepanto = state.pantocmd
+    end
+    -- Publish the current power mode via PantographControl...
+    RailWorks.SetControlValue("PantographControl", 0, state.powermode)
+    -- ...and the current pantograph position via VirtualPantographControl.
+    RailWorks.SetControlValue("VirtualPantographControl", 0,
+                              Misc.intbool(raisepanto))
   end
   Call("Exhaust1:SetEmitterActive", Misc.intbool(exhaust))
   Call("Exhaust2:SetEmitterActive", Misc.intbool(exhaust))
   Call("Exhaust3:SetEmitterActive", Misc.intbool(exhaust))
   Call("Exhaust4:SetEmitterActive", Misc.intbool(exhaust))
   RailWorks.SetControlValue("VirtualRPM", 0, dieselrpm)
+  pantoanim:setanimatedstate(raisepanto)
 end
 
 local function setspeedometer()
