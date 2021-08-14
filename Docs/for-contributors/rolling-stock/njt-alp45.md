@@ -224,6 +224,10 @@ Plays a short downgrade tone.
 
 Plays some background noise.
 
+#### VirtualRPM
+
+Plays the range of diesel engine sounds.
+
 ### Miscellaneous
 
 #### VirtualEmergencyBrake
