@@ -217,7 +217,9 @@ local function writelocostate()
                                  dieselpower or 1)
 
   local psi = RailWorks.GetControlValue("AirBrakePipePressurePSI", 0)
-  RailWorks.SetControlValue("DynamicBrake", 0, math.min((110 - psi) / 16, 1))
+  local dynbrake = math.min((110 - psi) / 16, 1)
+  local dynthrottle = -math.min(state.throttle, 0)
+  RailWorks.SetControlValue("DynamicBrake", 0, math.max(dynbrake, dynthrottle))
 
   local sander = RailWorks.GetControlValue("VirtualSander", 0)
   RailWorks.SetControlValue("Sander", 0, sander)
