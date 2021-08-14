@@ -166,13 +166,15 @@ local function writelocostate()
   local penaltybrake = 0.85
 
   local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
+  local haspower = power:haspower()
   local throttle
-  if penalty or not power:haspower() then
+  if penalty or not haspower then
     throttle = 0
   else
     throttle = state.throttle
   end
   RailWorks.SetControlValue("Regulator", 0, throttle)
+  RailWorks.SetPowerProportion(-1, Misc.intbool(haspower))
   -- There's no virtual train brake, so just move the braking handle.
   if penalty then
     RailWorks.SetControlValue("TrainBrakeControl", 0, penaltybrake)
