@@ -97,7 +97,7 @@ def build(bld):
             return self.exec_command(
                 f'luacheck --allow-defined-top --no-unused-args '
                 + ' '.join(f'"{inp.path_from(cwd)}"' for inp in self.inputs)
-                + ' --read-globals Call SysCall '
+                + ' --read-globals Call SysCall Print '
                 '--ignore Initialise Update OnControlValueChange '
                     'OnCustomSignalMessage OnConsistMessage '
                     'OnSignalMessage OnConsistPass')
