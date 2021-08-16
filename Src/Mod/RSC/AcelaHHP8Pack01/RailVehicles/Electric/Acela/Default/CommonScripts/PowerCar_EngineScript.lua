@@ -488,7 +488,7 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
 end)
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
-  power:receiveplayermessage(message)
+  power:receivemessage(message)
   cabsig:receivemessage(message)
 end)
 

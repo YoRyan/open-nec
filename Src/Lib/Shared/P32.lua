@@ -393,11 +393,7 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
 end)
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
-  if RailWorks.GetIsPlayer() then
-    power:receiveplayermessage(message)
-  else
-    power:receiveaimessage(message)
-  end
+  power:receivemessage(message)
   cabsig:receivemessage(message)
 end)
 

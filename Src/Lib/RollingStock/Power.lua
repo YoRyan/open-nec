@@ -1,4 +1,5 @@
 -- Code for electric power supply and multiple-mode locomotive modeling.
+-- @include RailWorks.lua
 local P = {}
 Power = P
 
@@ -150,6 +151,16 @@ local function receivechangepoint(self, cp)
     connect(self, P.supply.overhead)
   elseif cp == P.changepoint.overheadend then
     disconnect(self, P.supply.overhead)
+  end
+end
+
+-- Receive a custom signal message. Change points will connect or disconnect
+-- power supplies or, for AI trains, immediately switch to a new mode.
+function P:receivemessage(message)
+  if RailWorks.GetIsPlayer() then
+    self:receiveplayermessage(message)
+  else
+    self:receiveaimessage(message)
   end
 end
 

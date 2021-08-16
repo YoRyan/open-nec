@@ -474,7 +474,7 @@ end)
 OnControlValueChange = RailWorks.SetControlValue
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
-  power:receiveplayermessage(message)
+  power:receivemessage(message)
   cabsig:receivemessage(message)
 end)
 
