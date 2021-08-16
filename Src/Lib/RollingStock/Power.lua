@@ -169,12 +169,7 @@ function P:receiveaimessage(message)
 
   if cp ~= nil and cp >= P.changepoint.ai_to_thirdrail then
     local newmode = self._getaimode(cp)
-    if newmode ~= nil then
-      self:setmode(newmode)
-      return newmode
-    end
-  else
-    return nil
+    if newmode ~= nil then self:setmode(newmode) end
   end
 end
 
