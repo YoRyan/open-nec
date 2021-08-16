@@ -202,6 +202,7 @@ local function writelocostate()
     RailWorks.SetControlValue("AWS", 0, Misc.intbool(alarm or alert))
     RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alarm))
   end
+  -- Communicate power status to the rest of the train (and to the player).
   RailWorks.SetControlValue("Power3rdRail", 0, Misc.intbool(
                               power:isavailable(Power.supply.thirdrail)))
 end
@@ -394,9 +395,8 @@ OnControlValueChange = RailWorks.SetControlValue
 OnCustomSignalMessage = Misc.wraperrors(function(message)
   if RailWorks.GetIsEngineWithKey() then
     power:receiveplayermessage(message)
-  else
-    local newmode = power:receiveaimessage(message)
-    if newmode ~= nil then RailWorks.SetControlValue("PowerMode", 0, newmode) end
+  elseif not RailWorks.GetIsPlayer() then
+    power:receiveaimessage(message)
   end
   cabsig:receivemessage(message)
 end)
