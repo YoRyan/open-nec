@@ -4,6 +4,7 @@ import itertools
 import re
 import os
 import winreg
+from collections import OrderedDict
 from zipfile import ZipFile, ZIP_LZMA
 
 from waflib.Task import Task
@@ -109,7 +110,7 @@ def build(bld):
         return task
 
     def lualibs(src):
-        nodes = set()
+        nodes = []
         with open(src.abspath(), 'rt') as f:
             for line in f:
                 m = re.search(r'^--\s*@include\s+([^\s]+)\s*$', line)
@@ -118,9 +119,9 @@ def build(bld):
                     node = lib.find_node(path)
                     if not node:
                         bld.fatal(f'Lua library not found: {path}')
-                    nodes.add(node)
-                    nodes.update(lualibs(node))
-        return nodes
+                    nodes = [*nodes, *lualibs(node), node]
+        # Prune duplicates while preserving order.
+        return OrderedDict((node, None) for node in nodes).keys()
 
     def maketasks(src):
         tgt = out.make_node(src.path_from(mod))
