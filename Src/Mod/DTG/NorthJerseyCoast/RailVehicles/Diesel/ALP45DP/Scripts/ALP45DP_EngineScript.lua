@@ -182,6 +182,13 @@ local function readcontrols()
     RailWorks.SetControlValue("PantographControl", 0, 1)
   end
 
+  local handbrakecmd = RailWorks.GetControlValue("HandBrakeSwitch", 0)
+  if handbrakecmd == 1 then
+    RailWorks.SetControlValue("HandBrake", 0, 1)
+  elseif handbrakecmd == -1 then
+    RailWorks.SetControlValue("HandBrake", 0, 0)
+  end
+
   local faultreset = RailWorks.GetControlValue("FaultReset", 0) == 1
   if power:gettransition() == nil then
     local pmode = power:getmode()
@@ -240,13 +247,6 @@ local function writelocostate()
   local bell = RailWorks.GetControlValue("VirtualBell", 0)
   RailWorks.SetControlValue("Bell", 0, bell)
   RailWorks.SetControlValue("BellSwitch", 0, bell)
-
-  local handbrake = RailWorks.GetControlValue("HandBrakeSwitch", 0)
-  if handbrake == 1 then
-    RailWorks.SetControlValue("HandBrake", 0, 1)
-  elseif handbrake == -1 then
-    RailWorks.SetControlValue("HandBrake", 0, 0)
-  end
 
   local vigilalarm = alerter:isalarm()
   local safetyalarm = atc:isalarm() or acses:isalarm()
