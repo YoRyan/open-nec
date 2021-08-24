@@ -1,5 +1,6 @@
 -- Manual door control for rolling stock that supports it, as well as animation
 -- control for cab cars.
+--
 -- @include Misc.lua
 local P = {}
 Doors = P

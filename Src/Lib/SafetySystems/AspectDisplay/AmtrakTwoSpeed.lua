@@ -1,6 +1,8 @@
 -- A 2000's-era Amtrak ADU with a separate signal and track speed limit displays.
+--
 -- We assume it is not possible to display 100, 125, or 150 mph signal speeds,
 -- so we will use the track speed limit display to present them.
+--
 -- @include SafetySystems/AspectDisplay/AspectDisplay.lua
 -- @include Signals/NecSignals.lua
 local P = {}

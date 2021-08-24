@@ -1,4 +1,5 @@
 -- A cab signal message tracker that retains the last signal message received.
+--
 -- It is used by the ATC and ACSES systems, but unlike them, it cannot be reset
 -- by the player.
 local P = {}

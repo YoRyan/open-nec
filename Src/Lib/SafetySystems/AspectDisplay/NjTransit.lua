@@ -1,4 +1,5 @@
 -- An NJT-style integrated speedometer and ADU display.
+--
 -- @include SafetySystems/AspectDisplay/AspectDisplay.lua
 -- @include Signals/NecSignals.lua
 local P = {}

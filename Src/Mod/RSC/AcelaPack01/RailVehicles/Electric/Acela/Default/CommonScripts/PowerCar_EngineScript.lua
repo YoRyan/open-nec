@@ -1,4 +1,5 @@
 -- Engine script for the Acela Express operated by Amtrak.
+--
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
 -- @include RollingStock/CruiseControl.lua

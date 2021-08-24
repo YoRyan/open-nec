@@ -1,4 +1,5 @@
 -- Engine script for the dual-power ALP-45DP operated by New Jersey Transit.
+--
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
 -- @include RollingStock/Doors.lua

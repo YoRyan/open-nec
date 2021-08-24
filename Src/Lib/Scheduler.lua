@@ -1,5 +1,6 @@
 -- Library for managing concurrent coroutines that are updated from a single
 -- update loop.
+--
 -- @include Misc.lua
 local P = {}
 Scheduler = P

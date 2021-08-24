@@ -1,4 +1,5 @@
 -- Engine script for the Comet V operated by New Jersey Transit.
+--
 -- @include RollingStock/Doors.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/NjTransit.lua

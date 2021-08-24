@@ -1,4 +1,5 @@
 -- Engine script for the Siemens ACS-64 operated by Amtrak.
+--
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
 -- @include RollingStock/Spark.lua

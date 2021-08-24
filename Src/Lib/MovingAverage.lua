@@ -1,4 +1,4 @@
--- Library for a simple boxcar moving average computer.
+-- Class for a simple boxcar moving average computer.
 local P = {}
 Average = P
 

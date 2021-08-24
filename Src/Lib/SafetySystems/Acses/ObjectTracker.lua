@@ -1,5 +1,6 @@
 -- Assigns persistent unique identifiers to trackside objects that are sensed by
 -- their relative distances from the player.
+--
 -- @include Iterator.lua
 local P = {}
 AcsesTracker = P

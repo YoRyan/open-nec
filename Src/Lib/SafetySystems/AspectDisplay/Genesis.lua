@@ -1,5 +1,7 @@
 -- Cab signal and track speed displays for GE Genesis units.
+--
 -- We will use the track speed display to display signal speeds above 45 mph.
+--
 -- @include SafetySystems/AspectDisplay/AspectDisplay.lua
 -- @include Signals/NecSignals.lua
 local P = {}

@@ -1,4 +1,5 @@
 -- Alerter implementation with a penalty state.
+--
 -- @include Event.lua
 local P = {}
 Alerter = P

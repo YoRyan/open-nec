@@ -1,4 +1,5 @@
 -- Engine script for the EMD AEM-7 operated by Amtrak.
+--
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
 -- @include RollingStock/CruiseControl.lua
