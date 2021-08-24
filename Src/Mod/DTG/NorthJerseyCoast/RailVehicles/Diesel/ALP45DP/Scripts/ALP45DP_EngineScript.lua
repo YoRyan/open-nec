@@ -115,6 +115,7 @@ Initialise = Misc.wraperrors(function()
   power = PowerSupply:new{
     scheduler = anysched,
     modecontrol = "PowerMode",
+    eleccontrolmap = {[Electrification.type.overhead] = "PowerState"},
     transition_s = 100,
     getcantransition = function()
       return state.throttle <= 0 and state.speed_mps < stopped_mps
