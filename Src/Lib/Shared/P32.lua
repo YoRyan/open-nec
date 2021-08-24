@@ -1,5 +1,6 @@
 -- Engine script for the P32AC-DM operated by Amtrak and Metro-North.
--- @include RollingStock/Power.lua
+-- @include RollingStock/PowerSupply/Electrification.lua
+-- @include RollingStock/PowerSupply/PowerSupply.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/Genesis.lua
 -- @include SafetySystems/Alerter.lua
@@ -27,7 +28,6 @@ local state = {
   acknowledge = false,
   headlights = 0,
   crosslights = false,
-  powermode = powermode.thirdrail,
 
   speed_mps = 0,
   acceleration_mps2 = 0,
@@ -90,31 +90,36 @@ Initialise = Misc.wraperrors(function()
   alerter:start()
 
   local iselectric = string.sub(RailWorks.GetRVNumber(), 1, 1) == "T"
-  local initmode = iselectric and powermode.thirdrail or powermode.diesel
-  power = Power:new{
+  power = PowerSupply:new{
     scheduler = anysched,
-    available = iselectric and {Power.supply.thirdrail} or {},
-    modes = {
-      [powermode.thirdrail] = function(connected)
-        return connected[Power.supply.thirdrail]
-      end,
-      [powermode.diesel] = function(connected) return true end
-    },
-    init_mode = initmode,
+    modecontrol = "PowerMode",
+    -- The power mode control is reversed in DTG's cab car; compensate for this
+    -- (while sacrificing P32-to-P32 MU capability).
+    modereadfn = function(v)
+      local ishelper = not RailWorks.GetIsEngineWithKey() and
+                         RailWorks.GetIsPlayer()
+      return ishelper and 1 - v or v
+    end,
     transition_s = 20,
     getcantransition = function() return state.throttle <= 0 end,
-    getselectedmode = function() return state.powermode end,
-    selectaimode = function(cp)
-      if cp == Power.changepoint.ai_to_thirdrail then
+    modes = {
+      [powermode.thirdrail] = function(elec)
+        return elec:isavailable(Electrification.type.thirdrail)
+      end,
+      [powermode.diesel] = function(elec) return true end
+    },
+    getaimode = function(cp)
+      if cp == Electrification.aichangepoint.ai_to_thirdrail then
         return powermode.thirdrail
-      elseif cp == Power.changepoint.ai_to_diesel then
+      elseif cp == Electrification.aichangepoint.ai_to_diesel then
         return powermode.diesel
       else
         return nil
       end
     end
   }
-  state.powermode = initmode
+  power:setavailable(Electrification.type.thirdrail, iselectric)
+  power:setmode(iselectric and powermode.thirdrail or powermode.diesel)
 
   local ditchflash_s = 1
   ditchflasher = Flash:new{
@@ -141,10 +146,6 @@ local function readcontrols()
 
   state.headlights = RailWorks.GetControlValue("Headlights", 0)
   state.crosslights = RailWorks.GetControlValue("CrossingLight", 0) == 1
-  if not playersched:isstartup() then
-    state.powermode = math.floor(tonumber(
-                                   RailWorks.GetControlValue("PowerMode", 0)))
-  end
 end
 
 local function readlocostate()
@@ -199,23 +200,11 @@ local function writelocostate()
     RailWorks.SetControlValue("AWS", 0, Misc.intbool(alarm or alert))
     RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alarm))
   end
-  -- Communicate power status to the rest of the train (and to the player).
-  RailWorks.SetControlValue("Power3rdRail", 0, Misc.intbool(
-                              power:isavailable(Power.supply.thirdrail)))
 end
 
-local function setslavestate()
+local function setnonplayerstate()
   -- Read throttle and power mode from the lead locomotive.
   state.throttle = RailWorks.GetControlValue("Regulator", 0)
-  if not anysched:isstartup() then
-    -- The polarity of the power state control is reversed in the cab car.
-    local mode = math.floor(tonumber(RailWorks.GetControlValue("PowerMode", 0)))
-    state.powermode = 1 - mode
-    -- Read power availability state.
-    local available = RailWorks.GetControlValue("Power3rdRail", 0) == 1 and
-                        {Power.supply.thirdrail} or {}
-    power:setavailable(unpack(available))
-  end
   RailWorks.SetPowerProportion(-1, Misc.intbool(power:haspower()))
 end
 
@@ -350,6 +339,7 @@ local function updateplayer()
 
   playersched:update()
   anysched:update()
+  power:update()
 
   writelocostate()
   setcutin()
@@ -360,18 +350,11 @@ local function updateplayer()
   setexhaust()
 end
 
-local function updateslave()
+local function updatenonplayer()
   anysched:update()
+  power:update()
 
-  setslavestate()
-  setditchlights()
-  setcablights()
-  setexhaust()
-end
-
-local function updateai()
-  anysched:update()
-
+  setnonplayerstate()
   setditchlights()
   setcablights()
   setexhaust()
@@ -380,10 +363,8 @@ end
 Update = Misc.wraperrors(function(_)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer()
-  elseif RailWorks.GetIsPlayer() then
-    updateslave()
   else
-    updateai()
+    updatenonplayer()
   end
 end)
 

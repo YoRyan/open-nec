@@ -1,6 +1,7 @@
 -- Engine script for the EMD AEM-7 operated by Amtrak.
+-- @include RollingStock/PowerSupply/Electrification.lua
+-- @include RollingStock/PowerSupply/PowerSupply.lua
 -- @include RollingStock/CruiseControl.lua
--- @include RollingStock/Power.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
 -- @include SafetySystems/Alerter.lua
@@ -90,15 +91,16 @@ Initialise = Misc.wraperrors(function()
   }
   alerter:start()
 
-  power = Power:new{
+  power = PowerSupply:new{
     scheduler = sched,
-    available = {Power.supply.overhead},
     modes = {
-      [0] = function(connected)
-        return state.pantoup and connected[Power.supply.overhead]
+      [0] = function(elec)
+        local pantoup = state.pantoup
+        return pantoup and elec:isavailable(Electrification.type.overhead)
       end
     }
   }
+  power:setavailable(Electrification.type.overhead, true)
 
   RailWorks.BeginUpdate()
 end)
@@ -250,6 +252,7 @@ Update = Misc.wraperrors(function(_)
   readlocostate()
 
   sched:update()
+  power:update()
 
   writelocostate()
   setadu()

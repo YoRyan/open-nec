@@ -1,6 +1,7 @@
 -- Engine script for the Bombardier HHP-8 operated by Amtrak.
+-- @include RollingStock/PowerSupply/Electrification.lua
+-- @include RollingStock/PowerSupply/PowerSupply.lua
 -- @include RollingStock/CruiseControl.lua
--- @include RollingStock/Power.lua
 -- @include RollingStock/Spark.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
@@ -109,17 +110,17 @@ Initialise = Misc.wraperrors(function()
     getenabled = function() return state.cruiseenabled end
   }
 
-  power = Power:new{
+  power = PowerSupply:new{
     scheduler = anysched,
-    available = {Power.supply.overhead},
     modes = {
-      [0] = function(connected)
-        local contact = frontpantoanim:getposition() == 1 or
+      [0] = function(elec)
+        local pantoup = frontpantoanim:getposition() == 1 or
                           rearpantoanim:getposition() == 1
-        return contact and connected[Power.supply.overhead]
+        return pantoup and elec:isavailable(Electrification.type.overhead)
       end
     }
   }
+  power:setavailable(Electrification.type.overhead, true)
 
   frontpantoanim = Animation:new{
     scheduler = anysched,
@@ -429,6 +430,7 @@ local function updateplayer()
 
   playersched:update()
   anysched:update()
+  power:update()
   frontpantoanim:update()
   rearpantoanim:update()
 
