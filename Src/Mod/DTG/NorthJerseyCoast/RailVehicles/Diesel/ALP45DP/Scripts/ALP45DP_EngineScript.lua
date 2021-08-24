@@ -456,10 +456,9 @@ local function setwipers()
 end
 
 local function setebrake()
-  local stopspeed_mps = 0.01
   if RailWorks.GetControlValue("VirtualEmergencyBrake", 0) == 1 then
     RailWorks.SetControlValue("EmergencyBrake", 0, 1)
-  elseif math.abs(state.speed_mps) < stopspeed_mps then
+  elseif math.abs(state.speed_mps) < Misc.stopped_mps then
     RailWorks.SetControlValue("EmergencyBrake", 0, 0)
   end
 end

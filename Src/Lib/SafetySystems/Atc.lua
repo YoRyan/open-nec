@@ -1,9 +1,9 @@
 -- Constants, lookup tables, and code for Amtrak's Pennsylvania Railroad-derived
 -- pulse code cab signaling and Automatic Train Control system.
+--
+-- @include Misc.lua
 local P = {}
 Atc = P
-
-local stopspeed_mps = 0.01
 
 local function initstate(self)
   self._running = false
@@ -68,7 +68,7 @@ local function penalty(self)
   self._isalarm = true
   self._ispenalty = true
   self._sched:select(nil, function()
-    return self._getspeed_mps() <= stopspeed_mps and self._getacknowledge()
+    return self._getspeed_mps() < Misc.stopped_mps and self._getacknowledge()
   end)
   self._isalarm = false
   self._ispenalty = false

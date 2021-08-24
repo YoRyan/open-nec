@@ -5,6 +5,7 @@
 -- @include SafetySystems/Acses/ObjectTracker.lua
 -- @include SafetySystems/Acses/TrackSpeed.lua
 -- @include Iterator.lua
+-- @include Misc.lua
 -- @include TupleDictionary.lua
 local P = {}
 Acses = P
@@ -16,7 +17,6 @@ P.mode = {normal = 0, approachmed30 = 1, positivestop = 2}
 local debuglimits = false
 local debugsignals = false
 local debugtrackers = false
-local stopspeed_mps = 0.01
 local direction = {forward = 0, stopped = 1, backward = 2}
 local hazardtype = {currentlimit = 0, advancelimit = 1, stopsignal = 2}
 
@@ -87,7 +87,7 @@ function P:isrunning() return self._running end
 
 local function getdirection(self)
   local speed_mps = self._getspeed_mps()
-  if math.abs(speed_mps) < stopspeed_mps then
+  if math.abs(speed_mps) < Misc.stopped_mps then
     return direction.stopped
   elseif speed_mps > 0 then
     return direction.forward
