@@ -17,7 +17,6 @@
 local powermode = {diesel = 0, overhead = 1}
 local messageid = {destination = 10100}
 local dieselpower = 3600 / 5900
-local stopped_mps = 0.01
 
 local playersched, anysched
 local cabsig
@@ -34,7 +33,6 @@ local state = {
   throttle = 0,
   train_brake = 0,
   acknowledge = false,
-  pantoup = false,
   rv_destination = nil,
 
   speed_mps = 0,
@@ -118,7 +116,7 @@ Initialise = Misc.wraperrors(function()
     eleccontrolmap = {[Electrification.type.overhead] = "PowerState"},
     transition_s = 100,
     getcantransition = function()
-      return state.throttle <= 0 and state.speed_mps < stopped_mps
+      return state.throttle <= 0 and state.speed_mps < Misc.stopped_mps
     end,
     modes = {
       [powermode.diesel] = function(elec) return true end,
@@ -172,7 +170,6 @@ local function readcontrols()
   state.train_brake = vbrake
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
   if state.acknowledge or change then alerter:acknowledge() end
-  state.pantoup = RailWorks.GetControlValue("PantographControl", 0) == 1
 
   if RailWorks.GetControlValue("Horn", 0) > 0 then
     state.lasthorntime_s = playersched:clock()
@@ -180,15 +177,16 @@ local function readcontrols()
 
   local pantocmd = RailWorks.GetControlValue("PantographSwitch", 0)
   if pantocmd == -1 then
-    state.pantoup = false
+    RailWorks.SetControlValue("PantographControl", 0, 0)
   elseif pantocmd == 1 then
-    state.pantoup = true
+    RailWorks.SetControlValue("PantographControl", 0, 1)
   end
 
   local faultreset = RailWorks.GetControlValue("FaultReset", 0) == 1
   if power:gettransition() == nil then
     local pmode = power:getmode()
-    if pmode == powermode.diesel and state.pantoup then
+    local pantoup = RailWorks.GetControlValue("PantographControl", 0) == 1
+    if pmode == powermode.diesel and pantoup then
       RailWorks.SetControlValue("PowerMode", 0, powermode.overhead)
     elseif pmode == powermode.overhead and faultreset then
       RailWorks.SetControlValue("PowerMode", 0, powermode.diesel)
@@ -263,14 +261,30 @@ local function writelocostate()
 
   RailWorks.SetControlValue("Horn", 0,
                             RailWorks.GetControlValue("VirtualHorn", 0))
-  RailWorks.SetControlValue("PantographControl", 0, Misc.intbool(state.pantoup))
+end
+
+local function sethelperstate()
+  state.throttle = RailWorks.GetControlValue("Regulator", 0)
+  state.speed_mps = RailWorks.GetControlValue("SpeedometerMPH", 0) *
+                      Units.mph.tomps
+  local proportion
+  if not power:haspower() then
+    proportion = 0
+  elseif power:getmode() == powermode.diesel then
+    proportion = dieselpower
+  else
+    proportion = 1
+  end
+  RailWorks.SetPowerProportion(-1, proportion)
 end
 
 local function setplayerpanto()
   local before, after, remaining_s = power:gettransition()
   if before == powermode.overhead and after == powermode.diesel then
     -- Lower the pantograph at the end of the power transition sequence.
-    if remaining_s <= 2 then state.pantoup = false end
+    if remaining_s <= 2 then
+      RailWorks.SetControlValue("PantographControl", 0, 0)
+    end
   end
 end
 
@@ -489,6 +503,8 @@ local function updatehelper()
   power:update()
   pantoanim:update()
 
+  sethelperstate()
+  setplayerpanto()
   setpowerfx()
   setcablights()
   setditchlights()

@@ -1,5 +1,7 @@
 -- Engine script for the Comet V operated by New Jersey Transit.
 --
+-- @include RollingStock/PowerSupply/Electrification.lua
+-- @include RollingStock/PowerSupply/PowerSupply.lua
 -- @include RollingStock/Doors.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/NjTransit.lua
@@ -13,6 +15,8 @@
 -- @include RailWorks.lua
 -- @include Scheduler.lua
 -- @include Units.lua
+local powermode = {diesel = 0, overhead = 1}
+
 local playersched
 local anysched
 local cabsig
@@ -20,6 +24,7 @@ local atc
 local acses
 local adu
 local alerter
+local power
 local doors
 local leftdoorsanim
 local rightdoorsanim
@@ -112,6 +117,33 @@ Initialise = Misc.wraperrors(function()
   atc:start()
   acses:start()
 
+  power = PowerSupply:new{
+    scheduler = anysched,
+    modecontrol = "PowerMode",
+    eleccontrolmap = {[Electrification.type.overhead] = "PowerState"},
+    transition_s = 100,
+    getcantransition = function()
+      return state.throttle <= 0 and state.speed_mps < Misc.stopped_mps
+    end,
+    modes = {
+      [powermode.diesel] = function(elec) return true end,
+      [powermode.overhead] = function(elec) return true end
+    },
+    getaimode = function(cp)
+      if cp == Electrification.aichangepoint.ai_to_overhead then
+        return powermode.electric
+      elseif cp == Electrification.aichangepoint.ai_to_diesel then
+        return powermode.diesel
+      else
+        return nil
+      end
+    end,
+    oninit = function()
+      local iselectric = power:getmode() == powermode.overhead
+      power:setavailable(Electrification.type.overhead, iselectric)
+    end
+  }
+
   local doors_s = 2
   leftdoorsanim = Animation:new{
     scheduler = anysched,
@@ -159,6 +191,23 @@ local function readcontrols()
   if RailWorks.GetControlValue("Horn", 0) > 0 then
     state.lasthorntime_s = playersched:clock()
   end
+
+  local pantocmd = RailWorks.GetControlValue("PantographSwitch", 0)
+  if pantocmd == -1 then
+    RailWorks.SetControlValue("PantographControl", 0, 0)
+  elseif pantocmd == 1 then
+    RailWorks.SetControlValue("PantographControl", 0, 1)
+  end
+
+  local faultreset = RailWorks.GetControlValue("FaultReset", 0) == 1
+  local pantoup = RailWorks.GetControlValue("PantographControl", 0) == 1
+  local pmode = power:getmode()
+  if pmode == powermode.diesel and pantoup then
+    RailWorks.SetControlValue("PowerMode", 0, powermode.overhead)
+  elseif pmode == powermode.overhead and faultreset then
+    RailWorks.SetControlValue("PowerMode", 0, powermode.diesel)
+  end
+  if faultreset then RailWorks.SetControlValue("FaultReset", 0, 0) end
 end
 
 local function readlocostate()
@@ -198,14 +247,22 @@ local function writelocostate()
                             RailWorks.GetControlValue("VirtualWipers", 0))
   RailWorks.SetControlValue("Sander", 0,
                             RailWorks.GetControlValue("VirtualSander", 0))
-  RailWorks.SetControlValue("PantographControl", 0, RailWorks.GetControlValue(
-                              "VirtualPantographControl", 0))
 
   do
     local alarm = atc:isalarm() or acses:isalarm() or alerter:isalarm()
     local alert = adu:isatcalert() or adu:isacsesalert()
     RailWorks.SetControlValue("AWS", 0, Misc.intbool(alarm or alert))
     RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alarm))
+  end
+end
+
+local function setplayerpanto()
+  local before, after, remaining_s = power:gettransition()
+  if before == powermode.overhead and after == powermode.diesel then
+    -- Lower the pantograph at the end of the power transition sequence.
+    if remaining_s <= 2 then
+      RailWorks.SetControlValue("PantographControl", 0, 0)
+    end
   end
 end
 
@@ -322,12 +379,13 @@ local function updateplayer()
 
   playersched:update()
   anysched:update()
-
+  power:update()
   leftdoorsanim:update()
   rightdoorsanim:update()
   doors:update()
 
   writelocostate()
+  setplayerpanto()
   setspeedometer()
   setcutin()
   setcablight()
@@ -337,9 +395,9 @@ local function updateplayer()
   setdestination()
 end
 
-local function updateai()
+local function updatenonplayer()
   anysched:update()
-
+  power:update()
   leftdoorsanim:update()
   rightdoorsanim:update()
   doors:update()
@@ -355,7 +413,7 @@ Update = Misc.wraperrors(function(_)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer()
   else
-    updateai()
+    updatenonplayer()
   end
 end)
 
@@ -376,21 +434,6 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
       RailWorks.SetControlValue("HeadlightSwitch", 0, 1)
     elseif value == 3 then
       RailWorks.SetControlValue("HeadlightSwitch", 0, 2)
-    end
-  end
-
-  -- Synchronize pantograph controls.
-  if name == "PantographSwitch" then
-    if value == -1 then
-      RailWorks.SetControlValue("VirtualPantographControl", 0, 0)
-    elseif value == 1 then
-      RailWorks.SetControlValue("VirtualPantographControl", 0, 1)
-    end
-  elseif name == "VirtualPantographControl" then
-    if value == 0 then
-      RailWorks.SetControlValue("PantographSwitch", 0, -1)
-    elseif value == 1 then
-      RailWorks.SetControlValue("PantographSwitch", 0, 1)
     end
   end
 
@@ -420,6 +463,7 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
 end)
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
+  power:receivemessage(message)
   cabsig:receivemessage(message)
 end)
 

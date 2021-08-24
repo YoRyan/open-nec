@@ -4,6 +4,9 @@
 local P = {}
 Misc = P
 
+-- Speed at which a train is "stopped."
+P.stopped_mps = 0.01
+
 -- Flash an info (middle of screen) message.
 function P.showinfo(title, msg)
   if msg == nil then

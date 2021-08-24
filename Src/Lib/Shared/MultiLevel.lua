@@ -1,6 +1,8 @@
 -- Engine script for the Bombardier Multilevel cab car operated by NJ Transit
 -- and MARC.
 --
+-- @include RollingStock/PowerSupply/Electrification.lua
+-- @include RollingStock/PowerSupply/PowerSupply.lua
 -- @include RollingStock/Doors.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/NjTransit.lua
@@ -14,6 +16,8 @@
 -- @include RailWorks.lua
 -- @include Scheduler.lua
 -- @include Units.lua
+local powermode = {diesel = 0, overhead = 1}
+
 local playersched
 local anysched
 local cabsig
@@ -21,6 +25,7 @@ local atc
 local acses
 local adu
 local alerter
+local power
 local doors
 local leftdoorsanim
 local rightdoorsanim
@@ -106,6 +111,33 @@ Initialise = Misc.wraperrors(function()
   atc:start()
   acses:start()
 
+  power = PowerSupply:new{
+    scheduler = anysched,
+    modecontrol = "PowerMode",
+    eleccontrolmap = {[Electrification.type.overhead] = "PowerState"},
+    transition_s = 100,
+    getcantransition = function()
+      return state.throttle <= 0 and state.speed_mps < Misc.stopped_mps
+    end,
+    modes = {
+      [powermode.diesel] = function(elec) return true end,
+      [powermode.overhead] = function(elec) return true end
+    },
+    getaimode = function(cp)
+      if cp == Electrification.aichangepoint.ai_to_overhead then
+        return powermode.electric
+      elseif cp == Electrification.aichangepoint.ai_to_diesel then
+        return powermode.diesel
+      else
+        return nil
+      end
+    end,
+    oninit = function()
+      local iselectric = power:getmode() == powermode.overhead
+      power:setavailable(Electrification.type.overhead, iselectric)
+    end
+  }
+
   local doors_s = 1
   leftdoorsanim = Animation:new{
     scheduler = anysched,
@@ -155,6 +187,23 @@ local function readcontrols()
   if RailWorks.GetControlValue("Horn", 0) > 0 then
     state.lasthorntime_s = playersched:clock()
   end
+
+  local pantocmd = RailWorks.GetControlValue("PantographSwitch", 0)
+  if pantocmd == -1 then
+    RailWorks.SetControlValue("PantographControl", 0, 0)
+  elseif pantocmd == 1 then
+    RailWorks.SetControlValue("PantographControl", 0, 1)
+  end
+
+  -- The Fault Reset button does not work in DTG's model, so just use the
+  -- pantograph control to switch power modes.
+  local pantoup = RailWorks.GetControlValue("PantographControl", 0) == 1
+  local pmode = power:getmode()
+  if pmode == powermode.diesel and pantoup then
+    RailWorks.SetControlValue("PowerMode", 0, powermode.overhead)
+  elseif pmode == powermode.overhead and not pantoup then
+    RailWorks.SetControlValue("PowerMode", 0, powermode.diesel)
+  end
 end
 
 local function readlocostate()
@@ -194,8 +243,6 @@ local function writelocostate()
                             RailWorks.GetControlValue("VirtualWipers", 0))
   RailWorks.SetControlValue("Sander", 0,
                             RailWorks.GetControlValue("VirtualSander", 0))
-  RailWorks.SetControlValue("PantographControl", 0, RailWorks.GetControlValue(
-                              "VirtualPantographControl", 0))
 
   do
     local atcalarm = atc:isalarm()
@@ -326,7 +373,7 @@ local function updateplayer()
 
   playersched:update()
   anysched:update()
-
+  power:update()
   leftdoorsanim:update()
   rightdoorsanim:update()
   doors:update()
@@ -341,9 +388,9 @@ local function updateplayer()
   setdestination()
 end
 
-local function updateai()
+local function updatenonplayer()
   anysched:update()
-
+  power:update()
   leftdoorsanim:update()
   rightdoorsanim:update()
   doors:update()
@@ -359,7 +406,7 @@ Update = Misc.wraperrors(function(_)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer()
   else
-    updateai()
+    updatenonplayer()
   end
 end)
 
@@ -383,21 +430,6 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
     end
   end
 
-  -- Synchronize pantograph controls.
-  if name == "PantographSwitch" then
-    if value == -1 then
-      RailWorks.SetControlValue("VirtualPantographControl", 0, 0)
-    elseif value == 1 then
-      RailWorks.SetControlValue("VirtualPantographControl", 0, 1)
-    end
-  elseif name == "VirtualPantographControl" then
-    if value == 0 then
-      RailWorks.SetControlValue("PantographSwitch", 0, -1)
-    elseif value == 1 then
-      RailWorks.SetControlValue("PantographSwitch", 0, 1)
-    end
-  end
-
   -- The player has changed the destination sign.
   if name == "Destination" and not anysched:isstartup() then
     RailWorks.Engine_SendConsistMessage(messageid.destination, value, 0)
@@ -409,6 +441,7 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
 end)
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
+  power:receivemessage(message)
   cabsig:receivemessage(message)
 end)
 
