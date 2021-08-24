@@ -259,6 +259,10 @@ local function writelocostate()
                             Misc.intbool(decreaseonoff:ison()))
   RailWorks.SetControlValue("ACSES_AlertIncrease", 0, Misc.intbool(safetyalert))
 
+  local windowopen = RailWorks.GetControlValue("WindowLeft", 0) > 0.5 or
+                       RailWorks.GetControlValue("WindowRight", 0) > 0.5
+  RailWorks.SetControlValue("ExteriorSounds", 0, Misc.intbool(windowopen))
+
   RailWorks.SetControlValue("Horn", 0,
                             RailWorks.GetControlValue("VirtualHorn", 0))
 end

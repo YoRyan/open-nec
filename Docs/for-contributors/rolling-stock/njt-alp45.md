@@ -252,6 +252,12 @@ The HEP switch. The default state is 1 (on).
 
 Sets the digits of the unit number in the center pillar. The "45-" digits at the beginning of the number are static textures.
 
+#### WindowLeft
+
+#### WindowRight
+
+The positions of the openable windows, from 0 (closed) to 1 (open).
+
 ### Keyboard shortcuts
 
 #### AWSWarnCount
