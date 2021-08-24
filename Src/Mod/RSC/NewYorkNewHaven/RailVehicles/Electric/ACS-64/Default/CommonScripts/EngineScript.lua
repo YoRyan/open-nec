@@ -1,5 +1,6 @@
 -- Engine script for the Siemens ACS-64 operated by Amtrak.
--- @include RollingStock/Power.lua
+-- @include RollingStock/PowerSupply/Electrification.lua
+-- @include RollingStock/PowerSupply/PowerSupply.lua
 -- @include RollingStock/Spark.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/AmtrakCombined.lua
@@ -91,15 +92,16 @@ Initialise = Misc.wraperrors(function()
   }
   alerter:start()
 
-  power = Power:new{
+  power = PowerSupply:new{
     scheduler = anysched,
-    available = {Power.supply.overhead},
     modes = {
-      [0] = function(connected)
-        return state.pantoup and connected[Power.supply.overhead]
+      [0] = function(elec)
+        local pantoup = state.pantoup
+        return pantoup and elec:isavailable(Electrification.type.overhead)
       end
     }
   }
+  power:setavailable(Electrification.type.overhead, true)
 
   local avgsamples = 30
   tracteffort = Average:new{nsamples = avgsamples}
@@ -444,6 +446,7 @@ local function updateplayer()
 
   playersched:update()
   anysched:update()
+  power:update()
 
   writelocostate()
   setpantocontrol()

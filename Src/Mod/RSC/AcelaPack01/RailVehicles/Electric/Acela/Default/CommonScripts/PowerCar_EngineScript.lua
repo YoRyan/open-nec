@@ -1,6 +1,7 @@
 -- Engine script for the Acela Express operated by Amtrak.
+-- @include RollingStock/PowerSupply/Electrification.lua
+-- @include RollingStock/PowerSupply/PowerSupply.lua
 -- @include RollingStock/CruiseControl.lua
--- @include RollingStock/Power.lua
 -- @include RollingStock/RangeScroll.lua
 -- @include RollingStock/Spark.lua
 -- @include SafetySystems/Acses/Acses.lua
@@ -149,17 +150,18 @@ Initialise = Misc.wraperrors(function()
   }
   alerter:start()
 
-  power = Power:new{
+  power = PowerSupply:new{
     scheduler = anysched,
-    available = {Power.supply.overhead},
     modes = {
-      [0] = function(connected)
-        local contact = frontpantoanim:getposition() == 1 or
+      [0] = function(elec)
+        local pantoup = frontpantoanim:getposition() == 1 or
                           rearpantoanim:getposition() == 1
-        return contact and connected[Power.supply.overhead]
+        return pantoup and state.startup and
+                 elec:isavailable(Electrification.type.overhead)
       end
     }
   }
+  power:setavailable(Electrification.type.overhead, true)
 
   frontpantoanim = Animation:new{
     scheduler = anysched,
@@ -241,14 +243,12 @@ local function readlocostate()
                             Misc.iterrestrictsignals(Acses.nsignallookahead))
 end
 
-local function haspower() return power:haspower() and state.startup end
-
 local function writelocostate()
   local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
   local penaltybrake = 0.6
   do
     local v
-    if not haspower() then
+    if not power:haspower() then
       v = 0
     elseif penalty then
       v = 0
@@ -376,7 +376,8 @@ local function setaidest()
 end
 
 local function setstatusscreen()
-  RailWorks.SetControlValue("ControlScreenIzq", 0, Misc.intbool(not haspower()))
+  RailWorks.SetControlValue("ControlScreenIzq", 0,
+                            Misc.intbool(not power:haspower()))
   do
     local frontpantoup = frontpantoanim:getposition() == 1
     local rearpantoup = rearpantoanim:getposition() == 1
@@ -415,7 +416,8 @@ local function setstatusscreen()
 end
 
 local function setdrivescreen()
-  RailWorks.SetControlValue("ControlScreenDer", 0, Misc.intbool(not haspower()))
+  RailWorks.SetControlValue("ControlScreenDer", 0,
+                            Misc.intbool(not power:haspower()))
   do
     local speed_mph = Misc.round(state.speed_mps * Units.mps.tomph)
     RailWorks.SetControlValue("SPHundreds", 0, Misc.getdigit(speed_mph, 2))
@@ -525,6 +527,7 @@ local function updateplayer()
 
   playersched:update()
   anysched:update()
+  power:update()
   frontpantoanim:update()
   rearpantoanim:update()
   coneanim:update()
