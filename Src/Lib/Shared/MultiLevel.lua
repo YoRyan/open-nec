@@ -430,6 +430,13 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
     end
   end
 
+  -- Synchronize pantograph controls.
+  if name == "VirtualPantographControl" then
+    RailWorks.SetControlValue("PantographControl", 0, value)
+  elseif name == "PantographControl" then
+    RailWorks.SetControlValue("VirtualPantographControl", 0, value)
+  end
+
   -- The player has changed the destination sign.
   if name == "Destination" and not anysched:isstartup() then
     RailWorks.Engine_SendConsistMessage(messageid.destination, value, 0)
