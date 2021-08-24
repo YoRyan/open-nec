@@ -6,4 +6,6 @@ The Open NEC Project modifies the Multilevel cab car to include functional cab s
 
 ### New features
 
+- OpenNEC removes the automatic power changeover functions. When driving with an ALP-45DP at the rear, raise the pantograph to switch from diesel to electric mode, and lower the pantograph (DTG did model a Fault Reset button, but it's not animated or functional) to switch from electric to diesel mode.
+    - The train must be stopped and the throttle centered at zero to start the changeover process, which takes about 100 seconds to complete.
 - For the MARC version, the destination signs have been retextured to show "MARC", "No Passengers", "Union Station", "Penn Station", "Martin State Airport", and "Perryville".
