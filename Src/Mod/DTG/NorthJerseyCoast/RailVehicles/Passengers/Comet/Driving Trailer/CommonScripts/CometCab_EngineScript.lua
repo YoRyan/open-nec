@@ -326,15 +326,15 @@ local function setditchlights()
 end
 
 local function setstatuslights()
-  RailWorks.ActivateNode("LightsBlue", RailWorks.GetIsEngineWithKey())
+  RailWorks.ActivateNode("LightsBlue",
+                         RailWorks.GetControlValue("HandBrake", 0) == 1)
   RailWorks.ActivateNode("LightsRed",
                          doors:isleftdooropen() or doors:isrightdooropen())
-  do
-    -- Match the brake indicator light logic in the carriage script.
-    local brake = RailWorks.GetControlValue("TrainBrakeControl", 0)
-    RailWorks.ActivateNode("LightsYellow", brake > 0)
-    RailWorks.ActivateNode("LightsGreen", brake <= 0)
-  end
+
+  -- Match the brake indicator light logic in the carriage script.
+  local brake = RailWorks.GetControlValue("TrainBrakeControl", 0)
+  RailWorks.ActivateNode("LightsYellow", brake > 0)
+  RailWorks.ActivateNode("LightsGreen", brake <= 0)
 end
 
 local function setcoachlights()

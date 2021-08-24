@@ -422,7 +422,8 @@ local function setditchlights()
 end
 
 local function setstatuslights()
-  RailWorks.ActivateNode("LightsBlue", RailWorks.GetIsEngineWithKey())
+  RailWorks.ActivateNode("LightsBlue",
+                         RailWorks.GetControlValue("HandBrake", 0) == 1)
   RailWorks.ActivateNode("LightsRed",
                          doors:isleftdooropen() or doors:isrightdooropen())
 
