@@ -1,6 +1,7 @@
 -- Engine script for the dual-power ALP-45DP operated by New Jersey Transit.
+-- @include RollingStock/PowerSupply/Electrification.lua
+-- @include RollingStock/PowerSupply/PowerSupply.lua
 -- @include RollingStock/Doors.lua
--- @include RollingStock/Power.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/NjTransit.lua
 -- @include SafetySystems/Alerter.lua
@@ -12,7 +13,7 @@
 -- @include RailWorks.lua
 -- @include Scheduler.lua
 -- @include Units.lua
-local powermode = {init = -1, diesel = 0, overhead = 1}
+local powermode = {diesel = 0, overhead = 1}
 local messageid = {destination = 10100}
 local dieselpower = 3600 / 5900
 local stopped_mps = 0.01
@@ -32,8 +33,7 @@ local state = {
   throttle = 0,
   train_brake = 0,
   acknowledge = false,
-  powermode = powermode.init,
-  pantocmd = false,
+  pantoup = false,
   rv_destination = nil,
 
   speed_mps = 0,
@@ -111,30 +111,32 @@ Initialise = Misc.wraperrors(function()
   }
   alerter:start()
 
-  power = Power:new{
+  power = PowerSupply:new{
     scheduler = anysched,
-    available = {},
-    modes = {
-      [powermode.init] = function(connected) return false end,
-      [powermode.diesel] = function(connected) return true end,
-      [powermode.overhead] = function(connected)
-        return connected[Power.supply.overhead] and pantoanim:getposition() == 1
-      end
-    },
-    init_mode = powermode.init,
+    modecontrol = "PowerMode",
     transition_s = 100,
     getcantransition = function()
       return state.throttle <= 0 and state.speed_mps < stopped_mps
     end,
-    getselectedmode = function() return state.powermode end,
-    selectaimode = function(cp)
-      if cp == Power.changepoint.ai_to_overhead then
+    modes = {
+      [powermode.diesel] = function(elec) return true end,
+      [powermode.overhead] = function(elec)
+        local pantoup = pantoanim:getposition() == 1
+        return pantoup and elec:isavailable(Electrification.type.overhead)
+      end
+    },
+    getaimode = function(cp)
+      if cp == Electrification.aichangepoint.ai_to_overhead then
         return powermode.electric
-      elseif cp == Power.changepoint.ai_to_diesel then
+      elseif cp == Electrification.aichangepoint.ai_to_diesel then
         return powermode.diesel
       else
         return nil
       end
+    end,
+    oninit = function()
+      local iselectric = power:getmode() == powermode.overhead
+      power:setavailable(Electrification.type.overhead, iselectric)
     end
   }
 
@@ -168,6 +170,7 @@ local function readcontrols()
   state.train_brake = vbrake
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
   if state.acknowledge or change then alerter:acknowledge() end
+  state.pantoup = RailWorks.GetControlValue("PantographControl", 0) == 1
 
   if RailWorks.GetControlValue("Horn", 0) > 0 then
     state.lasthorntime_s = playersched:clock()
@@ -175,17 +178,18 @@ local function readcontrols()
 
   local pantocmd = RailWorks.GetControlValue("PantographSwitch", 0)
   if pantocmd == -1 then
-    state.pantocmd = false
+    state.pantoup = false
   elseif pantocmd == 1 then
-    state.pantocmd = true
+    state.pantoup = true
   end
 
   local faultreset = RailWorks.GetControlValue("FaultReset", 0) == 1
   if power:gettransition() == nil then
-    if state.powermode == powermode.diesel and state.pantocmd then
-      state.powermode = powermode.overhead
-    elseif state.powermode == powermode.overhead and faultreset then
-      state.powermode = powermode.diesel
+    local pmode = power:getmode()
+    if pmode == powermode.diesel and state.pantoup then
+      RailWorks.SetControlValue("PowerMode", 0, powermode.overhead)
+    elseif pmode == powermode.overhead and faultreset then
+      RailWorks.SetControlValue("PowerMode", 0, powermode.diesel)
     end
   end
   if faultreset then RailWorks.SetControlValue("FaultReset", 0, 0) end
@@ -257,64 +261,51 @@ local function writelocostate()
 
   RailWorks.SetControlValue("Horn", 0,
                             RailWorks.GetControlValue("VirtualHorn", 0))
+  RailWorks.SetControlValue("PantographControl", 0, Misc.intbool(state.pantoup))
 end
 
-local function setpowermode()
-  local exhaust, dieselrpm, raisepanto
-  if state.powermode == powermode.init then
-    -- The PowerMode control takes some time to settle, so read it after
-    -- startup.
-    if not anysched:isstartup() then
-      state.powermode = math.floor(tonumber(
-                                     RailWorks.GetControlValue("PowerMode", 0)))
-      power:setmode(state.powermode)
-      if state.powermode == powermode.overhead then
-        power:setavailable(Power.supply.overhead)
-        pantoanim:setanimatedstate(true)
-        pantoanim:setposition(1)
-        state.pantocmd = true
-      else
-        power:setavailable()
-        pantoanim:setanimatedstate(false)
-        pantoanim:setposition(0)
-        state.pantocmd = false
-      end
-    end
+local function setplayerpanto()
+  local before, after, remaining_s = power:gettransition()
+  if before == powermode.overhead and after == powermode.diesel then
+    -- Lower the pantograph at the end of the power transition sequence.
+    if remaining_s <= 2 then state.pantoup = false end
+  end
+end
+
+local function setaipanto()
+  -- Sync pantograph with power mode.
+  local pmode = power:getmode()
+  RailWorks.SetControlValue("PantographControl", 0,
+                            Misc.intbool(pmode == powermode.overhead))
+end
+
+local function setpowerfx()
+  local exhaust, dieselrpm
+  local rpm = RailWorks.GetControlValue("RPM", 0)
+  local pmode = power:getmode()
+  local before, after, remaining_s = power:gettransition()
+  if before == powermode.overhead and after == powermode.diesel then
+    exhaust = remaining_s <= 30
+    dieselrpm = remaining_s <= 60 and rpm or 0
+  elseif before == powermode.diesel and after == powermode.overhead then
+    exhaust = remaining_s > 60
+    dieselrpm = remaining_s > 30 and rpm or 0
+  elseif pmode == nil then
+    -- at startup
     exhaust = false
     dieselrpm = 0
-    raisepanto = false
   else
-    local before, after, remaining_s = power:gettransition()
-    local rpm = RailWorks.GetControlValue("RPM", 0)
-    if before == powermode.overhead and after == powermode.diesel then
-      exhaust = remaining_s <= 30
-      dieselrpm = remaining_s <= 60 and rpm or 0
-      -- Lower the pantograph at the end of the transition to diesel.
-      if remaining_s <= 2 then state.pantocmd = false end
-      raisepanto = state.pantocmd
-    elseif before == powermode.diesel and after == powermode.overhead then
-      exhaust = remaining_s > 60
-      dieselrpm = remaining_s > 30 and rpm or 0
-      raisepanto = state.pantocmd
-    else
-      -- normal operation
-      local iselectric = power:getmode() == powermode.overhead
-      exhaust = not iselectric
-      dieselrpm = iselectric and 0 or rpm
-      raisepanto = state.pantocmd
-    end
-    -- Publish the current power mode via PantographControl...
-    RailWorks.SetControlValue("PantographControl", 0, state.powermode)
-    -- ...and the current pantograph position via VirtualPantographControl.
-    RailWorks.SetControlValue("VirtualPantographControl", 0,
-                              Misc.intbool(raisepanto))
+    -- normal operation
+    local iselectric = pmode == powermode.overhead
+    exhaust = not iselectric
+    dieselrpm = iselectric and 0 or rpm
   end
-  Call("Exhaust1:SetEmitterActive", Misc.intbool(exhaust))
-  Call("Exhaust2:SetEmitterActive", Misc.intbool(exhaust))
-  Call("Exhaust3:SetEmitterActive", Misc.intbool(exhaust))
-  Call("Exhaust4:SetEmitterActive", Misc.intbool(exhaust))
+  for i = 1, 4 do
+    Call("Exhaust" .. i .. ":SetEmitterActive", Misc.intbool(exhaust))
+  end
   RailWorks.SetControlValue("VirtualRPM", 0, dieselrpm)
-  pantoanim:setanimatedstate(raisepanto)
+  pantoanim:setanimatedstate(
+    RailWorks.GetControlValue("PantographControl", 0) == 1)
 end
 
 local function setspeedometer()
@@ -473,12 +464,13 @@ local function updateplayer()
 
   playersched:update()
   anysched:update()
-
+  power:update()
   pantoanim:update()
   doors:update()
 
+  setplayerpanto()
   writelocostate()
-  setpowermode()
+  setpowerfx()
   setspeedometer()
   setcutin()
   sethep()
@@ -490,12 +482,25 @@ local function updateplayer()
   setdestination()
 end
 
-local function updateai()
+local function updatehelper()
   anysched:update()
-
+  power:update()
   pantoanim:update()
 
-  setpowermode()
+  setpowerfx()
+  setcablights()
+  setditchlights()
+  setstatuslights()
+  setdestination()
+end
+
+local function updateai()
+  anysched:update()
+  power:update()
+  pantoanim:update()
+
+  setaipanto()
+  setpowerfx()
   setcablights()
   setditchlights()
   setstatuslights()
@@ -505,6 +510,8 @@ end
 Update = Misc.wraperrors(function(_)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer()
+  elseif RailWorks.GetIsPlayer() then
+    updatehelper()
   else
     updateai()
   end
@@ -540,7 +547,7 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
 end)
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
-  power:receiveplayermessage(message)
+  power:receivemessage(message)
   cabsig:receivemessage(message)
 end)
 
