@@ -149,7 +149,9 @@ local function writelocostate()
   end
   do
     local v
-    if penalty then
+    if RailWorks.GetControlValue("CutIn", 0) < 1 then
+      v = 1
+    elseif penalty then
       v = 0.99
     else
       v = state.train_brake
