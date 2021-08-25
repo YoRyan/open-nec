@@ -2,36 +2,37 @@
 local P = {}
 PantoSpark = P
 
-local function run(self)
-  while true do
-    self._sched:select(nil, function() return self._spark end)
-    self._isspark = math.random() < self._duration_s / self._meantimebetween_s
-    self._sched:select(self._duration_s, function() return not self._spark end)
-    self._isspark = false
-  end
-end
-
--- From the main coroutine, create a new PantoSpark context. This will add a
--- coroutine to the provided scheduler.
+-- From the main coroutine, create a new PantoSpark context.
 function P:new(conf)
   local o = {
     _sched = conf.scheduler,
-    _duration_s = conf.duration_s or 0.2,
-    _meantimebetween_s = conf.meantimebetween_s or 30,
-    _spark = false,
-    _isspark = false
+    _tick_s = conf.tick_s or 0.2,
+    _getmeantimebetween_s = conf.getmeantimebetween_s or function(aspeed_mps)
+      -- Calibrated for 22 mph = 30 s, with a rapid falloff thereafter.
+      if aspeed_mps == 0 then
+        return 90
+      else
+        return math.min(300 / aspeed_mps, 90)
+      end
+    end,
+    _lasttick_s = nil,
+    _showspark = false
   }
   setmetatable(o, self)
   self.__index = self
-  o._sched:run(run, o)
   return o
 end
 
--- From the main coroutine, start or stop generating sparks depending on the
--- provided condition.
-function P:setsparkstate(cond) self._spark = cond end
-
--- Returns true if the spark should render.
-function P:isspark() return self._isspark end
+-- From the main coroutine, query the current spark state.
+function P:isspark()
+  local now = self._sched:clock()
+  if self._lasttick_s == nil or now - self._lasttick_s > self._tick_s then
+    local aspeed_mps = math.abs(RailWorks.GetSpeed())
+    local meantime = self._getmeantimebetween_s(aspeed_mps)
+    self._showspark = math.random() < self._tick_s / meantime
+    self._lasttick_s = now
+  end
+  return self._showspark
+end
 
 return P

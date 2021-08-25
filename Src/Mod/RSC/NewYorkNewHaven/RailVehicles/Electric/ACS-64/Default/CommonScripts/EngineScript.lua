@@ -33,7 +33,6 @@ local state = {
   acknowledge = false,
   headlights = 0,
   ditchlights = 0,
-  pantoup = false,
 
   speed_mps = 0,
   acceleration_mps2 = 0,
@@ -97,7 +96,7 @@ Initialise = Misc.wraperrors(function()
     scheduler = anysched,
     modes = {
       [0] = function(elec)
-        local pantoup = state.pantoup
+        local pantoup = RailWorks.GetControlValue("PantographControl", 0) == 1
         return pantoup and elec:isavailable(Electrification.type.overhead)
       end
     }
@@ -143,7 +142,6 @@ local function readcontrols()
 
   state.headlights = RailWorks.GetControlValue("Headlights", 0)
   state.ditchlights = RailWorks.GetControlValue("DitchLight", 0)
-  state.pantoup = RailWorks.GetControlValue("PantographControl", 0) == 1
 end
 
 local function readlocostate()
@@ -224,8 +222,8 @@ end
 local function setpantosparks()
   local frontcontact = false
   local rearcontact = RailWorks.GetControlValue("PantographControl", 0) == 1
-  spark:setsparkstate(frontcontact or rearcontact)
-  local isspark = spark:isspark()
+  local isspark = power:haspower() and (frontcontact or rearcontact) and
+                    spark:isspark()
   RailWorks.SetControlValue("Spark", 0, Misc.intbool(isspark))
 
   RailWorks.ActivateNode("PantoBsparkA", frontcontact and isspark)

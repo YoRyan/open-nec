@@ -214,9 +214,7 @@ end
 
 local function setpantospark()
   local contact = false
-  spark:setsparkstate(contact)
-
-  local isspark = spark:isspark()
+  local isspark = contact and spark:isspark()
   RailWorks.ActivateNode("panto_spark", isspark)
   Call("Spark:Activate", Misc.intbool(isspark))
 end

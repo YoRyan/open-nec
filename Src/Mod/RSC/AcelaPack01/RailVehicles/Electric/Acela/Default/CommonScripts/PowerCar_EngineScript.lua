@@ -157,8 +157,7 @@ Initialise = Misc.wraperrors(function()
       [0] = function(elec)
         local pantoup = frontpantoanim:getposition() == 1 or
                           rearpantoanim:getposition() == 1
-        return pantoup and state.startup and
-                 elec:isavailable(Electrification.type.overhead)
+        return pantoup and elec:isavailable(Electrification.type.overhead)
       end
     }
   }
@@ -327,8 +326,8 @@ end
 local function setpantosparks()
   local frontcontact = frontpantoanim:getposition() == 1
   local rearcontact = rearpantoanim:getposition() == 1
-  spark:setsparkstate(frontcontact or rearcontact)
-  local isspark = spark:isspark()
+  local isspark = power:haspower() and (frontcontact or rearcontact) and
+                    spark:isspark()
 
   RailWorks.ActivateNode("Front_spark01", frontcontact and isspark)
   RailWorks.ActivateNode("Front_spark02", frontcontact and isspark)
