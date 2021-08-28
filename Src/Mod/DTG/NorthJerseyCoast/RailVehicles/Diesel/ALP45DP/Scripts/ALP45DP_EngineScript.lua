@@ -198,13 +198,14 @@ local function readcontrols()
     RailWorks.SetControlValue("HandBrake", 0, 0)
   end
 
+  local switchcmd = RailWorks.GetControlValue("PowerSwitch", 0) == 1
   local faultreset = RailWorks.GetControlValue("FaultReset", 0) == 1
   if power:gettransition() == nil then
     local pmode = power:getmode()
     local pantoup = RailWorks.GetControlValue("PantographControl", 0) == 1
-    if pmode == powermode.diesel and pantoup then
+    if pmode == powermode.diesel and (pantoup or switchcmd) then
       RailWorks.SetControlValue("PowerMode", 0, powermode.overhead)
-    elseif pmode == powermode.overhead and faultreset then
+    elseif pmode == powermode.overhead and (faultreset or switchcmd) then
       RailWorks.SetControlValue("PowerMode", 0, powermode.diesel)
     end
   end
