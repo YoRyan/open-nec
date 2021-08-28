@@ -107,7 +107,7 @@ Initialise = Misc.wraperrors(function()
       adu:doatcalert()
       playawsclear()
     end,
-    getbrakesuppression = function() return state.train_brake >= 0.4 end
+    getbrakesuppression = function() return state.train_brake > 0.3 end
   }
 
   acses = Acses:new{

@@ -88,7 +88,7 @@ Initialise = Misc.wraperrors(function()
     getacceleration_mps2 = function() return state.acceleration_mps2 end,
     getacknowledge = function() return state.acknowledge end,
     doalert = function() adu:doatcalert() end,
-    getbrakesuppression = function() return state.train_brake >= 0.6 end
+    getbrakesuppression = function() return state.train_brake > 0.5 end
   }
 
   acses = Acses:new{
