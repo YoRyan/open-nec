@@ -189,6 +189,10 @@ Toggles on/off with Ctrl+D. The default setting is 1.
 
 Toggles on/off with Ctrl+F. The default setting is 1.
 
+#### ExpertPowerMode
+
+The Ctrl+Shift+A automatic power mode change toggle.
+
 ## Model nodes
 
 ### ditch_right
