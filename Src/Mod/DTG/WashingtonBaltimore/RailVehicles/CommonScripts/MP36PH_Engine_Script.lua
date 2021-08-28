@@ -1,5 +1,6 @@
 -- Engine script for the MPI MP36PH operated by MARC.
 --
+-- @include RollingStock/Hep.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
 -- @include SafetySystems/Alerter.lua
@@ -17,12 +18,14 @@ local atc
 local acses
 local adu
 local alerter
+local hep
 local ditchflasher
 local state = {
   throttle = 0,
   train_brake = 0,
   indep_brake = 0,
   acknowledge = false,
+  hep = false,
   headlights = 0,
   rearlights = 0,
   pulselights = 0,
@@ -84,6 +87,8 @@ Initialise = Misc.wraperrors(function()
   }
   alerter:start()
 
+  hep = Hep:new{scheduler = sched, getrun = function() return state.hep end}
+
   local ditchflash_s = 1
   ditchflasher = Flash:new{
     scheduler = sched,
@@ -103,6 +108,7 @@ local function readcontrols()
   state.indep_brake = RailWorks.GetControlValue("VirtualEngineBrakeControl", 0)
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
   if state.acknowledge or change then alerter:acknowledge() end
+  state.hep = RailWorks.GetControlValue("HEP", 0) == 1
 
   if RailWorks.GetControlValue("Horn", 0) > 0 then
     state.lasthorntime_s = sched:clock()
@@ -149,6 +155,7 @@ local function writelocostate()
     RailWorks.SetControlValue("TrainBrakeControl", 0, v)
   end
   RailWorks.SetControlValue("EngineBrakeControl", 0, state.indep_brake)
+  RailWorks.SetControlValue("HEP_State", 0, Misc.intbool(hep:haspower()))
   do
     local alert = adu:isatcalert() or adu:isacsesalert()
     local alarm = atc:isalarm() or acses:isalarm() or alerter:isalarm()
@@ -268,34 +275,6 @@ local function setrearlight()
   Call("Rearlight_02_Bright:Activate", Misc.intbool(isbright))
 end
 
-local function sethep()
-  -- TODO: Unlike DTG's implementation, there is no startup delay, but I doubt
-  -- anybody would really notice or care.
-  local run = RailWorks.GetControlValue("HEP_State", 0)
-  if sched:isstartup() then
-    RailWorks.SetControlValue("HEP", 0, 1)
-    RailWorks.SetControlValue("HEP_Off", 0, 0)
-  else
-    if run > 0 and RailWorks.GetControlValue("HEP_Off", 0) == 1 then
-      RailWorks.SetControlValue("HEP", 0, 0)
-      run = 0
-    elseif run == 0 and RailWorks.GetControlValue("HEP", 0) == 1 then
-      RailWorks.SetControlValue("HEP_Off", 0, 0)
-      run = 1
-    end
-  end
-  Call("Carriage Light 1:Activate", run)
-  Call("Carriage Light 2:Activate", run)
-  Call("Carriage Light 3:Activate", run)
-  Call("Carriage Light 4:Activate", run)
-  Call("Carriage Light 5:Activate", run)
-  Call("Carriage Light 6:Activate", run)
-  Call("Carriage Light 7:Activate", run)
-  Call("Carriage Light 8:Activate", run)
-  RailWorks.ActivateNode("1_1000_LitInteriorLights", run == 1)
-  RailWorks.SetControlValue("HEP_State", 0, run)
-end
-
 local function updateplayer()
   readcontrols()
   readlocostate()
@@ -310,7 +289,6 @@ local function updateplayer()
   setheadlight()
   setditchlights()
   setrearlight()
-  sethep()
 end
 
 local function updateai()
@@ -330,7 +308,23 @@ Update = Misc.wraperrors(function(_)
   end
 end)
 
-OnControlValueChange = RailWorks.SetControlValue
+OnControlValueChange = Misc.wraperrors(function(name, index, value)
+  if name == "HEP" then
+    if value == 0 then
+      RailWorks.SetControlValue("HEP_Off", 0, 1)
+    elseif value == 1 then
+      RailWorks.SetControlValue("HEP_Off", 0, 0)
+    end
+  elseif name == "HEP_Off" then
+    if value == 0 then
+      RailWorks.SetControlValue("HEP", 0, 1)
+    elseif value == 1 then
+      RailWorks.SetControlValue("HEP", 0, 0)
+    end
+  end
+
+  RailWorks.SetControlValue(name, index, value)
+end)
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
   cabsig:receivemessage(message)

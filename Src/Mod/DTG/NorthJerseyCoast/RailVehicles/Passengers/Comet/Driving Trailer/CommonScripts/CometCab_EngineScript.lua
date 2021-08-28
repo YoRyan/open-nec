@@ -338,16 +338,10 @@ local function setstatuslights()
 end
 
 local function setcoachlights()
-  -- TODO: Impose startup delay?
-  local lightson = RailWorks.GetControlValue("HEP", 0) == 1
-  Call("Carriage Light 1:Activate", Misc.intbool(lightson))
-  Call("Carriage Light 2:Activate", Misc.intbool(lightson))
-  Call("Carriage Light 3:Activate", Misc.intbool(lightson))
-  Call("Carriage Light 4:Activate", Misc.intbool(lightson))
-  Call("Carriage Light 5:Activate", Misc.intbool(lightson))
-  Call("Carriage Light 6:Activate", Misc.intbool(lightson))
-  Call("Carriage Light 7:Activate", Misc.intbool(lightson))
-  Call("Carriage Light 8:Activate", Misc.intbool(lightson))
+  local lightson = RailWorks.GetControlValue("HEP_State", 0) == 1
+  for i = 1, 8 do
+    Call("Carriage Light " .. i .. ":Activate", Misc.intbool(lightson))
+  end
   RailWorks.ActivateNode("1_1000_LitInteriorLights", lightson)
 end
 

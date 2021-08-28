@@ -3,6 +3,7 @@
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
 -- @include RollingStock/Doors.lua
+-- @include RollingStock/Hep.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/NjTransit.lua
 -- @include SafetySystems/Alerter.lua
@@ -25,6 +26,7 @@ local acses
 local adu
 local alerter
 local power
+local hep
 local pantoanim
 local doors
 local ditchflasher
@@ -34,6 +36,7 @@ local state = {
   train_brake = 0,
   acknowledge = false,
   rv_destination = nil,
+  hep = false,
 
   speed_mps = 0,
   acceleration_mps2 = 0,
@@ -140,6 +143,11 @@ Initialise = Misc.wraperrors(function()
     end
   }
 
+  hep = Hep:new{
+    scheduler = playersched,
+    getrun = function() return state.hep end
+  }
+
   pantoanim = Animation:new{
     scheduler = anysched,
     animation = "Pantograph",
@@ -170,6 +178,7 @@ local function readcontrols()
   state.train_brake = vbrake
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
   if state.acknowledge or change then alerter:acknowledge() end
+  state.hep = RailWorks.GetControlValue("HEP", 0) == 1
 
   if RailWorks.GetControlValue("Horn", 0) > 0 then
     state.lasthorntime_s = playersched:clock()
@@ -265,6 +274,7 @@ local function writelocostate()
 
   RailWorks.SetControlValue("Horn", 0,
                             RailWorks.GetControlValue("VirtualHorn", 0))
+  RailWorks.SetControlValue("HEP_State", 0, Misc.intbool(hep:haspower()))
 end
 
 local function sethelperstate()
@@ -382,11 +392,6 @@ local function setcutin()
   acses:setrunstate(RailWorks.GetControlValue("ATC", 0) == 0)
 end
 
-local function sethep()
-  -- TODO: Impose startup delay?
-  RailWorks.SetControlValue("HEP_State", 0, RailWorks.GetControlValue("HEP", 0))
-end
-
 local function setcablights()
   local dome = RailWorks.GetControlValue("CabLight", 0)
   RailWorks.SetControlValue("CabLightSwitch", 0, dome)
@@ -493,7 +498,6 @@ local function updateplayer()
   setpowerfx()
   setspeedometer()
   setcutin()
-  sethep()
   setcablights()
   setditchlights()
   setstatuslights()

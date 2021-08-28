@@ -4,6 +4,7 @@
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
 -- @include RollingStock/Doors.lua
+-- @include RollingStock/Hep.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/NjTransit.lua
 -- @include SafetySystems/Alerter.lua
@@ -26,6 +27,7 @@ local acses
 local adu
 local alerter
 local power
+local hep
 local doors
 local leftdoorsanim
 local rightdoorsanim
@@ -35,6 +37,7 @@ local state = {
   throttle = 0,
   train_brake = 0,
   acknowledge = false,
+  hep = false,
   rv_destination = nil,
 
   speed_mps = 0,
@@ -138,6 +141,11 @@ Initialise = Misc.wraperrors(function()
     end
   }
 
+  hep = Hep:new{
+    scheduler = playersched,
+    getrun = function() return state.hep end
+  }
+
   local doors_s = 1
   leftdoorsanim = Animation:new{
     scheduler = anysched,
@@ -183,6 +191,7 @@ local function readcontrols()
   state.train_brake = vbrake
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
   if state.acknowledge or change then alerter:acknowledge() end
+  state.hep = RailWorks.GetControlValue("HEP", 0) == 1
 
   if RailWorks.GetControlValue("Horn", 0) > 0 then
     state.lasthorntime_s = playersched:clock()
@@ -243,6 +252,7 @@ local function writelocostate()
                             RailWorks.GetControlValue("VirtualWipers", 0))
   RailWorks.SetControlValue("Sander", 0,
                             RailWorks.GetControlValue("VirtualSander", 0))
+  RailWorks.SetControlValue("HEP_State", 0, Misc.intbool(hep:haspower()))
 
   do
     local atcalarm = atc:isalarm()
@@ -332,16 +342,10 @@ local function setstatuslights()
 end
 
 local function setcoachlights()
-  -- TODO: Impose startup delay?
-  local lightson = RailWorks.GetControlValue("HEP", 0) == 1
-  Call("Carriage Light 1:Activate", Misc.intbool(lightson))
-  Call("Carriage Light 2:Activate", Misc.intbool(lightson))
-  Call("Carriage Light 3:Activate", Misc.intbool(lightson))
-  Call("Carriage Light 4:Activate", Misc.intbool(lightson))
-  Call("Carriage Light 5:Activate", Misc.intbool(lightson))
-  Call("Carriage Light 6:Activate", Misc.intbool(lightson))
-  Call("Carriage Light 7:Activate", Misc.intbool(lightson))
-  Call("Carriage Light 8:Activate", Misc.intbool(lightson))
+  local lightson = RailWorks.GetControlValue("HEP_State", 0) == 1
+  for i = 1, 8 do
+    Call("Carriage Light " .. i .. ":Activate", Misc.intbool(lightson))
+  end
   RailWorks.ActivateNode("1_1000_LitInteriorLights", lightson)
 end
 
