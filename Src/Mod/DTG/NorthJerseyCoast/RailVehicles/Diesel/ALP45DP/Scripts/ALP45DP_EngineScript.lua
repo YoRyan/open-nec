@@ -345,7 +345,7 @@ local function setspeedometer()
   RailWorks.SetControlValue("SpeedT", 0, Misc.getdigit(rspeed_mph, 1))
   RailWorks.SetControlValue("SpeedU", 0, Misc.getdigit(rspeed_mph, 0))
 
-  local aduspeed_mph = adu:getcivilcurvespeed_mph()
+  local aduspeed_mph = adu:getcivilspeed_mph()
   if aduspeed_mph ~= nil then
     RailWorks.SetControlValue("ACSES_SpeedH", 0, Misc.getdigit(aduspeed_mph, 2))
     RailWorks.SetControlValue("ACSES_SpeedT", 0, Misc.getdigit(aduspeed_mph, 1))
