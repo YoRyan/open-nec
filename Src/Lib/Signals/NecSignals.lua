@@ -13,7 +13,9 @@ P.pulsecode = {
   clear150 = 7
 }
 
-P.acsescode = {none = 0, approachmed45to30 = 1, approachmed30 = 2}
+P.interlock = {none = 0, approachmed45to30 = 1, approachmed30 = 2}
+
+P.territory = {other = 0, mnrr = 1}
 
 P.cabspeedflash_s = 0.5
 
@@ -35,105 +37,106 @@ P.waysideflash_s = 0.5
 -- effect.
 function P.iswaysideflash(head) return head >= P.waysidehead.flashgreen end
 
--- Get the Amtrak/NJ Transit signal message that corresponds to a combo of ATC
--- and ACSES status codes. Is backwards compatible with Dovetail engine scripts.
-function P.amtraksigmessage(pulsecode, acsescode)
-  local prefix
-  if pulsecode == P.pulsecode.restrict then
-    prefix = "sig8"
-  elseif pulsecode == P.pulsecode.approach then
-    prefix = "sig6"
-  elseif pulsecode == P.pulsecode.approachmed then
-    prefix = "sig5"
-  elseif pulsecode == P.pulsecode.cabspeed60 then
-    prefix = "sig3"
-  elseif pulsecode == P.pulsecode.cabspeed80 then
-    prefix = "sig2"
-  elseif pulsecode == P.pulsecode.clear100 or pulsecode == P.pulsecode.clear125 or
-    pulsecode == P.pulsecode.clear150 then
-    prefix = "sig1"
-  else
-    prefix = "sig0"
-  end
-  return prefix .. "spd0.OpenNEC.cab.." .. tostring(pulsecode) .. "." ..
-           tostring(acsescode)
-end
-
--- Parse a signal message. Returns the communicated ATC and ACSES status codes.
--- Returns nil if the message cannot be parsed.
+-- Parse a signal message. Returns an object with the ATC pulse code
+-- ("pulsecode"), ACSES interlock state ("interlock"), and ACSES current
+-- territory ("territory"). Or, returns nil if the message cannot be parsed.
 function P.parsesigmessage(message)
-  -- OpenNEC signals
+  local pulsecode, interlock, territory
+  -- Amtrak/NJ Transit signals
   do
-    local _, _, pulsecode, acsescode = string.find(message,
-                                                   "%.OpenNEC%.cab%.%.([^%.]+)%.([^%.]+)")
-    if pulsecode ~= nil then return tonumber(pulsecode), tonumber(acsescode) end
-  end
-  -- Washington-Baltimore signals
-  do
-    local _, _, sig, speed = string.find(message, "sig(%d)speed(%d+)")
+    local _, _, sig = string.find(message, "^sig(%d)")
     if sig ~= nil then
-      if sig == "1" and speed == "150" then
-        return P.pulsecode.clear150, P.acsescode.none
-      elseif sig == "1" and speed == "125" then
-        return P.pulsecode.clear125, P.acsescode.none
-      elseif sig == "1" and speed == "100" then
-        return P.pulsecode.clear100, P.acsescode.none
-      elseif sig == "2" and speed == "100" then
-        return P.pulsecode.clear100, P.acsescode.none
-      elseif sig == "2" and speed == "80" then
-        return P.pulsecode.cabspeed80, P.acsescode.none
-      elseif sig == "3" and speed == "60" then
-        return P.pulsecode.cabspeed60, P.acsescode.none
-      elseif sig == "4" and speed == "45" then
-        return P.pulsecode.approachmed, P.acsescode.none
-      elseif sig == "5" and speed == "30" then
-        return P.pulsecode.approachmed, P.acsescode.approachmed30
-      elseif sig == "6" and speed == "30" then
-        return P.pulsecode.approach, P.acsescode.none
-      elseif sig == "7" and speed == "20" then
-        return P.pulsecode.restrict, P.acsescode.none
+      territory = P.territory.other
+      if sig == "1" then
+        pulsecode = P.pulsecode.clear125
+        interlock = P.interlock.none
+      elseif sig == "2" then
+        pulsecode = P.pulsecode.cabspeed80
+        interlock = P.interlock.none
+      elseif sig == "3" then
+        pulsecode = P.pulsecode.cabspeed60
+        interlock = P.interlock.none
+      elseif sig == "4" then
+        pulsecode = P.pulsecode.approachmed
+        interlock = P.interlock.none
+      elseif sig == "5" then
+        pulsecode = P.pulsecode.approachmed
+        interlock = P.interlock.approachmed30
+      elseif sig == "6" then
+        pulsecode = P.pulsecode.approach
+        interlock = P.interlock.none
+      elseif sig == "7" then
+        pulsecode = P.pulsecode.restrict
+        interlock = P.interlock.none
       end
     end
   end
-  -- Amtrak/NJ Transit signals
+  -- Washington-Baltimore signals (a subset of the standard Amtrak/NJT signals)
   do
-    local _, _, sig = string.find(message, "sig(%d)")
+    local _, _, sig, speed = string.find(message, "^sig(%d)speed(%d+)$")
     if sig ~= nil then
-      if sig == "1" then
-        return P.pulsecode.clear125, P.acsescode.none
-      elseif sig == "2" then
-        return P.pulsecode.cabspeed80, P.acsescode.none
-      elseif sig == "3" then
-        return P.pulsecode.cabspeed60, P.acsescode.none
-      elseif sig == "4" then
-        return P.pulsecode.approachmed, P.acsescode.none
-      elseif sig == "5" then
-        return P.pulsecode.approachmed, P.acsescode.approachmed30
-      elseif sig == "6" then
-        return P.pulsecode.approach, P.acsescode.none
-      elseif sig == "7" then
-        return P.pulsecode.restrict, P.acsescode.none
+      territory = P.territory.other
+      if sig == "1" and speed == "150" then
+        pulsecode = P.pulsecode.clear150
+        interlock = P.interlock.none
+      elseif sig == "1" and speed == "125" then
+        pulsecode = P.pulsecode.clear125
+        interlock = P.interlock.none
+      elseif sig == "1" and speed == "100" then
+        pulsecode = P.pulsecode.clear100
+        interlock = P.interlock.none
+      elseif sig == "2" and speed == "100" then
+        pulsecode = P.pulsecode.clear100
+        interlock = P.interlock.none
+      elseif sig == "2" and speed == "80" then
+        pulsecode = P.pulsecode.cabspeed80
+        interlock = P.interlock.none
+      elseif sig == "3" and speed == "60" then
+        pulsecode = P.pulsecode.cabspeed60
+        interlock = P.interlock.none
+      elseif sig == "4" and speed == "45" then
+        pulsecode = P.pulsecode.approachmed
+        interlock = P.interlock.none
+      elseif sig == "5" and speed == "30" then
+        pulsecode = P.pulsecode.approachmed
+        interlock = P.interlock.approachmed30
+      elseif sig == "6" and speed == "30" then
+        pulsecode = P.pulsecode.approach
+        interlock = P.interlock.none
+      elseif sig == "7" and speed == "20" then
+        pulsecode = P.pulsecode.restrict
+        interlock = P.interlock.none
       end
     end
   end
   -- Metro-North signals
   do
-    local _, _, code = string.find(message, "[MN](%d%d)")
+    local _, _, code = string.find(message, "^[MN](%d%d)$")
     if code ~= nil then
+      territory = P.territory.mnrr
       if code == "10" then
-        return P.pulsecode.clear125, P.acsescode.none
+        pulsecode = P.pulsecode.clear125
+        interlock = P.interlock.none
       elseif code == "11" then
-        return P.pulsecode.approachmed, P.acsescode.none
+        pulsecode = P.pulsecode.approachmed
+        interlock = P.interlock.none
       elseif code == "12" then
-        return P.pulsecode.approach, P.acsescode.none
+        pulsecode = P.pulsecode.approach
+        interlock = P.interlock.none
       elseif code == "13" or code == "14" then
-        return P.pulsecode.restrict, P.acsescode.none
+        pulsecode = P.pulsecode.restrict
+        interlock = P.interlock.none
       elseif code == "15" then
-        return P.pulsecode.restrict, P.acsescode.none
+        pulsecode = P.pulsecode.restrict
+        interlock = P.interlock.none
       end
     end
   end
-  return nil, nil
+  if pulsecode == nil or interlock == nil or territory == nil then
+    return nil
+  else
+    return {pulsecode = pulsecode, interlock = interlock, territory = territory}
+  end
 end
 
 return P

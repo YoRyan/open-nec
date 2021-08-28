@@ -2,14 +2,19 @@
 --
 -- It is used by the ATC and ACSES systems, but unlike them, it cannot be reset
 -- by the player.
+--
+-- @include Signals/NecSignals.lua
 local P = {}
 CabSignal = P
 
 local debugsignals = false
 
 local function initstate(self)
-  self._pulsecode = Nec.pulsecode.restrict
-  self._acsescode = Nec.acsescode.none
+  self._lastsig = {
+    pulsecode = Nec.pulsecode.restrict,
+    interlock = Nec.interlock.none,
+    territory = Nec.territory.other
+  }
 end
 
 -- From the main coroutine, create a new CabSignal context.
@@ -23,18 +28,18 @@ end
 
 -- Receive a custom signal message and update the stored state.
 function P:receivemessage(message)
-  local pulsecode, acsescode = Nec.parsesigmessage(message)
-  if pulsecode ~= nil then
-    self._pulsecode = pulsecode
-    self._acsescode = acsescode
-  end
+  local sig = Nec.parsesigmessage(message)
+  if sig ~= nil then self._lastsig = sig end
   if debugsignals then self._sched:alert(message) end
 end
 
 -- Get the current cab signal pulse code.
-function P:getpulsecode() return self._pulsecode end
+function P:getpulsecode() return self._lastsig.pulsecode end
 
--- Get the current ACSES status code.
-function P:getacsescode() return self._acsescode end
+-- Get the current ACSES interlocking code.
+function P:getinterlock() return self._lastsig.interlock end
+
+-- Get the current ACSES territory code.
+function P:getterritory() return self._lastsig.territory end
 
 return P

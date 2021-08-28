@@ -91,6 +91,11 @@ function P:getaspect()
   return aspect
 end
 
+-- Determine whether the Metro-North aspect indicators should be lit.
+function P:getmnrrilluminated()
+  return self._cabsig:getterritory() == Nec.territory.mnrr
+end
+
 -- Get the current speed limit in force.
 function P:getspeedlimit_mph()
   local atc_mph = self:atccutin() and Adu.getsignalspeed_mph(self) or nil
