@@ -275,6 +275,8 @@ local function writelocostate()
 
   RailWorks.SetControlValue("Horn", 0,
                             RailWorks.GetControlValue("VirtualHorn", 0))
+  RailWorks.SetControlValue("Startup", 0,
+                            RailWorks.GetControlValue("VirtualStartup", 0))
   RailWorks.SetControlValue("HEP_State", 0, Misc.intbool(hep:haspower()))
 end
 
