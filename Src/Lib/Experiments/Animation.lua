@@ -1,12 +1,10 @@
 -- Continuously cycle through an animation.
-
 -- @include Misc.lua
-
 local P = {}
 AnimationExperiment = P
 
 -- From the main coroutine, create a new AnimationExperiment context.
-function P:new (conf)
+function P:new(conf)
   local sched = conf.scheduler
   local now = sched:clock()
   local o = {
@@ -23,7 +21,7 @@ function P:new (conf)
 end
 
 -- From the main coroutine, update this experiment.
-function P:update ()
+function P:update()
   local now = self._sched:clock()
   local dt = now - self._lasttime
   self._lasttime = now

@@ -1,14 +1,12 @@
 -- Continuously turn a light on and off.
-
 -- @include Misc.lua
-
 local P = {}
 LightExperiment = P
 
 local onoff_s = 1
 
 -- From the main coroutine, create a new LightExperiment context.
-function P:new (conf)
+function P:new(conf)
   local sched = conf.scheduler
   local o = {
     _sched = sched,
@@ -22,7 +20,7 @@ function P:new (conf)
 end
 
 -- From the main coroutine, update this experiment.
-function P:update ()
+function P:update()
   local time = self._sched:clock()
   if time - onoff_s >= self._lasttime then
     self._lasttime = time
