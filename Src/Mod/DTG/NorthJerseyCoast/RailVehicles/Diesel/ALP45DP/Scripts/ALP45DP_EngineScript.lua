@@ -184,20 +184,6 @@ local function readcontrols()
     state.lasthorntime_s = playersched:clock()
   end
 
-  local pantocmd = RailWorks.GetControlValue("PantographSwitch", 0)
-  if pantocmd == -1 then
-    RailWorks.SetControlValue("PantographControl", 0, 0)
-  elseif pantocmd == 1 then
-    RailWorks.SetControlValue("PantographControl", 0, 1)
-  end
-
-  local handbrakecmd = RailWorks.GetControlValue("HandBrakeSwitch", 0)
-  if handbrakecmd == 1 then
-    RailWorks.SetControlValue("HandBrake", 0, 1)
-  elseif handbrakecmd == -1 then
-    RailWorks.SetControlValue("HandBrake", 0, 0)
-  end
-
   local switchcmd = RailWorks.GetControlValue("PowerSwitch", 0) == 1
   local faultreset = RailWorks.GetControlValue("FaultReset", 0) == 1
   if power:gettransition() == nil then
@@ -250,14 +236,6 @@ local function writelocostate()
   local dynthrottle = -math.min(state.throttle, 0)
   RailWorks.SetControlValue("DynamicBrake", 0, math.max(dynbrake, dynthrottle))
 
-  local sander = RailWorks.GetControlValue("VirtualSander", 0)
-  RailWorks.SetControlValue("Sander", 0, sander)
-  RailWorks.SetControlValue("SanderSwitch", 0, sander)
-
-  local bell = RailWorks.GetControlValue("VirtualBell", 0)
-  RailWorks.SetControlValue("Bell", 0, bell)
-  RailWorks.SetControlValue("BellSwitch", 0, bell)
-
   local vigilalarm = alerter:isalarm()
   local safetyalarm = atc:isalarm() or acses:isalarm()
   local safetyalert = adu:isatcalert() or adu:isacsesalert()
@@ -277,6 +255,10 @@ local function writelocostate()
                             RailWorks.GetControlValue("VirtualHorn", 0))
   RailWorks.SetControlValue("Startup", 0,
                             RailWorks.GetControlValue("VirtualStartup", 0))
+  RailWorks.SetControlValue("Sander", 0,
+                            RailWorks.GetControlValue("VirtualSander", 0))
+  RailWorks.SetControlValue("Bell", 0,
+                            RailWorks.GetControlValue("VirtualBell", 0))
   RailWorks.SetControlValue("HEP_State", 0, Misc.intbool(hep:haspower()))
 end
 
@@ -396,27 +378,16 @@ local function setcutin()
 end
 
 local function setcablights()
-  local dome = RailWorks.GetControlValue("CabLight", 0)
-  RailWorks.SetControlValue("CabLightSwitch", 0, dome)
-  Call("CabLight:Activate", dome)
-
-  local desk = RailWorks.GetControlValue("DeskLight", 0)
-  RailWorks.SetControlValue("DeskLightSwitch", 0, desk)
-  Call("DeskLight:Activate", desk)
-
-  RailWorks.SetControlValue("InstrumentLightsSwitch", 0,
-                            RailWorks.GetControlValue("InstrumentLights", 0))
+  Call("CabLight:Activate", RailWorks.GetControlValue("CabLight", 0))
+  Call("DeskLight:Activate", RailWorks.GetControlValue("DeskLight", 0))
 end
 
 local function setditchlights()
   local horntime_s = 30
 
-  local ditchcontrol = RailWorks.GetControlValue("DitchLights", 0)
-  RailWorks.SetControlValue("DitchLightsSwitch", 0, ditchcontrol)
-
   local flash = state.lasthorntime_s ~= nil and playersched:clock() <=
                   state.lasthorntime_s + horntime_s
-  local fixed = ditchcontrol == 1 and not flash
+  local fixed = RailWorks.GetControlValue("DitchLights", 0) == 1 and not flash
   ditchflasher:setflashstate(flash)
   local flashleft = ditchflasher:ison()
 
@@ -444,11 +415,8 @@ end
 local function setwipers()
   local intwipetime_s = 3
   local wiperon = RailWorks.GetControlValue("VirtualWipers", 0) == 1
-  local wiperint = RailWorks.GetControlValue("WipersInt", 0) == 1
-  RailWorks.SetControlValue("WipersSwitch", 0,
-                            wiperon and (wiperint and -1 or 1) or 0)
   local wipe
-  if wiperint then
+  if RailWorks.GetControlValue("WipersInt", 0) == 1 then
     if wiperon then
       local now = playersched:clock()
       if state.lastwipertime_s == nil or now - state.lastwipertime_s >=
@@ -564,6 +532,87 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
     elseif value == 2 then
       RailWorks.SetControlValue("HeadlightSwitch", 0, -1)
     end
+  end
+
+  -- Synchronize wiper controls.
+  if name == "VirtualWipers" then
+    if value == 1 then
+      if RailWorks.GetControlValue("WipersInt", 0) == 1 then
+        RailWorks.SetControlValue("WipersSwitch", 0, -1)
+      else
+        RailWorks.SetControlValue("WipersSwitch", 0, 1)
+      end
+    elseif value == 0 then
+      RailWorks.SetControlValue("WipersSwitch", 0, 0)
+    end
+  elseif name == "WipersInt" then
+    if RailWorks.GetControlValue("VirtualWipers", 0) == 1 then
+      if value == 1 then
+        RailWorks.SetControlValue("WipersSwitch", 0, -1)
+      elseif value == 0 then
+        RailWorks.SetControlValue("WipersSwitch", 0, 1)
+      end
+    end
+  end
+
+  -- sander switch
+  if name == "VirtualSander" then
+    RailWorks.SetControlValue("SanderSwitch", 0, value)
+  elseif name == "SanderSwitch" then
+    RailWorks.SetControlValue("VirtualSander", 0, value)
+  end
+
+  -- bell switch
+  if name == "VirtualBell" then
+    RailWorks.SetControlValue("BellSwitch", 0, value)
+  elseif name == "BellSwitch" then
+    RailWorks.SetControlValue("VirtualBell", 0, value)
+  end
+
+  -- pantograph up/down switch
+  if name == "PantographSwitch" then
+    if value == -1 then
+      RailWorks.SetControlValue("PantographControl", 0, 0)
+    elseif value == 1 then
+      RailWorks.SetControlValue("PantographControl", 0, 1)
+    end
+  end
+
+  -- handbrake apply/release switch
+  if name == "HandBrakeSwitch" then
+    if value == 1 then
+      RailWorks.SetControlValue("HandBrake", 0, 1)
+    elseif value == -1 then
+      RailWorks.SetControlValue("HandBrake", 0, 0)
+    end
+  end
+
+  -- cab light switch
+  if name == "CabLight" then
+    RailWorks.SetControlValue("CabLightSwitch", 0, value)
+  elseif name == "CabLightSwitch" then
+    RailWorks.SetControlValue("CabLight", 0, value)
+  end
+
+  -- desk light switch
+  if name == "DeskLight" then
+    RailWorks.SetControlValue("DeskLightSwitch", 0, value)
+  elseif name == "DeskLightSwitch" then
+    RailWorks.SetControlValue("DeskLight", 0, value)
+  end
+
+  -- instrument lights switch
+  if name == "InstrumentLights" then
+    RailWorks.SetControlValue("InstrumentLightsSwitch", 0, value)
+  elseif name == "InstrumentLightsSwitch" then
+    RailWorks.SetControlValue("InstrumentLights", 0, value)
+  end
+
+  -- ditch lights switch
+  if name == "DitchLights" then
+    RailWorks.SetControlValue("DitchLightsSwitch", 0, value)
+  elseif name == "DitchLightsSwitch" then
+    RailWorks.SetControlValue("DitchLights", 0, value)
   end
 
   -- The player has changed the destination sign.
