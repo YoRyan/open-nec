@@ -275,6 +275,10 @@ local function setscreen()
   RailWorks.SetControlValue("ScreenSuppression", 0,
                             Misc.intbool(atc:issuppression()))
   RailWorks.SetControlValue("ScreenAlerter", 0, Misc.intbool(alerter:isalarm()))
+  RailWorks.SetControlValue("ScreenWheelslip", 0,
+                            RailWorks.GetControlValue("Wheelslip", 0))
+  RailWorks.SetControlValue("ScreenParkingBrake", 0,
+                            RailWorks.GetControlValue("HandBrake", 0))
 end
 
 local function setcutin()
