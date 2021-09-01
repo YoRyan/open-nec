@@ -395,7 +395,7 @@ end
 local function setcablights()
   do
     local dome = RailWorks.GetControlValue("CabLight", 0)
-    Call("FrontLight:Activate", dome)
+    Call("FrontCabLight:Activate", dome)
     Call("RearCabLight:Activate", dome)
   end
   do
