@@ -96,8 +96,12 @@ Initialise = Misc.wraperrors(function()
     scheduler = anysched,
     modes = {
       [0] = function(elec)
-        local pantoup = RailWorks.GetControlValue("PantographControl", 0) == 1
-        return pantoup and elec:isavailable(Electrification.type.overhead)
+        local frontcontact = RailWorks.GetControlValue("FrontPantographControl",
+                                                       0) == 1
+        local rearcontact =
+          RailWorks.GetControlValue("RearPantographControl", 0) == 1
+        return (frontcontact or rearcontact) and
+                 elec:isavailable(Electrification.type.overhead)
       end
     }
   }
@@ -210,8 +214,9 @@ local function writelocostate()
 end
 
 local function setpantosparks()
-  local frontcontact = false
-  local rearcontact = RailWorks.GetControlValue("PantographControl", 0) == 1
+  local frontcontact = RailWorks.GetControlValue("FrontPantographControl", 0) ==
+                         1
+  local rearcontact = RailWorks.GetControlValue("RearPantographControl", 0) == 1
   local isspark = power:haspower() and (frontcontact or rearcontact) and
                     spark:isspark()
   RailWorks.SetControlValue("Spark", 0, Misc.intbool(isspark))
