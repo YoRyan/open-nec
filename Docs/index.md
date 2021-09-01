@@ -33,15 +33,32 @@ This website is divided into several sections. In the [Get the mod](installation
 
 ## Release history
 
-The current stable release is Open NEC version **0.5.0**.
+The current stable release is Open NEC version **0.6.0**.
+
+#### v0.6.0 (September 1, 2021)
+
+- Support for the NJ Transit ALP-45DP and ALP-46.
+- ATC:
+    - Removed target deceleration rate requirement to achieve Suppression.
+    - Fixed occasional failure to detect Suppression in locomotives with notched controllers.
+    - Added support for Brandon Phelan's new Washington-Baltimore signal scripts.
+- Bombardier Comet V and Multilevel:
+    - Changed speed bars to show the ACSES braking curve at all times.
+    - Reinstated power mode changing when MU'ing with an ALP-45DP (see notes).
+    - Reinstated blended braking and safety systems cut in/out.
+    - Fixed HEP status and destination sign not being synced to other coaches.
+- MPI MP36PH:
+    - Reinstated safety systems cut in/out.
+- All locomotives:
+    - Removed the acknowledge auto-reset feature. Clicking the exclamation mark icon in the HUD now sticks the acknowledge control in the pressed state, as with other equipment in TS1.
 
 #### v0.5.0 (May 22, 2021)
 
 - Support for the NJ Transit Comet V and Multilevel Cab Car.
 - ATC:
-   - Logic has been changed to require target deceleration rate AND brake lever in suppression.
+    - Logic has been changed to require target deceleration rate AND brake lever in suppression.
 - Amtrak ACS-64:
-   - Fix overpowered train brakes.
+    - Fix overpowered train brakes.
 - Amtrak P32/P42 and MNRR P32:
     - Ditch lights will now flash when switched on.
     - Equipment speed limit raised to 110 mph for Amtrak locos.
