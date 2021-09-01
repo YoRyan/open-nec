@@ -31,6 +31,21 @@ Demonstrations:
 
 This website is divided into several sections. In the [Get the mod](installation) chapter, you can find information on obtaining and installing the mod and when you can expect the next release. In the [For players](for-players) chapter, you can learn how to navigate the newly improved Northeast Corridor with your newly upgraded equipment. In the [For contributors](for-contributors) chapter, developers can find information on how to contribute to the project, as well as technical documentation on Dovetail's content.
 
+
+## FAQ
+
+##### Does this mod include any route or model improvements?
+
+No. Currently, this project only includes improvements to the Lua scripting. Everything has been carefully constructed to avoid conflicting with other mods, especially Fan Railer's physics and sound mods.
+
+##### Does this mod merge any routes together?
+
+No.
+
+##### Help! I was driving in an external view and now my train is stuck in a penalty brake.
+
+Open NEC enables all safety systems by default, which must be responded to, even when not driving inside the cab. On most locomotives, you can press Ctrl+D to disable ATC, and Ctrl+F to disable ACSES. Furthermore, Open NEC also adds an alerter subsystem that will sound an alarm if the controls are not manipulated within a certain period of time. There is no cab or keyboard control to disable the alerter, but you can press the exclamation mark on the HUD to "stick" the acknowledge button in the pressed position, which will prevent the alerter from activating.
+
 ## Release history
 
 The current stable release is Open NEC version **0.6.0**.
