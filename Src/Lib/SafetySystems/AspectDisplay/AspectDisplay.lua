@@ -88,7 +88,7 @@ end
 function P:getcivilcurvespeed_mph()
   local acsesspeed_mps = self._acses:getcurvespeed_mps()
   if acsesspeed_mps then
-    return Misc.round(acsesspeed_mps * Units.mps.tomph)
+    return acsesspeed_mps * Units.mps.tomph
   else
     return nil
   end
