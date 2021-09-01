@@ -4,6 +4,8 @@
 
 The Open NEC Project is a massive systems overhaul mod for Northeast Corridor content for Train Simulator 20xx, in the style of the flight simulation community's [A32NX Project](https://github.com/flybywiresim/a32nx). The objectives are to fix the control bugs, permit every locomotive to run on every route, and create as realistic an experience as possible.
 
+Currently, the project enhances most of the Northeast Corridor locomotives available for Train Simulator, adding complete Automatic Train Control (ATC) and Advanced Civil Speed Enforcement System (ACSES) safety system implementations that work across all Northeast Corridor routes. It also includes some minor extra features and quality of life improvements.
+
 ## Current status
 
 The following locomotives have been successfully overhauled:
