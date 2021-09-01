@@ -209,16 +209,6 @@ local function writelocostate()
   end
 end
 
-local function setpantocontrol()
-  if RailWorks.GetControlValue("PantographDownButton", 0) == 1 then
-    RailWorks.SetControlValue("PantographDownButton", 0, 0)
-    RailWorks.SetControlValue("PantographControl", 0, 0)
-  elseif RailWorks.GetControlValue("PantographUpButton", 0) == 1 then
-    RailWorks.SetControlValue("PantographUpButton", 0, 0)
-    RailWorks.SetControlValue("PantographControl", 0, 1)
-  end
-end
-
 local function setpantosparks()
   local frontcontact = false
   local rearcontact = RailWorks.GetControlValue("PantographControl", 0) == 1
@@ -449,7 +439,6 @@ local function updateplayer()
   power:update()
 
   writelocostate()
-  setpantocontrol()
   setpantosparks()
   setscreen()
   setcutin()
@@ -474,7 +463,18 @@ Update = Misc.wraperrors(function(_)
   end
 end)
 
-OnControlValueChange = RailWorks.SetControlValue
+OnControlValueChange = Misc.wraperrors(function(name, index, value)
+  -- pantograph up/down control
+  if name == "PantographDownButton" and value == 1 then
+    RailWorks.SetControlValue("PantographDownButton", 0, 0)
+    RailWorks.SetControlValue("PantographControl", 0, 0)
+  elseif name == "PantographUpButton" and value == 1 then
+    RailWorks.SetControlValue("PantographUpButton", 0, 0)
+    RailWorks.SetControlValue("PantographControl", 0, 1)
+  end
+
+  RailWorks.SetControlValue(name, index, value)
+end)
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
   power:receivemessage(message)
