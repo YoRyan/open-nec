@@ -28,6 +28,10 @@ Rolling stock:
     - `DTG\HudsonLine\RailVehicles\Diesel\P32DC\CommonScripts\P32DC_EngineScript.out`
 - [Amtrak P42DC](/for-players/amtrak-p42)
     - `DTG\WashingtonBaltimore\RailVehicles\Diesel\P42DC\Amtrak\Locomotive\P42DC_EngineScript.out` (Washington-Baltimore version)
+- [NJ Transit ALP-45DP](/for-players/njt-alp45)
+    - `DTG\NorthJerseyCoast\RailVehicles\Diesel\ALP45DP\Scripts\ALP45DP_EngineScript.out`
+- [NJ Transit ALP-46](/for-players/njt-alp46)
+    - `DTG\NJT-Alp46\RailVehicles\Electric\Alp46\CommonScripts\Alp46_EngineScript.out`
 - [NJ Transit Comet V Cab Car](/for-players/njt-cometv)
     - `DTG\NorthJerseyCoast\RailVehicles\Passengers\Comet\` (North Jersey Coast Line version)
     - `DTG\NJT-Alp46\RailVehicles\Passengers\Comet\` (ALP-46 pack version)
