@@ -16,7 +16,7 @@ Electrification = P
 
 P.type = {thirdrail = 0, overhead = 1}
 P.endchangepoint = {start = 0, stop = 1}
-P.aichangepoint = {ai_to_thirdrail = 0, ai_to_overhead = 1, ai_to_diesel = 2}
+P.autochangepoint = {ai_to_thirdrail = 0, ai_to_overhead = 1, ai_to_diesel = 2}
 
 local controlmap = {
   [P.type.thirdrail] = "Power3rdRail",
@@ -31,7 +31,7 @@ function P:new(conf)
     -- executes at an electrification start/stop change point
     _onendchangepoint = conf.onendchangepoint or function(type, status) end,
     -- executes at an AI automatic change point
-    _onaichangepoint = conf.onaichangepoint or function(cp) end,
+    _onautochangepoint = conf.onautochangepoint or function(cp) end,
     -- memory-backed dictionary to be used if status controls are not available
     _luaavailable = {}
   }
@@ -77,7 +77,7 @@ local function readendcp(self, type, status)
   if change then self._onendchangepoint(type, status) end
 end
 
-local function readaicp(self, cp) self._onaichangepoint(cp) end
+local function readautocp(self, cp) self._onautochangepoint(cp) end
 
 -- From the main coroutine, receive a custom signal message and, if it is a
 -- power change point, process it.
@@ -95,15 +95,15 @@ function P:receivemessage(message)
 
     -- New York to New Haven AI change points
   elseif point == "AIOverheadToThirdNow" then
-    readaicp(self, P.aichangepoint.ai_to_thirdrail)
+    readautocp(self, P.autochangepoint.ai_to_thirdrail)
   elseif point == "AIThirdToOverheadNow" then
-    readaicp(self, P.aichangepoint.ai_to_overhead)
+    readautocp(self, P.autochangepoint.ai_to_overhead)
 
     -- North Jersey Coast Line AI change points
   elseif point == "AIOverheadToDieselNow" then
-    readaicp(self, P.aichangepoint.ai_to_diesel)
+    readautocp(self, P.autochangepoint.ai_to_diesel)
   elseif point == "AIDieselToOverheadNow" then
-    readaicp(self, P.aichangepoint.ai_to_overhead)
+    readautocp(self, P.autochangepoint.ai_to_overhead)
   end
 end
 

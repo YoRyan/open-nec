@@ -10,9 +10,9 @@
 local P = {}
 PowerSupply = P
 
-local function onaichangepoint(self, cp)
+local function onautochangepoint(self, cp)
   if not RailWorks.GetIsPlayer() then
-    local nextmode = self._getaimode(cp)
+    local nextmode = self._getautomode(cp)
     if nextmode ~= nil then self:setmode(nextmode) end
   end
 end
@@ -29,8 +29,8 @@ function P:new(conf)
     _readfn = conf.modereadfn or function(v) return v end,
     _transition_s = conf.transition_s or 10,
     _getcantransition = conf.getcantransition or function() return false end,
-    -- maps AI automatic change point to the mode to automagically switch to
-    _getaimode = conf.getaimode or function(cp) return nil end,
+    -- maps automatic change point to the mode to automagically switch to
+    _getautomode = conf.getautomode or function(cp) return nil end,
     --[[
       a dictionary that represents all operating modes of the locomotive; the
       key is the unique control value for the mode, and the value is a function
@@ -46,7 +46,7 @@ function P:new(conf)
   }
   o._elec = Electrification:new{
     controlmap = conf.eleccontrolmap,
-    onaichangepoint = function(cp) onaichangepoint(o, cp) end
+    onautochangepoint = function(cp) onautochangepoint(o, cp) end
   }
   setmetatable(o, self)
   self.__index = self

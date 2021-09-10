@@ -109,10 +109,10 @@ Initialise = Misc.wraperrors(function()
       end,
       [powermode.diesel] = function(elec) return true end
     },
-    getaimode = function(cp)
-      if cp == Electrification.aichangepoint.ai_to_thirdrail then
+    getautomode = function(cp)
+      if cp == Electrification.autochangepoint.ai_to_thirdrail then
         return powermode.thirdrail
-      elseif cp == Electrification.aichangepoint.ai_to_diesel then
+      elseif cp == Electrification.autochangepoint.ai_to_diesel then
         return powermode.diesel
       else
         return nil

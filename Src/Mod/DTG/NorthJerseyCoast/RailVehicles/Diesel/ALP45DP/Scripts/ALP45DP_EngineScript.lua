@@ -128,10 +128,10 @@ Initialise = Misc.wraperrors(function()
         return pantoup and elec:isavailable(Electrification.type.overhead)
       end
     },
-    getaimode = function(cp)
-      if cp == Electrification.aichangepoint.ai_to_overhead then
+    getautomode = function(cp)
+      if cp == Electrification.autochangepoint.ai_to_overhead then
         return powermode.electric
-      elseif cp == Electrification.aichangepoint.ai_to_diesel then
+      elseif cp == Electrification.autochangepoint.ai_to_diesel then
         return powermode.diesel
       else
         return nil

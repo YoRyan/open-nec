@@ -126,10 +126,10 @@ Initialise = Misc.wraperrors(function()
       [powermode.diesel] = function(elec) return true end,
       [powermode.overhead] = function(elec) return true end
     },
-    getaimode = function(cp)
-      if cp == Electrification.aichangepoint.ai_to_overhead then
+    getautomode = function(cp)
+      if cp == Electrification.autochangepoint.ai_to_overhead then
         return powermode.electric
-      elseif cp == Electrification.aichangepoint.ai_to_diesel then
+      elseif cp == Electrification.autochangepoint.ai_to_diesel then
         return powermode.diesel
       else
         return nil
