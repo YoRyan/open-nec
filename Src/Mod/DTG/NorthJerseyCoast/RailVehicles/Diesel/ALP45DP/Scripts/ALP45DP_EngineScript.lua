@@ -45,6 +45,7 @@ local state = {
   speedlimits = {},
   restrictsignals = {},
 
+  lastrpmclock_s = nil,
   lasthorntime_s = nil,
   lastwipertime_s = nil
 }
@@ -321,6 +322,13 @@ local function setpowerfx()
   RailWorks.SetControlValue("VirtualRPM", 0, dieselrpm)
   pantoanim:setanimatedstate(
     RailWorks.GetControlValue("PantographControl", 0) == 1)
+
+  local now = anysched:clock()
+  local dt = state.lastrpmclock_s == nil and 0 or now - state.lastrpmclock_s
+  state.lastrpmclock_s = now
+  local fansmove = math.min(1, math.max(0, dieselrpm - 300) / 300)
+  local fansleft = RailWorks.AddTime("Fans", dt * fansmove)
+  if fansleft > 0 then RailWorks.SetTime("Fans", fansleft) end
 end
 
 local function setspeedometer()
