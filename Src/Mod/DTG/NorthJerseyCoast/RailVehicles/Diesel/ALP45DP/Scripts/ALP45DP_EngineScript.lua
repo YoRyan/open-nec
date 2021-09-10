@@ -155,7 +155,7 @@ Initialise = Misc.wraperrors(function()
     duration_s = 2
   }
 
-  doors = Doors:new{scheduler = anysched}
+  doors = Doors:new{scheduler = playersched}
 
   local ditchflash_s = 1
   ditchflasher = Flash:new{

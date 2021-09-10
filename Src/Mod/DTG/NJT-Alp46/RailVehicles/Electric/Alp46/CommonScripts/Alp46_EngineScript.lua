@@ -131,7 +131,7 @@ Initialise = Misc.wraperrors(function()
     duration_s = raisepanto_s
   }
 
-  doors = Doors:new{scheduler = anysched}
+  doors = Doors:new{scheduler = playersched}
 
   local ditchflash_s = 1
   ditchflasher = Flash:new{
