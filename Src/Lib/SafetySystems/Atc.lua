@@ -1,6 +1,7 @@
 -- Constants, lookup tables, and code for Amtrak's Pennsylvania Railroad-derived
 -- pulse code cab signaling and Automatic Train Control system.
 --
+-- @include Event.lua
 -- @include Misc.lua
 local P = {}
 Atc = P
