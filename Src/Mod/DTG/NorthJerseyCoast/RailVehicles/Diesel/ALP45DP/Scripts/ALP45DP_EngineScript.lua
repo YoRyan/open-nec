@@ -316,8 +316,20 @@ local function setpowerfx()
     exhaust = not iselectric
     dieselrpm = iselectric and 0 or rpm
   end
+  -- exhaust algorithm copied from that of the GP40PH
+  local effort = RailWorks.GetTractiveEffort()
+  local rate, alpha
+  if effort < 0.05 then
+    rate, alpha = 0.05, 0.2
+  elseif effort <= 0.25 then
+    rate, alpha = 0.01, 0.75
+  else
+    rate, alpha = 0.005, 1
+  end
   for i = 1, 4 do
     Call("Exhaust" .. i .. ":SetEmitterActive", Misc.intbool(exhaust))
+    Call("Exhaust" .. i .. ":SetEmitterRate", rate)
+    Call("Exhaust" .. i .. ":SetEmitterColour", 0, 0, 0, alpha)
   end
   RailWorks.SetControlValue("VirtualRPM", 0, dieselrpm)
   pantoanim:setanimatedstate(
