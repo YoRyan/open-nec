@@ -32,6 +32,8 @@ Rolling stock:
     - `DTG\NorthJerseyCoast\RailVehicles\Diesel\ALP45DP\Scripts\ALP45DP_EngineScript.out`
 - [NJ Transit ALP-46](/for-players/njt-alp46)
     - `DTG\NJT-Alp46\RailVehicles\Electric\Alp46\CommonScripts\Alp46_EngineScript.out`
+- [NJ Transit GP40PH-2B](/for-players/njt-gp40)
+    - `DTG\GP40PHPack01\RailVehicles\Diesel\GP40PH\Scripts\GP40_EngineScript.out`
 - [NJ Transit Comet V Cab Car](/for-players/njt-cometv)
     - `DTG\NorthJerseyCoast\RailVehicles\Passengers\Comet\` (North Jersey Coast Line version)
     - `DTG\NJT-Alp46\RailVehicles\Passengers\Comet\` (ALP-46 pack version)

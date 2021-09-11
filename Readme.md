@@ -18,6 +18,7 @@ The following locomotives have been successfully overhauled:
 - [Amtrak GE P42DC](https://store.steampowered.com/app/1429754/Train_Simulator_Northeast_Corridor_Washington_DC__Baltimore_Route_AddOn/)
 - [NJ Transit Bombardier ALP-45DP](https://store.steampowered.com/app/325970/Train_Simulator_North_Jersey_Coast_Line_Route_AddOn/)
 - [NJ Transit Bombardier ALP-46](https://store.steampowered.com/app/258658/Train_Simulator_NJ_TRANSIT_ALP46_Loco_AddOn/)
+- [NJ Transit EMD GP40PH-2B](https://store.steampowered.com/app/325991/Train_Simulator_NJ_TRANSIT_GP40PH2B_Loco_AddOn/)
 - [NJ Transit Comet V Cab Car](https://store.steampowered.com/app/325970/Train_Simulator_North_Jersey_Coast_Line_Route_AddOn/)
 - [NJ Transit/MARC Bombardier Multilevel Cab Car](https://store.steampowered.com/app/325970/Train_Simulator_North_Jersey_Coast_Line_Route_AddOn/)
 - [MARC MPI MP36PH](https://store.steampowered.com/app/1429754/Train_Simulator_Northeast_Corridor_Washington_DC__Baltimore_Route_AddOn/)
