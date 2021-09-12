@@ -119,9 +119,7 @@ Initialise = Misc.wraperrors(function()
     modecontrol = "PowerMode",
     eleccontrolmap = {[Electrification.type.overhead] = "PowerState"},
     transition_s = 100,
-    getcantransition = function()
-      return state.throttle <= 0 and state.speed_mps < Misc.stopped_mps
-    end,
+    getcantransition = function() return true end,
     modes = {
       [powermode.diesel] = function(elec) return true end,
       [powermode.overhead] = function(elec) return true end
@@ -195,23 +193,6 @@ local function readcontrols()
 
   if RailWorks.GetControlValue("Horn", 0) > 0 then
     state.lasthorntime_s = playersched:clock()
-  end
-
-  local pantocmd = RailWorks.GetControlValue("PantographSwitch", 0)
-  if pantocmd == -1 then
-    RailWorks.SetControlValue("PantographControl", 0, 0)
-  elseif pantocmd == 1 then
-    RailWorks.SetControlValue("PantographControl", 0, 1)
-  end
-
-  -- The Fault Reset button does not work in DTG's model, so just use the
-  -- pantograph control to switch power modes.
-  local pantoup = RailWorks.GetControlValue("PantographControl", 0) == 1
-  local pmode = power:getmode()
-  if pmode == powermode.diesel and pantoup then
-    RailWorks.SetControlValue("PowerMode", 0, powermode.overhead)
-  elseif pmode == powermode.overhead and not pantoup then
-    RailWorks.SetControlValue("PowerMode", 0, powermode.diesel)
   end
 end
 
@@ -422,18 +403,48 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
     end
   end
 
-  -- Synchronize pantograph controls.
-  if name == "VirtualPantographControl" then
-    RailWorks.SetControlValue("PantographControl", 0, value)
-  elseif name == "PantographControl" then
-    RailWorks.SetControlValue("VirtualPantographControl", 0, value)
-  end
-
   -- The player has changed the destination sign.
   if name == "Destination" and not anysched:isstartup() then
     RailWorks.Engine_SendConsistMessage(messageid.destination, value, 0)
     RailWorks.Engine_SendConsistMessage(messageid.destination, value, 1)
     showdestination(value)
+  end
+
+  -- pantograph up/down switch and keyboard control
+  local pantocmdup = nil
+  if name == "PantographSwitch" then
+    if value == -1 then
+      RailWorks.SetControlValue("PantographControl", 0, 0)
+      RailWorks.SetControlValue("VirtualPantographControl", 0, 0)
+      pantocmdup = false
+    elseif value == 1 then
+      RailWorks.SetControlValue("PantographControl", 0, 1)
+      RailWorks.SetControlValue("VirtualPantographControl", 0, 1)
+      pantocmdup = true
+    end
+  elseif name == "VirtualPantographControl" then
+    RailWorks.SetControlValue("PantographControl", 0, value)
+    pantocmdup = value == 1
+  end
+
+  -- power switch controls
+  -- The Fault Reset button does not work in DTG's model, so just use the
+  -- pantograph control to switch power modes.
+  if not anysched:isstartup() then
+    if name == "PowerSwitchAuto" and (value == 0 or value == 1) then
+      Misc.showalert("Not available in OpenNEC")
+    elseif state.throttle <= 0 and state.speed_mps < Misc.stopped_mps then
+      local pmode = power:getmode()
+      if name == "PowerSwitch" and value == 1 then
+        local nextmode = pmode == powermode.diesel and powermode.overhead or
+                           powermode.diesel
+        RailWorks.SetControlValue("PowerMode", 0, nextmode)
+      elseif pmode == powermode.diesel and pantocmdup == true then
+        RailWorks.SetControlValue("PowerMode", 0, powermode.overhead)
+      elseif pmode == powermode.overhead and pantocmdup == false then
+        RailWorks.SetControlValue("PowerMode", 0, powermode.diesel)
+      end
+    end
   end
 
   RailWorks.SetControlValue(name, index, value)

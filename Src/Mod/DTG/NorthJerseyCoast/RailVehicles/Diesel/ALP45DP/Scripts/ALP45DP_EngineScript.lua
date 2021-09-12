@@ -119,9 +119,7 @@ Initialise = Misc.wraperrors(function()
     modecontrol = "PowerMode",
     eleccontrolmap = {[Electrification.type.overhead] = "PowerState"},
     transition_s = 100,
-    getcantransition = function()
-      return state.throttle <= 0 and state.speed_mps < Misc.stopped_mps
-    end,
+    getcantransition = function() return true end,
     modes = {
       [powermode.diesel] = function(elec) return true end,
       [powermode.overhead] = function(elec)
@@ -184,19 +182,6 @@ local function readcontrols()
   if RailWorks.GetControlValue("Horn", 0) > 0 then
     state.lasthorntime_s = playersched:clock()
   end
-
-  local switchcmd = RailWorks.GetControlValue("PowerSwitch", 0) == 1
-  local faultreset = RailWorks.GetControlValue("FaultReset", 0) == 1
-  if power:gettransition() == nil then
-    local pmode = power:getmode()
-    local pantoup = RailWorks.GetControlValue("PantographControl", 0) == 1
-    if pmode == powermode.diesel and (pantoup or switchcmd) then
-      RailWorks.SetControlValue("PowerMode", 0, powermode.overhead)
-    elseif pmode == powermode.overhead and (faultreset or switchcmd) then
-      RailWorks.SetControlValue("PowerMode", 0, powermode.diesel)
-    end
-  end
-  if faultreset then RailWorks.SetControlValue("FaultReset", 0, 0) end
 end
 
 local function readlocostate()
@@ -589,15 +574,6 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
     RailWorks.SetControlValue("VirtualBell", 0, value)
   end
 
-  -- pantograph up/down switch
-  if name == "PantographSwitch" then
-    if value == -1 then
-      RailWorks.SetControlValue("PantographControl", 0, 0)
-    elseif value == 1 then
-      RailWorks.SetControlValue("PantographControl", 0, 1)
-    end
-  end
-
   -- handbrake apply/release switch
   if name == "HandBrakeSwitch" then
     if value == 1 then
@@ -641,8 +617,44 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
     RailWorks.Engine_SendConsistMessage(messageid.destination, value, 1)
   end
 
-  if name == "PowerSwitchAuto" and not anysched:isstartup() and
-    (value == 0 or value == 1) then Misc.showalert("Not available in OpenNEC") end
+  -- pantograph up/down switch and keyboard control
+  local pantocmdup = nil
+  if name == "PantographSwitch" then
+    if value == -1 then
+      RailWorks.SetControlValue("PantographControl", 0, 0)
+      RailWorks.SetControlValue("VirtualPantographControl", 0, 0)
+      pantocmdup = false
+    elseif value == 1 then
+      RailWorks.SetControlValue("PantographControl", 0, 1)
+      RailWorks.SetControlValue("VirtualPantographControl", 0, 1)
+      pantocmdup = true
+    end
+  elseif name == "VirtualPantographControl" then
+    RailWorks.SetControlValue("PantographControl", 0, value)
+    pantocmdup = value == 1
+  end
+
+  -- power switch controls
+  if not anysched:isstartup() then
+    if name == "PowerSwitchAuto" and (value == 0 or value == 1) then
+      Misc.showalert("Not available in OpenNEC")
+    elseif state.throttle <= 0 and state.speed_mps < Misc.stopped_mps then
+      local pmode = power:getmode()
+      if name == "PowerSwitch" and value == 1 then
+        local nextmode = pmode == powermode.diesel and powermode.overhead or
+                           powermode.diesel
+        RailWorks.SetControlValue("PowerMode", 0, nextmode)
+      elseif pmode == powermode.diesel and pantocmdup == true then
+        RailWorks.SetControlValue("PowerMode", 0, powermode.overhead)
+      elseif pmode == powermode.overhead and name == "FaultReset" and value == 1 then
+        RailWorks.SetControlValue("PowerMode", 0, powermode.diesel)
+      end
+    end
+  end
+  if name == "FaultReset" and value == 1 then
+    RailWorks.SetControlValue("FaultReset", 0, 0)
+    return
+  end
 
   RailWorks.SetControlValue(name, index, value)
 end)
