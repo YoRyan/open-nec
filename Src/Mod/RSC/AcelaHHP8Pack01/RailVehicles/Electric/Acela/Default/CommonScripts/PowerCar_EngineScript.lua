@@ -257,7 +257,6 @@ end
 local function setpantosparks()
   local frontcontact = frontpantoanim:getposition() == 1
   local rearcontact = rearpantoanim:getposition() == 1
-  spark:setsparkstate(frontcontact or rearcontact)
   local isspark = spark:isspark()
 
   RailWorks.ActivateNode("front_spark01", frontcontact and isspark)
