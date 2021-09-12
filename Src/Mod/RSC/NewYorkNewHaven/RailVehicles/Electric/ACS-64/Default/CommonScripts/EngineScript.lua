@@ -127,11 +127,6 @@ Initialise = Misc.wraperrors(function()
 end)
 
 local function readcontrols()
-  if RailWorks.GetControlValue("AutoSuppression", 0) > 0 then
-    RailWorks.SetControlValue("AutoSuppression", 0, 0)
-    RailWorks.SetControlValue("VirtualBrake", 0, 0.75)
-  end
-
   local throttle = RailWorks.GetControlValue("ThrottleAndBrake", 0)
   local vbrake = RailWorks.GetControlValue("VirtualBrake", 0)
   local change = throttle ~= state.throttle or vbrake ~= state.train_brake
@@ -448,6 +443,12 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
   elseif name == "PantographUpButton" and value == 1 then
     RailWorks.SetControlValue("PantographUpButton", 0, 0)
     RailWorks.SetControlValue("PantographControl", 0, 1)
+  end
+
+  -- Shift+' suppression hotkey
+  if name == "AutoSuppression" and value > 0 then
+    RailWorks.SetControlValue("AutoSuppression", 0, 0)
+    RailWorks.SetControlValue("VirtualBrake", 0, 0.75)
   end
 
   RailWorks.SetControlValue(name, index, value)
