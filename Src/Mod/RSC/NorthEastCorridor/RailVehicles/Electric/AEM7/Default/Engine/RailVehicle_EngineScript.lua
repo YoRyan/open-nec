@@ -134,99 +134,87 @@ end
 
 local function writelocostate()
   local penalty = atc:ispenalty() or acses:ispenalty() or alerter:ispenalty()
-  do
-    local v
-    if not power:haspower() then
-      v = 0
-    elseif penalty then
-      v = 0
-    elseif state.cruiseenabled then
-      v = math.min(state.throttle, cruise:getthrottle())
-    else
-      v = state.throttle
-    end
-    RailWorks.SetControlValue("Regulator", 0, v)
+
+  local throttle
+  if not power:haspower() then
+    throttle = 0
+  elseif penalty then
+    throttle = 0
+  elseif state.cruiseenabled then
+    throttle = math.min(state.throttle, cruise:getthrottle())
+  else
+    throttle = state.throttle
   end
-  do
-    local v
-    if RailWorks.GetControlValue("CutIn", 0) < 1 then
-      v = 1
-    elseif penalty then
-      v = 0.99
-    else
-      v = state.train_brake
-    end
-    RailWorks.SetControlValue("TrainBrakeControl", 0, v)
+  RailWorks.SetControlValue("Regulator", 0, throttle)
+
+  local airbrake
+  if RailWorks.GetControlValue("CutIn", 0) < 1 then
+    airbrake = 1
+  elseif penalty then
+    airbrake = 0.99
+  else
+    airbrake = state.train_brake
   end
-  do
-    local v
-    if penalty then
-      v = 0.5
-    else
-      v = state.train_brake / 2
-    end -- "blended braking"
-    RailWorks.SetControlValue("DynamicBrake", 0, v)
-  end
+  RailWorks.SetControlValue("TrainBrakeControl", 0, airbrake)
+
+  -- DTG's "blended braking" algorithm
+  local dynbrake = penalty and 0.5 or state.train_brake / 2
+  RailWorks.SetControlValue("DynamicBrake", 0, dynbrake)
 
   -- Used for the dynamic brake sound?
   RailWorks.SetControlValue("DynamicCurrent", 0,
                             math.abs(RailWorks.GetControlValue("Ammeter", 0)))
 
-  RailWorks.SetControlValue("AWS", 0, Misc.intbool(
-                              atc:isalarm() or acses:isalarm() or
-                                alerter:isalarm()))
-  RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alerter:isalarm()))
-  do
-    local alert = adu:isatcalert() or adu:isacsesalert()
-    local alarm = atc:isalarm() or acses:isalarm()
-    RailWorks.SetControlValue("OverSpeedAlert", 0, Misc.intbool(alert or alarm))
-  end
+  local alerteralarm = alerter:isalarm()
+  local safetyalarm = atc:isalarm() or acses:isalarm()
+  RailWorks.SetControlValue("AWS", 0, Misc.intbool(alerteralarm or safetyalarm))
+  RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alerteralarm))
+  RailWorks.SetControlValue("OverSpeedAlert", 0, Misc.intbool(
+                              adu:isatcalert() or adu:isacsesalert() or
+                                safetyalarm))
 end
 
 local function setadu()
-  do
-    local aspect = adu:getaspect()
-    local signalspeed_mph = adu:getsignalspeed_mph()
-    local cs, cs1, cs2
-    if aspect == AmtrakTwoSpeedAdu.aspect.stop then
-      -- The model has no Stop aspect, so we have to use Restricting.
-      cs, cs1, cs2 = 7, 0, 0
-    elseif aspect == AmtrakTwoSpeedAdu.aspect.restrict then
-      cs, cs1, cs2 = 7, 0, 0
-    elseif aspect == AmtrakTwoSpeedAdu.aspect.approach then
-      cs, cs1, cs2 = 6, 0, 0
-    elseif aspect == AmtrakTwoSpeedAdu.aspect.approachmed then
-      if signalspeed_mph == 30 then
-        cs, cs1, cs2 = 6, 0, 1
-      elseif signalspeed_mph == 45 then
-        cs, cs1, cs2 = 4, 0, 1
-      end
-    elseif aspect == AmtrakTwoSpeedAdu.aspect.cabspeed then
-      if signalspeed_mph == 60 then
-        cs, cs1, cs2 = 3, 1, 0
-      elseif signalspeed_mph == 80 then
-        cs, cs1, cs2 = 2, 1, 0
-      end
-    elseif aspect == AmtrakTwoSpeedAdu.aspect.cabspeedoff then
-      if signalspeed_mph == 60 then
-        cs, cs1, cs2 = 3, 0, 0
-      elseif signalspeed_mph == 80 then
-        cs, cs1, cs2 = 2, 0, 0
-      end
-    elseif aspect == AmtrakTwoSpeedAdu.aspect.clear then
-      cs, cs1, cs2 = 1, 1, 0
+  local aspect = adu:getaspect()
+  local signalspeed_mph = adu:getsignalspeed_mph()
+  local cs, cs1, cs2
+  if aspect == AmtrakTwoSpeedAdu.aspect.stop then
+    -- The model has no Stop aspect, so we have to use Restricting.
+    cs, cs1, cs2 = 7, 0, 0
+  elseif aspect == AmtrakTwoSpeedAdu.aspect.restrict then
+    cs, cs1, cs2 = 7, 0, 0
+  elseif aspect == AmtrakTwoSpeedAdu.aspect.approach then
+    cs, cs1, cs2 = 6, 0, 0
+  elseif aspect == AmtrakTwoSpeedAdu.aspect.approachmed then
+    if signalspeed_mph == 30 then
+      cs, cs1, cs2 = 6, 0, 1
+    elseif signalspeed_mph == 45 then
+      cs, cs1, cs2 = 4, 0, 1
     end
-    RailWorks.SetControlValue("CabSignal", 0, cs)
-    RailWorks.SetControlValue("CabSignal1", 0, cs1)
-    RailWorks.SetControlValue("CabSignal2", 0, cs2)
+  elseif aspect == AmtrakTwoSpeedAdu.aspect.cabspeed then
+    if signalspeed_mph == 60 then
+      cs, cs1, cs2 = 3, 1, 0
+    elseif signalspeed_mph == 80 then
+      cs, cs1, cs2 = 2, 1, 0
+    end
+  elseif aspect == AmtrakTwoSpeedAdu.aspect.cabspeedoff then
+    if signalspeed_mph == 60 then
+      cs, cs1, cs2 = 3, 0, 0
+    elseif signalspeed_mph == 80 then
+      cs, cs1, cs2 = 2, 0, 0
+    end
+  elseif aspect == AmtrakTwoSpeedAdu.aspect.clear then
+    cs, cs1, cs2 = 1, 1, 0
   end
-  do
-    local trackspeed_mph = adu:getcivilspeed_mph()
-    if trackspeed_mph == nil then
-      RailWorks.SetControlValue("TrackSpeed", 0, 14.5) -- blank
-    else
-      RailWorks.SetControlValue("TrackSpeed", 0, trackspeed_mph)
-    end
+  RailWorks.SetControlValue("CabSignal", 0, cs)
+  RailWorks.SetControlValue("CabSignal1", 0, cs1)
+  RailWorks.SetControlValue("CabSignal2", 0, cs2)
+
+  local trackspeed_mph = adu:getcivilspeed_mph()
+  if trackspeed_mph == nil then
+    RailWorks.SetControlValue("TrackSpeed", 0, 14.5) -- blank
+  else
+    RailWorks.SetControlValue("TrackSpeed", 0, trackspeed_mph)
   end
 end
 

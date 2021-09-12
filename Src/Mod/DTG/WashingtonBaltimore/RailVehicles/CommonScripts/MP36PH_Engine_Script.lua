@@ -133,35 +133,27 @@ end
 
 local function writelocostate()
   local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
-  do
-    local throttle, dynbrake
-    if penalty then
-      throttle = 0
-      dynbrake = 0
-    else
-      throttle = math.max(state.throttle, 0)
-      dynbrake = math.max(-state.throttle, 0)
-    end
-    RailWorks.SetControlValue("Regulator", 0, throttle)
-    RailWorks.SetControlValue("DynamicBrake", 0, dynbrake)
+
+  local throttle, dynbrake
+  if penalty then
+    throttle, dynbrake = 0, 0
+  else
+    throttle = math.max(state.throttle, 0)
+    dynbrake = math.max(-state.throttle, 0)
   end
-  do
-    local v
-    if penalty then
-      v = 0.85
-    else
-      v = state.train_brake
-    end
-    RailWorks.SetControlValue("TrainBrakeControl", 0, v)
-  end
+  RailWorks.SetControlValue("Regulator", 0, throttle)
+  RailWorks.SetControlValue("DynamicBrake", 0, dynbrake)
+
+  local airbrake = penalty and 0.85 or state.train_brake
+  RailWorks.SetControlValue("TrainBrakeControl", 0, airbrake)
+
   RailWorks.SetControlValue("EngineBrakeControl", 0, state.indep_brake)
   RailWorks.SetControlValue("HEP_State", 0, Misc.intbool(hep:haspower()))
-  do
-    local alert = adu:isatcalert() or adu:isacsesalert()
-    local alarm = atc:isalarm() or acses:isalarm() or alerter:isalarm()
-    RailWorks.SetControlValue("TMS", 0, Misc.intbool(alert or alarm))
-    RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alarm))
-  end
+
+  local alert = adu:isatcalert() or adu:isacsesalert()
+  local alarm = atc:isalarm() or acses:isalarm() or alerter:isalarm()
+  RailWorks.SetControlValue("TMS", 0, Misc.intbool(alert or alarm))
+  RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alarm))
 end
 
 local function setspeedometer()
@@ -182,30 +174,29 @@ local function setcutin()
 end
 
 local function setadu()
-  do
-    local aspect = adu:getaspect()
-    local n, l, s, m, r
-    if aspect == AmtrakTwoSpeedAdu.aspect.stop then
-      n, l, s, m, r = 0, 0, 1, 0, 0
-    elseif aspect == AmtrakTwoSpeedAdu.aspect.restrict then
-      n, l, s, m, r = 0, 0, 1, 0, 1
-    elseif aspect == AmtrakTwoSpeedAdu.aspect.approach then
-      n, l, s, m, r = 0, 1, 0, 0, 0
-    elseif aspect == AmtrakTwoSpeedAdu.aspect.approachmed then
-      n, l, s, m, r = 0, 1, 0, 1, 0
-    elseif aspect == AmtrakTwoSpeedAdu.aspect.cabspeed then
-      n, l, s, m, r = 1, 0, 0, 0, 0
-    elseif aspect == AmtrakTwoSpeedAdu.aspect.cabspeedoff then
-      n, l, s, m, r = 0, 0, 0, 0, 0
-    elseif aspect == AmtrakTwoSpeedAdu.aspect.clear then
-      n, l, s, m, r = 1, 0, 0, 0, 0
-    end
-    RailWorks.SetControlValue("SigN", 0, n)
-    RailWorks.SetControlValue("SigL", 0, l)
-    RailWorks.SetControlValue("SigS", 0, s)
-    RailWorks.SetControlValue("SigM", 0, m)
-    RailWorks.SetControlValue("SigR", 0, r)
+  local aspect = adu:getaspect()
+  local n, l, s, m, r
+  if aspect == AmtrakTwoSpeedAdu.aspect.stop then
+    n, l, s, m, r = 0, 0, 1, 0, 0
+  elseif aspect == AmtrakTwoSpeedAdu.aspect.restrict then
+    n, l, s, m, r = 0, 0, 1, 0, 1
+  elseif aspect == AmtrakTwoSpeedAdu.aspect.approach then
+    n, l, s, m, r = 0, 1, 0, 0, 0
+  elseif aspect == AmtrakTwoSpeedAdu.aspect.approachmed then
+    n, l, s, m, r = 0, 1, 0, 1, 0
+  elseif aspect == AmtrakTwoSpeedAdu.aspect.cabspeed then
+    n, l, s, m, r = 1, 0, 0, 0, 0
+  elseif aspect == AmtrakTwoSpeedAdu.aspect.cabspeedoff then
+    n, l, s, m, r = 0, 0, 0, 0, 0
+  elseif aspect == AmtrakTwoSpeedAdu.aspect.clear then
+    n, l, s, m, r = 1, 0, 0, 0, 0
   end
+  RailWorks.SetControlValue("SigN", 0, n)
+  RailWorks.SetControlValue("SigL", 0, l)
+  RailWorks.SetControlValue("SigS", 0, s)
+  RailWorks.SetControlValue("SigM", 0, m)
+  RailWorks.SetControlValue("SigR", 0, r)
+
   if not sched:isstartup() then -- Stop the digits from flashing.
     local signalspeed_mph = adu:getsignalspeed_mph()
     if signalspeed_mph == nil then
@@ -214,19 +205,18 @@ local function setadu()
       RailWorks.SetControlValue("SignalSpeed", 0, signalspeed_mph)
     end
   end
-  do
-    local civilspeed_mph = adu:getcivilspeed_mph()
-    if civilspeed_mph == nil then
-      RailWorks.SetControlValue("TSHundreds", 0, 0)
-      RailWorks.SetControlValue("TSTens", 0, 0)
-      RailWorks.SetControlValue("TSUnits", 0, -1)
-    else
-      RailWorks.SetControlValue("TSHundreds", 0,
-                                Misc.getdigit(civilspeed_mph, 2))
-      RailWorks.SetControlValue("TSTens", 0, Misc.getdigit(civilspeed_mph, 1))
-      RailWorks.SetControlValue("TSUnits", 0, Misc.getdigit(civilspeed_mph, 0))
-    end
+
+  local civilspeed_mph = adu:getcivilspeed_mph()
+  if civilspeed_mph == nil then
+    RailWorks.SetControlValue("TSHundreds", 0, 0)
+    RailWorks.SetControlValue("TSTens", 0, 0)
+    RailWorks.SetControlValue("TSUnits", 0, -1)
+  else
+    RailWorks.SetControlValue("TSHundreds", 0, Misc.getdigit(civilspeed_mph, 2))
+    RailWorks.SetControlValue("TSTens", 0, Misc.getdigit(civilspeed_mph, 1))
+    RailWorks.SetControlValue("TSUnits", 0, Misc.getdigit(civilspeed_mph, 0))
   end
+
   RailWorks.SetControlValue("MaximumSpeedLimitIndicator", 0,
                             adu:getsquareindicator())
 end
@@ -253,16 +243,15 @@ local function setditchlights()
   local fixed = state.headlights == 3 and not flash
   ditchflasher:setflashstate(flash)
   local flashleft = ditchflasher:ison()
-  do
-    local showleft = fixed or (flash and flashleft)
-    RailWorks.ActivateNode("ditch_left", showleft)
-    Call("Ditch_L:Activate", Misc.intbool(showleft))
-  end
-  do
-    local showright = fixed or (flash and not flashleft)
-    RailWorks.ActivateNode("ditch_right", showright)
-    Call("Ditch_R:Activate", Misc.intbool(showright))
-  end
+
+  local showleft = fixed or (flash and flashleft)
+  RailWorks.ActivateNode("ditch_left", showleft)
+  Call("Ditch_L:Activate", Misc.intbool(showleft))
+
+  local showright = fixed or (flash and not flashleft)
+  RailWorks.ActivateNode("ditch_right", showright)
+  Call("Ditch_R:Activate", Misc.intbool(showright))
+
   RailWorks.ActivateNode("lights_dim", fixed or flash)
 end
 

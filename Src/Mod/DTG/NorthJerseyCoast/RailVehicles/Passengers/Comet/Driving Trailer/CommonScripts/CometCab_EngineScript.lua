@@ -224,18 +224,15 @@ end
 
 local function writelocostate()
   local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
-  do
-    local throttle = penalty and 0 or math.max(state.throttle, 0)
-    RailWorks.SetControlValue("Regulator", 0, throttle)
-  end
-  do
-    local v = penalty and 0.6 or state.train_brake
-    RailWorks.SetControlValue("TrainBrakeControl", 0, v)
-  end
-  do
-    local psi = RailWorks.GetControlValue("AirBrakePipePressurePSI", 0)
-    RailWorks.SetControlValue("DynamicBrake", 0, math.min((110 - psi) / 16, 1))
-  end
+
+  local throttle = penalty and 0 or math.max(state.throttle, 0)
+  RailWorks.SetControlValue("Regulator", 0, throttle)
+
+  local airbrake = penalty and 0.6 or state.train_brake
+  RailWorks.SetControlValue("TrainBrakeControl", 0, airbrake)
+
+  local psi = RailWorks.GetControlValue("AirBrakePipePressurePSI", 0)
+  RailWorks.SetControlValue("DynamicBrake", 0, math.min((110 - psi) / 16, 1))
 
   RailWorks.SetControlValue("Reverser", 0,
                             RailWorks.GetControlValue("UserVirtualReverser", 0))
@@ -248,12 +245,10 @@ local function writelocostate()
   RailWorks.SetControlValue("Sander", 0,
                             RailWorks.GetControlValue("VirtualSander", 0))
 
-  do
-    local alarm = atc:isalarm() or acses:isalarm() or alerter:isalarm()
-    local alert = adu:isatcalert() or adu:isacsesalert()
-    RailWorks.SetControlValue("AWS", 0, Misc.intbool(alarm or alert))
-    RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alarm))
-  end
+  local alarm = atc:isalarm() or acses:isalarm() or alerter:isalarm()
+  local alert = adu:isatcalert() or adu:isacsesalert()
+  RailWorks.SetControlValue("AWS", 0, Misc.intbool(alarm or alert))
+  RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alarm))
 end
 
 local function setplayerpanto()
@@ -267,20 +262,18 @@ local function setplayerpanto()
 end
 
 local function setspeedometer()
-  do
-    local isclear = adu:isclearsignal()
-    local rspeed_mph = Misc.round(math.abs(state.speed_mps) * Units.mps.tomph)
-    local h = Misc.getdigit(rspeed_mph, 2)
-    local t = Misc.getdigit(rspeed_mph, 1)
-    local u = Misc.getdigit(rspeed_mph, 0)
-    RailWorks.SetControlValue("SpeedH", 0, isclear and h or -1)
-    RailWorks.SetControlValue("SpeedT", 0, isclear and t or -1)
-    RailWorks.SetControlValue("SpeedU", 0, isclear and u or -1)
-    RailWorks.SetControlValue("Speed2H", 0, isclear and -1 or h)
-    RailWorks.SetControlValue("Speed2T", 0, isclear and -1 or t)
-    RailWorks.SetControlValue("Speed2U", 0, isclear and -1 or u)
-    RailWorks.SetControlValue("SpeedP", 0, Misc.getdigitguide(rspeed_mph))
-  end
+  local isclear = adu:isclearsignal()
+  local rspeed_mph = Misc.round(math.abs(state.speed_mps) * Units.mps.tomph)
+  local h = Misc.getdigit(rspeed_mph, 2)
+  local t = Misc.getdigit(rspeed_mph, 1)
+  local u = Misc.getdigit(rspeed_mph, 0)
+  RailWorks.SetControlValue("SpeedH", 0, isclear and h or -1)
+  RailWorks.SetControlValue("SpeedT", 0, isclear and t or -1)
+  RailWorks.SetControlValue("SpeedU", 0, isclear and u or -1)
+  RailWorks.SetControlValue("Speed2H", 0, isclear and -1 or h)
+  RailWorks.SetControlValue("Speed2T", 0, isclear and -1 or t)
+  RailWorks.SetControlValue("Speed2U", 0, isclear and -1 or u)
+  RailWorks.SetControlValue("SpeedP", 0, Misc.getdigitguide(rspeed_mph))
 
   RailWorks.SetControlValue("ACSES_SpeedGreen", 0,
                             adu:getgreenzone_mph(state.speed_mps))
@@ -313,16 +306,14 @@ local function setditchlights()
                   state.crosslights == 1 and not flash
   ditchflasher:setflashstate(flash)
   local flashleft = ditchflasher:ison()
-  do
-    local showleft = fixed or (flash and flashleft)
-    RailWorks.ActivateNode("ditch_left", showleft)
-    Call("Ditch_L:Activate", Misc.intbool(showleft))
-  end
-  do
-    local showright = fixed or (flash and not flashleft)
-    RailWorks.ActivateNode("ditch_right", showright)
-    Call("Ditch_R:Activate", Misc.intbool(showright))
-  end
+
+  local showleft = fixed or (flash and flashleft)
+  RailWorks.ActivateNode("ditch_left", showleft)
+  Call("Ditch_L:Activate", Misc.intbool(showleft))
+
+  local showright = fixed or (flash and not flashleft)
+  RailWorks.ActivateNode("ditch_right", showright)
+  Call("Ditch_R:Activate", Misc.intbool(showright))
 end
 
 local function setstatuslights()
@@ -348,11 +339,7 @@ end
 local function showdestination(idx)
   local valid = idx >= 1 and idx <= table.getn(destinations)
   for i, node in ipairs(destinations) do
-    if valid then
-      RailWorks.ActivateNode(node, i == idx)
-    else
-      RailWorks.ActivateNode(node, i == 1)
-    end
+    RailWorks.ActivateNode(node, i == (valid and idx or 1))
   end
 end
 

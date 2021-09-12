@@ -133,18 +133,14 @@ end
 
 local function writelocostate()
   local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
-  local penaltybrake = 0.85
   -- There's no virtual throttle, so just move the combined power handle.
   if penalty then RailWorks.SetControlValue("ThrottleAndBrake", 0, 0.5) end
   -- There's no virtual train brake, so just move the braking handle.
-  if penalty then
-    RailWorks.SetControlValue("TrainBrakeControl", 0, penaltybrake)
-  end
-  do
-    local alarm = alerter:isalarm() or atc:isalarm() or acses:isalarm()
-    local alert = adu:isatcalert() or adu:isacsesalert()
-    RailWorks.SetControlValue("AlerterAudible", 0, Misc.intbool(alarm or alert))
-  end
+  if penalty then RailWorks.SetControlValue("TrainBrakeControl", 0, 0.85) end
+
+  local alarm = alerter:isalarm() or atc:isalarm() or acses:isalarm()
+  local alert = adu:isatcalert() or adu:isacsesalert()
+  RailWorks.SetControlValue("AlerterAudible", 0, Misc.intbool(alarm or alert))
 end
 
 local function setcutin()
@@ -190,26 +186,24 @@ local function setadu()
 end
 
 local function setdisplay()
-  do
-    local speed_mph = RailWorks.GetControlValue("SpeedometerMPH", 0)
-    RailWorks.SetControlValue("SpeedoHundreds", 0, Misc.getdigit(speed_mph, 2))
-    RailWorks.SetControlValue("SpeedoTens", 0, Misc.getdigit(speed_mph, 1))
-    RailWorks.SetControlValue("SpeedoUnits", 0, Misc.getdigit(speed_mph, 0))
-    RailWorks.SetControlValue("SpeedoDecimal", 0, Misc.getdigit(speed_mph, -1))
+  local speed_mph = RailWorks.GetControlValue("SpeedometerMPH", 0)
+  RailWorks.SetControlValue("SpeedoHundreds", 0, Misc.getdigit(speed_mph, 2))
+  RailWorks.SetControlValue("SpeedoTens", 0, Misc.getdigit(speed_mph, 1))
+  RailWorks.SetControlValue("SpeedoUnits", 0, Misc.getdigit(speed_mph, 0))
+  RailWorks.SetControlValue("SpeedoDecimal", 0, Misc.getdigit(speed_mph, -1))
+
+  local overspeed_mph = adu:getoverspeed_mph()
+  if overspeed_mph == nil then
+    RailWorks.SetControlValue("TrackHundreds", 0, -1)
+    RailWorks.SetControlValue("TrackTens", 0, -1)
+    RailWorks.SetControlValue("TrackUnits", 0, -1)
+  else
+    RailWorks.SetControlValue("TrackHundreds", 0,
+                              Misc.getdigit(overspeed_mph, 2))
+    RailWorks.SetControlValue("TrackTens", 0, Misc.getdigit(overspeed_mph, 1))
+    RailWorks.SetControlValue("TrackUnits", 0, Misc.getdigit(overspeed_mph, 0))
   end
-  do
-    local overspeed_mph = adu:getoverspeed_mph()
-    if overspeed_mph == nil then
-      RailWorks.SetControlValue("TrackHundreds", 0, -1)
-      RailWorks.SetControlValue("TrackTens", 0, -1)
-      RailWorks.SetControlValue("TrackUnits", 0, -1)
-    else
-      RailWorks.SetControlValue("TrackHundreds", 0,
-                                Misc.getdigit(overspeed_mph, 2))
-      RailWorks.SetControlValue("TrackTens", 0, Misc.getdigit(overspeed_mph, 1))
-      RailWorks.SetControlValue("TrackUnits", 0, Misc.getdigit(overspeed_mph, 0))
-    end
-  end
+
   RailWorks.SetControlValue("AlerterVisual", 0, Misc.intbool(alerter:isalarm()))
 end
 
@@ -222,38 +216,33 @@ local function setditchlights()
                   state.crosslights and not flash
   ditchflasher:setflashstate(flash)
   local flashleft = ditchflasher:ison()
-  do
-    local showleft = fixed or (flash and flashleft)
-    RailWorks.ActivateNode("ditch_left", showleft)
-    Call("DitchLight_L:Activate", Misc.intbool(showleft))
-  end
-  do
-    local showright = fixed or (flash and not flashleft)
-    RailWorks.ActivateNode("ditch_right", showright)
-    Call("DitchLight_R:Activate", Misc.intbool(showright))
-  end
+
+  local showleft = fixed or (flash and flashleft)
+  RailWorks.ActivateNode("ditch_left", showleft)
+  Call("DitchLight_L:Activate", Misc.intbool(showleft))
+
+  local showright = fixed or (flash and not flashleft)
+  RailWorks.ActivateNode("ditch_right", showright)
+  Call("DitchLight_R:Activate", Misc.intbool(showright))
 end
 
-local setcablights
-do
+local function setcablights()
   local function activate(v) return Misc.intbool(v > 0.8) end
-  setcablights = function()
-    -- engineer's side task light
-    Call("CabLight_R:Activate",
-         activate(RailWorks.GetControlValue("CabLight3", 0)))
-    -- engineer's forward task light
-    Call("TaskLight_R:Activate",
-         activate(RailWorks.GetControlValue("CabLight1", 0)))
-    -- secondman's forward task light
-    Call("TaskLight_L:Activate",
-         activate(RailWorks.GetControlValue("CabLight2", 0)))
-    -- secondman's side task light
-    Call("CabLight_L:Activate",
-         activate(RailWorks.GetControlValue("CabLight4", 0)))
-    -- dome light
-    Call("CabLight_M:Activate",
-         activate(RailWorks.GetControlValue("CabLight5", 0)))
-  end
+  -- engineer's side task light
+  Call("CabLight_R:Activate",
+       activate(RailWorks.GetControlValue("CabLight3", 0)))
+  -- engineer's forward task light
+  Call("TaskLight_R:Activate",
+       activate(RailWorks.GetControlValue("CabLight1", 0)))
+  -- secondman's forward task light
+  Call("TaskLight_L:Activate",
+       activate(RailWorks.GetControlValue("CabLight2", 0)))
+  -- secondman's side task light
+  Call("CabLight_L:Activate",
+       activate(RailWorks.GetControlValue("CabLight4", 0)))
+  -- dome light
+  Call("CabLight_M:Activate",
+       activate(RailWorks.GetControlValue("CabLight5", 0)))
 end
 
 local function setexhaust()

@@ -162,55 +162,47 @@ end
 
 local function writelocostate()
   local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
-  local penaltybrake = 0.85
-  do
-    local throttle, dynbrake
-    if not power:haspower() or penalty then
-      throttle = 0
-      dynbrake = 0
-    else
-      local min = RailWorks.GetControlMinimum("ThrottleAndBrake", 0)
-      local max = RailWorks.GetControlMaximum("ThrottleAndBrake", 0)
-      local mid = (max + min) / 2
-      throttle = math.max(state.throttle - mid, 0) / (max - mid)
-      dynbrake = math.max(mid - state.throttle, 0) / (mid - min)
-    end
-    RailWorks.SetControlValue("Regulator", 0, throttle)
-    RailWorks.SetControlValue("DynamicBrake", 0, dynbrake)
+
+  local throttle, dynbrake
+  if not power:haspower() then
+    throttle, dynbrake = 0, 0
+  elseif penalty then
+    throttle, dynbrake = 0, 0
+  else
+    local min = RailWorks.GetControlMinimum("ThrottleAndBrake", 0)
+    local max = RailWorks.GetControlMaximum("ThrottleAndBrake", 0)
+    local mid = (max + min) / 2
+    throttle = math.max(state.throttle - mid, 0) / (max - mid)
+    dynbrake = math.max(mid - state.throttle, 0) / (mid - min)
   end
-  do
-    local v
-    if penalty then
-      v = penaltybrake
-    else
-      v = state.train_brake
-    end
-    -- DTG's nonlinear braking algorithm
-    local brake
-    if v < 0.1 then
-      brake = 0
-    elseif v < 0.35 then
-      brake = 0.07
-    elseif v < 0.75 then
-      brake = 0.07 + (v - 0.35) / (0.6 - 0.35) * 0.1
-    elseif v < 0.85 then
-      brake = 0.17
-    elseif v < 1 then
-      brake = 0.24
-    else
-      brake = 1
-    end
-    RailWorks.SetControlValue("TrainBrakeControl", 0, brake)
+  RailWorks.SetControlValue("Regulator", 0, throttle)
+  RailWorks.SetControlValue("DynamicBrake", 0, dynbrake)
+
+  local cmdbrake = penalty and 0.85 or state.train_brake
+  -- DTG's nonlinear braking algorithm
+  local brake
+  if cmdbrake < 0.1 then
+    brake = 0
+  elseif cmdbrake < 0.35 then
+    brake = 0.07
+  elseif cmdbrake < 0.75 then
+    brake = 0.07 + (cmdbrake - 0.35) / (0.6 - 0.35) * 0.1
+  elseif cmdbrake < 0.85 then
+    brake = 0.17
+  elseif cmdbrake < 1 then
+    brake = 0.24
+  else
+    brake = 1
   end
-  do
-    local alarm = atc:isalarm() or acses:isalarm()
-    alarmonoff:setflashstate(alarm)
-    RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alarm))
-    RailWorks.SetControlValue("SpeedReductionAlert", 0,
-                              Misc.intbool(alarmonoff:ison()))
-    RailWorks.SetControlValue("SpeedIncreaseAlert", 0, Misc.intbool(
-                                adu:isatcalert() or adu:isacsesalert()))
-  end
+  RailWorks.SetControlValue("TrainBrakeControl", 0, brake)
+
+  local alarm = atc:isalarm() or acses:isalarm()
+  alarmonoff:setflashstate(alarm)
+  RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alarm))
+  RailWorks.SetControlValue("SpeedReductionAlert", 0,
+                            Misc.intbool(alarmonoff:ison()))
+  RailWorks.SetControlValue("SpeedIncreaseAlert", 0, Misc.intbool(
+                              adu:isatcalert() or adu:isacsesalert()))
 end
 
 local function setpantosparks()
@@ -239,39 +231,30 @@ local function setpantosparks()
 end
 
 local function setscreen()
-  do
-    local maxeffort_klbs = 71 * 71 / 80.5
-    tracteffort:sample(RailWorks.GetTractiveEffort() * maxeffort_klbs)
+  tracteffort:sample(RailWorks.GetTractiveEffort() * 71 * 71 / 80.5)
+  local effort_klbs = math.abs(tracteffort:get())
+  local reffort_klbs = math.floor(effort_klbs + 0.5)
+  RailWorks.SetControlValue("effort_tens", 0, Misc.getdigit(reffort_klbs, 1))
+  RailWorks.SetControlValue("effort_units", 0, Misc.getdigit(reffort_klbs, 0))
+  RailWorks.SetControlValue("effort_guide", 0, Misc.getdigitguide(reffort_klbs))
+  RailWorks.SetControlValue("AbsTractiveEffort", 0, effort_klbs * 365 / 80)
 
-    local effort_klbs = math.abs(tracteffort:get())
-    local reffort_klbs = math.floor(effort_klbs + 0.5)
-    RailWorks.SetControlValue("effort_tens", 0, Misc.getdigit(reffort_klbs, 1))
-    RailWorks.SetControlValue("effort_units", 0, Misc.getdigit(reffort_klbs, 0))
-    RailWorks.SetControlValue("effort_guide", 0,
-                              Misc.getdigitguide(reffort_klbs))
-    RailWorks.SetControlValue("AbsTractiveEffort", 0, effort_klbs * 365 / 80)
-  end
-  do
-    local speed_mph = Misc.round(state.speed_mps * Units.mps.tomph)
-    RailWorks.SetControlValue("SpeedDigit_hundreds", 0,
-                              Misc.getdigit(speed_mph, 2))
-    RailWorks.SetControlValue("SpeedDigit_tens", 0, Misc.getdigit(speed_mph, 1))
-    RailWorks.SetControlValue("SpeedDigit_units", 0, Misc.getdigit(speed_mph, 0))
-    RailWorks.SetControlValue("SpeedDigit_guide", 0,
-                              Misc.getdigitguide(speed_mph))
-  end
-  do
-    acceleration:sample(state.acceleration_mps2)
-    local accel_mphmin = math.abs(acceleration:get() * 134.2162)
-    local raccel_mphmin = math.floor(accel_mphmin + 0.5)
-    RailWorks.SetControlValue("accel_hundreds", 0,
-                              Misc.getdigit(raccel_mphmin, 2))
-    RailWorks.SetControlValue("accel_tens", 0, Misc.getdigit(raccel_mphmin, 1))
-    RailWorks.SetControlValue("accel_units", 0, Misc.getdigit(raccel_mphmin, 0))
-    RailWorks.SetControlValue("accel_guide", 0,
-                              Misc.getdigitguide(raccel_mphmin))
-    RailWorks.SetControlValue("AccelerationMPHPM", 0, accel_mphmin)
-  end
+  local speed_mph = Misc.round(state.speed_mps * Units.mps.tomph)
+  RailWorks.SetControlValue("SpeedDigit_hundreds", 0,
+                            Misc.getdigit(speed_mph, 2))
+  RailWorks.SetControlValue("SpeedDigit_tens", 0, Misc.getdigit(speed_mph, 1))
+  RailWorks.SetControlValue("SpeedDigit_units", 0, Misc.getdigit(speed_mph, 0))
+  RailWorks.SetControlValue("SpeedDigit_guide", 0, Misc.getdigitguide(speed_mph))
+
+  acceleration:sample(state.acceleration_mps2)
+  local accel_mphmin = math.abs(acceleration:get() * 134.2162)
+  local raccel_mphmin = math.floor(accel_mphmin + 0.5)
+  RailWorks.SetControlValue("accel_hundreds", 0, Misc.getdigit(raccel_mphmin, 2))
+  RailWorks.SetControlValue("accel_tens", 0, Misc.getdigit(raccel_mphmin, 1))
+  RailWorks.SetControlValue("accel_units", 0, Misc.getdigit(raccel_mphmin, 0))
+  RailWorks.SetControlValue("accel_guide", 0, Misc.getdigitguide(raccel_mphmin))
+  RailWorks.SetControlValue("AccelerationMPHPM", 0, accel_mphmin)
+
   RailWorks.SetControlValue("ScreenSuppression", 0,
                             Misc.intbool(atc:issuppression()))
   RailWorks.SetControlValue("ScreenAlerter", 0, Misc.intbool(alerter:isalarm()))
@@ -289,130 +272,116 @@ local function setcutin()
 end
 
 local function setadu()
-  do
-    local aspect = adu:getaspect()
-    local mnrr = Misc.intbool(adu:getmnrrilluminated())
-    local tg, ty, tr, bg, bw
-    local text
-    local s, r, m, l, cs60, cs80, n
-    if aspect == AmtrakCombinedAdu.aspect.stop then
-      tg, ty, tr, bg, bw = 0, 0, 1, 0, 0
-      text = 12
-      s, r, m, l, cs60, cs80, n = mnrr, 0, 0, 0, 0, 0, 0
-    elseif aspect == AmtrakCombinedAdu.aspect.restrict then
-      tg, ty, tr, bg, bw = 0, 0, 1, 0, 1
-      text = 11
-      s, r, m, l, cs60, cs80, n = 0, mnrr, 0, 0, 0, 0, 0
-    elseif aspect == AmtrakCombinedAdu.aspect.approach then
-      tg, ty, tr, bg, bw = 0, 1, 0, 0, 0
-      text = 8
-      s, r, m, l, cs60, cs80, n = 0, 0, mnrr, 0, 0, 0, 0
-    elseif aspect == AmtrakCombinedAdu.aspect.approachmed30 or aspect ==
-      AmtrakCombinedAdu.aspect.approachmed45 then
-      tg, ty, tr, bg, bw = 0, 1, 0, 1, 0
-      text = 13
-      s, r, m, l, cs60, cs80, n = 0, 0, 0, mnrr, 0, 0, 0
-    elseif aspect == AmtrakCombinedAdu.aspect.cabspeed60 then
-      tg, ty, tr, bg, bw = 1, 0, 0, 0, 0
-      text = 2
-      s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, mnrr, 0, 0
-    elseif aspect == AmtrakCombinedAdu.aspect.cabspeed60off then
-      tg, ty, tr, bg, bw = 0, 0, 0, 0, 0
-      text = 2
-      s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, mnrr, 0, 0
-    elseif aspect == AmtrakCombinedAdu.aspect.cabspeed80 then
-      tg, ty, tr, bg, bw = 1, 0, 0, 0, 0
-      text = 2
-      s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, mnrr, 0
-    elseif aspect == AmtrakCombinedAdu.aspect.cabspeed80off then
-      tg, ty, tr, bg, bw = 0, 0, 0, 0, 0
-      text = 2
-      s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, mnrr, 0
-    elseif aspect == AmtrakCombinedAdu.aspect.clear100 or aspect ==
-      AmtrakCombinedAdu.aspect.clear125 or aspect ==
-      AmtrakCombinedAdu.aspect.clear150 then
-      tg, ty, tr, bg, bw = 1, 0, 0, 0, 0
-      text = 1
-      s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, 0, mnrr
-    end
-    RailWorks.SetControlValue("SigAspectTopGreen", 0, tg)
-    RailWorks.SetControlValue("SigAspectTopYellow", 0, ty)
-    RailWorks.SetControlValue("SigAspectTopRed", 0, tr)
-    RailWorks.SetControlValue("SigAspectBottomGreen", 0, bg)
-    RailWorks.SetControlValue("SigAspectBottomWhite", 0, bw)
-    RailWorks.SetControlValue("SigText", 0, text)
-    RailWorks.SetControlValue("SigS", 0, s)
-    RailWorks.SetControlValue("SigR", 0, r)
-    RailWorks.SetControlValue("SigM", 0, m)
-    RailWorks.SetControlValue("SigL", 0, l)
-    RailWorks.SetControlValue("Sig60", 0, cs60)
-    RailWorks.SetControlValue("Sig80", 0, cs80)
-    RailWorks.SetControlValue("SigN", 0, n)
+  local aspect = adu:getaspect()
+  local mnrr = Misc.intbool(adu:getmnrrilluminated())
+  local tg, ty, tr, bg, bw
+  local text
+  local s, r, m, l, cs60, cs80, n
+  if aspect == AmtrakCombinedAdu.aspect.stop then
+    tg, ty, tr, bg, bw = 0, 0, 1, 0, 0
+    text = 12
+    s, r, m, l, cs60, cs80, n = mnrr, 0, 0, 0, 0, 0, 0
+  elseif aspect == AmtrakCombinedAdu.aspect.restrict then
+    tg, ty, tr, bg, bw = 0, 0, 1, 0, 1
+    text = 11
+    s, r, m, l, cs60, cs80, n = 0, mnrr, 0, 0, 0, 0, 0
+  elseif aspect == AmtrakCombinedAdu.aspect.approach then
+    tg, ty, tr, bg, bw = 0, 1, 0, 0, 0
+    text = 8
+    s, r, m, l, cs60, cs80, n = 0, 0, mnrr, 0, 0, 0, 0
+  elseif aspect == AmtrakCombinedAdu.aspect.approachmed30 or aspect ==
+    AmtrakCombinedAdu.aspect.approachmed45 then
+    tg, ty, tr, bg, bw = 0, 1, 0, 1, 0
+    text = 13
+    s, r, m, l, cs60, cs80, n = 0, 0, 0, mnrr, 0, 0, 0
+  elseif aspect == AmtrakCombinedAdu.aspect.cabspeed60 then
+    tg, ty, tr, bg, bw = 1, 0, 0, 0, 0
+    text = 2
+    s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, mnrr, 0, 0
+  elseif aspect == AmtrakCombinedAdu.aspect.cabspeed60off then
+    tg, ty, tr, bg, bw = 0, 0, 0, 0, 0
+    text = 2
+    s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, mnrr, 0, 0
+  elseif aspect == AmtrakCombinedAdu.aspect.cabspeed80 then
+    tg, ty, tr, bg, bw = 1, 0, 0, 0, 0
+    text = 2
+    s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, mnrr, 0
+  elseif aspect == AmtrakCombinedAdu.aspect.cabspeed80off then
+    tg, ty, tr, bg, bw = 0, 0, 0, 0, 0
+    text = 2
+    s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, mnrr, 0
+  elseif aspect == AmtrakCombinedAdu.aspect.clear100 or aspect ==
+    AmtrakCombinedAdu.aspect.clear125 or aspect ==
+    AmtrakCombinedAdu.aspect.clear150 then
+    tg, ty, tr, bg, bw = 1, 0, 0, 0, 0
+    text = 1
+    s, r, m, l, cs60, cs80, n = 0, 0, 0, 0, 0, 0, mnrr
   end
-  do
-    local speed_mph = adu:getspeedlimit_mph()
-    if speed_mph == nil then
-      RailWorks.SetControlValue("SpeedLimit_hundreds", 0, 0)
-      RailWorks.SetControlValue("SpeedLimit_tens", 0, -1)
-      RailWorks.SetControlValue("SpeedLimit_units", 0, -1)
-    else
-      RailWorks.SetControlValue("SpeedLimit_hundreds", 0,
-                                Misc.getdigit(speed_mph, 2))
-      RailWorks.SetControlValue("SpeedLimit_tens", 0,
-                                Misc.getdigit(speed_mph, 1))
-      RailWorks.SetControlValue("SpeedLimit_units", 0,
-                                Misc.getdigit(speed_mph, 0))
-    end
-    RailWorks.SetControlValue("SigModeATC", 0,
-                              Misc.intbool(adu:getatcindicator()))
-    RailWorks.SetControlValue("SigModeACSES", 0,
-                              Misc.intbool(adu:getacsesindicator()))
+  RailWorks.SetControlValue("SigAspectTopGreen", 0, tg)
+  RailWorks.SetControlValue("SigAspectTopYellow", 0, ty)
+  RailWorks.SetControlValue("SigAspectTopRed", 0, tr)
+  RailWorks.SetControlValue("SigAspectBottomGreen", 0, bg)
+  RailWorks.SetControlValue("SigAspectBottomWhite", 0, bw)
+  RailWorks.SetControlValue("SigText", 0, text)
+  RailWorks.SetControlValue("SigS", 0, s)
+  RailWorks.SetControlValue("SigR", 0, r)
+  RailWorks.SetControlValue("SigM", 0, m)
+  RailWorks.SetControlValue("SigL", 0, l)
+  RailWorks.SetControlValue("Sig60", 0, cs60)
+  RailWorks.SetControlValue("Sig80", 0, cs80)
+  RailWorks.SetControlValue("SigN", 0, n)
+
+  local speed_mph = adu:getspeedlimit_mph()
+  if speed_mph == nil then
+    RailWorks.SetControlValue("SpeedLimit_hundreds", 0, 0)
+    RailWorks.SetControlValue("SpeedLimit_tens", 0, -1)
+    RailWorks.SetControlValue("SpeedLimit_units", 0, -1)
+  else
+    RailWorks.SetControlValue("SpeedLimit_hundreds", 0,
+                              Misc.getdigit(speed_mph, 2))
+    RailWorks.SetControlValue("SpeedLimit_tens", 0, Misc.getdigit(speed_mph, 1))
+    RailWorks.SetControlValue("SpeedLimit_units", 0, Misc.getdigit(speed_mph, 0))
   end
-  do
-    local ttp_s = adu:gettimetopenalty_s()
-    if ttp_s == nil then
-      RailWorks.SetControlValue("Penalty_hundreds", 0, 0)
-      RailWorks.SetControlValue("Penalty_tens", 0, -1)
-      RailWorks.SetControlValue("Penalty_units", 0, -1)
-    else
-      RailWorks.SetControlValue("Penalty_hundreds", 0, Misc.getdigit(ttp_s, 2))
-      RailWorks.SetControlValue("Penalty_tens", 0, Misc.getdigit(ttp_s, 1))
-      RailWorks.SetControlValue("Penalty_units", 0, Misc.getdigit(ttp_s, 0))
-    end
+  RailWorks.SetControlValue("SigModeATC", 0, Misc.intbool(adu:getatcindicator()))
+  RailWorks.SetControlValue("SigModeACSES", 0,
+                            Misc.intbool(adu:getacsesindicator()))
+
+  local ttp_s = adu:gettimetopenalty_s()
+  if ttp_s == nil then
+    RailWorks.SetControlValue("Penalty_hundreds", 0, 0)
+    RailWorks.SetControlValue("Penalty_tens", 0, -1)
+    RailWorks.SetControlValue("Penalty_units", 0, -1)
+  else
+    RailWorks.SetControlValue("Penalty_hundreds", 0, Misc.getdigit(ttp_s, 2))
+    RailWorks.SetControlValue("Penalty_tens", 0, Misc.getdigit(ttp_s, 1))
+    RailWorks.SetControlValue("Penalty_units", 0, Misc.getdigit(ttp_s, 0))
   end
-  do
-    local cutin = adu:atccutin()
-    RailWorks.SetControlValue("SigATCCutIn", 0, Misc.intbool(cutin))
-    RailWorks.SetControlValue("SigATCCutOut", 0, Misc.intbool(not cutin))
-  end
-  do
-    local cutin = adu:acsescutin()
-    RailWorks.SetControlValue("SigACSESCutIn", 0, Misc.intbool(cutin))
-    RailWorks.SetControlValue("SigACSESCutOut", 0, Misc.intbool(not cutin))
-  end
+
+  local atccutin = adu:atccutin()
+  RailWorks.SetControlValue("SigATCCutIn", 0, Misc.intbool(atccutin))
+  RailWorks.SetControlValue("SigATCCutOut", 0, Misc.intbool(not atccutin))
+
+  local acsescutin = adu:acsescutin()
+  RailWorks.SetControlValue("SigACSESCutIn", 0, Misc.intbool(acsescutin))
+  RailWorks.SetControlValue("SigACSESCutOut", 0, Misc.intbool(not acsescutin))
 end
 
 local function setcablights()
-  do
-    local dome = RailWorks.GetControlValue("CabLight", 0)
-    Call("FrontCabLight:Activate", dome)
-    Call("RearCabLight:Activate", dome)
-  end
-  do
-    local control = RailWorks.GetControlValue("DeskConsoleLight", 0)
+  local dome = RailWorks.GetControlValue("CabLight", 0)
+  Call("FrontCabLight:Activate", dome)
+  Call("RearCabLight:Activate", dome)
 
-    local desk = Misc.intbool(control >= 1 and control < 3)
-    Call("Front_DeskLight_01:Activate", desk)
-    Call("Rear_DeskLight_01:Activate", desk)
-
-    local console = Misc.intbool(control >= 2)
-    Call("Front_ConsoleLight_01:Activate", console)
-    Call("Front_ConsoleLight_02:Activate", console)
-    Call("Front_ConsoleLight_03:Activate", console)
-    Call("Rear_ConsoleLight_01:Activate", console)
-    Call("Rear_ConsoleLight_02:Activate", console)
-    Call("Rear_ConsoleLight_03:Activate", console)
-  end
+  local control = RailWorks.GetControlValue("DeskConsoleLight", 0)
+  local desk = Misc.intbool(control >= 1 and control < 3)
+  Call("Front_DeskLight_01:Activate", desk)
+  Call("Rear_DeskLight_01:Activate", desk)
+  local console = Misc.intbool(control >= 2)
+  Call("Front_ConsoleLight_01:Activate", console)
+  Call("Front_ConsoleLight_02:Activate", console)
+  Call("Front_ConsoleLight_03:Activate", console)
+  Call("Rear_ConsoleLight_01:Activate", console)
+  Call("Rear_ConsoleLight_02:Activate", console)
+  Call("Rear_ConsoleLight_03:Activate", console)
 end
 
 local function setditchlights()
@@ -423,16 +392,15 @@ local function setditchlights()
   local flash = (state.headlights == 1 and state.ditchlights == 2) or horn
   ditchflasher:setflashstate(flash)
   local flashleft = ditchflasher:ison()
-  do
-    local showleft = fixed or (flash and flashleft)
-    RailWorks.ActivateNode("ditch_fwd_l", showleft)
-    Call("FrontDitchLightL:Activate", Misc.intbool(showleft))
-  end
-  do
-    local showright = fixed or (flash and not flashleft)
-    RailWorks.ActivateNode("ditch_fwd_r", showright)
-    Call("FrontDitchLightR:Activate", Misc.intbool(showright))
-  end
+
+  local showleft = fixed or (flash and flashleft)
+  RailWorks.ActivateNode("ditch_fwd_l", showleft)
+  Call("FrontDitchLightL:Activate", Misc.intbool(showleft))
+
+  local showright = fixed or (flash and not flashleft)
+  RailWorks.ActivateNode("ditch_fwd_r", showright)
+  Call("FrontDitchLightR:Activate", Misc.intbool(showright))
+
   RailWorks.ActivateNode("ditch_rev_l", false)
   Call("RearDitchLightL:Activate", Misc.intbool(false))
   RailWorks.ActivateNode("ditch_rev_r", false)
