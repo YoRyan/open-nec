@@ -92,7 +92,7 @@ local function readcontrols()
   local throttle = RailWorks.GetControlValue("ThrottleAndBrake", 0)
   local change = throttle ~= state.throttle
   state.throttle = throttle
-  state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
+  state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
   if state.acknowledge or change then alerter:acknowledge() end
 
   state.headlights = RailWorks.GetControlValue("Headlights", 0)
