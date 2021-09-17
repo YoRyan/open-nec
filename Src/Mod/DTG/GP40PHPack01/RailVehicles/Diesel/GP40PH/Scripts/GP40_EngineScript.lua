@@ -4,6 +4,7 @@
 -- @include RollingStock/Hep.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/NjTransit.lua
+-- @include SafetySystems/Alerter.lua
 -- @include SafetySystems/Atc.lua
 -- @include Signals/CabSignal.lua
 -- @include Flash.lua
@@ -18,6 +19,7 @@ local cabsig
 local atc
 local acses
 local adu
+local alerter
 local hep
 local doors
 local ditchflasher
@@ -94,6 +96,12 @@ Initialise = Misc.wraperrors(function()
   atc:start()
   acses:start()
 
+  alerter = Alerter:new{
+    scheduler = playersched,
+    getspeed_mps = function() return state.speed_mps end
+  }
+  alerter:start()
+
   hep = Hep:new{
     scheduler = playersched,
     getrun = function() return state.startup end
@@ -118,9 +126,11 @@ end)
 local function readcontrols()
   local throttle = RailWorks.GetControlValue("VirtualThrottle", 0)
   local vbrake = RailWorks.GetControlValue("VirtualBrake", 0)
+  local change = throttle ~= state.throttle or vbrake ~= state.train_brake
   state.throttle = throttle
   state.train_brake = vbrake
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) == 1
+  if state.acknowledge or change then alerter:acknowledge() end
   state.startup = RailWorks.GetControlValue("VirtualStartup", 0) >= 0
 
   local now = playersched:clock()
@@ -147,7 +157,7 @@ local function readlocostate()
 end
 
 local function writelocostate()
-  local penalty = atc:ispenalty() or acses:ispenalty()
+  local penalty = atc:ispenalty() or acses:ispenalty() or alerter:ispenalty()
   RailWorks.SetControlValue("Regulator", 0, state.throttle)
   RailWorks.SetControlValue("TrainBrakeControl", 0,
                             penalty and 0.5 or state.train_brake)
@@ -155,9 +165,12 @@ local function writelocostate()
   local psi = RailWorks.GetControlValue("AirBrakePipePressurePSI", 0)
   RailWorks.SetControlValue("DynamicBrake", 0, math.min((89 - psi) / 16, 1))
 
+  local vigilalarm = alerter:isalarm()
   local safetyalarm = atc:isalarm() or acses:isalarm()
   local safetyalert = adu:isatcalert() or adu:isacsesalert()
-  RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(safetyalarm))
+  RailWorks.SetControlValue("AWSWarnCount", 0,
+                            Misc.intbool(vigilalarm or safetyalarm))
+  RailWorks.SetControlValue("ACSES_Alert", 0, Misc.intbool(vigilalarm))
   decreaseonoff:setflashstate(safetyalarm)
   RailWorks.SetControlValue("ACSES_AlertDecrease", 0,
                             Misc.intbool(decreaseonoff:ison()))
