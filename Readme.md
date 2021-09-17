@@ -21,8 +21,9 @@ The following locomotives have been successfully overhauled:
 - [NJ Transit GE Arrow III](https://store.steampowered.com/app/500247/Train_Simulator_NJ_TRANSIT_Arrow_III_EMU_AddOn/)
 - [NJ Transit EMD GP40PH-2B](https://store.steampowered.com/app/325991/Train_Simulator_NJ_TRANSIT_GP40PH2B_Loco_AddOn/)
 - [NJ Transit Comet V Cab Car](https://store.steampowered.com/app/325970/Train_Simulator_North_Jersey_Coast_Line_Route_AddOn/)
-- [NJ Transit/MARC Bombardier Multilevel Cab Car](https://store.steampowered.com/app/325970/Train_Simulator_North_Jersey_Coast_Line_Route_AddOn/)
+- [NJ Transit Bombardier Multilevel Cab Car](https://store.steampowered.com/app/325970/Train_Simulator_North_Jersey_Coast_Line_Route_AddOn/)
 - [MARC MPI MP36PH](https://store.steampowered.com/app/1429754/Train_Simulator_Northeast_Corridor_Washington_DC__Baltimore_Route_AddOn/)
+- [MARC Bombardier Multilevel Cab Car](https://store.steampowered.com/app/1429754/Train_Simulator_Northeast_Corridor_Washington_DC__Baltimore_Route_AddOn/)
 - [Metro-North GE P32AC-DM](https://store.steampowered.com/app/258655/Train_Simulator_MetroNorth_P32_ACDM_Genesis_Loco_AddOn/)
 
 These locomotives have been made compatible with the signaling systems of the following routes:
