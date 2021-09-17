@@ -291,22 +291,19 @@ local function setplayerpantos()
 end
 
 local function setaipantos()
-  local frontup = true
-  local rearup = false
+  local frontup = false
+  local rearup = true
   frontpantoanim:setanimatedstate(frontup)
   rearpantoanim:setanimatedstate(rearup)
-  RailWorks.Engine_SendConsistMessage(messageid.raisefrontpanto, frontup, 0)
-  RailWorks.Engine_SendConsistMessage(messageid.raisefrontpanto, frontup, 1)
-  RailWorks.Engine_SendConsistMessage(messageid.raiserearpanto, rearup, 0)
-  RailWorks.Engine_SendConsistMessage(messageid.raiserearpanto, rearup, 1)
 end
 
 local function setslavepantos()
+  -- We assume the helper engine is flipped.
   if state.raisefrontpantomsg ~= nil then
-    frontpantoanim:setanimatedstate(state.raisefrontpantomsg)
+    rearpantoanim:setanimatedstate(state.raisefrontpantomsg)
   end
   if state.raiserearpantomsg ~= nil then
-    rearpantoanim:setanimatedstate(state.raiserearpantomsg)
+    frontpantoanim:setanimatedstate(state.raiserearpantomsg)
   end
 end
 
@@ -553,11 +550,10 @@ OnCustomSignalMessage = Misc.wraperrors(function(message)
 end)
 
 OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
-  -- Cross the pantograph states. We assume the slave engine is flipped.
   if message == messageid.raisefrontpanto then
-    state.raiserearpantomsg = argument == "true"
-  elseif message == messageid.raiserearpanto then
     state.raisefrontpantomsg = argument == "true"
+  elseif message == messageid.raiserearpanto then
+    state.raiserearpantomsg = argument == "true"
   end
   RailWorks.Engine_SendConsistMessage(message, argument, direction)
 end)
