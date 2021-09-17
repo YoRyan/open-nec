@@ -21,6 +21,7 @@ local adu
 local hep
 local doors
 local ditchflasher
+local decreaseonoff
 local state = {
   throttle = 0,
   train_brake = 0,
@@ -107,6 +108,9 @@ Initialise = Misc.wraperrors(function()
     on_s = ditchflash_s
   }
 
+  -- Modulate the speed reduction alert sound, which normally plays just once.
+  decreaseonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
+
   readrvnumber()
   RailWorks.BeginUpdate()
 end)
@@ -151,10 +155,13 @@ local function writelocostate()
   local psi = RailWorks.GetControlValue("AirBrakePipePressurePSI", 0)
   RailWorks.SetControlValue("DynamicBrake", 0, math.min((89 - psi) / 16, 1))
 
-  local alarm = atc:isalarm() or acses:isalarm()
-  local alert = adu:isatcalert() or adu:isacsesalert()
-  RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alarm))
-  RailWorks.SetControlValue("ACSES_AlertIncrease", 0, Misc.intbool(alert))
+  local safetyalarm = atc:isalarm() or acses:isalarm()
+  local safetyalert = adu:isatcalert() or adu:isacsesalert()
+  RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(safetyalarm))
+  decreaseonoff:setflashstate(safetyalarm)
+  RailWorks.SetControlValue("ACSES_AlertDecrease", 0,
+                            Misc.intbool(decreaseonoff:ison()))
+  RailWorks.SetControlValue("ACSES_AlertIncrease", 0, Misc.intbool(safetyalert))
 
   RailWorks.SetControlValue("Reverser", 0,
                             RailWorks.GetControlValue("UserVirtualReverser", 0))

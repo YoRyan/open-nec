@@ -9,7 +9,4 @@ The Open NEC mod for the GP40 is fully compatible and tested with Fan Railer's G
 ### New features
 
 - Press Ctrl+D to disable and enable ATC, and Ctrl+F to disable and enable ACSES. Both systems are turned on by default.
-
-### Errata
-
-- Unlike other locomotives enhanced by OpenNEC, the GP40 does not include an alerter. This is because it is impossible to illuminate the exclamation mark on the HUD without also turning on the alarm whistle, so an alerter that sounds every 60 seconds would be very annoying to drive with.
+- In addition to ATC and ACSES, an alerter has been installed.
