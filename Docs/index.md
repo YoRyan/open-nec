@@ -52,7 +52,18 @@ Open NEC enables all safety systems by default, which must be responded to, even
 
 ## Release history
 
-The current stable release is Open NEC version **0.6.0**.
+The current stable release is Open NEC version **0.7.0**.
+
+#### v0.7.0 (September 16, 2021)
+
+- Support for the NJ Transit Arrow III and GP40PH-2B.
+- Bombardier HHP-8:
+    - **Critical**: Fixed nil error in script.
+- Bombardier ALP-45DP:
+    - Reinstated exhaust fans.
+    - Exhaust particles now increase or decrease depending on power output.
+- Siemens ACS-64:
+    - Fixed wheelslip indicator being perpetually illuminated.
 
 #### v0.6.0 (September 1, 2021)
 
@@ -93,7 +104,7 @@ The current stable release is Open NEC version **0.6.0**.
 - Support for the Amtrak P42DC (paths are set for the Washington-Baltimore version).
 - Official support for the Hudson Line route.
 - Amtrak Acela:
-    - Critical: Fix broken destination signs and MU pantograph operation.
+    - **Critical**: Fix broken destination signs and MU pantograph operation.
 
 #### v0.3.0 (April 17, 2021)
 
