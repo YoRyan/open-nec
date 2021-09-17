@@ -10,3 +10,7 @@ The Open NEC mod for the GP40 is fully compatible and tested with Fan Railer's G
 
 - Press Ctrl+D to disable and enable ATC, and Ctrl+F to disable and enable ACSES. Both systems are turned on by default.
 - In addition to ATC and ACSES, an alerter has been installed.
+
+### Errata
+
+- The extremely annoying safety systems alarm sound, which sounds suspiciously like a British AWS warning horn, has been replaced with the beep-beep sound found on other NJT equipment.
