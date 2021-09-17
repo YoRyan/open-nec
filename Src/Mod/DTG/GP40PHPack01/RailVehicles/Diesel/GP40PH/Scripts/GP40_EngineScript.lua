@@ -210,13 +210,13 @@ local function setexhaust()
   local now = anysched:clock()
   local dt = state.lastrpmclock_s == nil and 0 or now - state.lastrpmclock_s
   state.lastrpmclock_s = now
-  local fansmove = math.min(1, RailWorks.GetControlValue("RPM", 0) / 200)
-  local fansleft = RailWorks.AddTime("Fans", dt * fansmove)
+  local rpm = RailWorks.GetControlValue("RPM", 0)
+  local fansleft = RailWorks.AddTime("Fans", dt * math.min(1, rpm / 200))
   if fansleft > 0 then RailWorks.SetTime("Fans", fansleft) end
 
   local running = RailWorks.GetControlValue("Startup", 0) == 1
   local rate, alpha
-  local effort = RailWorks.GetTractiveEffort()
+  local effort = math.max(0, (rpm - 300) / (900 - 300))
   if effort < 0.05 then
     rate, alpha = 0.05, 0.2
   elseif effort <= 0.25 then

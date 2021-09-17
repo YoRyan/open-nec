@@ -302,7 +302,7 @@ local function setpowerfx()
     dieselrpm = iselectric and 0 or rpm
   end
   -- exhaust algorithm copied from that of the GP40PH
-  local effort = RailWorks.GetTractiveEffort()
+  local effort = (RailWorks.GetControlValue("RPM", 0) - 600) / (1500 - 600)
   local rate, alpha
   if effort < 0.05 then
     rate, alpha = 0.05, 0.2
