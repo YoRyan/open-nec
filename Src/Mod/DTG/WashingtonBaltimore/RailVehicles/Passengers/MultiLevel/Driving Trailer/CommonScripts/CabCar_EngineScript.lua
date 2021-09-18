@@ -1,1 +1,3 @@
-../../../../../../NJT-Alp46/RailVehicles/Passengers/MultiLevel/Driving Trailer/CommonScripts/CabCar_EngineScript.lua
+-- @include Shared/MultiLevel.lua
+isnjcl = false
+ismarc = true

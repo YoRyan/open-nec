@@ -98,7 +98,7 @@ Initialise = Misc.wraperrors(function()
     iterrestrictsignals = function() return pairs(state.restrictsignals) end,
     getacknowledge = function() return state.acknowledge end,
     doalert = function() adu:doacsesalert() end,
-    consistspeed_mps = 125 * Units.mph.tomps,
+    consistspeed_mps = (ismarc and 125 or 100) * Units.mph.tomps,
     inforceafterviolation = false
   }
 
