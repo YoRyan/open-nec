@@ -55,8 +55,8 @@ function P:new(conf)
     _getacknowledge = conf.getacknowledge or function() return false end,
     _doalert = conf.doalert or function() end,
     _consistspeed_mps = conf.consistspeed_mps,
-    _penaltylimit_mps = conf.penaltylimit_mps or 3 * Units.mph.tomps,
-    _alertlimit_mps = conf.alertlimit_mps or 1 * Units.mph.tomps,
+    _penaltylimit_mps = conf.penaltylimit_mps or 6 * Units.mph.tomps,
+    _alertlimit_mps = conf.alertlimit_mps or 3 * Units.mph.tomps,
     -- -1.3 mph/s
     _penaltycurve_mps2 = conf.penaltycurve_mps2 or -1.3 * Units.mph.tomps,
     _restrictingspeed_mps = conf.restrictingspeed_mps or 20 * Units.mph.tomps,
