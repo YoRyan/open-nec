@@ -80,7 +80,8 @@ Initialise = Misc.wraperrors(function()
     iterrestrictsignals = function() return pairs(state.restrictsignals) end,
     getacknowledge = function() return state.acknowledge end,
     doalert = function() adu:doacsesalert() end,
-    consistspeed_mps = 90 * Units.mph.tomps
+    consistspeed_mps = 90 * Units.mph.tomps,
+    inforceafterviolation = false
   }
 
   local onebeep_s = 1

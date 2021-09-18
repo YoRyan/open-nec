@@ -60,6 +60,10 @@ function P:new(conf)
     -- -1.3 mph/s
     _penaltycurve_mps2 = conf.penaltycurve_mps2 or -1.3 * Units.mph.tomps,
     _restrictingspeed_mps = conf.restrictingspeed_mps or 20 * Units.mph.tomps,
+    -- When false, the in-force speed changes at the start of the braking curve,
+    -- not when it is violated.
+    _inforceafterviolation = conf.inforceafterviolation ~= false and true or
+      false,
     -- Keep the distance small (not very prototypical) to handle those pesky
     -- closely spaced shunting signals.
     _positivestop_m = conf.positivestop_m or 20 * Units.m.toft,
@@ -384,7 +388,8 @@ local function setstate(self)
                                      Iterator.map(
                                        function(k, hazard)
           if k[1] == hazardtype.advancelimit then
-            if state[k] ~= nil and state[k].violated then
+            if (state[k] ~= nil and state[k].violated) or
+              not self._inforceafterviolation then
               return k, hazard.alert_mps
             else
               return nil, nil
