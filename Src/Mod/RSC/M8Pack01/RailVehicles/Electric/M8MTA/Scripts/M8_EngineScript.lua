@@ -1,4 +1,5 @@
 -- Engine script for the Kawasaki M8 operated by Metro-North.
+--
 -- @include RollingStock/Spark.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/MetroNorth.lua
@@ -111,19 +112,16 @@ local function readlocostate()
 end
 
 local function writelocostate()
-  do
-    local throttle, brake
-    if alerter:ispenalty() or atc:ispenalty() or acses:ispenalty() then
-      throttle = 0
-      brake = 0.85
-    else
-      throttle = math.max(state.throttle, 0)
-      brake = math.max(-state.throttle, 0)
-    end
-    RailWorks.SetControlValue("Regulator", 0, throttle)
-    RailWorks.SetControlValue("TrainBrakeControl", 0, brake)
-    -- TODO: Also set DynamicBrake using DTG's algorithm.
+  local throttle, brake
+  if alerter:ispenalty() or atc:ispenalty() or acses:ispenalty() then
+    throttle, brake = 0, 0.85
+  else
+    throttle = math.max(state.throttle, 0)
+    brake = math.max(-state.throttle, 0)
   end
+  RailWorks.SetControlValue("Regulator", 0, throttle)
+  RailWorks.SetControlValue("TrainBrakeControl", 0, brake)
+  -- TODO: Also set DynamicBrake using DTG's algorithm.
 
   alarmonoff:setflashstate(atc:isalarm() or acses:isalarm())
   RailWorks.SetControlValue("SpeedReductionAlert", 0,
@@ -133,33 +131,23 @@ local function writelocostate()
   RailWorks.SetControlValue("AWS", 0, Misc.intbool(alerter:isalarm()))
 end
 
-local function round(v) return math.floor(v + 0.5) end
-
-local function getdigit(v, place)
-  local tens = math.pow(10, place)
-  if place ~= 0 and v < tens then
-    return -1
-  else
-    return math.floor(math.mod(v, tens * 10) / tens)
-  end
-end
-
 local function setdrivescreen()
-  local speed_mph = round(state.speed_mps * Units.mps.tomph)
-  RailWorks.SetControlValue("SpeedoHundreds", 0, getdigit(speed_mph, 2))
-  RailWorks.SetControlValue("SpeedoTens", 0, getdigit(speed_mph, 1))
-  RailWorks.SetControlValue("SpeedoUnits", 0, getdigit(speed_mph, 0))
+  local speed_mph = Misc.round(state.speed_mps * Units.mps.tomph)
+  RailWorks.SetControlValue("SpeedoHundreds", 0, Misc.getdigit(speed_mph, 2))
+  RailWorks.SetControlValue("SpeedoTens", 0, Misc.getdigit(speed_mph, 1))
+  RailWorks.SetControlValue("SpeedoUnits", 0, Misc.getdigit(speed_mph, 0))
 
-  local bp_psi = round(RailWorks.GetControlValue("AirBrakePipePressurePSI", 0))
-  RailWorks.SetControlValue("PipeHundreds", 0, getdigit(bp_psi, 2))
-  RailWorks.SetControlValue("PipeTens", 0, getdigit(bp_psi, 1))
-  RailWorks.SetControlValue("PipeUnits", 0, getdigit(bp_psi, 0))
+  local bp_psi = Misc.round(RailWorks.GetControlValue("AirBrakePipePressurePSI",
+                                                      0))
+  RailWorks.SetControlValue("PipeHundreds", 0, Misc.getdigit(bp_psi, 2))
+  RailWorks.SetControlValue("PipeTens", 0, Misc.getdigit(bp_psi, 1))
+  RailWorks.SetControlValue("PipeUnits", 0, Misc.getdigit(bp_psi, 0))
 
-  local bc_psi = round(RailWorks.GetControlValue(
-                         "TrainBrakeCylinderPressurePSI", 0))
-  RailWorks.SetControlValue("CylinderHundreds", 0, getdigit(bc_psi, 2))
-  RailWorks.SetControlValue("CylinderTens", 0, getdigit(bc_psi, 1))
-  RailWorks.SetControlValue("CylinderUnits", 0, getdigit(bc_psi, 0))
+  local bc_psi = Misc.round(RailWorks.GetControlValue(
+                              "TrainBrakeCylinderPressurePSI", 0))
+  RailWorks.SetControlValue("CylinderHundreds", 0, Misc.getdigit(bc_psi, 2))
+  RailWorks.SetControlValue("CylinderTens", 0, Misc.getdigit(bc_psi, 1))
+  RailWorks.SetControlValue("CylinderUnits", 0, Misc.getdigit(bc_psi, 0))
 end
 
 local function setcutin()
@@ -170,45 +158,41 @@ local function setcutin()
 end
 
 local function setadu()
+  local aspect = adu:getaspect()
+  local n, l, m, r, s
+  if aspect == MetroNorthAdu.aspect.stop then
+    n, l, m, r, s = 0, 0, 0, 0, 1
+  elseif aspect == MetroNorthAdu.aspect.restrict then
+    n, l, m, r, s = 0, 0, 0, 1, 0
+  elseif aspect == MetroNorthAdu.aspect.medium then
+    n, l, m, r, s = 0, 0, 1, 0, 0
+  elseif aspect == MetroNorthAdu.aspect.limited then
+    n, l, m, r, s = 0, 1, 0, 0, 0
+  elseif aspect == MetroNorthAdu.aspect.normal then
+    n, l, m, r, s = 1, 0, 0, 0, 0
+  end
+  RailWorks.SetControlValue("SigN", 0, n)
+  RailWorks.SetControlValue("SigL", 0, l)
+  RailWorks.SetControlValue("SigM", 0, m)
+  RailWorks.SetControlValue("SigR", 0, r)
+  RailWorks.SetControlValue("SigS", 0, s)
+
   local signalspeed_mph = adu:getsignalspeed_mph()
-  do
-    local aspect = adu:getaspect()
-    local n, l, m, r, s
-    if aspect == MetroNorthAdu.aspect.stop then
-      n, l, m, r, s = 0, 0, 0, 0, 1
-    elseif aspect == MetroNorthAdu.aspect.restrict then
-      n, l, m, r, s = 0, 0, 0, 1, 0
-    elseif aspect == MetroNorthAdu.aspect.medium then
-      n, l, m, r, s = 0, 0, 1, 0, 0
-    elseif aspect == MetroNorthAdu.aspect.limited then
-      n, l, m, r, s = 0, 1, 0, 0, 0
-    elseif aspect == MetroNorthAdu.aspect.normal then
-      n, l, m, r, s = 1, 0, 0, 0, 0
-    end
-    RailWorks.SetControlValue("SigN", 0, n)
-    RailWorks.SetControlValue("SigL", 0, l)
-    RailWorks.SetControlValue("SigM", 0, m)
-    RailWorks.SetControlValue("SigR", 0, r)
-    RailWorks.SetControlValue("SigS", 0, s)
-  end
-  if signalspeed_mph == nil then
-    RailWorks.SetControlValue("SignalSpeed", 0, 1) -- blank
+  RailWorks.SetControlValue("SignalSpeed", 0,
+                            signalspeed_mph == nil and 1 or signalspeed_mph)
+
+  local civilspeed_mph = adu:getcivilspeed_mph()
+  if civilspeed_mph == nil then
+    RailWorks.SetControlValue("TrackSpeedHundreds", 0, 0)
+    RailWorks.SetControlValue("TrackSpeedTens", 0, -1)
+    RailWorks.SetControlValue("TrackSpeedUnits", 0, -1)
   else
-    RailWorks.SetControlValue("SignalSpeed", 0, signalspeed_mph)
-  end
-  do
-    local civilspeed_mph = adu:getcivilspeed_mph()
-    if civilspeed_mph == nil then
-      RailWorks.SetControlValue("TrackSpeedHundreds", 0, 0)
-      RailWorks.SetControlValue("TrackSpeedTens", 0, -1)
-      RailWorks.SetControlValue("TrackSpeedUnits", 0, -1)
-    else
-      RailWorks.SetControlValue("TrackSpeedHundreds", 0,
-                                getdigit(civilspeed_mph, 2))
-      RailWorks.SetControlValue("TrackSpeedTens", 0, getdigit(civilspeed_mph, 1))
-      RailWorks.SetControlValue("TrackSpeedUnits", 0,
-                                getdigit(civilspeed_mph, 0))
-    end
+    RailWorks.SetControlValue("TrackSpeedHundreds", 0,
+                              Misc.getdigit(civilspeed_mph, 2))
+    RailWorks.SetControlValue("TrackSpeedTens", 0,
+                              Misc.getdigit(civilspeed_mph, 1))
+    RailWorks.SetControlValue("TrackSpeedUnits", 0,
+                              Misc.getdigit(civilspeed_mph, 0))
   end
 end
 
@@ -220,10 +204,8 @@ local function setpantospark()
 end
 
 local function setinteriorlights()
-  do
-    local cab = RailWorks.GetControlValue("Cablight", 0)
-    Call("Cablight:Activate", cab)
-  end
+  local cab = RailWorks.GetControlValue("Cablight", 0)
+  Call("Cablight:Activate", cab)
 end
 
 local function setditchlights()
@@ -250,7 +232,7 @@ local function updateplayer()
   setditchlights()
 end
 
-local function updateai()
+local function updatenonplayer()
   anysched:update()
 
   setpantospark()
@@ -262,7 +244,7 @@ Update = Misc.wraperrors(function(_)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer()
   else
-    updateai()
+    updatenonplayer()
   end
 end)
 
