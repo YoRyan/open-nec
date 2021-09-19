@@ -281,7 +281,18 @@ local function setinteriorlights()
   Call("HallLight_002:Activate", Misc.intbool(hep))
 end
 
-local function setditchlights()
+local function setexteriorlights()
+  local brakesapplied = RailWorks.GetControlValue(
+                          "TrainBrakeCylinderPressurePSI", 0) > 50
+  RailWorks.ActivateNode("SL_green", not brakesapplied)
+  RailWorks.ActivateNode("SL_yellow", brakesapplied)
+  RailWorks.ActivateNode("SL_blue",
+                         RailWorks.GetControlValue("HandBrake", 0) == 1)
+  RailWorks.ActivateNode("SL_doors_L", RailWorks.GetControlValue(
+                           "DoorsOpenCloseLeft", 0) == 1)
+  RailWorks.ActivateNode("SL_doors_R", RailWorks.GetControlValue(
+                           "DoorsOpenCloseRight", 0) == 1)
+
   local show = state.headlights > 0.5 and state.headlights < 1.5
   RailWorks.ActivateNode("left_ditch_light", show)
   RailWorks.ActivateNode("right_ditch_light", show)
@@ -304,7 +315,7 @@ local function updateplayer()
   setadu()
   setpanto()
   setinteriorlights()
-  setditchlights()
+  setexteriorlights()
 end
 
 local function updatenonplayer()
@@ -314,7 +325,7 @@ local function updatenonplayer()
 
   setpanto()
   setinteriorlights()
-  setditchlights()
+  setexteriorlights()
 end
 
 Update = Misc.wraperrors(function(_)
