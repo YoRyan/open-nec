@@ -1,29 +1,37 @@
 -- Engine script for the Kawasaki M8 operated by Metro-North.
 --
+-- @include RollingStock/PowerSupply/Electrification.lua
+-- @include RollingStock/PowerSupply/PowerSupply.lua
 -- @include RollingStock/Spark.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/MetroNorth.lua
 -- @include SafetySystems/Alerter.lua
 -- @include SafetySystems/Atc.lua
 -- @include Signals/CabSignal.lua
+-- @include Animation.lua
 -- @include Flash.lua
 -- @include Iterator.lua
 -- @include Misc.lua
 -- @include RailWorks.lua
 -- @include Scheduler.lua
 -- @include Units.lua
+local powermode = {overhead = 1, thirdrail = 2}
+
 local playersched, anysched
 local cabsig
 local atc
 local acses
 local adu
 local alerter
+local power
+local pantoanim
 local alarmonoff
 local spark
 local state = {
-  throttle = 0,
+  mcontroller = 0,
   acknowledge = false,
   headlights = 0,
+  energyon = false,
 
   speed_mps = 0,
   acceleration_mps2 = 0,
@@ -81,6 +89,47 @@ Initialise = Misc.wraperrors(function()
   }
   alerter:start()
 
+  local isthirdrail = string.sub(RailWorks.GetRVNumber(), 1, 1) == "T"
+  power = PowerSupply:new{
+    scheduler = anysched,
+    modecontrol = "Panto",
+    -- Combine AC panto down/up into a single mode.
+    modereadfn = function(v) return math.max(v, 1) end,
+    getcantransition = function() return state.mcontroller <= 0 end,
+    modes = {
+      [powermode.overhead] = function(elec)
+        return state.energyon and pantoanim:getposition() == 1 and
+                 elec:isavailable(Electrification.type.overhead)
+      end,
+      [powermode.thirdrail] = function(elec)
+        return state.energyon and
+                 elec:isavailable(Electrification.type.thirdrail)
+      end
+    },
+    getautomode = function(cp)
+      if cp == Electrification.autochangepoint.ai_to_overhead then
+        return powermode.overhead
+      elseif cp == Electrification.autochangepoint.ai_to_thirdrail then
+        return powermode.thirdrail
+      end
+    end,
+    oninit = function()
+      if power:getmode() == powermode.overhead then
+        -- Raise the pantograph if initializing in AC mode.
+        RailWorks.SetControlValue("Panto", 0, 1)
+        pantoanim:setposition(1)
+      end
+    end
+  }
+  power:setavailable(Electrification.type.overhead, not isthirdrail)
+  power:setavailable(Electrification.type.thirdrail, isthirdrail)
+
+  pantoanim = Animation:new{
+    scheduler = anysched,
+    animation = "panto",
+    duration_s = 2
+  }
+
   -- Modulate the speed reduction alert sound, which normally plays just once.
   alarmonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
 
@@ -90,13 +139,14 @@ Initialise = Misc.wraperrors(function()
 end)
 
 local function readcontrols()
-  local throttle = RailWorks.GetControlValue("ThrottleAndBrake", 0)
-  local change = throttle ~= state.throttle
-  state.throttle = throttle
+  local mcontroller = RailWorks.GetControlValue("ThrottleAndBrake", 0)
+  local change = mcontroller ~= state.mcontroller
+  state.mcontroller = mcontroller
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
   if state.acknowledge or change then alerter:acknowledge() end
 
   state.headlights = RailWorks.GetControlValue("Headlights", 0)
+  state.energyon = RailWorks.GetControlValue("PantographControl", 0) == 1
 end
 
 local function readlocostate()
@@ -112,12 +162,14 @@ local function readlocostate()
 end
 
 local function writelocostate()
+  local haspower = power:haspower()
+  local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
   local throttle, brake
-  if alerter:ispenalty() or atc:ispenalty() or acses:ispenalty() then
+  if penalty then
     throttle, brake = 0, 0.85
   else
-    throttle = math.max(state.throttle, 0)
-    brake = math.max(-state.throttle, 0)
+    throttle = haspower and math.max(state.mcontroller, 0) or 0
+    brake = math.max(-state.mcontroller, 0)
   end
   RailWorks.SetControlValue("Regulator", 0, throttle)
   RailWorks.SetControlValue("TrainBrakeControl", 0, brake)
@@ -148,6 +200,17 @@ local function setdrivescreen()
   RailWorks.SetControlValue("CylinderHundreds", 0, Misc.getdigit(bc_psi, 2))
   RailWorks.SetControlValue("CylinderTens", 0, Misc.getdigit(bc_psi, 1))
   RailWorks.SetControlValue("CylinderUnits", 0, Misc.getdigit(bc_psi, 0))
+
+  local _, after, _ = power:gettransition()
+  local pmode = after or power:getmode()
+  local haspower = power:haspower()
+  if pmode == powermode.overhead then
+    RailWorks.SetControlValue("PowerAC", 0, haspower and 2 or 1)
+    RailWorks.SetControlValue("PowerDC", 0, 0)
+  else
+    RailWorks.SetControlValue("PowerAC", 0, 0)
+    RailWorks.SetControlValue("PowerDC", 0, haspower and 2 or 1)
+  end
 end
 
 local function setcutin()
@@ -196,8 +259,10 @@ local function setadu()
   end
 end
 
-local function setpantospark()
-  local contact = false
+local function setpanto()
+  pantoanim:setanimatedstate(RailWorks.GetControlValue("Panto", 0) == 1)
+
+  local contact = pantoanim:getposition() == 1
   local isspark = contact and spark:isspark()
   RailWorks.ActivateNode("panto_spark", isspark)
   Call("Spark:Activate", Misc.intbool(isspark))
@@ -206,6 +271,14 @@ end
 local function setinteriorlights()
   local cab = RailWorks.GetControlValue("Cablight", 0)
   Call("Cablight:Activate", cab)
+
+  local hep = power:haspower()
+  RailWorks.ActivateNode("round_lights_off", not hep)
+  RailWorks.ActivateNode("round_lights_on", hep)
+  for i = 1, 9 do Call("PVLight_00" .. i .. ":Activate", Misc.intbool(hep)) end
+  for i = 10, 12 do Call("PVLight_0" .. i .. ":Activate", Misc.intbool(hep)) end
+  Call("HallLight_001:Activate", Misc.intbool(hep))
+  Call("HallLight_002:Activate", Misc.intbool(hep))
 end
 
 local function setditchlights()
@@ -222,20 +295,24 @@ local function updateplayer()
 
   playersched:update()
   anysched:update()
+  power:update()
+  pantoanim:update()
 
   writelocostate()
   setdrivescreen()
   setcutin()
   setadu()
-  setpantospark()
+  setpanto()
   setinteriorlights()
   setditchlights()
 end
 
 local function updatenonplayer()
   anysched:update()
+  power:update()
+  pantoanim:update()
 
-  setpantospark()
+  setpanto()
   setinteriorlights()
   setditchlights()
 end
@@ -251,6 +328,7 @@ end)
 OnControlValueChange = RailWorks.SetControlValue
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
+  power:receivemessage(message)
   cabsig:receivemessage(message)
 end)
 
