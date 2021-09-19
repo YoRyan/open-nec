@@ -13,7 +13,7 @@
 -- @include RailWorks.lua
 -- @include Scheduler.lua
 -- @include Units.lua
-local messageid = {locationprobe = 10100, brakesapplied = 10101}
+local messageid = {locationprobe = 10100}
 
 local playersched, anysched
 local cabsig
@@ -37,8 +37,7 @@ local state = {
   speedlimits = {},
   restrictsignals = {},
 
-  lasthorntime_s = nil,
-  brakesapplied = false
+  lasthorntime_s = nil
 }
 
 Initialise = Misc.wraperrors(function()
@@ -178,13 +177,6 @@ local function writelocostate()
   RailWorks.SetControlValue("ACSES_AlertDecrease", 0,
                             Misc.intbool(decreaseonoff:ison()))
   RailWorks.SetControlValue("ACSES_AlertIncrease", 0, Misc.intbool(safetyalert))
-
-  local airbrakes = psi < 95
-  state.brakesapplied = airbrakes
-  RailWorks.Engine_SendConsistMessage(messageid.brakesapplied,
-                                      tostring(airbrakes), 0)
-  RailWorks.Engine_SendConsistMessage(messageid.brakesapplied,
-                                      tostring(airbrakes), 1)
 end
 
 local function setpanto()
@@ -235,9 +227,11 @@ local function setlights()
   local stepslight = RailWorks.GetControlValue("StepsLight", 0)
   for i = 1, 4 do Call("StepLight_0" .. i .. ":Activate", stepslight) end
 
+  local brakesapplied = RailWorks.GetControlValue(
+                          "TrainBrakeCylinderPressurePSI", 0) > 50
   RailWorks.ActivateNode("st_red", false) -- unknown function
-  RailWorks.ActivateNode("st_green", not state.brakesapplied)
-  RailWorks.ActivateNode("st_yellow", state.brakesapplied)
+  RailWorks.ActivateNode("st_green", not brakesapplied)
+  RailWorks.ActivateNode("st_yellow", brakesapplied)
 
   RailWorks.ActivateNode("left_door_light", RailWorks.GetControlValue(
                            "DoorsOpenCloseLeft", 0) == 1)
@@ -330,11 +324,7 @@ OnCustomSignalMessage = Misc.wraperrors(function(message)
 end)
 
 OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
-  if message == messageid.locationprobe then
-    return
-  elseif message == messageid.brakesapplied then
-    state.brakesapplied = argument == "true"
-  end
+  if message == messageid.locationprobe then return end
 
   RailWorks.Engine_SendConsistMessage(message, argument, direction)
 end)
