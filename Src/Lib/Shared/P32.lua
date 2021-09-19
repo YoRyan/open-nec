@@ -120,7 +120,6 @@ Initialise = Misc.wraperrors(function()
     end
   }
   power:setavailable(Electrification.type.thirdrail, iselectric)
-  power:setmode(iselectric and powermode.thirdrail or powermode.diesel)
 
   local ditchflash_s = 1
   ditchflasher = Flash:new{
