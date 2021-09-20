@@ -33,7 +33,6 @@ local state = {
   mcontroller = 0,
   acknowledge = false,
   headlights = 0,
-  energyon = false,
 
   speed_mps = 0,
   acceleration_mps2 = 0,
@@ -100,12 +99,13 @@ Initialise = Misc.wraperrors(function()
     getcantransition = function() return state.mcontroller <= 0 end,
     modes = {
       [powermode.overhead] = function(elec)
-        return state.energyon and pantoanim:getposition() == 1 and
+        local energyon = RailWorks.GetControlValue("PantographControl", 0) == 1
+        return energyon and pantoanim:getposition() == 1 and
                  elec:isavailable(Electrification.type.overhead)
       end,
       [powermode.thirdrail] = function(elec)
-        return state.energyon and
-                 elec:isavailable(Electrification.type.thirdrail)
+        local energyon = RailWorks.GetControlValue("PantographControl", 0) == 1
+        return energyon and elec:isavailable(Electrification.type.thirdrail)
       end
     },
     getautomode = function(cp)
@@ -154,7 +154,6 @@ local function readcontrols()
   if state.acknowledge or change then alerter:acknowledge() end
 
   state.headlights = RailWorks.GetControlValue("Headlights", 0)
-  state.energyon = RailWorks.GetControlValue("PantographControl", 0) == 1
 end
 
 local function readlocostate()
