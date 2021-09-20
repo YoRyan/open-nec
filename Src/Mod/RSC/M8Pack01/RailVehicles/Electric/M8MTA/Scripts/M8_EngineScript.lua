@@ -16,6 +16,7 @@
 -- @include Scheduler.lua
 -- @include Units.lua
 local powermode = {overhead = 1, thirdrail = 2}
+local messageid = {locationprobe = 10100}
 
 local playersched, anysched
 local cabsig
@@ -25,6 +26,7 @@ local adu
 local alerter
 local power
 local pantoanim
+local gateanim
 local alarmonoff
 local spark
 local state = {
@@ -128,6 +130,12 @@ Initialise = Misc.wraperrors(function()
     scheduler = anysched,
     animation = "panto",
     duration_s = 2
+  }
+
+  gateanim = Animation:new{
+    scheduler = anysched,
+    animation = "ribbons",
+    duration_s = 1
   }
 
   -- Modulate the speed reduction alert sound, which normally plays just once.
@@ -268,6 +276,12 @@ local function setpanto()
   Call("Spark:Activate", Misc.intbool(isspark))
 end
 
+local function setgate()
+  local iscoupled = RailWorks.Engine_SendConsistMessage(messageid.locationprobe,
+                                                        "", 0)
+  gateanim:setanimatedstate(iscoupled)
+end
+
 local function setinteriorlights()
   local cab = RailWorks.GetControlValue("Cablight", 0)
   Call("Cablight:Activate", cab)
@@ -308,12 +322,14 @@ local function updateplayer()
   anysched:update()
   power:update()
   pantoanim:update()
+  gateanim:update()
 
   writelocostate()
   setdrivescreen()
   setcutin()
   setadu()
   setpanto()
+  setgate()
   setinteriorlights()
   setexteriorlights()
 end
@@ -322,8 +338,10 @@ local function updatenonplayer()
   anysched:update()
   power:update()
   pantoanim:update()
+  gateanim:update()
 
   setpanto()
+  setgate()
   setinteriorlights()
   setexteriorlights()
 end
@@ -343,4 +361,8 @@ OnCustomSignalMessage = Misc.wraperrors(function(message)
   cabsig:receivemessage(message)
 end)
 
-OnConsistMessage = RailWorks.Engine_SendConsistMessage
+OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
+  if message == messageid.locationprobe then return end
+
+  RailWorks.Engine_SendConsistMessage(message, argument, direction)
+end)
