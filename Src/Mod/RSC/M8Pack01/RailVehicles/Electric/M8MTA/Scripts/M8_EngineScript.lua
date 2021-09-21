@@ -2,6 +2,7 @@
 --
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
+-- @include RollingStock/InterVehicle.lua
 -- @include RollingStock/Spark.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/MetroNorth.lua
@@ -16,7 +17,7 @@
 -- @include Scheduler.lua
 -- @include Units.lua
 local powermode = {overhead = 1, thirdrail = 2}
-local messageid = {locationprobe = 10100}
+local messageid = {locationprobe = 10100, intervehicle = 10101}
 
 local playersched, anysched
 local cabsig
@@ -25,6 +26,7 @@ local acses
 local adu
 local alerter
 local power
+local ivc
 local pantoanim
 local gateanim
 local alarmonoff
@@ -126,6 +128,11 @@ Initialise = Misc.wraperrors(function()
   power:setavailable(Electrification.type.overhead, not isthirdrail)
   power:setavailable(Electrification.type.thirdrail, isthirdrail)
 
+  ivc = InterVehicle:new{
+    scheduler = anysched,
+    messageid = messageid.intervehicle
+  }
+
   pantoanim = Animation:new{
     scheduler = anysched,
     animation = "panto",
@@ -190,6 +197,29 @@ local function writelocostate()
   RailWorks.SetControlValue("AWS", 0, Misc.intbool(alerter:isalarm()))
 end
 
+local function sendconsiststatus()
+  local amps = RailWorks.GetControlValue("Ammeter", 0)
+  local motors
+  if math.abs(amps) < 30 then
+    motors = 0
+  elseif amps > 0 then
+    motors = 1
+  else
+    motors = -1
+  end
+
+  local doors
+  if RailWorks.GetControlValue("DoorsOpenCloseLeft", 0) == 1 then
+    doors = -1
+  elseif RailWorks.GetControlValue("DoorsOpenCloseRight", 0) == 1 then
+    doors = 1
+  else
+    doors = 0
+  end
+
+  ivc:setmessage(motors .. ":" .. doors)
+end
+
 local function setdrivescreen()
   local speed_mph = Misc.round(state.speed_mps * Units.mps.tomph)
   RailWorks.SetControlValue("SpeedoHundreds", 0, Misc.getdigit(speed_mph, 2))
@@ -217,6 +247,17 @@ local function setdrivescreen()
   else
     RailWorks.SetControlValue("PowerAC", 0, 0)
     RailWorks.SetControlValue("PowerDC", 0, haspower and 2 or 1)
+  end
+
+  local nbehind = ivc:getnbehind()
+  RailWorks.SetControlValue("Cars", 0, nbehind)
+  for i = 1, nbehind do
+    local _, _, motorsstr, doorsstr = string.find(ivc:getmessagebehind(i),
+                                                  "(-?%d+):(-?%d+)")
+    local motors = tonumber(motorsstr) or 0
+    RailWorks.SetControlValue("Motor_" .. (i + 1), 0, motors)
+    local doors = tonumber(doorsstr) or 0
+    RailWorks.SetControlValue("Doors_" .. (i + 1), 0, doors)
   end
 end
 
@@ -320,10 +361,12 @@ local function updateplayer()
   playersched:update()
   anysched:update()
   power:update()
+  ivc:update()
   pantoanim:update()
   gateanim:update()
 
   writelocostate()
+  sendconsiststatus()
   setdrivescreen()
   setcutin()
   setadu()
@@ -333,7 +376,21 @@ local function updateplayer()
   setexteriorlights()
 end
 
-local function updatenonplayer()
+local function updatehelper()
+  anysched:update()
+  power:update()
+  ivc:update()
+  pantoanim:update()
+  gateanim:update()
+
+  sendconsiststatus()
+  setpanto()
+  setgate()
+  setinteriorlights()
+  setexteriorlights()
+end
+
+local function updateai()
   anysched:update()
   power:update()
   pantoanim:update()
@@ -348,8 +405,10 @@ end
 Update = Misc.wraperrors(function(_)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer()
+  elseif RailWorks.GetIsPlayer() then
+    updatehelper()
   else
-    updatenonplayer()
+    updateai()
   end
 end)
 
@@ -362,6 +421,7 @@ end)
 
 OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
   if message == messageid.locationprobe then return end
+  if ivc:receivemessage(message, argument, direction) then return end
 
   RailWorks.Engine_SendConsistMessage(message, argument, direction)
 end)
