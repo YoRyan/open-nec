@@ -79,7 +79,7 @@ function P:setmode(newmode)
   setcv(self, newmode)
 end
 
--- From the main coroutine, set the presence of a type of electrification.
+-- Set the presence of a type of electrification.
 function P:setavailable(type, present) self._elec:setavailable(type, present) end
 
 -- From the main coroutine, get information about the current mode transition,
@@ -95,9 +95,9 @@ function P:gettransition()
   end
 end
 
--- Determine whether or not the locomotive has power available. This is true
--- when the locomotive is not in a transition phase and the selected power
--- mode is available for use.
+-- From the main coroutine, determine whether or not the locomotive has power
+-- available. This is true when the locomotive is not in a transition phase and
+-- the selected power mode is available for use.
 function P:haspower()
   if self._currentmode == nil then
     return true
