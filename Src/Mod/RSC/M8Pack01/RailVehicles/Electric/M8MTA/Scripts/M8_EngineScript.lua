@@ -264,15 +264,18 @@ local function setdrivescreen()
     RailWorks.SetControlValue("PowerDC", 0, haspower and 2 or 1)
   end
 
-  local nbehind = ivc:getnbehind()
-  RailWorks.SetControlValue("Cars", 0, nbehind)
-  for i = 1, nbehind do
-    local _, _, motorsstr, doorsstr = string.find(ivc:getmessagebehind(i),
-                                                  "(-?%d+):(-?%d+)")
-    local motors = tonumber(motorsstr) or 0
-    RailWorks.SetControlValue("Motor_" .. (i + 1), 0, motors)
-    local doors = tonumber(doorsstr) or 0
-    RailWorks.SetControlValue("Doors_" .. (i + 1), 0, doors)
+  -- Impose a startup delay so that the car displays don't flicker.
+  if not playersched:isstartup() then
+    local nbehind = ivc:getnbehind()
+    RailWorks.SetControlValue("Cars", 0, nbehind)
+    for i = 1, nbehind do
+      local _, _, motorsstr, doorsstr = string.find(ivc:getmessagebehind(i),
+                                                    "(-?%d+):(-?%d+)")
+      local motors = tonumber(motorsstr) or 0
+      RailWorks.SetControlValue("Motor_" .. (i + 1), 0, motors)
+      local doors = tonumber(doorsstr) or 0
+      RailWorks.SetControlValue("Doors_" .. (i + 1), 0, doors)
+    end
   end
 end
 
