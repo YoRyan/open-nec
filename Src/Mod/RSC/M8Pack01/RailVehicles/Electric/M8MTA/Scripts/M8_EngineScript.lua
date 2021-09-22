@@ -187,7 +187,10 @@ local function writelocostate()
   end
   RailWorks.SetControlValue("Regulator", 0, throttle)
   RailWorks.SetControlValue("TrainBrakeControl", 0, brake)
-  -- TODO: Also set DynamicBrake using DTG's algorithm.
+
+  local psi = RailWorks.GetControlValue("AirBrakePipePressurePSI", 0)
+  RailWorks.SetControlValue("DynamicBrake", 0,
+                            math.max((150 - psi) * 0.01428, 0))
 
   alarmonoff:setflashstate(atc:isalarm() or acses:isalarm())
   RailWorks.SetControlValue("SpeedReductionAlert", 0,
