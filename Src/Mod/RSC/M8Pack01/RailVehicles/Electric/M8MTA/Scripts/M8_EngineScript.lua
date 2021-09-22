@@ -41,7 +41,9 @@ local state = {
   trackspeed_mps = 0,
   consistlength_m = 0,
   speedlimits = {},
-  restrictsignals = {}
+  restrictsignals = {},
+
+  lastmotorclock_s = nil
 }
 
 Initialise = Misc.wraperrors(function()
@@ -223,6 +225,16 @@ local function sendconsiststatus()
   ivc:setmessage(motors .. ":" .. doors)
 end
 
+local function setmotorsounds()
+  local now = playersched:clock()
+  local dt = state.lastmotorclock_s == nil and 0 or now - state.lastmotorclock_s
+  state.lastmotorclock_s = now
+  local dconsound = (power:haspower() and 1 or -1) * dt / 5
+  RailWorks.SetControlValue("FanSound", 0, RailWorks.GetControlValue("FanSound",
+                                                                     0) +
+                              dconsound)
+end
+
 local function setdrivescreen()
   local speed_mph = Misc.round(state.speed_mps * Units.mps.tomph)
   RailWorks.SetControlValue("SpeedoHundreds", 0, Misc.getdigit(speed_mph, 2))
@@ -370,6 +382,7 @@ local function updateplayer()
 
   writelocostate()
   sendconsiststatus()
+  setmotorsounds()
   setdrivescreen()
   setcutin()
   setadu()
