@@ -253,8 +253,8 @@ local function setplayersounds()
   local acdcspeedmin = 0.23
 
   local aspeed_mph = math.abs(RailWorks.GetSpeed()) * Units.mps.tomph
-  local throttle = math.max(0, state.mcontroller)
-  local brake = math.max(0, -state.mcontroller)
+  local throttle = RailWorks.GetControlValue("Regulator", 0)
+  local brake = RailWorks.GetControlValue("TrainBrakeControl", 0)
   local v1 = math.min(1, throttle * 3)
   local v2 = math.max(v1, math.max(0, math.min(1, aspeed_mph * 3 - 4.02336)) *
                         math.min(1, brake * 5))
