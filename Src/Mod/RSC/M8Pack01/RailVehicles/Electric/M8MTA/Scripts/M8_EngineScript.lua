@@ -17,7 +17,14 @@
 -- @include Scheduler.lua
 -- @include Units.lua
 local powermode = {overhead = 1, thirdrail = 2}
-local messageid = {locationprobe = 10100, intervehicle = 10101}
+local messageid = {
+  locationprobe = 10100,
+  intervehicle = 10101,
+  motorlowpitch = 10102,
+  motorhighpitch = 10103,
+  motorvolume = 10104,
+  compressorstate = 10105
+}
 
 local playersched, anysched
 local cabsig
@@ -43,7 +50,9 @@ local state = {
   speedlimits = {},
   restrictsignals = {},
 
-  lastmotorclock_s = nil
+  lastmotorclock_s = nil,
+  lastmotorvol = 0,
+  lastmotorpitch = 0
 }
 
 Initialise = Misc.wraperrors(function()
@@ -225,7 +234,7 @@ local function sendconsiststatus()
   ivc:setmessage(motors .. ":" .. doors)
 end
 
-local function setmotorsounds()
+local function setplayersounds()
   local now = playersched:clock()
   local dt = state.lastmotorclock_s == nil and 0 or now - state.lastmotorclock_s
   state.lastmotorclock_s = now
@@ -233,6 +242,76 @@ local function setmotorsounds()
   RailWorks.SetControlValue("FanSound", 0, RailWorks.GetControlValue("FanSound",
                                                                      0) +
                               dconsound)
+
+  -- motor sound algorithm from DTG
+  local speedcurvemult, lowpitch_speedcurvemult = 0.07, 0.05
+  local acoffset, acspeedmax = -0.3, 0.75
+  local dcoffset, dcspeedmax = 0.1, 1
+  local dcspeedcurveup_pitch, dcspeedcurveup_mult = 0.6, 0.4
+  local vol_incdecmax, pitch_incdecmax = 4, 1
+  local acdcspeedmin = 0.23
+
+  local aspeed_mph = math.abs(RailWorks.GetSpeed()) * Units.mps.tomph
+  local throttle = math.max(0, state.mcontroller)
+  local brake = math.max(0, -state.mcontroller)
+  local v1 = math.min(1, throttle * 3)
+  local v2 = math.max(v1, math.max(0, math.min(1, aspeed_mph * 3 - 4.02336)) *
+                        math.min(1, brake * 5))
+  local function clampincdec(last, current, incdecmax)
+    if current > last then
+      return math.min(current, last + incdecmax * dt)
+    elseif current < last then
+      return math.max(current, last - incdecmax * dt)
+    else
+      return current
+    end
+  end
+
+  local pitch
+  if power:getmode() == powermode.thirdrail then
+    pitch = speedcurvemult * aspeed_mph * v2 + dcoffset
+    if pitch > dcspeedcurveup_pitch and v1 == v2 then
+      pitch = pitch + (pitch - dcspeedcurveup_pitch) * dcspeedcurveup_mult
+    end
+    pitch = math.min(pitch, dcspeedmax)
+  else
+    pitch = aspeed_mph * speedcurvemult * v2 + acoffset
+    pitch = math.min(pitch, acspeedmax)
+  end
+  pitch = clampincdec(state.lastmotorpitch, pitch, pitch_incdecmax)
+  state.lastmotorpitch = pitch
+
+  local volume = (pitch > acdcspeedmin + 0.01) and 1 or v2
+  volume = clampincdec(state.lastmotorvol, volume, vol_incdecmax)
+  state.lastmotorvol = volume
+
+  local lowpitch = aspeed_mph * lowpitch_speedcurvemult
+  RailWorks.SetControlValue("MotorLowPitch", 0, lowpitch)
+  RailWorks.Engine_SendConsistMessage(messageid.motorlowpitch, lowpitch, 0)
+  RailWorks.Engine_SendConsistMessage(messageid.motorlowpitch, lowpitch, 1)
+
+  RailWorks.SetControlValue("MotorHighPitch", 0, pitch)
+  RailWorks.Engine_SendConsistMessage(messageid.motorhighpitch, pitch, 0)
+  RailWorks.Engine_SendConsistMessage(messageid.motorhighpitch, pitch, 1)
+
+  RailWorks.SetControlValue("MotorVolume", 0, volume)
+  RailWorks.Engine_SendConsistMessage(messageid.motorvolume, volume, 0)
+  RailWorks.Engine_SendConsistMessage(messageid.motorvolume, volume, 1)
+
+  local cstate = RailWorks.GetControlValue("CompressorState", 0)
+  RailWorks.Engine_SendConsistMessage(messageid.compressorstate, cstate, 0)
+  RailWorks.Engine_SendConsistMessage(messageid.compressorstate, cstate, 1)
+end
+
+local function setaisounds()
+  -- motor sound algorithm from DTG
+  local speedcurvemult = 0.07
+  local aspeed_mph = math.abs(RailWorks.GetSpeed()) * Units.mps.tomph
+  RailWorks.SetControlValue("MotorLowPitch", 0, aspeed_mph)
+  RailWorks.SetControlValue("MotorHighPitch", 0, aspeed_mph * speedcurvemult)
+
+  local aaccel_mps2 = math.abs(RailWorks.GetAcceleration())
+  RailWorks.SetControlValue("MotorVolume", 0, math.min(aaccel_mps2 * 5, 1))
 end
 
 local function setdrivescreen()
@@ -385,7 +464,7 @@ local function updateplayer()
 
   writelocostate()
   sendconsiststatus()
-  setmotorsounds()
+  setplayersounds()
   setdrivescreen()
   setcutin()
   setadu()
@@ -415,6 +494,7 @@ local function updateai()
   pantoanim:update()
   gateanim:update()
 
+  setaisounds()
   setpanto()
   setgate()
   setinteriorlights()
@@ -439,8 +519,19 @@ OnCustomSignalMessage = Misc.wraperrors(function(message)
 end)
 
 OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
-  if message == messageid.locationprobe then return end
-  if ivc:receivemessage(message, argument, direction) then return end
+  if ivc:receivemessage(message, argument, direction) then
+    return
+  elseif message == messageid.locationprobe then
+    return
+  elseif message == messageid.motorlowpitch then
+    RailWorks.SetControlValue("MotorLowPitch", 0, tonumber(argument))
+  elseif message == messageid.motorhighpitch then
+    RailWorks.SetControlValue("MotorHighPitch", 0, tonumber(argument))
+  elseif message == messageid.motorvolume then
+    RailWorks.SetControlValue("MotorVolume", 0, tonumber(argument))
+  elseif message == messageid.compressorstate then
+    RailWorks.SetControlValue("CompressorState", 0, tonumber(argument))
+  end
 
   RailWorks.Engine_SendConsistMessage(message, argument, direction)
 end)
