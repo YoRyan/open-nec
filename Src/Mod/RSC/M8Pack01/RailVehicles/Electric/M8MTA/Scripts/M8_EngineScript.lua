@@ -129,15 +129,16 @@ Initialise = Misc.wraperrors(function()
       end
     end,
     oninit = function()
-      if power:getmode() == powermode.overhead then
-        -- Raise the pantograph if initializing in AC mode.
-        RailWorks.SetControlValue("Panto", 0, 1)
-        pantoanim:setposition(1)
-      end
+      power:setmode(isthirdrail and powermode.thirdrail or powermode.overhead)
+      -- power select switch
+      RailWorks.SetControlValue("Panto", 0, isthirdrail and 2 or 1)
+      -- pantograph position
+      pantoanim:setposition(isthirdrail and 0 or 1)
+
+      power:setavailable(Electrification.type.overhead, not isthirdrail)
+      power:setavailable(Electrification.type.thirdrail, isthirdrail)
     end
   }
-  power:setavailable(Electrification.type.overhead, not isthirdrail)
-  power:setavailable(Electrification.type.thirdrail, isthirdrail)
 
   ivc = InterVehicle:new{
     scheduler = anysched,
