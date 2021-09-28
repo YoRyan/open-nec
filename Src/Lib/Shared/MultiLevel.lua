@@ -32,7 +32,6 @@ local doors
 local leftdoorsanim
 local rightdoorsanim
 local alarmonoff
-local ditchflasher
 local state = {
   throttle = 0,
   train_brake = 0,
@@ -45,9 +44,7 @@ local state = {
   trackspeed_mps = 0,
   consistlength_m = 0,
   speedlimits = {},
-  restrictsignals = {},
-
-  lasthorntime_s = nil
+  restrictsignals = {}
 }
 
 local messageid = {destination = 10100}
@@ -171,13 +168,6 @@ Initialise = Misc.wraperrors(function()
   -- Modulate the speed reduction alert sound, which normally plays just once.
   alarmonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
 
-  local ditchflash_s = 1
-  ditchflasher = Flash:new{
-    scheduler = playersched,
-    off_s = ditchflash_s,
-    on_s = ditchflash_s
-  }
-
   readrvnumber()
   RailWorks.BeginUpdate()
 end)
@@ -191,10 +181,6 @@ local function readcontrols()
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
   if state.acknowledge or change then alerter:acknowledge() end
   state.hep = RailWorks.GetControlValue("HEP", 0) == 1
-
-  if RailWorks.GetControlValue("Horn", 0) > 0 then
-    state.lasthorntime_s = playersched:clock()
-  end
 end
 
 local function readlocostate()
@@ -286,21 +272,12 @@ local function setcablight()
 end
 
 local function setditchlights()
-  local horntime_s = 30
-  local flash = state.lasthorntime_s ~= nil and playersched:clock() <=
-                  state.lasthorntime_s + horntime_s
-  local fixed = RailWorks.GetControlValue("HeadlightSwitch", 0) >= 1 and
-                  RailWorks.GetControlValue("DitchLights", 0) == 1 and not flash
-  ditchflasher:setflashstate(flash)
-  local flashleft = ditchflasher:ison()
-
-  local showleft = fixed or (flash and flashleft)
-  RailWorks.ActivateNode("ditch_left", showleft)
-  Call("Ditch_L:Activate", Misc.intbool(showleft))
-
-  local showright = fixed or (flash and not flashleft)
-  RailWorks.ActivateNode("ditch_right", showright)
-  Call("Ditch_R:Activate", Misc.intbool(showright))
+  local lightson = RailWorks.GetControlValue("HeadlightSwitch", 0) >= 1 and
+                     RailWorks.GetControlValue("DitchLights", 0) == 1
+  RailWorks.ActivateNode("ditch_left", lightson)
+  RailWorks.ActivateNode("ditch_right", lightson)
+  Call("Ditch_L:Activate", Misc.intbool(lightson))
+  Call("Ditch_R:Activate", Misc.intbool(lightson))
 end
 
 local function setstatuslights()

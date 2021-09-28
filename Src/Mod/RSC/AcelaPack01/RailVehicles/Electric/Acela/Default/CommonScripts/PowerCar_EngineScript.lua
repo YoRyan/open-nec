@@ -51,8 +51,7 @@ local state = {
 
   awsclearcount = 0,
   raisefrontpantomsg = nil,
-  raiserearpantomsg = nil,
-  lasthorntime_s = nil
+  raiserearpantomsg = nil
 }
 
 local destscroller
@@ -221,10 +220,6 @@ local function readcontrols()
   state.train_brake = vbrake
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
   if state.acknowledge or change then alerter:acknowledge() end
-
-  if RailWorks.GetControlValue("Horn", 0) > 0 then
-    state.lasthorntime_s = playersched:clock()
-  end
 
   state.startup = RailWorks.GetControlValue("Startup", 0) == 1
   state.cruisespeed_mps = RailWorks.GetControlValue("CruiseControlSpeed", 0) *
@@ -463,11 +458,8 @@ local function setcablight()
 end
 
 local function setgroundlights()
-  local horntime_s = 30
-  local horn = state.lasthorntime_s ~= nil and playersched:clock() <=
-                 state.lasthorntime_s + horntime_s
   local fixed = state.headlights == 1 and state.groundlights == 1
-  local flash = (state.headlights == 1 and state.groundlights == 2) or horn
+  local flash = state.headlights == 1 and state.groundlights == 2
   groundflasher:setflashstate(flash)
   local flashleft = groundflasher:ison()
 

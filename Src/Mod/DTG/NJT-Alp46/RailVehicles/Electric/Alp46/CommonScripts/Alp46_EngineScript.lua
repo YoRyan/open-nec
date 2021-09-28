@@ -25,7 +25,6 @@ local alerter
 local power
 local frontpantoanim, rearpantoanim
 local doors
-local ditchflasher
 local decreaseonoff
 local state = {
   throttle = 0,
@@ -38,9 +37,7 @@ local state = {
   trackspeed_mps = 0,
   consistlength_m = 0,
   speedlimits = {},
-  restrictsignals = {},
-
-  lasthorntime_s = nil
+  restrictsignals = {}
 }
 
 local function readrvnumber()
@@ -134,13 +131,6 @@ Initialise = Misc.wraperrors(function()
 
   doors = Doors:new{scheduler = playersched}
 
-  local ditchflash_s = 1
-  ditchflasher = Flash:new{
-    scheduler = playersched,
-    off_s = ditchflash_s,
-    on_s = ditchflash_s
-  }
-
   -- Modulate the speed reduction alert sound, which normally plays just once.
   decreaseonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
 
@@ -156,10 +146,6 @@ local function readcontrols()
   state.train_brake = vbrake
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
   if state.acknowledge or change then alerter:acknowledge() end
-
-  if RailWorks.GetControlValue("Horn", 0) > 0 then
-    state.lasthorntime_s = playersched:clock()
-  end
 end
 
 local function readlocostate()
@@ -280,20 +266,12 @@ local function setcablights()
 end
 
 local function setditchlights()
-  local horntime_s = 30
+  local lightson = RailWorks.GetControlValue("DitchLights", 0) == 1
+  RailWorks.ActivateNode("FrontDitchLights", lightson)
+  Call("ForwardDitch2:Activate", Misc.intbool(lightson))
+  Call("ForwardDitch1:Activate", Misc.intbool(lightson))
 
-  local flash = state.lasthorntime_s ~= nil and playersched:clock() <=
-                  state.lasthorntime_s + horntime_s
-  local fixed = RailWorks.GetControlValue("DitchLights", 0) == 1 and not flash
-  ditchflasher:setflashstate(flash)
-  local flashleft = ditchflasher:ison()
-
-  local showleft = fixed or (flash and flashleft)
-  local showright = fixed or (flash and not flashleft)
-  RailWorks.ActivateNode("FrontDitchLights", showleft or showright)
   RailWorks.ActivateNode("RearDitchLights", false)
-  Call("ForwardDitch2:Activate", Misc.intbool(showleft))
-  Call("ForwardDitch1:Activate", Misc.intbool(showright))
   Call("BackwardDitch2:Activate", 0)
   Call("BackwardDitch1:Activate", 0)
 end

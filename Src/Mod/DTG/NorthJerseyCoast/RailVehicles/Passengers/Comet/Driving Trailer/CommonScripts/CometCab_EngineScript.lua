@@ -33,7 +33,6 @@ local state = {
   throttle = 0,
   train_brake = 0,
   acknowledge = false,
-  crosslights = 0,
   rv_destination = nil,
 
   speed_mps = 0,
@@ -41,9 +40,7 @@ local state = {
   trackspeed_mps = 0,
   consistlength_m = 0,
   speedlimits = {},
-  restrictsignals = {},
-
-  lasthorntime_s = nil
+  restrictsignals = {}
 }
 
 local messageid = {destination = 10100}
@@ -185,11 +182,6 @@ local function readcontrols()
   state.train_brake = vbrake
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
   if state.acknowledge or change then alerter:acknowledge() end
-  state.crosslights = RailWorks.GetControlValue("DitchLightSwitch", 0)
-
-  if RailWorks.GetControlValue("Horn", 0) > 0 then
-    state.lasthorntime_s = playersched:clock()
-  end
 end
 
 local function readlocostate()
@@ -281,11 +273,10 @@ local function setcablight()
 end
 
 local function setditchlights()
-  local horntime_s = 30
-  local flash = state.lasthorntime_s ~= nil and playersched:clock() <=
-                  state.lasthorntime_s + horntime_s and state.crosslights == 2
-  local fixed = RailWorks.GetControlValue("HeadlightSwitch", 0) >= 1 and
-                  state.crosslights == 1 and not flash
+  local lightscmd = RailWorks.GetControlValue("HeadlightSwitch", 0)
+  local crosscmd = RailWorks.GetControlValue("DitchLightSwitch", 0)
+  local flash = crosscmd == 2
+  local fixed = lightscmd >= 1 and crosscmd == 1
   ditchflasher:setflashstate(flash)
   local flashleft = ditchflasher:ison()
 

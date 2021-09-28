@@ -39,7 +39,6 @@ local state = {
   restrictsignals = {},
 
   lastrpmclock_s = nil,
-  lasthorntime_s = nil,
   strobetime_s = nil
 }
 
@@ -134,12 +133,10 @@ local function readcontrols()
   if state.acknowledge or change then alerter:acknowledge() end
   state.startup = RailWorks.GetControlValue("VirtualStartup", 0) >= 0
 
-  local now = playersched:clock()
-  if RailWorks.GetControlValue("VirtualHorn", 0) > 0 then
-    state.lasthorntime_s = now
-  end
   if RailWorks.GetControlValue("VirtualBell", 0) > 0 then
-    if state.strobetime_s == nil then state.strobetime_s = now end
+    if state.strobetime_s == nil then
+      state.strobetime_s = playersched:clock()
+    end
   else
     state.strobetime_s = nil
   end
@@ -278,12 +275,8 @@ local function setlights()
 end
 
 local function setditchlights()
-  local horntime_s = 30
-
   local knob = RailWorks.GetControlValue("DitchLights", 0)
-  local horn = state.lasthorntime_s ~= nil and playersched:clock() <=
-                 state.lasthorntime_s + horntime_s
-  local flash = (knob >= 0.5 and knob < 1.5) or horn
+  local flash = knob >= 0.5 and knob < 1.5
   local fixed = knob >= 1.5 and not flash
   ditchflasher:setflashstate(flash)
   local flashleft = ditchflasher:ison()

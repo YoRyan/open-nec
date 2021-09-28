@@ -26,18 +26,13 @@ local state = {
   indep_brake = 0,
   acknowledge = false,
   hep = false,
-  headlights = 0,
-  rearlights = 0,
-  pulselights = 0,
 
   speed_mps = 0,
   acceleration_mps2 = 0,
   trackspeed_mps = 0,
   consistlength_m = 0,
   speedlimits = {},
-  restrictsignals = {},
-
-  lasthorntime_s = nil
+  restrictsignals = {}
 }
 
 Initialise = Misc.wraperrors(function()
@@ -109,14 +104,6 @@ local function readcontrols()
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
   if state.acknowledge or change then alerter:acknowledge() end
   state.hep = RailWorks.GetControlValue("HEP", 0) == 1
-
-  if RailWorks.GetControlValue("Horn", 0) > 0 then
-    state.lasthorntime_s = sched:clock()
-  end
-
-  state.headlights = RailWorks.GetControlValue("Headlights", 0)
-  state.rearlights = RailWorks.GetControlValue("Rearlights", 0)
-  state.pulselights = RailWorks.GetControlValue("DitchLights", 0)
 end
 
 local function readlocostate()
@@ -226,9 +213,9 @@ local function setcablight()
 end
 
 local function setheadlight()
-  local isdim = state.headlights >= 0.44 and state.headlights < 1.49 and
-                  state.headlights ~= 1 -- set by AI?
-  local isbright = state.headlights >= 1.49 or state.headlights == 1 -- set by AI?
+  local headlights = RailWorks.GetControlValue("Headlights", 0)
+  local isdim = headlights >= 0.44 and headlights < 1.49 and headlights ~= 1
+  local isbright = headlights >= 1.49 or headlights == 1
   Call("Headlight_01_Dim:Activate", Misc.intbool(isdim or isbright))
   Call("Headlight_02_Dim:Activate", Misc.intbool(isdim or isbright))
   Call("Headlight_01_Bright:Activate", Misc.intbool(isbright))
@@ -236,11 +223,10 @@ local function setheadlight()
 end
 
 local function setditchlights()
-  local horntime_s = 30
-  local horn = state.lasthorntime_s ~= nil and sched:clock() <=
-                 state.lasthorntime_s + horntime_s
-  local flash = state.pulselights == 1 or horn
-  local fixed = state.headlights == 3 and not flash
+  local headlights = RailWorks.GetControlValue("Headlights", 0)
+  local pulselights = RailWorks.GetControlValue("DitchLights", 0)
+  local flash = pulselights == 1
+  local fixed = headlights == 3 and not flash
   ditchflasher:setflashstate(flash)
   local flashleft = ditchflasher:ison()
 
@@ -256,8 +242,9 @@ local function setditchlights()
 end
 
 local function setrearlight()
-  local isdim = state.rearlights >= 1 and state.rearlights < 2
-  local isbright = state.rearlights == 2
+  local rearlights = RailWorks.GetControlValue("Rearlights", 0)
+  local isdim = rearlights >= 1 and rearlights < 2
+  local isbright = rearlights == 2
   Call("Rearlight_01_Dim:Activate", Misc.intbool(isdim or isbright))
   Call("Rearlight_02_Dim:Activate", Misc.intbool(isdim or isbright))
   Call("Rearlight_01_Bright:Activate", Misc.intbool(isbright))

@@ -29,7 +29,6 @@ local power
 local hep
 local pantoanim
 local doors
-local ditchflasher
 local decreaseonoff
 local state = {
   throttle = 0,
@@ -155,13 +154,6 @@ Initialise = Misc.wraperrors(function()
 
   doors = Doors:new{scheduler = playersched}
 
-  local ditchflash_s = 1
-  ditchflasher = Flash:new{
-    scheduler = playersched,
-    off_s = ditchflash_s,
-    on_s = ditchflash_s
-  }
-
   -- Modulate the speed reduction alert sound, which normally plays just once.
   decreaseonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
 
@@ -178,10 +170,6 @@ local function readcontrols()
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
   if state.acknowledge or change then alerter:acknowledge() end
   state.hep = RailWorks.GetControlValue("HEP", 0) == 1
-
-  if RailWorks.GetControlValue("Horn", 0) > 0 then
-    state.lasthorntime_s = playersched:clock()
-  end
 end
 
 local function readlocostate()
@@ -388,21 +376,11 @@ local function setcablights()
 end
 
 local function setditchlights()
-  local horntime_s = 30
-
-  local flash = state.lasthorntime_s ~= nil and playersched:clock() <=
-                  state.lasthorntime_s + horntime_s
-  local fixed = RailWorks.GetControlValue("DitchLights", 0) == 1 and not flash
-  ditchflasher:setflashstate(flash)
-  local flashleft = ditchflasher:ison()
-
-  local showleft = fixed or (flash and flashleft)
-  RailWorks.ActivateNode("ditch_left", showleft)
-  Call("DitchLight_Left:Activate", Misc.intbool(showleft))
-
-  local showright = fixed or (flash and not flashleft)
-  RailWorks.ActivateNode("ditch_right", showright)
-  Call("DitchLight_Right:Activate", Misc.intbool(showright))
+  local lightson = RailWorks.GetControlValue("DitchLights", 0) == 1
+  RailWorks.ActivateNode("ditch_left", lightson)
+  RailWorks.ActivateNode("ditch_right", lightson)
+  Call("DitchLight_Left:Activate", Misc.intbool(lightson))
+  Call("DitchLight_Right:Activate", Misc.intbool(lightson))
 end
 
 local function setstatuslights()

@@ -23,7 +23,6 @@ local adu
 local alerter
 local power
 local pantoanim
-local ditchflasher
 local decreaseonoff
 local state = {
   mcontroller = 0,
@@ -35,9 +34,7 @@ local state = {
   trackspeed_mps = 0,
   consistlength_m = 0,
   speedlimits = {},
-  restrictsignals = {},
-
-  lasthorntime_s = nil
+  restrictsignals = {}
 }
 
 Initialise = Misc.wraperrors(function()
@@ -106,13 +103,6 @@ Initialise = Misc.wraperrors(function()
     duration_s = 0.5
   }
 
-  local ditchflash_s = 1
-  ditchflasher = Flash:new{
-    scheduler = playersched,
-    off_s = ditchflash_s,
-    on_s = ditchflash_s
-  }
-
   -- Modulate the speed reduction alert sound, which normally plays just once.
   decreaseonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
 
@@ -127,10 +117,6 @@ local function readcontrols()
   state.train_brake = vbrake
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
   if state.acknowledge or change then alerter:acknowledge() end
-
-  if RailWorks.GetControlValue("Horn", 0) > 0 then
-    state.lasthorntime_s = playersched:clock()
-  end
 end
 
 local function readlocostate()
@@ -260,17 +246,10 @@ local function setlights()
     Call("MarkerLight_" .. i .. ":Activate", Misc.intbool(showrear))
   end
 
-  local horntime_s = 30
-  local ditchflash = state.lasthorntime_s ~= nil and playersched:clock() <=
-                       state.lasthorntime_s + horntime_s and ishead
-  local ditchfixed = lightscmd > 1.5 and not ditchflash and ishead
-  ditchflasher:setflashstate(ditchflash)
-  RailWorks.ActivateNode("ditch", ditchflash or ditchfixed)
-  local ditchleft = ditchflasher:ison()
-  local showleft = ditchfixed or (ditchflash and ditchleft)
-  local showright = ditchfixed or (ditchflash and not ditchleft)
-  Call("Ditch_L:Activate", Misc.intbool(showleft))
-  Call("Ditch_R:Activate", Misc.intbool(showright))
+  local ditchlights = lightscmd > 1.5 and ishead
+  RailWorks.ActivateNode("ditch", ditchlights)
+  Call("Ditch_L:Activate", Misc.intbool(ditchlights))
+  Call("Ditch_R:Activate", Misc.intbool(ditchlights))
 end
 
 local function updateplayer()
