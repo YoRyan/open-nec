@@ -92,7 +92,7 @@ Initialise = Misc.wraperrors(function()
   }
   alerter:start()
 
-  local ditchflash_s = 1
+  local ditchflash_s = 0.65
   ditchflasher = Flash:new{
     scheduler = sched,
     off_s = ditchflash_s,

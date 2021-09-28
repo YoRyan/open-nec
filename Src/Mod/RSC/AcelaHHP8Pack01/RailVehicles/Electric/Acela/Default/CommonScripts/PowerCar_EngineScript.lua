@@ -135,7 +135,7 @@ Initialise = Misc.wraperrors(function()
 
   tracteffort = Average:new{nsamples = 30}
 
-  local groundflash_s = 1
+  local groundflash_s = 0.65
   groundflasher = Flash:new{
     scheduler = playersched,
     off_s = groundflash_s,

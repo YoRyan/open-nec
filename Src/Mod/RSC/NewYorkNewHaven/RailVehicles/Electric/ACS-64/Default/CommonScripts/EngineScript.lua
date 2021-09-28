@@ -114,7 +114,7 @@ Initialise = Misc.wraperrors(function()
   -- Modulate the speed reduction alert sound, which normally plays just once.
   alarmonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
 
-  local ditchflash_s = 1
+  local ditchflash_s = 0.65
   ditchflasher = Flash:new{
     scheduler = playersched,
     off_s = ditchflash_s,

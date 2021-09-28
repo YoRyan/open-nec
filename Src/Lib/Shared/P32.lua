@@ -119,7 +119,7 @@ Initialise = Misc.wraperrors(function()
   }
   power:setavailable(Electrification.type.thirdrail, iselectric)
 
-  local ditchflash_s = 1
+  local ditchflash_s = 0.65
   ditchflasher = Flash:new{
     scheduler = playersched,
     off_s = ditchflash_s,
