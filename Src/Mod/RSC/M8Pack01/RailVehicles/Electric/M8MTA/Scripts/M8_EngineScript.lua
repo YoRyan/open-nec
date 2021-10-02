@@ -3,6 +3,7 @@
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
 -- @include RollingStock/InterVehicle.lua
+-- @include RollingStock/Notch.lua
 -- @include RollingStock/Spark.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/MetroNorth.lua
@@ -34,6 +35,7 @@ local adu
 local alerter
 local power
 local ivc
+local mcnotch
 local pantoanim
 local gateanim
 local alarmonoff
@@ -143,6 +145,25 @@ Initialise = Misc.wraperrors(function()
   ivc = InterVehicle:new{
     scheduler = anysched,
     messageid = messageid.intervehicle
+  }
+
+  mcnotch = Notch:new{
+    scheduler = playersched,
+    control = "ThrottleAndBrake",
+    index = 0,
+    gettarget = function(v)
+      local coast = 0.0667
+      local min = 0.2
+      if v >= coast and v < min then
+        return min
+      elseif math.abs(v) < coast then
+        return 0
+      elseif v > -min and v <= -coast then
+        return -min
+      else
+        return v
+      end
+    end
   }
 
   pantoanim = Animation:new{
@@ -460,6 +481,7 @@ local function updateplayer()
   anysched:update()
   power:update()
   ivc:update()
+  mcnotch:update()
   pantoanim:update()
   gateanim:update()
 
