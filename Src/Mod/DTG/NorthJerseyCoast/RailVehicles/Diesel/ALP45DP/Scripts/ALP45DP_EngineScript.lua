@@ -2,6 +2,7 @@
 --
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
+-- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/Doors.lua
 -- @include RollingStock/Hep.lua
 -- @include SafetySystems/Acses/Acses.lua
@@ -27,6 +28,7 @@ local adu
 local alerter
 local power
 local hep
+local blight
 local pantoanim
 local doors
 local decreaseonoff
@@ -144,6 +146,13 @@ Initialise = Misc.wraperrors(function()
   hep = Hep:new{
     scheduler = playersched,
     getrun = function() return state.hep end
+  }
+
+  blight = BrakeLight:new{
+    getbrakeson = function()
+      -- Match the brake indicator light logic in the carriage script.
+      return RailWorks.GetControlValue("TrainBrakeControl", 0) > 0
+    end
   }
 
   pantoanim = Animation:new{
@@ -389,10 +398,9 @@ local function setstatuslights()
   RailWorks.ActivateNode("LightsRed",
                          doors:isleftdooropen() or doors:isrightdooropen())
 
-  -- Match the brake indicator light logic in the carriage script.
-  local brake = RailWorks.GetControlValue("TrainBrakeControl", 0)
-  RailWorks.ActivateNode("LightsYellow", brake > 0)
-  RailWorks.ActivateNode("LightsGreen", brake <= 0)
+  local brake = blight:isapplied()
+  RailWorks.ActivateNode("LightsYellow", brake)
+  RailWorks.ActivateNode("LightsGreen", not brake)
 end
 
 local function setwipers()
@@ -444,6 +452,7 @@ local function updateplayer()
   playersched:update()
   anysched:update()
   power:update()
+  blight:playerupdate()
   pantoanim:update()
   doors:update()
 
@@ -642,4 +651,8 @@ OnCustomSignalMessage = Misc.wraperrors(function(message)
   cabsig:receivemessage(message)
 end)
 
-OnConsistMessage = RailWorks.Engine_SendConsistMessage
+OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
+  blight:receivemessage(message, argument, direction)
+
+  RailWorks.Engine_SendConsistMessage(message, argument, direction)
+end)

@@ -2,6 +2,7 @@
 --
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
+-- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/Spark.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/AmtrakCombined.lua
@@ -22,6 +23,7 @@ local acses
 local adu
 local alerter
 local power
+local blight
 local tracteffort
 local acceleration
 local alarmonoff
@@ -106,6 +108,8 @@ Initialise = Misc.wraperrors(function()
     }
   }
   power:setavailable(Electrification.type.overhead, true)
+
+  blight = BrakeLight:new{}
 
   local avgsamples = 30
   tracteffort = Average:new{nsamples = avgsamples}
@@ -409,6 +413,7 @@ local function updateplayer()
   playersched:update()
   anysched:update()
   power:update()
+  blight:playerupdate()
 
   writelocostate()
   setpantosparks()
@@ -459,4 +464,8 @@ OnCustomSignalMessage = Misc.wraperrors(function(message)
   cabsig:receivemessage(message)
 end)
 
-OnConsistMessage = RailWorks.Engine_SendConsistMessage
+OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
+  blight:receivemessage(message, argument, direction)
+
+  RailWorks.Engine_SendConsistMessage(message, argument, direction)
+end)

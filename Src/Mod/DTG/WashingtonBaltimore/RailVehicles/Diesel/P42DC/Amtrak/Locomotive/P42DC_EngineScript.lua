@@ -1,5 +1,6 @@
 -- Engine script for the P42DC operated by Amtrak.
 --
+-- @include RollingStock/BrakeLight.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/Genesis.lua
 -- @include SafetySystems/Alerter.lua
@@ -17,6 +18,7 @@ local atc
 local acses
 local adu
 local alerter
+local blight
 local ditchflasher
 local state = {
   throttle = 0,
@@ -91,6 +93,8 @@ Initialise = Misc.wraperrors(function()
     getspeed_mps = function() return state.speed_mps end
   }
   alerter:start()
+
+  blight = BrakeLight:new{}
 
   local ditchflash_s = 0.65
   ditchflasher = Flash:new{
@@ -272,6 +276,7 @@ local function updateplayer()
   readlocostate()
 
   sched:update()
+  blight:playerupdate()
 
   writelocostate()
   setcutin()
@@ -303,4 +308,8 @@ OnCustomSignalMessage = Misc.wraperrors(function(message)
   cabsig:receivemessage(message)
 end)
 
-OnConsistMessage = RailWorks.Engine_SendConsistMessage
+OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
+  blight:receivemessage(message, argument, direction)
+
+  RailWorks.Engine_SendConsistMessage(message, argument, direction)
+end)

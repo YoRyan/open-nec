@@ -2,6 +2,7 @@
 --
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
+-- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/InterVehicle.lua
 -- @include RollingStock/Notch.lua
 -- @include RollingStock/Spark.lua
@@ -19,12 +20,12 @@
 -- @include Units.lua
 local powermode = {overhead = 1, thirdrail = 2}
 local messageid = {
-  locationprobe = 10100,
-  intervehicle = 10101,
-  motorlowpitch = 10102,
-  motorhighpitch = 10103,
-  motorvolume = 10104,
-  compressorstate = 10105
+  locationprobe = 10110,
+  intervehicle = 10111,
+  motorlowpitch = 10112,
+  motorhighpitch = 10113,
+  motorvolume = 10114,
+  compressorstate = 10115
 }
 
 local playersched, anysched
@@ -35,6 +36,7 @@ local adu
 local alerter
 local power
 local ivc
+local blight
 local mcnotch
 local pantoanim
 local gateanim
@@ -146,6 +148,8 @@ Initialise = Misc.wraperrors(function()
     scheduler = anysched,
     messageid = messageid.intervehicle
   }
+
+  blight = BrakeLight:new{}
 
   mcnotch = Notch:new{
     scheduler = playersched,
@@ -455,8 +459,7 @@ local function setinteriorlights()
 end
 
 local function setexteriorlights()
-  local brakesapplied = RailWorks.GetControlValue(
-                          "TrainBrakeCylinderPressurePSI", 0) > 50
+  local brakesapplied = blight:isapplied()
   RailWorks.ActivateNode("SL_green", not brakesapplied)
   RailWorks.ActivateNode("SL_yellow", brakesapplied)
   RailWorks.ActivateNode("SL_blue",
@@ -481,6 +484,7 @@ local function updateplayer()
   anysched:update()
   power:update()
   ivc:update()
+  blight:playerupdate()
   mcnotch:update()
   pantoanim:update()
   gateanim:update()
@@ -542,6 +546,8 @@ OnCustomSignalMessage = Misc.wraperrors(function(message)
 end)
 
 OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
+  blight:receivemessage(message, argument, direction)
+
   if ivc:receivemessage(message, argument, direction) then
     return
   elseif message == messageid.locationprobe then

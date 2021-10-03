@@ -2,6 +2,7 @@
 --
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
+-- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/Doors.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/NjTransit.lua
@@ -23,6 +24,7 @@ local acses
 local adu
 local alerter
 local power
+local blight
 local frontpantoanim, rearpantoanim
 local doors
 local decreaseonoff
@@ -104,6 +106,13 @@ Initialise = Misc.wraperrors(function()
     getspeed_mps = function() return state.speed_mps end
   }
   alerter:start()
+
+  blight = BrakeLight:new{
+    getbrakeson = function()
+      -- Match the brake indicator light logic in the carriage script.
+      return RailWorks.GetControlValue("TrainBrakeControl", 0) > 0
+    end
+  }
 
   power = PowerSupply:new{
     scheduler = anysched,
@@ -328,6 +337,7 @@ local function updateplayer()
   playersched:update()
   anysched:update()
   power:update()
+  blight:playerupdate()
   frontpantoanim:update()
   rearpantoanim:update()
   doors:update()
@@ -472,4 +482,9 @@ OnCustomSignalMessage = Misc.wraperrors(function(message)
   cabsig:receivemessage(message)
 end)
 
-OnConsistMessage = RailWorks.Engine_SendConsistMessage
+OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
+  blight:receivemessage(message, argument, direction)
+
+  RailWorks.Engine_SendConsistMessage(message, argument, direction)
+end)
+

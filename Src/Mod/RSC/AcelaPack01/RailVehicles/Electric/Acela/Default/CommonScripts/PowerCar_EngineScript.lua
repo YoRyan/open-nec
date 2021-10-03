@@ -2,6 +2,7 @@
 --
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
+-- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/CruiseControl.lua
 -- @include RollingStock/RangeScroll.lua
 -- @include RollingStock/Spark.lua
@@ -26,6 +27,7 @@ local adu
 local cruise
 local alerter
 local power
+local blight
 local frontpantoanim, rearpantoanim
 local coneanim
 local tracteffort
@@ -161,6 +163,8 @@ Initialise = Misc.wraperrors(function()
     }
   }
   power:setavailable(Electrification.type.overhead, true)
+
+  blight = BrakeLight:new{}
 
   frontpantoanim = Animation:new{
     scheduler = anysched,
@@ -481,6 +485,7 @@ local function updateplayer()
   playersched:update()
   anysched:update()
   power:update()
+  blight:playerupdate()
   frontpantoanim:update()
   rearpantoanim:update()
   coneanim:update()
@@ -542,10 +547,13 @@ OnCustomSignalMessage = Misc.wraperrors(function(message)
 end)
 
 OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
+  blight:receivemessage(message, argument, direction)
+
   if message == messageid.raisefrontpanto then
     state.raisefrontpantomsg = argument == "true"
   elseif message == messageid.raiserearpanto then
     state.raiserearpantomsg = argument == "true"
   end
+
   RailWorks.Engine_SendConsistMessage(message, argument, direction)
 end)

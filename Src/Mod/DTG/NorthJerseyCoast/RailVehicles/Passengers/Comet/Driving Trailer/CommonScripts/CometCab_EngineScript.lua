@@ -2,6 +2,7 @@
 --
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
+-- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/Doors.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/NjTransit.lua
@@ -24,6 +25,7 @@ local atc
 local acses
 local adu
 local alerter
+local blight
 local power
 local doors
 local leftdoorsanim
@@ -137,6 +139,13 @@ Initialise = Misc.wraperrors(function()
     oninit = function()
       local iselectric = power:getmode() == powermode.overhead
       power:setavailable(Electrification.type.overhead, iselectric)
+    end
+  }
+
+  blight = BrakeLight:new{
+    getbrakeson = function()
+      -- Match the brake indicator light logic in the carriage script.
+      return RailWorks.GetControlValue("TrainBrakeControl", 0) > 0
     end
   }
 
@@ -295,10 +304,9 @@ local function setstatuslights()
   RailWorks.ActivateNode("LightsRed",
                          doors:isleftdooropen() or doors:isrightdooropen())
 
-  -- Match the brake indicator light logic in the carriage script.
-  local brake = RailWorks.GetControlValue("TrainBrakeControl", 0)
-  RailWorks.ActivateNode("LightsYellow", brake > 0)
-  RailWorks.ActivateNode("LightsGreen", brake <= 0)
+  local brake = blight:isapplied()
+  RailWorks.ActivateNode("LightsYellow", brake)
+  RailWorks.ActivateNode("LightsGreen", not brake)
 end
 
 local function setcoachlights()
@@ -334,6 +342,7 @@ local function updateplayer()
   playersched:update()
   anysched:update()
   power:update()
+  blight:playerupdate()
   leftdoorsanim:update()
   rightdoorsanim:update()
   doors:update()
@@ -461,6 +470,8 @@ OnCustomSignalMessage = Misc.wraperrors(function(message)
 end)
 
 OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
+  blight:receivemessage(message, argument, direction)
+
   -- Render the received destination sign.
   if message == messageid.destination then showdestination(tonumber(argument)) end
 

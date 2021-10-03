@@ -2,6 +2,7 @@
 --
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
+-- @include RollingStock/BrakeLight.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/NjTransit.lua
 -- @include SafetySystems/Alerter.lua
@@ -22,6 +23,7 @@ local acses
 local adu
 local alerter
 local power
+local blight
 local pantoanim
 local decreaseonoff
 local state = {
@@ -96,6 +98,8 @@ Initialise = Misc.wraperrors(function()
     }
   }
   power:setavailable(Electrification.type.overhead, true)
+
+  blight = BrakeLight:new{}
 
   pantoanim = Animation:new{
     scheduler = anysched,
@@ -213,8 +217,7 @@ local function setlights()
   local stepslight = RailWorks.GetControlValue("StepsLight", 0)
   for i = 1, 4 do Call("StepLight_0" .. i .. ":Activate", stepslight) end
 
-  local brakesapplied = RailWorks.GetControlValue(
-                          "TrainBrakeCylinderPressurePSI", 0) > 50
+  local brakesapplied = blight:isapplied()
   RailWorks.ActivateNode("st_red", false) -- unknown function
   RailWorks.ActivateNode("st_green", not brakesapplied)
   RailWorks.ActivateNode("st_yellow", brakesapplied)
@@ -259,6 +262,7 @@ local function updateplayer()
   playersched:update()
   anysched:update()
   power:update()
+  blight:playerupdate()
   pantoanim:update()
 
   writelocostate()
@@ -303,6 +307,8 @@ OnCustomSignalMessage = Misc.wraperrors(function(message)
 end)
 
 OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
+  blight:receivemessage(message, argument, direction)
+
   if message == messageid.locationprobe then return end
 
   RailWorks.Engine_SendConsistMessage(message, argument, direction)

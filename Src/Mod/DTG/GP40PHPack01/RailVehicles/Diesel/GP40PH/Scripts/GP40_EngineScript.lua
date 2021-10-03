@@ -1,5 +1,6 @@
 -- Engine script for the GP40PH operated by New Jersey Transit.
 --
+-- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/Doors.lua
 -- @include RollingStock/Hep.lua
 -- @include SafetySystems/Acses/Acses.lua
@@ -21,6 +22,7 @@ local acses
 local adu
 local alerter
 local hep
+local blight
 local doors
 local ditchflasher
 local decreaseonoff
@@ -105,6 +107,13 @@ Initialise = Misc.wraperrors(function()
   hep = Hep:new{
     scheduler = playersched,
     getrun = function() return state.startup end
+  }
+
+  blight = BrakeLight:new{
+    getbrakeson = function()
+      -- Match the brake indicator light logic in the carriage script.
+      return RailWorks.GetControlValue("TrainBrakeControl", 0) > 0
+    end
   }
 
   doors = Doors:new{scheduler = anysched}
@@ -264,8 +273,7 @@ local function setlights()
   Call("Steplight_RL:Activate", Misc.intbool(steplights))
   Call("Steplight_RR:Activate", Misc.intbool(steplights))
 
-  -- Match the brake indicator light logic in the carriage script.
-  local brake = RailWorks.GetControlValue("TrainBrakeControl", 0) > 0
+  local brake = blight:isapplied()
   RailWorks.ActivateNode("status_green", not brake)
   RailWorks.ActivateNode("status_yellow", brake)
   -- NOTE: This doesn't actually work, because door status isn't reported for
@@ -336,6 +344,7 @@ local function updateplayer()
 
   playersched:update()
   anysched:update()
+  blight:playerupdate()
   doors:update()
 
   writelocostate()
@@ -392,4 +401,8 @@ OnCustomSignalMessage = Misc.wraperrors(function(message)
   cabsig:receivemessage(message)
 end)
 
-OnConsistMessage = RailWorks.Engine_SendConsistMessage
+OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
+  blight:receivemessage(message, argument, direction)
+
+  RailWorks.Engine_SendConsistMessage(message, argument, direction)
+end)

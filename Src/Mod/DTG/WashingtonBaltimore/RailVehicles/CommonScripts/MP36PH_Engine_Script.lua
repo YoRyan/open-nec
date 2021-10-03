@@ -1,5 +1,6 @@
 -- Engine script for the MPI MP36PH operated by MARC.
 --
+-- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/Hep.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
@@ -19,6 +20,7 @@ local acses
 local adu
 local alerter
 local hep
+local blight
 local ditchflasher
 local state = {
   throttle = 0,
@@ -83,6 +85,8 @@ Initialise = Misc.wraperrors(function()
   alerter:start()
 
   hep = Hep:new{scheduler = sched, getrun = function() return state.hep end}
+
+  blight = BrakeLight:new{}
 
   local ditchflash_s = 1
   ditchflasher = Flash:new{
@@ -256,6 +260,7 @@ local function updateplayer()
   readlocostate()
 
   sched:update()
+  blight:playerupdate()
 
   writelocostate()
   setspeedometer()
@@ -306,4 +311,9 @@ OnCustomSignalMessage = Misc.wraperrors(function(message)
   cabsig:receivemessage(message)
 end)
 
-OnConsistMessage = RailWorks.Engine_SendConsistMessage
+OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
+  blight:receivemessage(message, argument, direction)
+
+  RailWorks.Engine_SendConsistMessage(message, argument, direction)
+end)
+

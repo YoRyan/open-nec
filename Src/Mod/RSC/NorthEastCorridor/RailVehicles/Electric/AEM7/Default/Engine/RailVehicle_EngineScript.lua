@@ -2,6 +2,7 @@
 --
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
+-- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/CruiseControl.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
@@ -22,6 +23,7 @@ local adu
 local cruise
 local alerter
 local power
+local blight
 local state = {
   throttle = 0,
   train_brake = 0,
@@ -102,6 +104,8 @@ Initialise = Misc.wraperrors(function()
     }
   }
   power:setavailable(Electrification.type.overhead, true)
+
+  blight = BrakeLight:new{}
 
   RailWorks.BeginUpdate()
 end)
@@ -244,6 +248,7 @@ Update = Misc.wraperrors(function(_)
 
   sched:update()
   power:update()
+  blight:playerupdate()
 
   writelocostate()
   setadu()
@@ -258,4 +263,8 @@ OnCustomSignalMessage = Misc.wraperrors(function(message)
   cabsig:receivemessage(message)
 end)
 
-OnConsistMessage = RailWorks.Engine_SendConsistMessage
+OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
+  blight:receivemessage(message, argument, direction)
+
+  RailWorks.Engine_SendConsistMessage(message, argument, direction)
+end)

@@ -2,6 +2,7 @@
 --
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
+-- @include RollingStock/BrakeLight.lua
 -- @include SafetySystems/Acses/Acses.lua
 -- @include SafetySystems/AspectDisplay/Genesis.lua
 -- @include SafetySystems/Alerter.lua
@@ -22,6 +23,7 @@ local acses
 local adu
 local alerter
 local power
+local blight
 local ditchflasher
 local state = {
   throttle = 0,
@@ -118,6 +120,8 @@ Initialise = Misc.wraperrors(function()
     end
   }
   power:setavailable(Electrification.type.thirdrail, iselectric)
+
+  blight = BrakeLight:new{}
 
   local ditchflash_s = 0.65
   ditchflasher = Flash:new{
@@ -312,6 +316,7 @@ local function updateplayer()
   playersched:update()
   anysched:update()
   power:update()
+  blight:playerupdate()
 
   writelocostate()
   setcutin()
@@ -353,5 +358,7 @@ OnCustomSignalMessage = Misc.wraperrors(function(message)
 end)
 
 OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
+  blight:receivemessage(message, argument, direction)
+
   RailWorks.Engine_SendConsistMessage(message, argument, direction)
 end)
