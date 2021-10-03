@@ -70,7 +70,7 @@ Initialise = Misc.wraperrors(function()
     getacceleration_mps2 = function() return state.acceleration_mps2 end,
     getacknowledge = function() return state.acknowledge end,
     doalert = function() adu:doatcalert() end,
-    getbrakesuppression = function() return state.throttle <= -0.4 end
+    getbrakesuppression = function() return state.mcontroller <= -0.4 end
   }
 
   acses = Acses:new{
