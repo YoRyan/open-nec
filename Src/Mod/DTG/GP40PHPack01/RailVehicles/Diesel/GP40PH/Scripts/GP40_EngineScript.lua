@@ -144,7 +144,8 @@ local function readcontrols()
 
   if RailWorks.GetControlValue("VirtualBell", 0) > 0 then
     if state.strobetime_s == nil then
-      state.strobetime_s = playersched:clock()
+      -- Randomize the starting point of the flash sequence.
+      state.strobetime_s = playersched:clock() - math.random() * 60
     end
   else
     state.strobetime_s = nil
@@ -304,28 +305,30 @@ local function setditchlights()
 end
 
 local function setstrobelights()
-  local showtime_s = 0.1
-
-  local showleft, showright
-  if state.strobetime_s ~= nil then
-    local since_s = playersched:clock() - state.strobetime_s
-    local isince_s = math.floor(since_s)
-    local show = since_s - isince_s <= showtime_s
-    local isleft = math.mod(isince_s, 2) == 0
-    showleft, showright = show and isleft, show and not isleft
-  else
-    showleft, showright = false, false
+  local function isshowing(period)
+    if state.strobetime_s ~= nil then
+      local since_s = playersched:clock() - state.strobetime_s
+      return math.mod(since_s, period) <= 0.1
+    else
+      return false
+    end
   end
 
-  RailWorks.ActivateNode("strobe_front_left", showleft)
-  Call("StrobeFrontLeft:Activate", Misc.intbool(showleft))
-  RailWorks.ActivateNode("strobe_rear_left", showleft)
-  Call("StrobeRearLeft:Activate", Misc.intbool(showleft))
+  local showfl = isshowing(1.9)
+  RailWorks.ActivateNode("strobe_front_left", showfl)
+  Call("StrobeFrontLeft:Activate", Misc.intbool(showfl))
 
-  RailWorks.ActivateNode("strobe_front_right", showright)
-  Call("StrobeFrontRight:Activate", Misc.intbool(showright))
-  RailWorks.ActivateNode("strobe_rear_right", showright)
-  Call("StrobeRearRight:Activate", Misc.intbool(showright))
+  local showrl = isshowing(1.85)
+  RailWorks.ActivateNode("strobe_rear_left", showrl)
+  Call("StrobeRearLeft:Activate", Misc.intbool(showrl))
+
+  local showfr = isshowing(1.95)
+  RailWorks.ActivateNode("strobe_front_right", showfr)
+  Call("StrobeFrontRight:Activate", Misc.intbool(showfr))
+
+  local showrr = isshowing(2)
+  RailWorks.ActivateNode("strobe_rear_right", showrr)
+  Call("StrobeRearRight:Activate", Misc.intbool(showrr))
 end
 
 local function setdestination()
