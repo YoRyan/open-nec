@@ -37,8 +37,6 @@ local state = {
   acknowledge = false,
   cruisespeed_mps = 0,
   cruiseenabled = false,
-  headlights = 0,
-  groundlights = 0,
 
   speed_mps = 0,
   acceleration_mps2 = 0,
@@ -169,8 +167,6 @@ local function readcontrols()
   state.cruisespeed_mps = RailWorks.GetControlValue("SpeedSetControl", 0) * 10 *
                             Units.mph.tomps
   state.cruiseenabled = RailWorks.GetControlValue("CruiseControl", 0) == 1
-  state.headlights = RailWorks.GetControlValue("Headlights", 0)
-  state.groundlights = RailWorks.GetControlValue("GroundLights", 0)
 end
 
 local function readlocostate()
@@ -286,10 +282,12 @@ local function setstatusscreen()
   RailWorks.SetControlValue("PantoIndicator", 0, panto)
 
   local lights
-  if state.headlights == 1 then
-    if state.groundlights == 1 then
+  local headlights = RailWorks.GetControlValue("Headlights", 0)
+  if headlights == 1 then
+    local groundlights = RailWorks.GetControlValue("GroundLights", 0)
+    if groundlights == 1 then
       lights = 1
-    elseif state.groundlights == 2 then
+    elseif groundlights == 2 then
       lights = 2
     else
       lights = 0
@@ -376,8 +374,10 @@ local function setcablight()
 end
 
 local function setgroundlights()
-  local fixed = state.headlights == 1 and state.groundlights == 1
-  local flash = state.headlights == 1 and state.groundlights == 2
+  local headlights = RailWorks.GetControlValue("Headlights", 0)
+  local groundlights = RailWorks.GetControlValue("GroundLights", 0)
+  local fixed = headlights == 1 and groundlights == 1
+  local flash = headlights == 1 and groundlights == 2
   groundflasher:setflashstate(flash)
   local flashleft = groundflasher:ison()
 
@@ -428,7 +428,7 @@ local function updateai()
   setgroundlights()
 end
 
-local function updateslave()
+local function updatehelper()
   anysched:update()
   frontpantoanim:update()
   rearpantoanim:update()
@@ -440,12 +440,12 @@ local function updateslave()
 end
 
 Update = Misc.wraperrors(function(_)
-  -- -> [slave][coach]...[coach][player] ->
-  -- -> [ai   ][coach]...[coach][ai    ] ->
+  -- -> [helper][coach]...[coach][player] ->
+  -- -> [ai    ][coach]...[coach][ai    ] ->
   if RailWorks.GetIsEngineWithKey() then
     updateplayer()
   elseif RailWorks.GetIsPlayer() then
-    updateslave()
+    updatehelper()
   else
     updateai()
   end

@@ -28,8 +28,7 @@ local alerter
 local blight
 local power
 local doors
-local leftdoorsanim
-local rightdoorsanim
+local leftdoorsanim, rightdoorsanim
 local ditchflasher
 local state = {
   throttle = 0,

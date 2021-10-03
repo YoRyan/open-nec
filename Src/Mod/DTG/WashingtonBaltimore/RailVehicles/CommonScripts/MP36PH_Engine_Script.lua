@@ -272,7 +272,7 @@ local function updateplayer()
   setrearlight()
 end
 
-local function updateai()
+local function updatenonplayer()
   setcablight()
   setheadlight()
   setditchlights()
@@ -283,7 +283,7 @@ Update = Misc.wraperrors(function(_)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer()
   else
-    updateai()
+    updatenonplayer()
     RailWorks.EndUpdate()
     return
   end

@@ -24,8 +24,6 @@ local state = {
   throttle = 0,
   train_brake = 0,
   acknowledge = false,
-  headlights = 0,
-  crosslights = false,
 
   speed_mps = 0,
   acceleration_mps2 = 0,
@@ -118,9 +116,6 @@ local function readcontrols()
   if RailWorks.GetControlValue("Horn", 0) > 0 then
     state.lasthorntime_s = sched:clock()
   end
-
-  state.headlights = RailWorks.GetControlValue("Headlights", 0)
-  state.crosslights = RailWorks.GetControlValue("CrossingLight", 0) == 1
 end
 
 local function readlocostate()
@@ -216,8 +211,10 @@ local function setditchlights()
   local horn = state.lasthorntime_s ~= nil and sched:clock() <=
                  state.lasthorntime_s + horntime_s
   local flash = horn
-  local fixed = state.headlights > 0.5 and state.headlights < 1.5 and
-                  state.crosslights and not flash
+  local headlights = RailWorks.GetControlValue("Headlights", 0)
+  local crosslights = RailWorks.GetControlValue("CrossingLight", 0)
+  local fixed = headlights > 0.5 and headlights < 1.5 and crosslights == 1 and
+                  not flash
   ditchflasher:setflashstate(flash)
   local flashleft = ditchflasher:ison()
 
@@ -288,7 +285,7 @@ local function updateplayer()
   setexhaust()
 end
 
-local function updateai()
+local function updatenonplayer()
   setditchlights()
   setcablights()
   setexhaust()
@@ -298,7 +295,7 @@ Update = Misc.wraperrors(function(_)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer()
   else
-    updateai()
+    updatenonplayer()
   end
 end)
 

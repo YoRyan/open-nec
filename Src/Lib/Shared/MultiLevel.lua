@@ -31,8 +31,7 @@ local power
 local hep
 local blight
 local doors
-local leftdoorsanim
-local rightdoorsanim
+local leftdoorsanim, rightdoorsanim
 local alarmonoff
 local state = {
   throttle = 0,

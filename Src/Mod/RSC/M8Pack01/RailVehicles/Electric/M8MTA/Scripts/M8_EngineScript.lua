@@ -38,14 +38,12 @@ local power
 local ivc
 local blight
 local mcnotch
-local pantoanim
-local gateanim
+local pantoanim, gateanim
 local alarmonoff
 local spark
 local state = {
   mcontroller = 0,
   acknowledge = false,
-  headlights = 0,
 
   speed_mps = 0,
   acceleration_mps2 = 0,
@@ -196,8 +194,6 @@ local function readcontrols()
   state.mcontroller = mcontroller
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
   if state.acknowledge or change then alerter:acknowledge() end
-
-  state.headlights = RailWorks.GetControlValue("Headlights", 0)
 end
 
 local function readlocostate()
@@ -469,7 +465,8 @@ local function setexteriorlights()
   RailWorks.ActivateNode("SL_doors_R", RailWorks.GetControlValue(
                            "DoorsOpenCloseRight", 0) == 1)
 
-  local show = state.headlights > 0.5 and state.headlights < 1.5
+  local headlights = RailWorks.GetControlValue("Headlights", 0)
+  local show = headlights > 0.5 and headlights < 1.5
   RailWorks.ActivateNode("left_ditch_light", show)
   RailWorks.ActivateNode("right_ditch_light", show)
   Call("Fwd_DitchLightLeft:Activate", Misc.intbool(show))

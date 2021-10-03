@@ -24,8 +24,7 @@ local adu
 local alerter
 local power
 local blight
-local tracteffort
-local acceleration
+local tracteffort, acceleration
 local alarmonoff
 local ditchflasher
 local spark
@@ -33,8 +32,6 @@ local state = {
   throttle = 0,
   train_brake = 0,
   acknowledge = false,
-  headlights = 0,
-  ditchlights = 0,
 
   speed_mps = 0,
   acceleration_mps2 = 0,
@@ -142,9 +139,6 @@ local function readcontrols()
   if RailWorks.GetControlValue("Horn", 0) > 0 then
     state.lasthorntime_s = playersched:clock()
   end
-
-  state.headlights = RailWorks.GetControlValue("Headlights", 0)
-  state.ditchlights = RailWorks.GetControlValue("DitchLight", 0)
 end
 
 local function readlocostate()
@@ -387,8 +381,10 @@ local function setditchlights()
   local horntime_s = 30
   local horn = state.lasthorntime_s ~= nil and playersched:clock() <=
                  state.lasthorntime_s + horntime_s
-  local fixed = state.headlights == 1 and state.ditchlights == 1
-  local flash = (state.headlights == 1 and state.ditchlights == 2) or horn
+  local headlights = RailWorks.GetControlValue("Headlights", 0)
+  local ditchlights = RailWorks.GetControlValue("DitchLight", 0)
+  local fixed = headlights == 1 and ditchlights == 1
+  local flash = (headlights == 1 and ditchlights == 2) or horn
   ditchflasher:setflashstate(flash)
   local flashleft = ditchflasher:ison()
 
@@ -424,7 +420,7 @@ local function updateplayer()
   setditchlights()
 end
 
-local function updateai()
+local function updatenonplayer()
   anysched:update()
 
   setpantosparks()
@@ -436,7 +432,7 @@ Update = Misc.wraperrors(function(_)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer()
   else
-    updateai()
+    updatenonplayer()
   end
 end)
 

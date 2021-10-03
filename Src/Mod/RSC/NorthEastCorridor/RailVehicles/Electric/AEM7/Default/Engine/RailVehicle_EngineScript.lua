@@ -30,7 +30,6 @@ local state = {
   acknowledge = false,
   cruisespeed_mps = 0,
   cruiseenabled = false,
-  pantoup = false,
 
   speed_mps = 0,
   acceleration_mps2 = 0,
@@ -98,7 +97,7 @@ Initialise = Misc.wraperrors(function()
     scheduler = sched,
     modes = {
       [0] = function(elec)
-        local pantoup = state.pantoup
+        local pantoup = RailWorks.GetControlValue("PantographControl", 0) == 1
         return pantoup and elec:isavailable(Electrification.type.overhead)
       end
     }
@@ -118,7 +117,6 @@ local function readcontrols()
   state.train_brake = vbrake
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
   if state.acknowledge or change then alerter:acknowledge() end
-  state.pantoup = RailWorks.GetControlValue("PantographControl", 0) == 1
 end
 
 local function readlocostate()
