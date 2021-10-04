@@ -346,8 +346,10 @@ Update = Misc.wraperrors(function(_)
 end)
 
 OnControlValueChange = Misc.wraperrors(function(name, index, value)
-  if name == "ExpertPowerMode" and not anysched:isstartup() and
-    (value == 0 or value == 1) then Misc.showalert("Not available in OpenNEC") end
+  if name == "ExpertPowerMode" and RailWorks.GetIsEngineWithKey() and
+    not anysched:isstartup() and (value == 0 or value == 1) then
+    Misc.showalert("Not available in OpenNEC")
+  end
 
   RailWorks.SetControlValue(name, index, value)
 end)

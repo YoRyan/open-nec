@@ -416,7 +416,7 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
   -- power switch controls
   -- The Fault Reset button does not work in DTG's model, so just use the
   -- pantograph control to switch power modes.
-  if not anysched:isstartup() then
+  if RailWorks.GetIsEngineWithKey() and not anysched:isstartup() then
     if name == "PowerSwitchAuto" and (value == 0 or value == 1) then
       Misc.showalert("Not available in OpenNEC")
     elseif state.throttle <= 0 and state.speed_mps < Misc.stopped_mps then

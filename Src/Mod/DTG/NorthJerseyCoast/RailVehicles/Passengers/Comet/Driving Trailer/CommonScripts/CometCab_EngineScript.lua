@@ -439,7 +439,7 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
   end
 
   -- power switch controls
-  if not anysched:isstartup() then
+  if RailWorks.GetIsEngineWithKey() and not anysched:isstartup() then
     if name == "PowerSwitchAuto" and (value == 0 or value == 1) then
       Misc.showalert("Not available in OpenNEC")
     elseif state.throttle <= 0 and state.speed_mps < Misc.stopped_mps then
