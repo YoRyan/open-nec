@@ -144,7 +144,8 @@ def build(bld):
             libs = lualibs(src)
             lint = maketask(Luacheck, [*libs, src], [],
                             always_run=True, before=[LuaFormat])
-            formats = (maketask(LuaFormat, [file], [], always_run=True, before=[Luac])
+            formats = \
+                (maketask(LuaFormat, [file], [], always_run=True, before=[Luac])
                        for file in [*libs, src])
             return (
                 lint,
@@ -155,6 +156,11 @@ def build(bld):
             return ()
 
     for task in itertools.chain(*(maketasks(f) for f in mod.ant_glob('**/*'))):
+        if any(isinstance(task, c)
+               for c in (ConvertToDav, ConvertToTg, Serz, Luac)):
+            output = task.outputs[0]
+            bld.install_as(
+                f'{bld.env.RAILWORKS}\\Assets\\{output.path_from(out)}', output)
         bld.add_to_group(task)
 
 
