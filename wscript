@@ -146,7 +146,7 @@ def build(bld):
                             always_run=True, before=[LuaFormat])
             formats = \
                 (maketask(LuaFormat, [file], [], always_run=True, before=[Luac])
-                       for file in [*libs, src])
+                 for file in [*libs, src])
             return (
                 lint,
                 *formats,
@@ -164,20 +164,17 @@ def build(bld):
         bld.add_to_group(task)
 
 
-def package(ctx):
-    exclude = [
-        '.*',
-        'c4che',
-        'config.log',
-
-        '**/*.dds',
-
-        'RSC/M8Pack01/**/*',
-    ]
+def release(ctx):
     root = f'{APPNAME}-{VERSION}'
     out_dir = ctx.path.find_node(out)
+    files = [
+        '**/*.dav',
+        '**/*.TgPcDx',
+        '**/*.bin',
+        '**/*.out',
+    ]
     with ZipFile(f'{APPNAME}-{VERSION}.zip', 'w', compression=ZIP_LZMA) as zip:
-        for f in out_dir.ant_glob('**/*', excl=exclude):
+        for f in itertools.chain(*(out_dir.ant_glob(glob) for glob in files)):
             zip.write(f.abspath(), arcname=f'{root}/Assets/{f.path_from(out_dir)}')
         for f in ctx.path.ant_glob('Docs/**/*'):
             zip.write(f.abspath(), arcname=f'{root}/{f.path_from(ctx.path)}')
