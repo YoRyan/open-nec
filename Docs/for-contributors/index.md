@@ -26,13 +26,13 @@ In the root directory of the project, run `python waf configure` to confirm that
 
 The build process also needs to be informed of the location of Train Simulator—the game comes with several essential command-line utilities. The WAF script attempts to infer its location using the Steam uninstallation path in the Registry. If this autodetection fails, you should set the `%RAILWORKS%` environment variable to the path to your copy of Train Simulator.
 
-If all looks good after the configure step, run `python waf build` to compile the project. The compiled files will output to the Mod\ folder, from which they can be copied into Train Simulator's Assets\ folder. (But to ease testing, I recommend using symlinks instead of copying.) The build process will also run LuaFormatter on the code to enforce a consistent style.
+If all looks good after the configure step, run `python waf build` to compile the project. The compiled files will output to the Mod\ folder, from which they can be copied into Train Simulator's Assets\ folder. (You can copy all artifacts into the Assets folder by running `python waf build install`.) The build process will also run LuaFormatter on the code to enforce a consistent style.
 
 Other useful WAF commands include:
 
 - `python waf clean`: delete compiled files in the Mod\\ folder.
 - `python waf distclean`: delete the Mod\\ folder entirely.
-- `python waf package`: build a redistributable Zip archive for a release.
+- `python waf release`: build a redistributable Zip archive for a release.
 
 ## Programming resources
 
