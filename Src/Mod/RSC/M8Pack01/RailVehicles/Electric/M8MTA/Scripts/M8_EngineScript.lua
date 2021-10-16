@@ -6,7 +6,7 @@
 -- @include RollingStock/InterVehicle.lua
 -- @include RollingStock/Notch.lua
 -- @include RollingStock/Spark.lua
--- @include SafetySystems/Acses/Acses.lua
+-- @include SafetySystems/Acses/AmtrakAcses.lua
 -- @include SafetySystems/AspectDisplay/MetroNorth.lua
 -- @include SafetySystems/Alerter.lua
 -- @include SafetySystems/Atc.lua
@@ -73,7 +73,7 @@ Initialise = Misc.wraperrors(function()
     getbrakesuppression = function() return state.mcontroller <= -0.4 end
   }
 
-  acses = Acses:new{
+  acses = AmtrakAcses:new{
     scheduler = playersched,
     cabsignal = cabsig,
     getspeed_mps = function() return state.speed_mps end,

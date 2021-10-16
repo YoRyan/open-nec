@@ -6,7 +6,7 @@
 -- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/Doors.lua
 -- @include RollingStock/Hep.lua
--- @include SafetySystems/Acses/Acses.lua
+-- @include SafetySystems/Acses/NjtAses.lua
 -- @include SafetySystems/AspectDisplay/NjTransit.lua
 -- @include SafetySystems/Alerter.lua
 -- @include SafetySystems/Atc.lua
@@ -86,7 +86,7 @@ Initialise = Misc.wraperrors(function()
     getbrakesuppression = function() return state.train_brake > 0.5 end
   }
 
-  acses = Acses:new{
+  acses = NjtAses:new{
     scheduler = playersched,
     cabsignal = cabsig,
     getspeed_mps = function() return state.speed_mps end,
@@ -96,8 +96,7 @@ Initialise = Misc.wraperrors(function()
     iterrestrictsignals = function() return pairs(state.restrictsignals) end,
     getacknowledge = function() return state.acknowledge end,
     doalert = function() adu:doacsesalert() end,
-    consistspeed_mps = (ismarc and 125 or 100) * Units.mph.tomps,
-    inforceafterviolation = false
+    consistspeed_mps = (ismarc and 125 or 100) * Units.mph.tomps
   }
 
   local onebeep_s = 1

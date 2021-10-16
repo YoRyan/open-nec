@@ -2,6 +2,7 @@
 --
 -- @include SafetySystems/AspectDisplay/AspectDisplay.lua
 -- @include Signals/NecSignals.lua
+-- @include Units.lua
 local P = {}
 NjTransitAdu = P
 
@@ -32,8 +33,10 @@ end
 -- Get the combined ATC/ACSES speed limit.
 local function getcombinedlimit_mph(self)
   local atc_mph = self._atc:isrunning() and Adu.getsignalspeed_mph(self) or nil
+  local acses_mps = self._acses:getcurvespeed_mps()
   local acses_mph =
-    self._acses:isrunning() and Adu.getcivilcurvespeed_mph(self) or nil
+    (self._acses:isrunning() and acses_mps ~= nil) and acses_mps *
+      Units.mps.tomph or nil
   if atc_mph ~= nil and acses_mph ~= nil then
     return math.min(atc_mph, acses_mph)
   else

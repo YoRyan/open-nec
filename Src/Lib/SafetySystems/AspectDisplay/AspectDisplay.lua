@@ -42,24 +42,8 @@ function P:getacsessound()
   return self._acsesalert:isplaying() or self._acses:isalarm()
 end
 
--- Get the current state of the ATC indicator light.
-function P:getatcindicator()
-  local atcspeed_mps = self._atc:getinforcespeed_mps()
-  local acsesspeed_mps = self._acses:getinforcespeed_mps()
-  return atcspeed_mps ~= nil and Misc.round(atcspeed_mps * Units.mps.tomph) ~=
-           150 and (acsesspeed_mps == nil or atcspeed_mps <= acsesspeed_mps)
-end
-
--- Get the current state of the ACSES indicator light.
-function P:getacsesindicator()
-  local atcspeed_mps = self._atc:getinforcespeed_mps()
-  local acsesspeed_mps = self._acses:getinforcespeed_mps()
-  return acsesspeed_mps ~= nil and
-           (atcspeed_mps == nil or Misc.round(atcspeed_mps * Units.mps.tomph) ==
-             150 or acsesspeed_mps < atcspeed_mps)
-end
-
--- Get the current signal speed limit.
+-- Get the current signal speed limit, which is influenced not only by the
+-- current cab signal, but also the current state of ACSES.
 function P:getsignalspeed_mph()
   local acsesmode = self._acses:getmode()
   local atcspeed_mps = self._atc:getinforcespeed_mps()
@@ -69,26 +53,6 @@ function P:getsignalspeed_mph()
     return 30
   elseif atcspeed_mps ~= nil then
     return Misc.round(atcspeed_mps * Units.mps.tomph)
-  else
-    return nil
-  end
-end
-
--- Get the current civil (track) speed limit.
-function P:getcivilspeed_mph()
-  local acsesspeed_mps = self._acses:getinforcespeed_mps()
-  if acsesspeed_mps ~= nil then
-    return Misc.round(acsesspeed_mps * Units.mps.tomph)
-  else
-    return nil
-  end
-end
-
--- Get the current civil (track) braking curve speed limit.
-function P:getcivilcurvespeed_mph()
-  local acsesspeed_mps = self._acses:getcurvespeed_mps()
-  if acsesspeed_mps then
-    return acsesspeed_mps * Units.mps.tomph
   else
     return nil
   end

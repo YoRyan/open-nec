@@ -5,6 +5,7 @@
 --
 -- @include SafetySystems/AspectDisplay/AspectDisplay.lua
 -- @include Signals/NecSignals.lua
+-- @include Units.lua
 local P = {}
 AmtrakTwoSpeedAdu = P
 
@@ -96,7 +97,9 @@ end
 -- speed limit if that limit cannot be displayed by the ADU model.
 function P:getcivilspeed_mph()
   local sigspeed_mph = self:getsignalspeed_mph()
-  local civspeed_mph = Adu.getcivilspeed_mph(self)
+  local civspeed_mps = self._acses:getrevealedspeed_mps()
+  local civspeed_mph = civspeed_mps ~= nil and civspeed_mps * Units.mps.tomph or
+                         nil
   local speed_mph, flash
   if sigspeed_mph == nil and not self:getacsessound() then
     local truesigspeed_mph = Adu.getsignalspeed_mph(self)
@@ -123,11 +126,26 @@ function P:getcivilspeed_mph()
   return speed_mph
 end
 
+local function getatcindicator(self)
+  local atcspeed_mps = self._atc:getinforcespeed_mps()
+  local acsesspeed_mps = self._acses:getrevealedspeed_mps()
+  return atcspeed_mps ~= nil and Misc.round(atcspeed_mps * Units.mps.tomph) ~=
+           150 and (acsesspeed_mps == nil or atcspeed_mps <= acsesspeed_mps)
+end
+
+local function getacsesindicator(self)
+  local atcspeed_mps = self._atc:getinforcespeed_mps()
+  local acsesspeed_mps = self._acses:getrevealedspeed_mps()
+  return acsesspeed_mps ~= nil and
+           (atcspeed_mps == nil or Misc.round(atcspeed_mps * Units.mps.tomph) ==
+             150 or acsesspeed_mps < atcspeed_mps)
+end
+
 -- Get the current indicator light that is illuminated, if any.
 function P:getsquareindicator()
-  if self:getatcindicator() then
+  if getatcindicator(self) then
     return P.square.signal
-  elseif self:getacsesindicator() then
+  elseif getacsesindicator(self) then
     return P.square.track
   else
     return P.square.none

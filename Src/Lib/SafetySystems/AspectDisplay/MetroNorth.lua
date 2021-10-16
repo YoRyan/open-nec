@@ -6,6 +6,7 @@
 --
 -- @include SafetySystems/AspectDisplay/AspectDisplay.lua
 -- @include Signals/NecSignals.lua
+-- @include Units.lua
 local P = {}
 MetroNorthAdu = P
 
@@ -69,7 +70,9 @@ end
 -- speed limit if that limit cannot be displayed by the ADU model.
 function P:getcivilspeed_mph()
   local sigspeed_mph = self:getsignalspeed_mph()
-  local civspeed_mph = Adu.getcivilspeed_mph(self)
+  local civspeed_mps = self._acses:getrevealedspeed_mps()
+  local civspeed_mph = civspeed_mps ~= nil and civspeed_mps * Units.mps.tomph or
+                         nil
   local speed_mph, flash
   if sigspeed_mph == nil and not self:getacsessound() then
     local truesigspeed_mph = Adu.getsignalspeed_mph(self)

@@ -2,7 +2,7 @@
 --
 -- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/Hep.lua
--- @include SafetySystems/Acses/Acses.lua
+-- @include SafetySystems/Acses/AmtrakAcses.lua
 -- @include SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
 -- @include SafetySystems/Alerter.lua
 -- @include SafetySystems/Atc.lua
@@ -52,7 +52,7 @@ Initialise = Misc.wraperrors(function()
     getbrakesuppression = function() return state.train_brake >= 0.6 end
   }
 
-  acses = Acses:new{
+  acses = AmtrakAcses:new{
     scheduler = sched,
     cabsignal = cabsig,
     getspeed_mps = function() return state.speed_mps end,

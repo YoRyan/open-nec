@@ -1,5 +1,5 @@
--- Constants, lookup tables, and code for Amtrak's Advanced Civil Speed
--- Enforcement System.
+-- Base class for Amtrak and Alstom's Advanced Civil Speed Enforcement System. This models
+-- the behavior of an Amtrak-style ADU, with revealing speed limits.
 --
 -- @include SafetySystems/Acses/LimitFilter.lua
 -- @include SafetySystems/Acses/ObjectTracker.lua
@@ -13,24 +13,20 @@ Acses = P
 P.nlimitlookahead = 5
 P.nsignallookahead = 3
 P.mode = {normal = 0, approachmed30 = 1, positivestop = 2}
+P._hazardtype = {currentlimit = 0, advancelimit = 1, stopsignal = 2}
 
 local debuglimits = false
 local debugsignals = false
 local debugtrackers = false
 local direction = {forward = 0, stopped = 1, backward = 2}
-local hazardtype = {currentlimit = 0, advancelimit = 1, stopsignal = 2}
 
 local function initstate(self)
   self._running = false
-  self._inforcespeed_mps = nil
-  self._curvespeed_mps = nil
-  self._timetopenalty_s = nil
   self._isalarm = false
   self._ispenalty = false
-  self._ispositivestop = false
-  self._currenthazardid = {}
-  self._isabovealertcurve = false
-  self._isabovepenaltycurve = false
+  self._hazards = {}
+  self._hazardstate = TupleDict:new{}
+  self._inforceid = nil
   self._movingdirection = direction.forward
   self._limitfilter = nil
   self._trackspeed = nil
@@ -60,10 +56,6 @@ function P:new(conf)
     -- -1.3 mph/s
     _penaltycurve_mps2 = conf.penaltycurve_mps2 or -1.3 * Units.mph.tomps,
     _restrictingspeed_mps = conf.restrictingspeed_mps or 20 * Units.mph.tomps,
-    -- When false, the in-force speed changes at the start of the braking curve,
-    -- not when it is violated.
-    _inforceafterviolation = conf.inforceafterviolation ~= false and true or
-      false,
     -- Keep the distance small (not very prototypical) to handle those pesky
     -- closely spaced shunting signals.
     _positivestop_m = conf.positivestop_m or 20 * Units.m.toft,
@@ -221,7 +213,7 @@ end
 local function iteradvancelimithazards(self)
   return Iterator.map(function(id, distance_m)
     local speed_mps = self._limittracker:getobject(id).speed_mps
-    return {hazardtype.advancelimit, id}, {
+    return {P._hazardtype.advancelimit, id}, {
       inforce_mps = speed_mps,
       penalty_mps = calcbrakecurve(self, speed_mps + self._penaltylimit_mps,
                                    distance_m, 0),
@@ -257,7 +249,7 @@ local function iterstopsignalhazards(self)
       local alert_mps =
         calcbrakecurve(self, 0, target_m, self._positivestopwarning_s)
       if prostate == 3 and alert_mps <= self._restrictingspeed_mps then
-        return {hazardtype.stopsignal, id}, {
+        return {P._hazardtype.stopsignal, id}, {
           inforce_mps = 0,
           penalty_mps = calcbrakecurve(self, 0, target_m, 0),
           alert_mps = alert_mps,
@@ -292,7 +284,7 @@ local function itercurrentlimithazards(self)
   if limit_mps == nil then
     return Iterator.empty()
   else
-    return Iterator.singleton({hazardtype.currentlimit, limit_mps}, {
+    return Iterator.singleton({P._hazardtype.currentlimit, limit_mps}, {
       inforce_mps = limit_mps,
       penalty_mps = limit_mps + self._penaltylimit_mps,
       alert_mps = limit_mps + self._alertlimit_mps
@@ -311,100 +303,38 @@ local function gethazardsdict(self)
   return hazards
 end
 
-local function setinforcespeed_mps(self, v)
-  if self._inforcespeed_mps ~= nil and self._inforcespeed_mps ~= v then
-    self._sched:yield() -- Give other coroutines the opportunity to set the alarm.
-    if not self._isalarm then self._doalert() end
-  end
-  self._inforcespeed_mps = v
-end
+-- Set useful properties once every update. May be subclassed by other
+-- implementations.
+function P:_update() end
 
 local function setstate(self)
-  local state = TupleDict:new{}
   while true do
-    local hazards = gethazardsdict(self)
-    do
-      local newstate = TupleDict:new{}
-      for k, hazard in TupleDict.pairs(hazards) do
-        local s = state[k]
-        if s == nil then
-          newstate[k] = {}
-        else
-          newstate[k] = s
-        end
-      end
-      state = newstate
+    -- Refresh the list of hazards, and maintain persistent hazard state.
+    self._hazards = gethazardsdict(self)
+    local newstate = TupleDict:new{}
+    for k, hazard in TupleDict.pairs(self._hazards) do
+      local s = self._hazardstate[k]
+      newstate[k] = s == nil and {} or s
     end
+    self._hazardstate = newstate
 
-    -- Get the current hazard in effect.
-    local currentid = Iterator.min(Iterator.ltcomp,
+    -- Get the current hazard in force. If this hazard is violated, trip its
+    -- persistent flag.
+    local inforceid = Iterator.min(Iterator.ltcomp,
                                    Iterator.map(
                                      function(k, hazard)
         return k, hazard.alert_mps
-      end, TupleDict.pairs(hazards)))
-    if currentid == nil then
-      self._currenthazardid = {}
-      self._curvespeed_mps = nil
-      self._ispositivestop = false
-      -- Set the current time to penalty.
-      self._timetopenalty_s = nil
-      -- Check for violation of the alert and/or penalty curves.
-      self._isabovealertcurve = false
-      self._isabovepenaltycurve = false
-      -- Get the most restrictive hazard in effect that also has an in-force speed.
-      setinforcespeed_mps(self, nil)
-    else
-      local currenthazard = hazards[currentid]
-      self._currenthazardid = currentid
-      self._curvespeed_mps = math.max(0, currenthazard.alert_mps - 1 *
-                                        Units.mph.tomps)
-      self._ispositivestop = currentid[1] == hazardtype.stopsignal
-
-      -- Set the current time to penalty.
-      local maxttp_s = 60
-      local ttp_s = currenthazard.timetopenalty_s
-      if not self._ispenalty and ttp_s ~= nil and ttp_s <= maxttp_s then
-        self._timetopenalty_s = ttp_s
-      else
-        self._timetopenalty_s = nil
-      end
-
-      -- Check for violation of the alert and/or penalty curves.
-      local aspeed_mps = math.abs(self._getspeed_mps())
-      local abovealert = aspeed_mps > currenthazard.alert_mps
-      if currentid[1] == hazardtype.advancelimit then
-        local violated = state[currentid].violated or abovealert
-        local abovelimit = aspeed_mps > currenthazard.inforce_mps +
-                             self._alertlimit_mps
-        state[currentid].violated = violated
-        self._isabovealertcurve = violated and abovelimit
-      else
-        self._isabovealertcurve = abovealert
-      end
-      self._isabovepenaltycurve = aspeed_mps > currenthazard.penalty_mps
-
-      -- Get the most restrictive hazard in effect that also has an in-force speed.
-      local inforceid = Iterator.min(Iterator.ltcomp,
-                                     Iterator.map(
-                                       function(k, hazard)
-          if k[1] == hazardtype.advancelimit then
-            if (state[k] ~= nil and state[k].violated) or
-              not self._inforceafterviolation then
-              return k, hazard.alert_mps
-            else
-              return nil, nil
-            end
-          else
-            return k, hazard.alert_mps
-          end
-        end,
-                                       Iterator.filter(
-                                         function(_, hazard)
-            return hazard.inforce_mps ~= nil
-          end, TupleDict.pairs(hazards))))
-      setinforcespeed_mps(self,
-                          inforceid and hazards[inforceid].inforce_mps or nil)
+      end, TupleDict.pairs(self._hazards)))
+    if inforceid ~= nil and inforceid[1] == P._hazardtype.advancelimit then
+      local hazard = self._hazards[inforceid]
+      self._hazardstate[inforceid].violated =
+        self._hazardstate[inforceid].violated or math.abs(self._getspeed_mps()) >
+          hazard.alert_mps
     end
+    self._inforceid = inforceid
+
+    -- Call the class-specific update function.
+    self:_update()
 
     -- Activate the debug views if enabled.
     if self._getacknowledge() then
@@ -427,10 +357,32 @@ local function tableeq(a, b)
   return true
 end
 
+-- True if ACSES should enter the alarm state. May be subclassed by other
+-- implementations.
+function P:_shouldalarm()
+  if self._inforceid ~= nil then
+    local hazard = self._hazards[self._inforceid]
+    return math.abs(self._getspeed_mps()) > hazard.alert_mps
+  else
+    return false
+  end
+end
+
+-- True if ACSES should enter the penalty state. (Implies _shouldalarm() is
+-- true, too.) May be subclassed by other implementations.
+function P:_shouldpenalty()
+  if self._inforceid ~= nil then
+    local hazard = self._hazards[self._inforceid]
+    return math.abs(self._getspeed_mps()) > hazard.penalty_mps
+  else
+    return false
+  end
+end
+
 local function penalty(self)
   self._ispenalty = true
-  local hazardid = self._currenthazardid
-  if hazardid[1] == hazardtype.stopsignal then
+  local trippedid = self._inforceid
+  if trippedid[1] == P._hazardtype.stopsignal then
     self._sched:select(nil, function()
       return getdirection(self) == direction.stopped
     end)
@@ -438,11 +390,11 @@ local function penalty(self)
     -- Now wait for the signal to upgrade.
     -- TODO: Implement stop release function.
     self._sched:select(nil, function()
-      return not tableeq(self._currenthazardid, hazardid)
+      return not tableeq(self._inforceid, trippedid)
     end)
   else
     self._sched:select(nil, function()
-      return self._getacknowledge() and not self._isabovealertcurve
+      return self._getacknowledge() and not self:_shouldalarm()
     end)
   end
   self._ispenalty = false
@@ -450,22 +402,19 @@ end
 
 local function enforce(self)
   while true do
-    self._sched:select(nil, function() return self._isabovealertcurve end)
+    self._sched:select(nil, function() return self:_shouldalarm() end)
     self._isalarm = true
-    local acknowledge = self._sched:select(self._alertwarning_s,
-                                           self._getacknowledge, function()
-      return self._isabovepenaltycurve
-    end)
-    if acknowledge == nil or acknowledge == 2 then
+    local ack = self._sched:select(self._alertwarning_s, self._getacknowledge,
+                                   function() return self:_shouldpenalty() end)
+    if ack == nil or ack == 2 then
       penalty(self)
-      self._isalarm = false
     else
       local curve = self._sched:select(nil, function()
-        return not self._isabovealertcurve
-      end, function() return self._isabovepenaltycurve end)
+        return not self:_shouldalarm()
+      end, function() return self:_shouldpenalty() end)
       if curve == 2 then penalty(self) end
-      self._isalarm = false
     end
+    self._isalarm = false
   end
 end
 
@@ -515,16 +464,19 @@ function P:stop()
   end
 end
 
--- Returns the current track speed in force. In the alert and penalty states,
--- this communicates the limit that was violated.
-function P:getinforcespeed_mps() return self._inforcespeed_mps end
-
--- Returns the current alert curve speed in force. This value "counts down"
--- to an approaching speed limit.
-function P:getcurvespeed_mps() return self._curvespeed_mps end
-
--- Returns the time to penalty countdown.
-function P:gettimetopenalty_s() return self._timetopenalty_s end
+-- Returns the time to penalty countdown for positive stop signals.
+function P:gettimetopenalty_s()
+  if self:getmode() == P.mode.positivestop then
+    local maxttp_s = 60
+    -- This cannot be nil because getmode() already checked it.
+    local hazard = self._hazards[self._inforceid]
+    local ttp_s = hazard.timetopenalty_s
+    if not self:_shouldpenalty() and ttp_s ~= nil and ttp_s <= maxttp_s then
+      return ttp_s
+    end
+  end
+  return nil
+end
 
 -- Returns true when the alarm is sounding.
 function P:isalarm() return self._isalarm end
@@ -534,7 +486,9 @@ function P:ispenalty() return self._ispenalty end
 
 -- Returns the current enforcing state.
 function P:getmode()
-  if self._ispositivestop then
+  local isstop = self._inforceid ~= nil and self._inforceid[1] ==
+                   P._hazardtype.stopsignal
+  if isstop and self._hazardstate[self._inforceid].violated then
     return P.mode.positivestop
   else
     return P.mode.normal

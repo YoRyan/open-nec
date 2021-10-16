@@ -2,6 +2,7 @@
 --
 -- @include SafetySystems/AspectDisplay/AspectDisplay.lua
 -- @include Signals/NecSignals.lua
+-- @include Units.lua
 local P = {}
 AmtrakCombinedAdu = P
 
@@ -99,7 +100,9 @@ end
 -- Get the current speed limit in force.
 function P:getspeedlimit_mph()
   local atc_mph = self:atccutin() and Adu.getsignalspeed_mph(self) or nil
-  local acses_mph = self:acsescutin() and Adu.getcivilspeed_mph(self) or nil
+  local acses_mps = self._acses:getrevealedspeed_mps()
+  local acses_mph = (self:acsescutin() and acses_mps ~= nil) and acses_mps *
+                      Units.mps.tomph or nil
   if atc_mph ~= nil and acses_mph ~= nil then
     return math.min(atc_mph, acses_mph)
   else
@@ -119,6 +122,23 @@ function P:gettimetopenalty_s()
   else
     return nil
   end
+end
+
+-- Get the current state of the ATC indicator light.
+function P:getatcindicator()
+  local atcspeed_mps = self._atc:getinforcespeed_mps()
+  local acsesspeed_mps = self._acses:getrevealedspeed_mps()
+  return atcspeed_mps ~= nil and Misc.round(atcspeed_mps * Units.mps.tomph) ~=
+           150 and (acsesspeed_mps == nil or atcspeed_mps <= acsesspeed_mps)
+end
+
+-- Get the current state of the ACSES indicator light.
+function P:getacsesindicator()
+  local atcspeed_mps = self._atc:getinforcespeed_mps()
+  local acsesspeed_mps = self._acses:getrevealedspeed_mps()
+  return acsesspeed_mps ~= nil and
+           (atcspeed_mps == nil or Misc.round(atcspeed_mps * Units.mps.tomph) ==
+             150 or acsesspeed_mps < atcspeed_mps)
 end
 
 -- Get the current state of the ATC system.

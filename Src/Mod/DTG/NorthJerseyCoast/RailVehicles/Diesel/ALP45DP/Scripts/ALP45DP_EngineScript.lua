@@ -5,8 +5,8 @@
 -- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/Doors.lua
 -- @include RollingStock/Hep.lua
--- @include SafetySystems/Acses/Acses.lua
--- @include SafetySystems/AspectDisplay/NjTransit.lua
+-- @include SafetySystems/Acses/AmtrakAcses.lua
+-- @include SafetySystems/AspectDisplay/AspectDisplay.lua
 -- @include SafetySystems/Alerter.lua
 -- @include SafetySystems/Atc.lua
 -- @include Signals/CabSignal.lua
@@ -83,7 +83,7 @@ Initialise = Misc.wraperrors(function()
     getbrakesuppression = function() return state.train_brake > 0.5 end
   }
 
-  acses = Acses:new{
+  acses = AmtrakAcses:new{
     scheduler = playersched,
     cabsignal = cabsig,
     getspeed_mps = function() return state.speed_mps end,
@@ -97,7 +97,7 @@ Initialise = Misc.wraperrors(function()
   }
 
   local onebeep_s = 1
-  adu = NjTransitAdu:new{
+  adu = Adu:new{
     scheduler = playersched,
     cabsignal = cabsig,
     atc = atc,
@@ -331,11 +331,12 @@ local function setspeedometer()
   RailWorks.SetControlValue("SpeedT", 0, Misc.getdigit(rspeed_mph, 1))
   RailWorks.SetControlValue("SpeedU", 0, Misc.getdigit(rspeed_mph, 0))
 
-  local aduspeed_mph = adu:getcivilspeed_mph()
-  if aduspeed_mph ~= nil then
-    RailWorks.SetControlValue("ACSES_SpeedH", 0, Misc.getdigit(aduspeed_mph, 2))
-    RailWorks.SetControlValue("ACSES_SpeedT", 0, Misc.getdigit(aduspeed_mph, 1))
-    RailWorks.SetControlValue("ACSES_SpeedU", 0, Misc.getdigit(aduspeed_mph, 0))
+  local acses_mps = acses:getrevealedspeed_mps()
+  local acses_mph = acses_mps ~= nil and acses_mps * Units.mps.tomph or nil
+  if acses_mph ~= nil then
+    RailWorks.SetControlValue("ACSES_SpeedH", 0, Misc.getdigit(acses_mph, 2))
+    RailWorks.SetControlValue("ACSES_SpeedT", 0, Misc.getdigit(acses_mph, 1))
+    RailWorks.SetControlValue("ACSES_SpeedU", 0, Misc.getdigit(acses_mph, 0))
   else
     RailWorks.SetControlValue("ACSES_SpeedH", 0, -1)
     RailWorks.SetControlValue("ACSES_SpeedT", 0, -1)

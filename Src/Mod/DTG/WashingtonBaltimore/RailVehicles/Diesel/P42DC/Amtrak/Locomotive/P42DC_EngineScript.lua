@@ -1,7 +1,7 @@
 -- Engine script for the P42DC operated by Amtrak.
 --
 -- @include RollingStock/BrakeLight.lua
--- @include SafetySystems/Acses/Acses.lua
+-- @include SafetySystems/Acses/AmtrakAcses.lua
 -- @include SafetySystems/AspectDisplay/Genesis.lua
 -- @include SafetySystems/Alerter.lua
 -- @include SafetySystems/Atc.lua
@@ -60,7 +60,7 @@ Initialise = Misc.wraperrors(function()
     getbrakesuppression = function() return state.train_brake >= 0.4 end
   }
 
-  acses = Acses:new{
+  acses = AmtrakAcses:new{
     scheduler = sched,
     cabsignal = cabsig,
     getspeed_mps = function() return state.speed_mps end,
