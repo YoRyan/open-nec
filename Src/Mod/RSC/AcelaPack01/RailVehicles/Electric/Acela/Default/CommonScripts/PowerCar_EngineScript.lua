@@ -58,6 +58,7 @@ local destscroller
 local destinations = {
   {"No service", 24},
   {"Union Station", 3},
+  {"New Carrollton", 19},
   {"BWI Airport", 4},
   {"Baltimore Penn", 5},
   {"Wilmington", 6},
