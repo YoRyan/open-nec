@@ -81,6 +81,7 @@ Initialise = Misc.wraperrors(function()
     iterspeedlimits = function() return pairs(state.speedlimits) end,
     iterrestrictsignals = function() return pairs(state.restrictsignals) end,
     getacknowledge = function() return state.acknowledge end,
+    consistspeed_mps = 80 * Units.mph.tomps,
     restrictingspeed_mps = 15 * Units.mph.tomps
   }
 
