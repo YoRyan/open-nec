@@ -49,7 +49,6 @@ function P:new(conf)
     _iterrestrictsignals = conf.iterrestrictsignals or
       function() return Iterator.empty() end,
     _getacknowledge = conf.getacknowledge or function() return false end,
-    _doalert = conf.doalert or function() end,
     _consistspeed_mps = conf.consistspeed_mps,
     _penaltylimit_mps = conf.penaltylimit_mps or 6 * Units.mph.tomps,
     _alertlimit_mps = conf.alertlimit_mps or 3 * Units.mph.tomps,

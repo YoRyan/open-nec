@@ -56,7 +56,6 @@ Initialise = Misc.wraperrors(function()
     getspeed_mps = function() return state.speed_mps end,
     getacceleration_mps2 = function() return state.acceleration_mps2 end,
     getacknowledge = function() return state.acknowledge end,
-    doalert = function() adu:doatcalert() end,
     getbrakesuppression = function() return state.train_brake >= 0.4 end
   }
 
@@ -69,7 +68,6 @@ Initialise = Misc.wraperrors(function()
     iterspeedlimits = function() return pairs(state.speedlimits) end,
     iterrestrictsignals = function() return pairs(state.restrictsignals) end,
     getacknowledge = function() return state.acknowledge end,
-    doalert = function() adu:doacsesalert() end,
     consistspeed_mps = 110 * Units.mph.tomps
   }
 
@@ -78,9 +76,8 @@ Initialise = Misc.wraperrors(function()
     scheduler = sched,
     cabsignal = cabsig,
     atc = atc,
-    atcalert_s = onebeep_s,
     acses = acses,
-    acsesalert_s = onebeep_s
+    alert_s = onebeep_s
   }
 
   atc:start()
@@ -138,7 +135,7 @@ local function writelocostate()
   if penalty then RailWorks.SetControlValue("TrainBrakeControl", 0, 0.85) end
 
   local alarm = alerter:isalarm() or atc:isalarm() or acses:isalarm()
-  local alert = adu:isatcalert() or adu:isacsesalert()
+  local alert = adu:isalertplaying()
   RailWorks.SetControlValue("AlerterAudible", 0, Misc.intbool(alarm or alert))
 end
 

@@ -12,6 +12,8 @@ MetroNorthAdu = P
 
 P.aspect = {stop = 0, restrict = 1, medium = 2, limited = 3, normal = 4}
 
+local civilspeedmode = {signal = 1, track = 2, nodata = 3}
+
 -- Ensure we have inherited the properties of the base class, PiL-style.
 -- We can't run code on initialization in TS, so we do this in :new().
 local function inherit(base)
@@ -21,17 +23,62 @@ local function inherit(base)
   end
 end
 
+-- Returns the speed for the civil speed indicator and the kind (civilspeedmode) of
+-- speed.
+local function getcivilspeed(self)
+  local sigspeed_mph = self:getsignalspeed_mph()
+  local civspeed_mph = self._acses:getrevealedspeed_mph()
+  -- If the model can't show the signal speed, and it *is* the limiting speed,
+  -- flash it continuously on the civil speed display.
+  if sigspeed_mph == nil then
+    local truesigspeed_mph = Adu.getsignalspeed_mph(self)
+    if truesigspeed_mph ~= nil and
+      (civspeed_mph == nil or truesigspeed_mph < civspeed_mph) then
+      return truesigspeed_mph, civilspeedmode.signal
+    end
+  end
+  if civspeed_mph ~= nil then
+    return civspeed_mph, civilspeedmode.track
+  else
+    return nil, civilspeedmode.nodata
+  end
+end
+
+local function readspeeds(self)
+  while true do
+    local truesignalspeed_mph, civilspeed_mph
+    self._sched:select(nil, function()
+      truesignalspeed_mph = Adu.getsignalspeed_mph(self)
+      civilspeed_mph = getcivilspeed(self)
+      return self._truesignalspeed_mph ~= truesignalspeed_mph or
+               self._civilspeed_mph ~= civilspeed_mph
+    end)
+    self._sched:yield()
+    if not self._atc:isalarm() and not self._acses:isalarm() then
+      self:triggeralert()
+      -- If the model can't show the signal speed, and it's *not* the limiting
+      -- speed, show it briefly on the civil speed display.
+      if self._truesignalspeed_mph ~= truesignalspeed_mph and
+        truesignalspeed_mph ~= nil and self:getsignalspeed_mph() == nil then
+        self._showsignalspeed:trigger()
+      end
+    end
+    self._truesignalspeed_mph = truesignalspeed_mph
+    self._civilspeed_mph = civilspeed_mph
+  end
+end
+
 -- Create a new MetroNorthAdu context.
 function P:new(conf)
   inherit(Adu)
   local o = Adu:new(conf)
-  o._sigspeedflasher = Flash:new{
-    scheduler = conf.scheduler,
-    off_s = 0.5,
-    on_s = 1.5
-  }
+  o._sigspeedflasher = Flash:new{scheduler = o._sched, off_s = 0.5, on_s = 1.5}
+  o._showsignalspeed = Tone:new{scheduler = o._sched, time_s = 2}
+  o._truesignalspeed_mph = nil
+  o._civilspeed_mph = nil
   setmetatable(o, self)
   self.__index = self
+  o._sched:run(readspeeds, o)
   return o
 end
 
@@ -69,34 +116,16 @@ end
 -- Get the current civil (track) speed limit, which is combined with the signal
 -- speed limit if that limit cannot be displayed by the ADU model.
 function P:getcivilspeed_mph()
-  local sigspeed_mph = self:getsignalspeed_mph()
-  local civspeed_mps = self._acses:getrevealedspeed_mps()
-  local civspeed_mph = civspeed_mps ~= nil and civspeed_mps * Units.mps.tomph or
-                         nil
-  local speed_mph, flash
-  if sigspeed_mph == nil and not self:getacsessound() then
-    local truesigspeed_mph = Adu.getsignalspeed_mph(self)
-    if self:getatcsound() then
-      speed_mph = truesigspeed_mph
-      flash = false
-    elseif truesigspeed_mph ~= nil and civspeed_mph and truesigspeed_mph <
-      civspeed_mph then
-      if self._sigspeedflasher:ison() then
-        speed_mph = truesigspeed_mph
-      else
-        speed_mph = nil
-      end
-      flash = true
-    else
-      speed_mph = civspeed_mph
-      flash = false
-    end
+  local speed_mph, mode = getcivilspeed(self)
+  local flashsig = mode == civilspeedmode.signal
+  self._sigspeedflasher:setflashstate(flashsig)
+  if flashsig then
+    return self._sigspeedflasher:ison() and Adu.getsignalspeed_mph(self) or nil
+  elseif self._showsignalspeed:isplaying() then
+    return Adu.getsignalspeed_mph(self)
   else
-    speed_mph = civspeed_mph
-    flash = false
+    return speed_mph
   end
-  self._sigspeedflasher:setflashstate(flash)
-  return speed_mph
 end
 
 return P

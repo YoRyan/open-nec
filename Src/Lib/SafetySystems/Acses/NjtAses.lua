@@ -2,6 +2,7 @@
 -- braking curves that "count down" to speed restrictions.
 --
 -- @include SafetySystems/Acses/Acses.lua
+-- @include Units.lua
 local P = {}
 NjtAses = P
 
@@ -27,29 +28,27 @@ end
 -- Set useful properties once every update. May be subclassed by other
 -- implementations.
 function P:_update()
-  -- If the target speed changes, play an informational tone.
-  local target_mps = self._inforceid ~= nil and
+  self._target_mps = self._inforceid ~= nil and
                        self._hazards[self._inforceid].inforce_mps or nil
-  if self._target_mps ~= nil and self._target_mps ~= target_mps and
-    not self:_shouldalarm() then self._doalert() end
-  self._target_mps = target_mps
 end
 
--- Returns the braking curve speed displayed to the operator.
-function P:getcurvespeed_mps()
-  if self._inforceid ~= nil then
+-- Returns the braking curve speed displayed to the operator. Returns nil if ASES
+-- is not in service.
+function P:getcurvespeed_mph()
+  if self:isrunning() and self._inforceid ~= nil then
     local hazard = self._hazards[self._inforceid]
-    return hazard.alert_mps - self._alertlimit_mps
+    return (hazard.alert_mps - self._alertlimit_mps) * Units.mps.tomph
   else
     return nil
   end
 end
 
--- Returns the target speed displayed to the operator.
-function P:gettargetspeed_mps()
-  if self._inforceid ~= nil then
+-- Returns the target speed displayed to the operator. Returns nil if ASES is not in
+-- service.
+function P:gettargetspeed_mph()
+  if self:isrunning() and self._inforceid ~= nil then
     local hazard = self._hazards[self._inforceid]
-    return hazard.inforce_mps
+    return hazard.inforce_mps * Units.mps.tomph
   else
     return nil
   end

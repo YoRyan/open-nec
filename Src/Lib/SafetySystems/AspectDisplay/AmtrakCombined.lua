@@ -30,17 +30,44 @@ local function inherit(base)
   end
 end
 
+local function calcspeedlimit_mph(self)
+  local atc_mph = self:atccutin() and Adu.getsignalspeed_mph(self) or nil
+  local acses_mph = self._acses:getrevealedspeed_mph()
+  if atc_mph ~= nil and acses_mph ~= nil then
+    return math.min(atc_mph, acses_mph)
+  else
+    return atc_mph ~= nil and atc_mph or acses_mph
+  end
+end
+
+local function readspeed(self)
+  while true do
+    local speedlimit_mph
+    self._sched:select(nil, function()
+      speedlimit_mph = calcspeedlimit_mph(self)
+      return self._speedlimit_mph ~= speedlimit_mph
+    end)
+    self._sched:yield()
+    if not self._atc:isalarm() and not self._acses:isalarm() then
+      self:triggeralert()
+    end
+    self._speedlimit_mph = speedlimit_mph
+  end
+end
+
 -- Create a new AmtrakCombinedAdu context.
 function P:new(conf)
   inherit(Adu)
   local o = Adu:new(conf)
   o._csflasher = Flash:new{
-    scheduler = conf.scheduler,
+    scheduler = o._sched,
     off_os = Nec.cabspeedflash_s,
     on_os = Nec.cabspeedflash_s
   }
+  o._speedlimit_mph = nil
   setmetatable(o, self)
   self.__index = self
+  o._sched:run(readspeed, o)
   return o
 end
 
@@ -98,17 +125,7 @@ function P:getmnrrilluminated()
 end
 
 -- Get the current speed limit in force.
-function P:getspeedlimit_mph()
-  local atc_mph = self:atccutin() and Adu.getsignalspeed_mph(self) or nil
-  local acses_mps = self._acses:getrevealedspeed_mps()
-  local acses_mph = (self:acsescutin() and acses_mps ~= nil) and acses_mps *
-                      Units.mps.tomph or nil
-  if atc_mph ~= nil and acses_mph ~= nil then
-    return math.min(atc_mph, acses_mph)
-  else
-    return atc_mph ~= nil and atc_mph or acses_mph
-  end
-end
+function P:getspeedlimit_mph() return self._speedlimit_mph end
 
 -- Get the current time to penalty counter, if any.
 function P:gettimetopenalty_s()
@@ -126,19 +143,19 @@ end
 
 -- Get the current state of the ATC indicator light.
 function P:getatcindicator()
-  local atcspeed_mps = self._atc:getinforcespeed_mps()
-  local acsesspeed_mps = self._acses:getrevealedspeed_mps()
-  return atcspeed_mps ~= nil and Misc.round(atcspeed_mps * Units.mps.tomph) ~=
-           150 and (acsesspeed_mps == nil or atcspeed_mps <= acsesspeed_mps)
+  local atcspeed_mph = self._atc:getinforcespeed_mph()
+  local acsesspeed_mph = self._acses:getrevealedspeed_mph()
+  return atcspeed_mph ~= nil and Misc.round(atcspeed_mph) ~= 150 and
+           (acsesspeed_mph == nil or atcspeed_mph <= acsesspeed_mph)
 end
 
 -- Get the current state of the ACSES indicator light.
 function P:getacsesindicator()
-  local atcspeed_mps = self._atc:getinforcespeed_mps()
-  local acsesspeed_mps = self._acses:getrevealedspeed_mps()
-  return acsesspeed_mps ~= nil and
-           (atcspeed_mps == nil or Misc.round(atcspeed_mps * Units.mps.tomph) ==
-             150 or acsesspeed_mps < atcspeed_mps)
+  local atcspeed_mph = self._atc:getinforcespeed_mph()
+  local acsesspeed_mph = self._acses:getrevealedspeed_mph()
+  return acsesspeed_mph ~= nil and
+           (atcspeed_mph == nil or Misc.round(atcspeed_mph) == 150 or
+             acsesspeed_mph < atcspeed_mph)
 end
 
 -- Get the current state of the ATC system.

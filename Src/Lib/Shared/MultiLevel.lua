@@ -82,7 +82,6 @@ Initialise = Misc.wraperrors(function()
     getspeed_mps = function() return state.speed_mps end,
     getacceleration_mps2 = function() return state.acceleration_mps2 end,
     getacknowledge = function() return state.acknowledge end,
-    doalert = function() adu:doatcalert() end,
     getbrakesuppression = function() return state.train_brake > 0.5 end
   }
 
@@ -95,7 +94,6 @@ Initialise = Misc.wraperrors(function()
     iterspeedlimits = function() return pairs(state.speedlimits) end,
     iterrestrictsignals = function() return pairs(state.restrictsignals) end,
     getacknowledge = function() return state.acknowledge end,
-    doalert = function() adu:doacsesalert() end,
     consistspeed_mps = (ismarc and 125 or 100) * Units.mph.tomps
   }
 
@@ -104,9 +102,8 @@ Initialise = Misc.wraperrors(function()
     scheduler = playersched,
     cabsignal = cabsig,
     atc = atc,
-    atcalert_s = onebeep_s,
     acses = acses,
-    acsesalert_s = onebeep_s
+    alert_s = onebeep_s
   }
 
   atc:start()
@@ -229,7 +226,7 @@ local function writelocostate()
   local atcalarm = atc:isalarm()
   local acsesalarm = acses:isalarm()
   local alertalarm = alerter:isalarm()
-  local alert = adu:isatcalert() or adu:isacsesalert()
+  local alert = adu:isalertplaying()
   if isnjcl then
     RailWorks.SetControlValue("AWS", 0, Misc.intbool(
                                 atcalarm or acsesalarm or alertalarm or alert))

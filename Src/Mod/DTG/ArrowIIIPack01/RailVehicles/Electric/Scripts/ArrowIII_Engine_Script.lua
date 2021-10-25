@@ -51,7 +51,6 @@ Initialise = Misc.wraperrors(function()
     getspeed_mps = function() return state.speed_mps end,
     getacceleration_mps2 = function() return state.acceleration_mps2 end,
     getacknowledge = function() return state.acknowledge end,
-    doalert = function() adu:doatcalert() end,
     getbrakesuppression = function() return state.train_brake >= 0.5 end
   }
 
@@ -64,7 +63,6 @@ Initialise = Misc.wraperrors(function()
     iterspeedlimits = function() return pairs(state.speedlimits) end,
     iterrestrictsignals = function() return pairs(state.restrictsignals) end,
     getacknowledge = function() return state.acknowledge end,
-    doalert = function() adu:doacsesalert() end,
     consistspeed_mps = 80 * Units.mph.tomps
   }
 
@@ -73,9 +71,8 @@ Initialise = Misc.wraperrors(function()
     scheduler = playersched,
     cabsignal = cabsig,
     atc = atc,
-    atcalert_s = onebeep_s,
     acses = acses,
-    acsesalert_s = onebeep_s
+    alert_s = onebeep_s
   }
 
   atc:start()
@@ -158,7 +155,7 @@ local function writelocostate()
 
   local vigilalarm = alerter:isalarm()
   local safetyalarm = atc:isalarm() or acses:isalarm()
-  local safetyalert = adu:isatcalert() or adu:isacsesalert()
+  local safetyalert = adu:isalertplaying()
   RailWorks.SetControlValue("AWSWarnCount", 0,
                             Misc.intbool(vigilalarm or safetyalarm))
   RailWorks.SetControlValue("ACSES_Alert", 0, Misc.intbool(vigilalarm))

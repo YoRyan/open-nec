@@ -49,9 +49,9 @@ local state = {
   speedlimits = {},
   restrictsignals = {},
 
-  awsclearcount = 0,
   raisefrontpantomsg = nil,
-  raiserearpantomsg = nil
+  raiserearpantomsg = nil,
+  adualertplaying = false
 }
 
 local destscroller
@@ -87,10 +87,6 @@ local messageid = {
   destination = 1210
 }
 
-local function playawsclear()
-  state.awsclearcount = math.mod(state.awsclearcount + 1, 2)
-end
-
 Initialise = Misc.wraperrors(function()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
@@ -103,10 +99,6 @@ Initialise = Misc.wraperrors(function()
     getspeed_mps = function() return state.speed_mps end,
     getacceleration_mps2 = function() return state.acceleration_mps2 end,
     getacknowledge = function() return state.acknowledge end,
-    doalert = function()
-      adu:doatcalert()
-      playawsclear()
-    end,
     getbrakesuppression = function() return state.train_brake > 0.3 end
   }
 
@@ -118,21 +110,14 @@ Initialise = Misc.wraperrors(function()
     getconsistlength_m = function() return state.consistlength_m end,
     iterspeedlimits = function() return pairs(state.speedlimits) end,
     iterrestrictsignals = function() return pairs(state.restrictsignals) end,
-    getacknowledge = function() return state.acknowledge end,
-    doalert = function()
-      adu:doacsesalert()
-      playawsclear()
-    end
+    getacknowledge = function() return state.acknowledge end
   }
 
-  local alert_s = 1
   adu = AmtrakTwoSpeedAdu:new{
     scheduler = playersched,
     cabsignal = cabsig,
     atc = atc,
-    atcalert_s = alert_s,
-    acses = acses,
-    acsesalert_s = alert_s
+    acses = acses
   }
 
   atc:start()
@@ -269,7 +254,15 @@ local function writelocostate()
   RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(
                               alerter:isalarm() or atc:isalarm() or
                                 acses:isalarm()))
-  RailWorks.SetControlValue("AWSClearCount", 0, state.awsclearcount)
+
+  -- Quick and dirty way to execute only when the sound starts to play.
+  local adualert = adu:isalertplaying()
+  if not state.adualertplaying and adualert then
+    RailWorks.SetControlValue("AWSClearCount", 0, Misc.intbool(
+                                RailWorks.GetControlValue("AWSClearCount", 0) ==
+                                  0))
+  end
+  state.adualertplaying = adualert
 end
 
 local function setplayerpantos()

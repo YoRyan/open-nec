@@ -55,7 +55,6 @@ Initialise = Misc.wraperrors(function()
     getspeed_mps = function() return state.speed_mps end,
     getacceleration_mps2 = function() return state.acceleration_mps2 end,
     getacknowledge = function() return state.acknowledge end,
-    doalert = function() adu:doatcalert() end,
     getbrakesuppression = function() return state.train_brake > 0.6 end
   }
 
@@ -68,7 +67,6 @@ Initialise = Misc.wraperrors(function()
     iterspeedlimits = function() return pairs(state.speedlimits) end,
     iterrestrictsignals = function() return pairs(state.restrictsignals) end,
     getacknowledge = function() return state.acknowledge end,
-    doalert = function() adu:doacsesalert() end,
     consistspeed_mps = 125 * Units.mph.tomps
   }
 
@@ -77,9 +75,8 @@ Initialise = Misc.wraperrors(function()
     scheduler = playersched,
     cabsignal = cabsig,
     atc = atc,
-    atcalert_s = alert_s,
     acses = acses,
-    acsesalert_s = alert_s
+    alert_s = alert_s
   }
 
   atc:start()
@@ -194,8 +191,8 @@ local function writelocostate()
   RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alarm))
   RailWorks.SetControlValue("SpeedReductionAlert", 0,
                             Misc.intbool(alarmonoff:ison()))
-  RailWorks.SetControlValue("SpeedIncreaseAlert", 0, Misc.intbool(
-                              adu:isatcalert() or adu:isacsesalert()))
+  RailWorks.SetControlValue("SpeedIncreaseAlert", 0,
+                            Misc.intbool(adu:isalertplaying()))
 end
 
 local function setpantosparks()

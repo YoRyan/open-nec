@@ -2,6 +2,7 @@
 -- get revealed if violated.
 --
 -- @include SafetySystems/Acses/Acses.lua
+-- @include Units.lua
 local P = {}
 AmtrakAcses = P
 
@@ -41,13 +42,8 @@ function P:_update()
         return k, hazard.alert_mps
       end
     end, TupleDict.pairs(self._hazards)))
-  local revealed_mps = revealedid ~= nil and
+  self._revealed_mps = revealedid ~= nil and
                          self._hazards[revealedid].inforce_mps or nil
-
-  -- If that speed changes, play an informational tone.
-  if self._revealed_mps ~= nil and self._revealed_mps ~= revealed_mps and
-    not self:_shouldalarm() then self._doalert() end
-  self._revealed_mps = revealed_mps
 end
 
 -- True if ACSES should enter the alarm state. May be subclassed by other
@@ -65,7 +61,11 @@ function P:_shouldalarm()
   end
 end
 
--- Returns the current track speed revealed to the operator.
-function P:getrevealedspeed_mps() return self._revealed_mps end
+-- Returns the current track speed revealed to the operator. Returns nil if ACSES is
+-- not in service.
+function P:getrevealedspeed_mph()
+  local ok = self:isrunning() and self._revealed_mps ~= nil
+  return ok and self._revealed_mps * Units.mps.tomph or nil
+end
 
 return P

@@ -48,7 +48,9 @@ local state = {
 
   lastrpmclock_s = nil,
   lasthorntime_s = nil,
-  lastwipertime_s = nil
+  lastwipertime_s = nil,
+  lastatclimit_mph = nil,
+  lastacseslimit_mph = nil
 }
 
 local function readrvnumber()
@@ -67,6 +69,23 @@ local function readrvnumber()
   RailWorks.SetControlValue("UnitU", 0, Misc.getdigit(unit, 0))
 end
 
+local function readspeedlimits()
+  while true do
+    local atclimit_mph, acseslimit_mph
+    playersched:select(nil, function()
+      atclimit_mph = atc:getinforcespeed_mph()
+      acseslimit_mph = acses:getrevealedspeed_mph()
+      return
+        state.lastatclimit_mph ~= atclimit_mph or state.lastacseslimit_mph ~=
+          acseslimit_mph
+    end)
+    playersched:yield()
+    if not atc:isalarm() and not acses:isalarm() then adu:triggeralert() end
+    state.lastatclimit_mph = atclimit_mph
+    state.lastacseslimit_mph = acseslimit_mph
+  end
+end
+
 Initialise = Misc.wraperrors(function()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
@@ -79,7 +98,6 @@ Initialise = Misc.wraperrors(function()
     getspeed_mps = function() return state.speed_mps end,
     getacceleration_mps2 = function() return state.acceleration_mps2 end,
     getacknowledge = function() return state.acknowledge end,
-    doalert = function() adu:doatcalert() end,
     getbrakesuppression = function() return state.train_brake > 0.5 end
   }
 
@@ -92,7 +110,6 @@ Initialise = Misc.wraperrors(function()
     iterspeedlimits = function() return pairs(state.speedlimits) end,
     iterrestrictsignals = function() return pairs(state.restrictsignals) end,
     getacknowledge = function() return state.acknowledge end,
-    doalert = function() adu:doacsesalert() end,
     consistspeed_mps = 100 * Units.mph.tomps
   }
 
@@ -101,9 +118,8 @@ Initialise = Misc.wraperrors(function()
     scheduler = playersched,
     cabsignal = cabsig,
     atc = atc,
-    atcalert_s = onebeep_s,
     acses = acses,
-    acsesalert_s = onebeep_s
+    alert_s = onebeep_s
   }
 
   atc:start()
@@ -167,6 +183,7 @@ Initialise = Misc.wraperrors(function()
   decreaseonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
 
   readrvnumber()
+  playersched:run(readspeedlimits)
   RailWorks.BeginUpdate()
 end)
 
@@ -221,7 +238,7 @@ local function writelocostate()
 
   local vigilalarm = alerter:isalarm()
   local safetyalarm = atc:isalarm() or acses:isalarm()
-  local safetyalert = adu:isatcalert() or adu:isacsesalert()
+  local safetyalert = adu:isalertplaying()
   RailWorks.SetControlValue("AWSWarnCount", 0,
                             Misc.intbool(vigilalarm or safetyalarm))
   RailWorks.SetControlValue("ACSES_Alert", 0, Misc.intbool(vigilalarm))
@@ -331,8 +348,7 @@ local function setspeedometer()
   RailWorks.SetControlValue("SpeedT", 0, Misc.getdigit(rspeed_mph, 1))
   RailWorks.SetControlValue("SpeedU", 0, Misc.getdigit(rspeed_mph, 0))
 
-  local acses_mps = acses:getrevealedspeed_mps()
-  local acses_mph = acses_mps ~= nil and acses_mps * Units.mps.tomph or nil
+  local acses_mph = acses:getrevealedspeed_mph()
   if acses_mph ~= nil then
     RailWorks.SetControlValue("ACSES_SpeedH", 0, Misc.getdigit(acses_mph, 2))
     RailWorks.SetControlValue("ACSES_SpeedT", 0, Misc.getdigit(acses_mph, 1))

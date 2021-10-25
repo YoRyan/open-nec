@@ -3,6 +3,7 @@
 --
 -- @include Event.lua
 -- @include Misc.lua
+-- @include Units.lua
 local P = {}
 Atc = P
 
@@ -27,7 +28,6 @@ function P:new(conf)
       P.amtrakpulsecodespeed_mps,
     _getbrakesuppression = conf.getbrakesuppression or
       function() return false end,
-    _doalert = conf.doalert or function() end,
     _countdown_s = conf.countdown_s or 7,
     _speedmargin_mps = conf.speedmargin_mps or 3 * Units.mph.tomps
   }
@@ -53,12 +53,8 @@ function P:isrunning() return self._running end
 local function setstate(self)
   while true do
     local pulsecode = self._cabsig:getpulsecode()
-    if self._lastpulsecode ~= nil then
-      if pulsecode < self._lastpulsecode then
-        self._enforce:trigger()
-      elseif pulsecode > self._lastpulsecode then
-        self._doalert()
-      end
+    if self._lastpulsecode ~= nil and pulsecode < self._lastpulsecode then
+      self._enforce:trigger()
     end
     self._lastpulsecode = pulsecode
     self._sched:yield()
@@ -76,7 +72,7 @@ local function penalty(self)
 end
 
 local function iscomplying(self)
-  local limit_mps = self:getinforcespeed_mps()
+  local limit_mps = self._getpulsecodespeed_mps(self._cabsig:getpulsecode())
   return self._getspeed_mps() <= limit_mps + self._speedmargin_mps
 end
 
@@ -141,13 +137,12 @@ function P:getpulsecode()
   end
 end
 
--- Get the current signal speed limit in force.
-function P:getinforcespeed_mps()
-  if self:isrunning() then
-    return self._getpulsecodespeed_mps(self._cabsig:getpulsecode())
-  else
-    return nil
-  end
+-- Get the current signal speed limit in force. Returns nil if ATC is not in service.
+function P:getinforcespeed_mph()
+  local speed_mps = self:isrunning() and
+                      self._getpulsecodespeed_mps(self._cabsig:getpulsecode()) or
+                      nil
+  return speed_mps ~= nil and speed_mps * Units.mps.tomph or nil
 end
 
 -- Returns true when the alarm is sounding.
