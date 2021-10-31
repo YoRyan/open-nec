@@ -78,6 +78,7 @@ end
 
 local function doenforce(self)
   while true do
+    self._enforce:poll() -- Clear the event if it is already triggered.
     self._sched:select(nil, function() return self._enforce:poll() end,
                        function() return not iscomplying(self) end)
     -- Alarm phase. Acknowledge the alarm and place the brakes into
