@@ -84,16 +84,13 @@ local function doenforce(self)
     -- Alarm phase. Acknowledge the alarm and place the brakes into
     -- suppression.
     self._isalarm = true
-    local acknowledged
-    do
-      local ack = false
-      acknowledged = self._sched:select(self._countdown_s, function()
-        -- The player need only acknowledge the alarm once.
-        ack = ack or self._getacknowledge()
-        return ack and (self:issuppression() or iscomplying(self))
-      end) ~= nil
-    end
-    if acknowledged then
+    local ack = false
+    local ev = self._sched:select(self._countdown_s, function()
+      -- The player need only acknowledge the alarm once.
+      ack = ack or self._getacknowledge()
+      return ack and (self:issuppression() or iscomplying(self))
+    end)
+    if ev ~= nil then
       self._isalarm = false
       -- Suppression phase. Maintain this state until the train complies with
       -- the speed limit.
