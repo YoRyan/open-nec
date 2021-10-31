@@ -38,26 +38,26 @@ function P:setrunstate(cond)
   end
 end
 
+local function isstopped(self) return self._getspeed_mps() < self._minspeed_mps end
+
 local function penalty(self)
   self._ispenalty = true
   self._sched:select(nil, function()
-    return self._acknowledge:poll() and self._getspeed_mps() <
-             self._minspeed_mps
+    return self._acknowledge:poll() and isstopped(self)
   end)
   self._ispenalty = false
 end
 
 local function run(self)
   while true do
-    local countdown = self._sched:select(self._countdown_s, function()
-      return self._acknowledge:poll()
-    end, function() return self._getspeed_mps() < self._minspeed_mps end)
-    if countdown == nil then
+    local ev = self._sched:select(self._countdown_s,
+                                  function() return isstopped(self) end,
+                                  function() return self._acknowledge:poll() end)
+    if ev == nil then
       self._isalarm = true
-      local warning = self._sched:select(self._alarm_s, function()
-        return self._acknowledge:poll()
-      end)
-      if warning == nil then penalty(self) end
+      ev = self._sched:select(self._alarm_s,
+                              function() return self._acknowledge:poll() end)
+      if ev == nil then penalty(self) end
       self._isalarm = false
     end
   end
