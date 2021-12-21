@@ -19,25 +19,16 @@ end
 function P:new(conf)
   inherit(Acses)
   local o = Acses:new(conf)
-  o._target_mps = nil
   setmetatable(o, self)
   self.__index = self
   return o
 end
 
--- Set useful properties once every update. May be subclassed by other
--- implementations.
-function P:_update()
-  self._target_mps = self._inforceid ~= nil and
-                       self._hazards[self._inforceid].inforce_mps or nil
-end
-
 -- Returns the braking curve speed displayed to the operator. Returns nil if ASES
 -- is not in service.
-function P:getcurvespeed_mph()
+function P:getcurvespeed_mps()
   if self:isrunning() and self._inforceid ~= nil then
-    local hazard = self._hazards[self._inforceid]
-    return (hazard.alert_mps - self._alertlimit_mps) * Units.mps.tomph
+    return self._hazards[self._inforceid].alert_mps - self._alertlimit_mps
   else
     return nil
   end
@@ -45,10 +36,9 @@ end
 
 -- Returns the target speed displayed to the operator. Returns nil if ASES is not in
 -- service.
-function P:gettargetspeed_mph()
+function P:gettargetspeed_mps()
   if self:isrunning() and self._inforceid ~= nil then
-    local hazard = self._hazards[self._inforceid]
-    return hazard.inforce_mps * Units.mps.tomph
+    return self._hazards[self._inforceid].inforce_mps
   else
     return nil
   end

@@ -19,19 +19,21 @@ end
 function P:new(conf)
   inherit(Acses)
   local o = Acses:new(conf)
-  o._revealed_mps = nil
+  o._inforce_mps = nil
+  o._civilspeed_mps = nil
   setmetatable(o, self)
   self.__index = self
   return o
 end
 
--- Set useful properties once every update. May be subclassed by other
--- implementations.
-function P:_update()
-  -- Compute the speed displayed to the operator.
-  local revealedid = Iterator.min(Iterator.ltcomp,
-                                  Iterator.map(
-                                    function(k, hazard)
+-- Update this system once every frame.
+function P:update(dt)
+  Acses.update(self, dt)
+
+  -- Compute the in-force speed.
+  local inforceid = Iterator.min(Iterator.ltcomp,
+                                 Iterator.map(
+                                   function(k, hazard)
       if k[1] == Acses._hazardtype.advancelimit then
         if self._hazardstate[k].violated then
           return k, hazard.alert_mps
@@ -42,30 +44,36 @@ function P:_update()
         return k, hazard.alert_mps
       end
     end, TupleDict.pairs(self._hazards)))
-  self._revealed_mps = revealedid ~= nil and
-                         self._hazards[revealedid].inforce_mps or nil
+  self._inforce_mps =
+    inforceid ~= nil and self._hazards[inforceid].inforce_mps or nil
+
+  -- Compute the civil (track) speed.
+  local civilid = Iterator.min(Iterator.ltcomp, Iterator.map(
+                                 function(k, hazard)
+      if k[1] == Acses._hazardtype.advancelimit and
+        self._hazardstate[k].violated then
+        return k, hazard.alert_mps
+      elseif k[1] == Acses._hazardtype.currentlimit then
+        return k, hazard.alert_mps
+      else
+        return nil, nil
+      end
+    end, TupleDict.pairs(self._hazards)))
+  self._civilspeed_mps =
+    civilid ~= nil and self._hazards[civilid].inforce_mps or nil
 end
 
--- True if ACSES should enter the alarm state. May be subclassed by other
--- implementations.
-function P:_shouldalarm()
-  if self._inforceid ~= nil then
-    local hazard = self._hazards[self._inforceid]
-    local isviolated = self._hazardstate[self._inforceid].violated
-    local compare_mps =
-      isviolated and hazard.inforce_mps + self._alertlimit_mps or
-        hazard.alert_mps
-    return math.abs(self._getspeed_mps()) > compare_mps
-  else
-    return false
-  end
+-- Returns the ACSES-enforced speed revealed to the operator. This includes track
+-- speed, positive stops, and Approach Medium 30. Returns nil if ACSES is not in
+-- service.
+function P:getinforcespeed_mps()
+  return self:isrunning() and self._inforce_mps or nil
 end
 
--- Returns the current track speed revealed to the operator. Returns nil if ACSES is
--- not in service.
-function P:getrevealedspeed_mph()
-  local ok = self:isrunning() and self._revealed_mps ~= nil
-  return ok and self._revealed_mps * Units.mps.tomph or nil
+-- Returns the track speed revealed to the operator. Returns nil if ACSES is not
+-- in service.
+function P:getcivilspeed_mps()
+  return self:isrunning() and self._civilspeed_mps or nil
 end
 
 return P

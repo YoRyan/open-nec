@@ -1,11 +1,8 @@
 -- Engine script for the P42DC operated by Amtrak.
 --
 -- @include RollingStock/BrakeLight.lua
--- @include SafetySystems/Acses/AmtrakAcses.lua
 -- @include SafetySystems/AspectDisplay/Genesis.lua
 -- @include SafetySystems/Alerter.lua
--- @include SafetySystems/Atc.lua
--- @include Signals/CabSignal.lua
 -- @include Flash.lua
 -- @include Iterator.lua
 -- @include Misc.lua
@@ -13,9 +10,6 @@
 -- @include Scheduler.lua
 -- @include Units.lua
 local sched
-local cabsig
-local atc
-local acses
 local adu
 local alerter
 local blight
@@ -48,40 +42,18 @@ Initialise = Misc.wraperrors(function()
 
   sched = Scheduler:new{}
 
-  cabsig = CabSignal:new{scheduler = sched}
-
-  atc = Atc:new{
-    scheduler = sched,
-    cabsignal = cabsig,
-    getspeed_mps = function() return state.speed_mps end,
-    getacceleration_mps2 = function() return state.acceleration_mps2 end,
+  local onebeep_s = 0.25
+  adu = GenesisAdu:new{
+    isamtrak = true,
+    alerttone_s = onebeep_s,
+    getbrakesuppression = function() return state.train_brake >= 0.4 end,
     getacknowledge = function() return state.acknowledge end,
-    getbrakesuppression = function() return state.train_brake >= 0.4 end
-  }
-
-  acses = AmtrakAcses:new{
-    scheduler = sched,
-    cabsignal = cabsig,
     getspeed_mps = function() return state.speed_mps end,
     gettrackspeed_mps = function() return state.trackspeed_mps end,
     getconsistlength_m = function() return state.consistlength_m end,
     iterspeedlimits = function() return pairs(state.speedlimits) end,
-    iterrestrictsignals = function() return pairs(state.restrictsignals) end,
-    getacknowledge = function() return state.acknowledge end,
-    consistspeed_mps = 110 * Units.mph.tomps
+    iterrestrictsignals = function() return pairs(state.restrictsignals) end
   }
-
-  local onebeep_s = 0.25
-  adu = GenesisAdu:new{
-    scheduler = sched,
-    cabsignal = cabsig,
-    atc = atc,
-    acses = acses,
-    alert_s = onebeep_s
-  }
-
-  atc:start()
-  acses:start()
 
   alerter = Alerter:new{
     scheduler = sched,
@@ -128,13 +100,13 @@ local function readlocostate()
 end
 
 local function writelocostate()
-  local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
+  local penalty = alerter:ispenalty() or adu:ispenalty()
   -- There's no virtual throttle, so just move the combined power handle.
   if penalty then RailWorks.SetControlValue("ThrottleAndBrake", 0, 0.5) end
   -- There's no virtual train brake, so just move the braking handle.
   if penalty then RailWorks.SetControlValue("TrainBrakeControl", 0, 0.85) end
 
-  local alarm = alerter:isalarm() or atc:isalarm() or acses:isalarm()
+  local alarm = alerter:isalarm() or adu:isalarm()
   local alert = adu:isalertplaying()
   RailWorks.SetControlValue("AlerterAudible", 0, Misc.intbool(alarm or alert))
 end
@@ -143,8 +115,8 @@ local function setcutin()
   if not sched:isstartup() then
     local atcon = RailWorks.GetControlValue("ATCCutIn", 0) == 1
     local acseson = RailWorks.GetControlValue("ACSESCutIn", 0) == 1
-    atc:setrunstate(atcon)
-    acses:setrunstate(acseson)
+    adu:setatcstate(atcon)
+    adu:setacsesstate(acseson)
     alerter:setrunstate(atcon or acseson)
   end
 end
@@ -265,11 +237,12 @@ local function setexhaust()
   Call("DieselExhaust:SetEmitterRate", rate)
 end
 
-local function updateplayer()
+local function updateplayer(dt)
   readcontrols()
   readlocostate()
 
   sched:update()
+  adu:update(dt)
   blight:playerupdate()
 
   writelocostate()
@@ -288,9 +261,9 @@ local function updatenonplayer()
   setexhaust()
 end
 
-Update = Misc.wraperrors(function(_)
+Update = Misc.wraperrors(function(dt)
   if RailWorks.GetIsEngineWithKey() then
-    updateplayer()
+    updateplayer(dt)
   else
     updatenonplayer()
   end
@@ -299,7 +272,7 @@ end)
 OnControlValueChange = RailWorks.SetControlValue
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
-  cabsig:receivemessage(message)
+  adu:receivemessage(message)
 end)
 
 OnConsistMessage = Misc.wraperrors(function(message, argument, direction)

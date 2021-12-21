@@ -2,15 +2,14 @@
 --
 -- We will use the track speed display to display signal speeds above 45 mph.
 --
--- @include SafetySystems/AspectDisplay/AspectDisplay.lua
+-- @include SafetySystems/Acses/AmtrakAcses.lua
+-- @include SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
 -- @include Signals/NecSignals.lua
 -- @include Units.lua
 local P = {}
 GenesisAdu = P
 
 P.aspect = {restrict = 1, medium = 2, limited = 3, clear = 4}
-
-local overspeedmode = {signal = 1, track = 2, nodata = 3}
 
 -- Ensure we have inherited the properties of the base class, PiL-style.
 -- We can't run code on initialization in TS, so we do this in :new().
@@ -21,80 +20,86 @@ local function inherit(base)
   end
 end
 
--- Returns the speed for the overspeed display and the kind (overspeedmode) of speed.
-local function getoverspeed(self)
-  local sigspeed_mph = self:getsignalspeed_mph()
-  local civspeed_mph = self._acses:getrevealedspeed_mph()
-  if sigspeed_mph == nil then
-    local truesigspeed_mph = Adu.getsignalspeed_mph(self)
-    if truesigspeed_mph ~= nil and
-      (civspeed_mph == nil or truesigspeed_mph < civspeed_mph) then
-      return truesigspeed_mph, overspeedmode.signal
-    end
-  end
-  if civspeed_mph ~= nil then
-    return civspeed_mph, overspeedmode.track
-  else
-    return nil, overspeedmode.nodata
-  end
-end
-
-local function readspeeds(self)
-  while true do
-    local aspect, overspeed_mph
-    self._sched:select(nil, function()
-      aspect = self:getaspect()
-      overspeed_mph = getoverspeed(self)
-      return self._aspect ~= aspect or self._overspeed_mph ~= overspeed_mph
-    end)
-    self._sched:yield()
-    if not self._atc:isalarm() and not self._acses:isalarm() then
-      self:triggeralert()
-    end
-    self._aspect, self._overspeed_mph = aspect, overspeed_mph
-  end
-end
-
 -- Create a new GenesisAdu context.
 function P:new(conf)
-  inherit(Adu)
-  local o = Adu:new(conf)
-  o._overspeedflasher = Flash:new{
-    scheduler = conf.scheduler,
-    off_s = 0.2,
-    on_s = 0.3
+  inherit(AmtrakTwoSpeedAdu)
+  local o = AmtrakTwoSpeedAdu:new(conf)
+  o._isamtrak = conf.isamtrak
+  o._acses = AmtrakAcses:new{
+    cabsignal = o._cabsig,
+    getbrakesuppression = conf.getbrakesuppression,
+    getacknowledge = conf.getacknowledge,
+    getspeed_mps = conf.getspeed_mps,
+    gettrackspeed_mps = conf.gettrackspeed_mps,
+    getconsistlength_m = conf.getconsistlength_m,
+    iterspeedlimits = conf.iterspeedlimits,
+    iterrestrictsignals = conf.iterrestrictsignals,
+    consistspeed_mps = (o._isamtrak and 110 or 80) * Units.mph.tomps,
+    alertlimit_mps = o._alertlimit_mps,
+    penaltylimit_mps = o._penaltylimit_mps,
+    alertwarning_s = o._alertwarning_s,
+    restrictingspeed_mps = (o._isamtrak and 20 or 15) * Units.mph.tomps
   }
-  o._aspect = nil
-  o._overspeed_mph = nil
+  o._overspeedflasher = Flash:new{off_s = 0.2, on_s = 0.3}
   setmetatable(o, self)
   self.__index = self
-  o._sched:run(readspeeds, o)
   return o
+end
+
+-- Update this system once every frame.
+function P:update(dt)
+  AmtrakTwoSpeedAdu.update(self, dt)
+
+  self._overspeedflasher:setflashstate(self:isalarm())
+end
+
+-- True if the ADU model is capable of displaying the supplied cab signal pulse
+-- code.
+function P:_canshowpulsecode(pulsecode)
+  return pulsecode ~= Nec.pulsecode.cabspeed60 and pulsecode ~=
+           Nec.pulsecode.cabspeed80 and pulsecode ~= Nec.pulsecode.clear100 and
+           pulsecode ~= Nec.pulsecode.clear125 and pulsecode ~=
+           Nec.pulsecode.clear150
 end
 
 -- Get the currently displayed cab signal aspect.
 function P:getaspect()
-  local atccode = self._atc:getpulsecode()
-  if atccode == Nec.pulsecode.restrict then
-    return P.aspect.restrict
-  elseif atccode == Nec.pulsecode.approach then
+  local acsesmode = self._acses:getmode()
+  local atccode = self._cabsig:getpulsecode()
+  if acsesmode == Acses.mode.approachmed30 or atccode == Nec.pulsecode.approach then
     return P.aspect.medium
+  elseif acsesmode == Acses.mode.positivestop or atccode ==
+    Nec.pulsecode.restrict then
+    return P.aspect.restrict
   elseif atccode == Nec.pulsecode.approachmed then
     return P.aspect.limited
-  else
+  elseif atccode == Nec.pulsecode.cabspeed60 or atccode ==
+    Nec.pulsecode.cabspeed80 or atccode == Nec.pulsecode.clear100 or atccode ==
+    Nec.pulsecode.clear125 or atccode == Nec.pulsecode.clear150 then
     return P.aspect.clear
+  else
+    return nil
   end
 end
 
--- Get the current signal speed limit. Returns nil if it cannot be displayed by the
--- ADU model.
+-- Get the current signal speed limit, which is influenced by both ATC and ACSES.
+-- Some speeds cannot be displayed by any Dovetail ADU; these will be displayed
+-- using the overspeed limit display.
 function P:getsignalspeed_mph()
-  local speed_mph = Adu.getsignalspeed_mph(self)
-  if speed_mph == 60 or speed_mph == 80 or speed_mph == 100 or speed_mph == 125 or
-    speed_mph == 150 then
-    return nil
+  local acsesmode = self._acses:getmode()
+  local atccode = self._cabsig:getpulsecode()
+  if acsesmode == Acses.mode.positivestop then
+    return 0
+  elseif acsesmode == Acses.mode.approachmed30 then
+    return 30
+  elseif atccode == Nec.pulsecode.restrict then
+    return self._isamtrak and 20 or 15
+  elseif atccode == Nec.pulsecode.approach then
+    return 30
+  elseif atccode == Nec.pulsecode.approachmed then
+    return 45
   else
-    return speed_mph
+    return nil
   end
 end
 
@@ -107,21 +112,37 @@ end
   extremely small and difficult to read on the Genesis model.
 ]]
 function P:getoverspeed_mph()
-  local speed_mph, mode = getoverspeed(self)
-  local isalarm
-  if mode == overspeedmode.signal then
-    isalarm = self._atc:isalarm()
-  elseif mode == overspeedmode.track then
-    isalarm = self._acses:isalarm()
+  local atccode = self._cabsig:getpulsecode()
+  local truesigspeed_mph
+  if atccode == Nec.pulsecode.cabspeed60 then
+    truesigspeed_mph = 60
+  elseif atccode == Nec.pulsecode.cabspeed80 then
+    truesigspeed_mph = 80
+  elseif atccode == Nec.pulsecode.clear100 then
+    truesigspeed_mph = 100
+  elseif atccode == Nec.pulsecode.clear125 then
+    truesigspeed_mph = 125
+  elseif atccode == Nec.pulsecode.clear150 then
+    truesigspeed_mph = 150
   else
-    isalarm = false
+    truesigspeed_mph = nil
   end
-
-  self._overspeedflasher:setflashstate(isalarm)
-  if isalarm then
-    return self._overspeedflasher:ison() and speed_mph or nil
+  local flashsigspeed = self._sigspeedflasher:getflashstate()
+  local civilspeed_mph = self._acsesspeed_mps ~= nil and self._acsesspeed_mps *
+                           Units.mps.tomph or nil
+  if self._overspeedflasher:getflashstate() then
+    local showoverspeed = self._overspeedflasher:ison()
+    if flashsigspeed then
+      return showoverspeed and truesigspeed_mph or nil
+    else
+      return showoverspeed and civilspeed_mph or nil
+    end
+  elseif flashsigspeed then
+    return self._sigspeedflasher:ison() and truesigspeed_mph or nil
+  elseif self._showsigspeed:isplaying() then
+    return truesigspeed_mph
   else
-    return speed_mph
+    return civilspeed_mph
   end
 end
 

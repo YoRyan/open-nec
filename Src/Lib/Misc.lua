@@ -38,6 +38,9 @@ function P.wraperrors(fn)
   return function(...) return P.catcherrors(fn, unpack(arg)) end
 end
 
+-- Allow other parts of the simulator to settle for a few seconds.
+function P.isinitialized() return RailWorks.GetSimulationTime() > 3 end
+
 -- Convert a boolean to an integer value that can be passed to system calls.
 function P.intbool(b) return b and 1 or 0 end
 

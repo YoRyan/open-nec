@@ -4,11 +4,8 @@
 -- @include RollingStock/PowerSupply/PowerSupply.lua
 -- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/Spark.lua
--- @include SafetySystems/Acses/AmtrakAcses.lua
 -- @include SafetySystems/AspectDisplay/AmtrakCombined.lua
 -- @include SafetySystems/Alerter.lua
--- @include SafetySystems/Atc.lua
--- @include Signals/CabSignal.lua
 -- @include Flash.lua
 -- @include Iterator.lua
 -- @include Misc.lua
@@ -17,9 +14,6 @@
 -- @include Scheduler.lua
 -- @include Units.lua
 local playersched, anysched
-local cabsig
-local atc
-local acses
 local adu
 local alerter
 local power
@@ -43,44 +37,22 @@ local state = {
   lasthorntime_s = nil
 }
 
+local function issuppression() return state.train_brake > 0.6 end
+
 Initialise = Misc.wraperrors(function()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
 
-  cabsig = CabSignal:new{scheduler = playersched}
-
-  atc = Atc:new{
-    scheduler = playersched,
-    cabsignal = cabsig,
-    getspeed_mps = function() return state.speed_mps end,
-    getacceleration_mps2 = function() return state.acceleration_mps2 end,
+  adu = AmtrakCombinedAdu:new{
+    getbrakesuppression = issuppression,
     getacknowledge = function() return state.acknowledge end,
-    getbrakesuppression = function() return state.train_brake > 0.6 end
-  }
-
-  acses = AmtrakAcses:new{
-    scheduler = playersched,
-    cabsignal = cabsig,
     getspeed_mps = function() return state.speed_mps end,
     gettrackspeed_mps = function() return state.trackspeed_mps end,
     getconsistlength_m = function() return state.consistlength_m end,
     iterspeedlimits = function() return pairs(state.speedlimits) end,
     iterrestrictsignals = function() return pairs(state.restrictsignals) end,
-    getacknowledge = function() return state.acknowledge end,
     consistspeed_mps = 125 * Units.mph.tomps
   }
-
-  local alert_s = 1
-  adu = AmtrakCombinedAdu:new{
-    scheduler = playersched,
-    cabsignal = cabsig,
-    atc = atc,
-    acses = acses,
-    alert_s = alert_s
-  }
-
-  atc:start()
-  acses:start()
 
   alerter = Alerter:new{
     scheduler = playersched,
@@ -110,14 +82,10 @@ Initialise = Misc.wraperrors(function()
   acceleration = Average:new{nsamples = avgsamples}
 
   -- Modulate the speed reduction alert sound, which normally plays just once.
-  alarmonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
+  alarmonoff = Flash:new{off_s = 0.1, on_s = 0.5}
 
   local ditchflash_s = 0.65
-  ditchflasher = Flash:new{
-    scheduler = playersched,
-    off_s = ditchflash_s,
-    on_s = ditchflash_s
-  }
+  ditchflasher = Flash:new{off_s = ditchflash_s, on_s = ditchflash_s}
 
   spark = PantoSpark:new{scheduler = anysched}
 
@@ -151,7 +119,7 @@ local function readlocostate()
 end
 
 local function writelocostate()
-  local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
+  local penalty = alerter:ispenalty() or adu:ispenalty()
 
   local throttle, dynbrake
   if not power:haspower() then
@@ -186,7 +154,7 @@ local function writelocostate()
   end
   RailWorks.SetControlValue("TrainBrakeControl", 0, brake)
 
-  local alarm = atc:isalarm() or acses:isalarm()
+  local alarm = adu:isalarm()
   alarmonoff:setflashstate(alarm)
   RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alarm))
   RailWorks.SetControlValue("SpeedReductionAlert", 0,
@@ -246,7 +214,7 @@ local function setscreen()
   RailWorks.SetControlValue("AccelerationMPHPM", 0, accel_mphmin)
 
   RailWorks.SetControlValue("ScreenSuppression", 0,
-                            Misc.intbool(atc:issuppression()))
+                            Misc.intbool(issuppression()))
   RailWorks.SetControlValue("ScreenAlerter", 0, Misc.intbool(alerter:isalarm()))
   RailWorks.SetControlValue("ScreenWheelslip", 0, Misc.intbool(
                               RailWorks.GetControlValue("Wheelslip", 0) > 1))
@@ -255,10 +223,8 @@ local function setscreen()
 end
 
 local function setcutin()
-  if not playersched:isstartup() then
-    atc:setrunstate(RailWorks.GetControlValue("ATCCutIn", 0) == 1)
-    acses:setrunstate(RailWorks.GetControlValue("ACSESCutIn", 0) == 1)
-  end
+  adu:setatcstate(RailWorks.GetControlValue("ATCCutIn", 0) == 1)
+  adu:setacsesstate(RailWorks.GetControlValue("ACSESCutIn", 0) == 1)
 end
 
 local function setadu()
@@ -399,12 +365,13 @@ local function setditchlights()
   Call("RearDitchLightR:Activate", Misc.intbool(false))
 end
 
-local function updateplayer()
+local function updateplayer(dt)
   readcontrols()
   readlocostate()
 
   playersched:update()
   anysched:update()
+  adu:update(dt)
   power:update()
   blight:playerupdate()
 
@@ -425,9 +392,9 @@ local function updatenonplayer()
   setditchlights()
 end
 
-Update = Misc.wraperrors(function(_)
+Update = Misc.wraperrors(function(dt)
   if RailWorks.GetIsEngineWithKey() then
-    updateplayer()
+    updateplayer(dt)
   else
     updatenonplayer()
   end
@@ -454,7 +421,7 @@ end)
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
   power:receivemessage(message)
-  cabsig:receivemessage(message)
+  adu:receivemessage(message)
 end)
 
 OnConsistMessage = Misc.wraperrors(function(message, argument, direction)

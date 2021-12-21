@@ -4,11 +4,8 @@
 -- @include RollingStock/PowerSupply/PowerSupply.lua
 -- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/Doors.lua
--- @include SafetySystems/Acses/NjtAses.lua
 -- @include SafetySystems/AspectDisplay/NjTransit.lua
 -- @include SafetySystems/Alerter.lua
--- @include SafetySystems/Atc.lua
--- @include Signals/CabSignal.lua
 -- @include Animation.lua
 -- @include Flash.lua
 -- @include Misc.lua
@@ -18,9 +15,6 @@
 local messageid = {destination = 10100}
 
 local playersched, anysched
-local cabsig
-local atc
-local acses
 local adu
 local alerter
 local power
@@ -62,40 +56,16 @@ Initialise = Misc.wraperrors(function()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
 
-  cabsig = CabSignal:new{scheduler = playersched}
-
-  atc = Atc:new{
-    scheduler = playersched,
-    cabsignal = cabsig,
-    getspeed_mps = function() return state.speed_mps end,
-    getacceleration_mps2 = function() return state.acceleration_mps2 end,
+  adu = NjTransitAdu:new{
+    getbrakesuppression = function() return state.train_brake > 0.5 end,
     getacknowledge = function() return state.acknowledge end,
-    getbrakesuppression = function() return state.train_brake > 0.5 end
-  }
-
-  acses = NjtAses:new{
-    scheduler = playersched,
-    cabsignal = cabsig,
     getspeed_mps = function() return state.speed_mps end,
     gettrackspeed_mps = function() return state.trackspeed_mps end,
     getconsistlength_m = function() return state.consistlength_m end,
     iterspeedlimits = function() return pairs(state.speedlimits) end,
     iterrestrictsignals = function() return pairs(state.restrictsignals) end,
-    getacknowledge = function() return state.acknowledge end,
     consistspeed_mps = 100 * Units.mph.tomps
   }
-
-  local onebeep_s = 1
-  adu = NjTransitAdu:new{
-    scheduler = playersched,
-    cabsignal = cabsig,
-    atc = atc,
-    acses = acses,
-    alert_s = onebeep_s
-  }
-
-  atc:start()
-  acses:start()
 
   alerter = Alerter:new{
     scheduler = playersched,
@@ -166,7 +136,7 @@ local function readlocostate()
 end
 
 local function writelocostate()
-  local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
+  local penalty = alerter:ispenalty() or adu:ispenalty()
   local haspower = power:haspower()
   local throttle = (penalty or not haspower) and 0 or
                      math.max(state.throttle, 0)
@@ -185,7 +155,7 @@ local function writelocostate()
                             RailWorks.GetControlValue("VirtualBell", 0))
 
   local vigilalarm = alerter:isalarm()
-  local safetyalarm = atc:isalarm() or acses:isalarm()
+  local safetyalarm = adu:isalarm()
   local safetyalert = adu:isalertplaying()
   RailWorks.SetControlValue("AWSWarnCount", 0,
                             Misc.intbool(vigilalarm or safetyalarm))
@@ -228,20 +198,19 @@ local function setspeedometer()
   RailWorks.SetControlValue("Speed2U", 0, isclear and -1 or u)
   RailWorks.SetControlValue("SpeedP", 0, Misc.getdigitguide(rspeed_mph))
 
-  RailWorks.SetControlValue("ACSES_SpeedGreen", 0,
-                            adu:getgreenzone_mph(state.speed_mps))
-  RailWorks.SetControlValue("ACSES_SpeedRed", 0,
-                            adu:getredzone_mph(state.speed_mps))
+  RailWorks.SetControlValue("ACSES_SpeedGreen", 0, adu:getgreenzone_mph())
+  RailWorks.SetControlValue("ACSES_SpeedRed", 0, adu:getredzone_mph())
 
-  RailWorks.SetControlValue("ATC_Node", 0, Misc.intbool(atc:isalarm()))
-  RailWorks.SetControlValue("ACSES_Node", 0, Misc.intbool(acses:isalarm()))
+  RailWorks.SetControlValue("ATC_Node", 0, Misc.intbool(adu:getatcenforcing()))
+  RailWorks.SetControlValue("ACSES_Node", 0,
+                            Misc.intbool(adu:getacsesenforcing()))
 end
 
 local function setcutin()
   -- Reverse the polarities so that safety systems are on by default.
   -- ACSES and ATC shortcuts are reversed on NJT stock.
-  atc:setrunstate(RailWorks.GetControlValue("ACSES", 0) == 0)
-  acses:setrunstate(RailWorks.GetControlValue("ATC", 0) == 0)
+  adu:setatcstate(RailWorks.GetControlValue("ACSES", 0) == 0)
+  adu:setacsesstate(RailWorks.GetControlValue("ATC", 0) == 0)
 end
 
 local function setcablights()
@@ -326,12 +295,13 @@ local function setdestination()
   end
 end
 
-local function updateplayer()
+local function updateplayer(dt)
   readcontrols()
   readlocostate()
 
   playersched:update()
   anysched:update()
+  adu:update(dt)
   power:update()
   blight:playerupdate()
   frontpantoanim:update()
@@ -362,9 +332,9 @@ local function updatenonplayer()
   setdestination()
 end
 
-Update = Misc.wraperrors(function(_)
+Update = Misc.wraperrors(function(dt)
   if RailWorks.GetIsEngineWithKey() then
-    updateplayer()
+    updateplayer(dt)
   else
     updatenonplayer()
   end
@@ -475,7 +445,7 @@ end)
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
   power:receivemessage(message)
-  cabsig:receivemessage(message)
+  adu:receivemessage(message)
 end)
 
 OnConsistMessage = Misc.wraperrors(function(message, argument, direction)

@@ -6,11 +6,8 @@
 -- @include RollingStock/CruiseControl.lua
 -- @include RollingStock/RangeScroll.lua
 -- @include RollingStock/Spark.lua
--- @include SafetySystems/Acses/AmtrakAcses.lua
 -- @include SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
 -- @include SafetySystems/Alerter.lua
--- @include SafetySystems/Atc.lua
--- @include Signals/CabSignal.lua
 -- @include Animation.lua
 -- @include Flash.lua
 -- @include Iterator.lua
@@ -20,9 +17,6 @@
 -- @include Scheduler.lua
 -- @include Units.lua
 local playersched, anysched
-local cabsig
-local atc
-local acses
 local adu
 local cruise
 local alerter
@@ -91,37 +85,15 @@ Initialise = Misc.wraperrors(function()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
 
-  cabsig = CabSignal:new{scheduler = playersched}
-
-  atc = Atc:new{
-    scheduler = playersched,
-    cabsignal = cabsig,
-    getspeed_mps = function() return state.speed_mps end,
-    getacceleration_mps2 = function() return state.acceleration_mps2 end,
+  adu = AmtrakTwoSpeedAdu:new{
+    getbrakesuppression = function() return state.train_brake > 0.3 end,
     getacknowledge = function() return state.acknowledge end,
-    getbrakesuppression = function() return state.train_brake > 0.3 end
-  }
-
-  acses = AmtrakAcses:new{
-    scheduler = playersched,
-    cabsignal = cabsig,
     getspeed_mps = function() return state.speed_mps end,
     gettrackspeed_mps = function() return state.trackspeed_mps end,
     getconsistlength_m = function() return state.consistlength_m end,
     iterspeedlimits = function() return pairs(state.speedlimits) end,
-    iterrestrictsignals = function() return pairs(state.restrictsignals) end,
-    getacknowledge = function() return state.acknowledge end
+    iterrestrictsignals = function() return pairs(state.restrictsignals) end
   }
-
-  adu = AmtrakTwoSpeedAdu:new{
-    scheduler = playersched,
-    cabsignal = cabsig,
-    atc = atc,
-    acses = acses
-  }
-
-  atc:start()
-  acses:start()
 
   cruise = Cruise:new{
     scheduler = playersched,
@@ -170,11 +142,7 @@ Initialise = Misc.wraperrors(function()
   tracteffort = Average:new{nsamples = 30}
 
   local groundflash_s = 0.65
-  groundflasher = Flash:new{
-    scheduler = playersched,
-    off_s = groundflash_s,
-    on_s = groundflash_s
-  }
+  groundflasher = Flash:new{off_s = groundflash_s, on_s = groundflash_s}
 
   spark = PantoSpark:new{scheduler = anysched}
 
@@ -229,7 +197,7 @@ local function readlocostate()
 end
 
 local function writelocostate()
-  local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
+  local penalty = alerter:ispenalty() or adu:ispenalty()
 
   local throttle
   if not power:haspower() then
@@ -251,9 +219,8 @@ local function writelocostate()
                      0
   RailWorks.SetControlValue("DynamicBrake", 0, dynbrake)
 
-  RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(
-                              alerter:isalarm() or atc:isalarm() or
-                                acses:isalarm()))
+  RailWorks.SetControlValue("AWSWarnCount", 0,
+                            Misc.intbool(alerter:isalarm() or adu:isalarm()))
 
   -- Quick and dirty way to execute only when the sound starts to play.
   local adualert = adu:isalertplaying()
@@ -394,8 +361,8 @@ end
 
 local function setcutin()
   -- Reverse the polarities so that safety systems are on by default.
-  atc:setrunstate(RailWorks.GetControlValue("ATCCutIn", 0) == 0)
-  acses:setrunstate(RailWorks.GetControlValue("ACSESCutIn", 0) == 0)
+  adu:setatcstate(RailWorks.GetControlValue("ATCCutIn", 0) == 0)
+  adu:setacsesstate(RailWorks.GetControlValue("ACSESCutIn", 0) == 0)
 end
 
 local function setadu()
@@ -472,12 +439,13 @@ local function setgroundlights()
   Call("DitchLightRight:Activate", Misc.intbool(showright))
 end
 
-local function updateplayer()
+local function updateplayer(dt)
   readcontrols()
   readlocostate()
 
   playersched:update()
   anysched:update()
+  adu:update(dt)
   power:update()
   blight:playerupdate()
   frontpantoanim:update()
@@ -521,11 +489,11 @@ local function updatehelper()
   setgroundlights()
 end
 
-Update = Misc.wraperrors(function(_)
+Update = Misc.wraperrors(function(dt)
   -- -> [helper][coach]...[coach][player] ->
   -- -> [ai    ][coach]...[coach][ai    ] ->
   if RailWorks.GetIsEngineWithKey() then
-    updateplayer()
+    updateplayer(dt)
   elseif RailWorks.GetIsPlayer() then
     updatehelper()
   else
@@ -537,7 +505,7 @@ OnControlValueChange = RailWorks.SetControlValue
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
   power:receivemessage(message)
-  cabsig:receivemessage(message)
+  adu:receivemessage(message)
 end)
 
 OnConsistMessage = Misc.wraperrors(function(message, argument, direction)

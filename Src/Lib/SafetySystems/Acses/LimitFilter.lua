@@ -5,7 +5,7 @@
 local P = {}
 AcsesLimits = P
 
--- From the main coroutine, create a new speed limit filter context.
+-- Create a new speed limit filter context.
 function P:new(conf)
   local o = {
     _iterspeedlimits = conf.iterspeedlimits or

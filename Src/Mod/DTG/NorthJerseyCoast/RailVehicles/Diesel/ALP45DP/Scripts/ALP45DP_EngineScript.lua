@@ -5,11 +5,8 @@
 -- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/Doors.lua
 -- @include RollingStock/Hep.lua
--- @include SafetySystems/Acses/AmtrakAcses.lua
--- @include SafetySystems/AspectDisplay/AspectDisplay.lua
+-- @include SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
 -- @include SafetySystems/Alerter.lua
--- @include SafetySystems/Atc.lua
--- @include Signals/CabSignal.lua
 -- @include Animation.lua
 -- @include Flash.lua
 -- @include Misc.lua
@@ -21,9 +18,6 @@ local messageid = {destination = 10100}
 local dieselpower = 3600 / 5900
 
 local playersched, anysched
-local cabsig
-local atc
-local acses
 local adu
 local alerter
 local power
@@ -69,61 +63,20 @@ local function readrvnumber()
   RailWorks.SetControlValue("UnitU", 0, Misc.getdigit(unit, 0))
 end
 
-local function readspeedlimits()
-  while true do
-    local atclimit_mph, acseslimit_mph
-    playersched:select(nil, function()
-      atclimit_mph = atc:getinforcespeed_mph()
-      acseslimit_mph = acses:getrevealedspeed_mph()
-      return
-        state.lastatclimit_mph ~= atclimit_mph or state.lastacseslimit_mph ~=
-          acseslimit_mph
-    end)
-    playersched:yield()
-    if not atc:isalarm() and not acses:isalarm() then adu:triggeralert() end
-    state.lastatclimit_mph = atclimit_mph
-    state.lastacseslimit_mph = acseslimit_mph
-  end
-end
-
 Initialise = Misc.wraperrors(function()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
 
-  cabsig = CabSignal:new{scheduler = playersched}
-
-  atc = Atc:new{
-    scheduler = playersched,
-    cabsignal = cabsig,
-    getspeed_mps = function() return state.speed_mps end,
-    getacceleration_mps2 = function() return state.acceleration_mps2 end,
+  adu = AmtrakTwoSpeedAdu:new{
+    getbrakesuppression = function() return state.train_brake > 0.5 end,
     getacknowledge = function() return state.acknowledge end,
-    getbrakesuppression = function() return state.train_brake > 0.5 end
-  }
-
-  acses = AmtrakAcses:new{
-    scheduler = playersched,
-    cabsignal = cabsig,
     getspeed_mps = function() return state.speed_mps end,
     gettrackspeed_mps = function() return state.trackspeed_mps end,
     getconsistlength_m = function() return state.consistlength_m end,
     iterspeedlimits = function() return pairs(state.speedlimits) end,
     iterrestrictsignals = function() return pairs(state.restrictsignals) end,
-    getacknowledge = function() return state.acknowledge end,
     consistspeed_mps = 100 * Units.mph.tomps
   }
-
-  local onebeep_s = 1
-  adu = Adu:new{
-    scheduler = playersched,
-    cabsignal = cabsig,
-    atc = atc,
-    acses = acses,
-    alert_s = onebeep_s
-  }
-
-  atc:start()
-  acses:start()
 
   alerter = Alerter:new{
     scheduler = playersched,
@@ -183,7 +136,6 @@ Initialise = Misc.wraperrors(function()
   decreaseonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
 
   readrvnumber()
-  playersched:run(readspeedlimits)
   RailWorks.BeginUpdate()
 end)
 
@@ -211,7 +163,7 @@ local function readlocostate()
 end
 
 local function writelocostate()
-  local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
+  local penalty = alerter:ispenalty() or adu:ispenalty()
   local haspower = power:haspower()
   local throttle, proportion
   if penalty or not haspower then
@@ -237,7 +189,7 @@ local function writelocostate()
   RailWorks.SetControlValue("DynamicBrake", 0, math.max(dynbrake, dynthrottle))
 
   local vigilalarm = alerter:isalarm()
-  local safetyalarm = atc:isalarm() or acses:isalarm()
+  local safetyalarm = adu:isalarm()
   local safetyalert = adu:isalertplaying()
   RailWorks.SetControlValue("AWSWarnCount", 0,
                             Misc.intbool(vigilalarm or safetyalarm))
@@ -348,7 +300,7 @@ local function setspeedometer()
   RailWorks.SetControlValue("SpeedT", 0, Misc.getdigit(rspeed_mph, 1))
   RailWorks.SetControlValue("SpeedU", 0, Misc.getdigit(rspeed_mph, 0))
 
-  local acses_mph = acses:getrevealedspeed_mph()
+  local acses_mph = adu:getcivilspeed_mph()
   if acses_mph ~= nil then
     RailWorks.SetControlValue("ACSES_SpeedH", 0, Misc.getdigit(acses_mph, 2))
     RailWorks.SetControlValue("ACSES_SpeedT", 0, Misc.getdigit(acses_mph, 1))
@@ -359,32 +311,36 @@ local function setspeedometer()
     RailWorks.SetControlValue("ACSES_SpeedU", 0, -1)
   end
 
-  local atccode = atc:getpulsecode()
-  local acsesmode = acses:getmode()
+  local aspect = adu:getaspect()
+  local sigspeed_mph = adu:getsignalspeed_mph()
   local sig
-  if acsesmode == Acses.mode.positivestop then
+  if aspect == AmtrakTwoSpeedAdu.aspect.stop then
     sig = 8
-  elseif acsesmode == Acses.mode.approachmed30 then
-    sig = 5
-  elseif atccode == Nec.pulsecode.restrict then
+  elseif aspect == AmtrakTwoSpeedAdu.aspect.restrict then
     sig = 7
-  elseif atccode == Nec.pulsecode.approach then
+  elseif aspect == AmtrakTwoSpeedAdu.aspect.approach then
     sig = 6
-  elseif atccode == Nec.pulsecode.approachmed then
-    sig = 4
-  elseif atccode == Nec.pulsecode.cabspeed60 then
-    sig = 3
-  elseif atccode == Nec.pulsecode.cabspeed80 then
-    sig = 2
-  else
+  elseif aspect == AmtrakTwoSpeedAdu.aspect.approachmed then
+    sig = sigspeed_mph == 45 and 4 or 5
+  elseif aspect == AmtrakTwoSpeedAdu.aspect.cabspeed or aspect ==
+    AmtrakTwoSpeedAdu.aspect.cabspeedoff then
+    sig = sigspeed_mph == 60 and 3 or 2
+  elseif aspect == AmtrakTwoSpeedAdu.aspect.clear then
     sig = 1
+  else
+    sig = 0
   end
   RailWorks.SetControlValue("ACSES_SignalDisplay", 0, sig)
 
-  RailWorks.SetControlValue("ATC_Node", 0, Misc.intbool(atc:isalarm()))
-  RailWorks.SetControlValue("ATC_CutOut", 0, Misc.intbool(not atc:isrunning()))
-  RailWorks.SetControlValue("ACSES_Node", 0, Misc.intbool(acses:isalarm()))
-  local acseson = acses:isrunning()
+  local alarm = adu:isalarm()
+  local square = adu:getsquareindicator()
+  RailWorks.SetControlValue("ATC_Node", 0, Misc.intbool(
+                              alarm and square ==
+                                AmtrakTwoSpeedAdu.square.signal))
+  RailWorks.SetControlValue("ATC_CutOut", 0, Misc.intbool(not adu:getatcstate()))
+  RailWorks.SetControlValue("ACSES_Node", 0, Misc.intbool(
+                              alarm and square == AmtrakTwoSpeedAdu.square.track))
+  local acseson = adu:getacsesstate()
   RailWorks.SetControlValue("ACSES_CutIn", 0, Misc.intbool(acseson))
   RailWorks.SetControlValue("ACSES_CutOut", 0, Misc.intbool(not acseson))
 end
@@ -392,8 +348,8 @@ end
 local function setcutin()
   -- Reverse the polarities so that safety systems are on by default.
   -- ACSES and ATC shortcuts are reversed on NJT stock.
-  atc:setrunstate(RailWorks.GetControlValue("ACSES", 0) == 0)
-  acses:setrunstate(RailWorks.GetControlValue("ATC", 0) == 0)
+  adu:setatcstate(RailWorks.GetControlValue("ACSES", 0) == 0)
+  adu:setacsesstate(RailWorks.GetControlValue("ATC", 0) == 0)
 end
 
 local function setcablights()
@@ -462,12 +418,13 @@ local function setdestination()
   end
 end
 
-local function updateplayer()
+local function updateplayer(dt)
   readcontrols()
   readlocostate()
 
   playersched:update()
   anysched:update()
+  adu:update(dt)
   power:update()
   blight:playerupdate()
   pantoanim:update()
@@ -513,9 +470,9 @@ local function updateai()
   setdestination()
 end
 
-Update = Misc.wraperrors(function(_)
+Update = Misc.wraperrors(function(dt)
   if RailWorks.GetIsEngineWithKey() then
-    updateplayer()
+    updateplayer(dt)
   elseif RailWorks.GetIsPlayer() then
     updatehelper()
   else
@@ -665,7 +622,7 @@ end)
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
   power:receivemessage(message)
-  cabsig:receivemessage(message)
+  adu:receivemessage(message)
 end)
 
 OnConsistMessage = Misc.wraperrors(function(message, argument, direction)

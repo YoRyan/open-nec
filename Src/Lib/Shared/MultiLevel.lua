@@ -6,11 +6,8 @@
 -- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/Doors.lua
 -- @include RollingStock/Hep.lua
--- @include SafetySystems/Acses/NjtAses.lua
 -- @include SafetySystems/AspectDisplay/NjTransit.lua
 -- @include SafetySystems/Alerter.lua
--- @include SafetySystems/Atc.lua
--- @include Signals/CabSignal.lua
 -- @include Animation.lua
 -- @include Flash.lua
 -- @include Iterator.lua
@@ -22,9 +19,6 @@ local powermode = {diesel = 0, overhead = 1}
 
 local playersched
 local anysched
-local cabsig
-local atc
-local acses
 local adu
 local alerter
 local power
@@ -74,40 +68,16 @@ Initialise = Misc.wraperrors(function()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
 
-  cabsig = CabSignal:new{scheduler = playersched}
-
-  atc = Atc:new{
-    scheduler = playersched,
-    cabsignal = cabsig,
-    getspeed_mps = function() return state.speed_mps end,
-    getacceleration_mps2 = function() return state.acceleration_mps2 end,
+  adu = NjTransitAdu:new{
+    getbrakesuppression = function() return state.train_brake > 0.5 end,
     getacknowledge = function() return state.acknowledge end,
-    getbrakesuppression = function() return state.train_brake > 0.5 end
-  }
-
-  acses = NjtAses:new{
-    scheduler = playersched,
-    cabsignal = cabsig,
     getspeed_mps = function() return state.speed_mps end,
     gettrackspeed_mps = function() return state.trackspeed_mps end,
     getconsistlength_m = function() return state.consistlength_m end,
     iterspeedlimits = function() return pairs(state.speedlimits) end,
     iterrestrictsignals = function() return pairs(state.restrictsignals) end,
-    getacknowledge = function() return state.acknowledge end,
     consistspeed_mps = (ismarc and 125 or 100) * Units.mph.tomps
   }
-
-  local onebeep_s = 1
-  adu = NjTransitAdu:new{
-    scheduler = playersched,
-    cabsignal = cabsig,
-    atc = atc,
-    acses = acses,
-    alert_s = onebeep_s
-  }
-
-  atc:start()
-  acses:start()
 
   power = PowerSupply:new{
     scheduler = anysched,
@@ -200,7 +170,7 @@ local function readlocostate()
 end
 
 local function writelocostate()
-  local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
+  local penalty = alerter:ispenalty() or adu:ispenalty()
 
   local throttle = penalty and 0 or math.max(state.throttle, 0)
   RailWorks.SetControlValue("Regulator", 0, throttle)
@@ -223,8 +193,8 @@ local function writelocostate()
                             RailWorks.GetControlValue("VirtualSander", 0))
   RailWorks.SetControlValue("HEP_State", 0, Misc.intbool(hep:haspower()))
 
-  local atcalarm = atc:isalarm()
-  local acsesalarm = acses:isalarm()
+  local atcalarm = adu:getatcenforcing()
+  local acsesalarm = adu:getacsesenforcing()
   local alertalarm = alerter:isalarm()
   local alert = adu:isalertplaying()
   if isnjcl then
@@ -264,8 +234,8 @@ end
 local function setcutin()
   -- Reverse the polarities so that safety systems are on by default.
   -- ACSES and ATC shortcuts are reversed on NJT stock.
-  atc:setrunstate(RailWorks.GetControlValue("ACSES", 0) == 0)
-  acses:setrunstate(RailWorks.GetControlValue("ATC", 0) == 0)
+  adu:setatcstate(RailWorks.GetControlValue("ACSES", 0) == 0)
+  adu:setacsesstate(RailWorks.GetControlValue("ATC", 0) == 0)
 end
 
 local function setcablight()
@@ -321,12 +291,13 @@ local function setdestination()
   end
 end
 
-local function updateplayer()
+local function updateplayer(dt)
   readcontrols()
   readlocostate()
 
   playersched:update()
   anysched:update()
+  adu:update(dt)
   power:update()
   blight:playerupdate()
   leftdoorsanim:update()
@@ -357,9 +328,9 @@ local function updatenonplayer()
   setdestination()
 end
 
-Update = Misc.wraperrors(function(_)
+Update = Misc.wraperrors(function(dt)
   if RailWorks.GetIsEngineWithKey() then
-    updateplayer()
+    updateplayer(dt)
   else
     updatenonplayer()
   end
@@ -434,7 +405,7 @@ end)
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
   power:receivemessage(message)
-  cabsig:receivemessage(message)
+  adu:receivemessage(message)
 end)
 
 OnConsistMessage = Misc.wraperrors(function(message, argument, direction)

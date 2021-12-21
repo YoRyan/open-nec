@@ -1,38 +1,29 @@
 -- An event-based warning tone that plays a sound for a predefined amount of time.
 --
--- @include Event.lua
+-- @include RailWorks.lua
 local P = {}
 Tone = P
 
-local function run(self)
-  while true do
-    self._event:waitfor()
-    self._play = true
-    self._sched:sleep(self._time_s)
-    self._play = false
-  end
-end
-
--- From the main coroutine, create a new Tone context. This will add a coroutine
--- to the provided scheduler.
+-- Create a new Tone context.
 function P:new(conf)
-  local sched = conf.scheduler
-  local o = {
-    _sched = sched,
-    _time_s = conf.time_s or 1,
-    _event = Event:new{scheduler = sched},
-    _play = false
-  }
+  local o = {_time_s = conf.time_s or 1, _lastplay_s = nil}
   setmetatable(o, self)
   self.__index = self
-  o._sched:run(run, o)
   return o
 end
 
--- Trigger the tone.
-function P:trigger() self._event:trigger() end
+-- Trigger the tone. If the sound is already playing, nothing happens.
+function P:trigger()
+  local now = RailWorks.GetSimulationTime()
+  if self._lastplay_s == nil or now - self._lastplay_s > self._time_s then
+    self._lastplay_s = now
+  end
+end
 
 -- Determine whether the underlying sound should play.
-function P:isplaying() return self._play end
+function P:isplaying()
+  local now = RailWorks.GetSimulationTime()
+  return self._lastplay_s ~= nil and now - self._lastplay_s <= self._time_s
+end
 
 return P

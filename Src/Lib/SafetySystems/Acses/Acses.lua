@@ -20,60 +20,82 @@ local debugsignals = false
 local debugtrackers = false
 local direction = {forward = 0, stopped = 1, backward = 2}
 
-local function initstate(self)
-  self._running = false
-  self._isalarm = false
-  self._ispenalty = false
-  self._hazards = {}
-  self._hazardstate = TupleDict:new{}
-  self._inforceid = nil
-  self._movingdirection = direction.forward
-  self._limitfilter = nil
-  self._trackspeed = nil
-  self._limittracker = nil
-  self._signaltracker = nil
-  self._coroutines = {}
-end
-
--- From the main coroutine, create a new Acses context. This will add coroutines
--- to the provided scheduler.
+-- Create a new Acses context.
 function P:new(conf)
   local o = {
     _sched = conf.scheduler,
     _cabsig = conf.cabsignal,
-    _getspeed_mps = conf.getspeed_mps or function() return 0 end,
+    _getspeed_mps = conf.getspeed_mps,
     _gettrackspeed_mps = conf.gettrackspeed_mps or function() return 0 end,
     _getconsistlength_m = conf.getconsistlength_m or function() return 0 end,
     _iterspeedlimits = conf.iterspeedlimits or
       function() return Iterator.empty() end,
     _iterrestrictsignals = conf.iterrestrictsignals or
       function() return Iterator.empty() end,
-    _getacknowledge = conf.getacknowledge or function() return false end,
+    _getacknowledge = conf.getacknowledge,
     _consistspeed_mps = conf.consistspeed_mps,
-    _penaltylimit_mps = conf.penaltylimit_mps or 6 * Units.mph.tomps,
-    _alertlimit_mps = conf.alertlimit_mps or 3 * Units.mph.tomps,
+    _alertlimit_mps = conf.alertlimit_mps,
+    _penaltylimit_mps = conf.penaltylimit_mps,
+    _alertwarning_s = conf.alertwarning_s,
     -- -1.3 mph/s
     _penaltycurve_mps2 = conf.penaltycurve_mps2 or -1.3 * Units.mph.tomps,
     _restrictingspeed_mps = conf.restrictingspeed_mps or 20 * Units.mph.tomps,
     -- Keep the distance small (not very prototypical) to handle those pesky
     -- closely spaced shunting signals.
     _positivestop_m = conf.positivestop_m or 20 * Units.m.toft,
-    _alertwarning_s = conf.alertwarning_s or 7,
     _positivestopwarning_s = conf.positivestopwarning_s or 20
   }
   setmetatable(o, self)
   self.__index = self
-  initstate(o)
+  o:start()
   return o
 end
 
--- From the main coroutine, start or stop the subsystem based on the provided
--- condition.
+-- Start or stop the subsystem based on the provided condition.
 function P:setrunstate(cond)
   if cond and not self._running then
     self:start()
   elseif not cond and self._running then
     self:stop()
+  end
+end
+
+-- Initialize this subsystem.
+function P:start()
+  if not self._running then
+    self._running = true
+    self._hazards = {}
+    self._hazardstate = TupleDict:new{}
+    self._inforceid = nil
+    self._movingdirection = direction.forward
+
+    self._limitfilter = AcsesLimits:new{iterspeedlimits = self._iterspeedlimits}
+    self._limittracker = AcsesTracker:new{
+      getspeed_mps = self._getspeed_mps,
+      iterbydistance = function()
+        return self._limitfilter:iterspeedlimits()
+      end
+    }
+    self._signaltracker = AcsesTracker:new{
+      getspeed_mps = self._getspeed_mps,
+      iterbydistance = self._iterrestrictsignals
+    }
+    self._trackspeed = AcsesTrackSpeed:new{
+      speedlimittracker = self._limittracker,
+      gettrackspeed_mps = self._gettrackspeed_mps,
+      getconsistlength_m = self._getconsistlength_m
+    }
+  end
+end
+
+-- Halt and reset this subsystem.
+function P:stop()
+  if self._running then
+    self._running = false
+    self._limitfilter = nil
+    self._trackspeed = nil
+    self._limittracker = nil
+    self._signaltracker = nil
   end
 end
 
@@ -121,7 +143,7 @@ local function showlimits(self)
       return tostring(id) .. ": type=" .. limit.type .. ", speed=" ..
                fspeed(limit.speed_mps) .. ", distance=" .. fdist(distance_m)
     end
-    self._sched:info(Iterator.join("\n", Iterator.imap(show, ipairs(ids))))
+    Misc.showinfo(Iterator.join("\n", Iterator.imap(show, ipairs(ids))))
   else
     local speedlimits = Iterator.totable(self._iterspeedlimits())
     local distances_m = Iterator.totable(Iterator.keys(pairs(speedlimits)))
@@ -132,10 +154,9 @@ local function showlimits(self)
                ", distance=" .. fdist(distance_m)
     end
     local posts = Iterator.join("\n", Iterator.imap(show, ipairs(distances_m)))
-    self._sched:info("Track: " .. fspeed(self._gettrackspeed_mps()) .. " " ..
-                       "Sensed: " ..
-                       fspeed(self._trackspeed:gettrackspeed_mps()) .. "\n" ..
-                       "Posts: " .. posts)
+    Misc.showinfo("Track: " .. fspeed(self._gettrackspeed_mps()) .. " " ..
+                    "Sensed: " .. fspeed(self._trackspeed:gettrackspeed_mps()) ..
+                    "\n" .. "Posts: " .. posts)
   end
 end
 
@@ -173,7 +194,7 @@ local function showsignals(self)
       return tostring(id) .. ": state=" .. faspect(signal.prostate) ..
                ", distance=" .. fdist(distance_m)
     end
-    self._sched:info(Iterator.join("\n", Iterator.imap(show, ipairs(ids))))
+    Misc.showinfo(Iterator.join("\n", Iterator.imap(show, ipairs(ids))))
   else
     local restrictsignals = Iterator.totable(self._iterrestrictsignals())
     local distances_m = Iterator.totable(Iterator.keys(pairs(restrictsignals)))
@@ -183,8 +204,7 @@ local function showsignals(self)
       return "state=" .. faspect(signal.prostate) .. ", distance=" ..
                fdist(distance_m)
     end
-    self._sched:info(Iterator.join("\n",
-                                   Iterator.imap(show, ipairs(distances_m))))
+    Misc.showinfo(Iterator.join("\n", Iterator.imap(show, ipairs(distances_m))))
   end
 end
 
@@ -295,172 +315,69 @@ local function gethazardsdict(self)
   local hazards = TupleDict:new{}
   for k, hazard in iteradvancelimithazards(self) do hazards[k] = hazard end
   local isrestricting = self._cabsig:getpulsecode() == Nec.pulsecode.restrict
-  if isrestricting and not self._sched:isstartup() then
+  if isrestricting and Misc.isinitialized() then
     for k, hazard in iterstopsignalhazards(self) do hazards[k] = hazard end
   end
   for k, hazard in itercurrentlimithazards(self) do hazards[k] = hazard end
   return hazards
 end
 
--- Set useful properties once every update. May be subclassed by other
--- implementations.
-function P:_update() end
-
-local function setstate(self)
-  while true do
-    -- Refresh the list of hazards, and maintain persistent hazard state.
-    self._hazards = gethazardsdict(self)
-    local newstate = TupleDict:new{}
-    for k, hazard in TupleDict.pairs(self._hazards) do
-      local s = self._hazardstate[k]
-      newstate[k] = s == nil and {} or s
-    end
-    self._hazardstate = newstate
-
-    -- Get the current hazard in force. If this hazard is violated, trip its
-    -- persistent flag.
-    local inforceid = Iterator.min(Iterator.ltcomp,
-                                   Iterator.map(
-                                     function(k, hazard)
-        return k, hazard.alert_mps
-      end, TupleDict.pairs(self._hazards)))
-    if inforceid ~= nil and inforceid[1] == P._hazardtype.advancelimit then
-      local hazard = self._hazards[inforceid]
-      self._hazardstate[inforceid].violated =
-        self._hazardstate[inforceid].violated or math.abs(self._getspeed_mps()) >
-          hazard.alert_mps
-    end
-    self._inforceid = inforceid
-
-    -- Call the class-specific update function.
-    self:_update()
-
-    -- Activate the debug views if enabled.
-    if self._getacknowledge() then
-      if debuglimits then showlimits(self) end
-      if debugsignals then showsignals(self) end
-    end
-    self._sched:yield()
-  end
-end
-
 --[[
   Alert and penalty enforcement
 ]]
 
-local function tableeq(a, b)
-  local an = table.getn(a)
-  local bn = table.getn(b)
-  if an ~= bn then return false end
-  for i = 1, an do if a[i] ~= b[i] then return false end end
-  return true
-end
+-- Update this system once every frame.
+function P:update(dt)
+  if not self._running then return end
 
--- True if ACSES should enter the alarm state. May be subclassed by other
--- implementations.
-function P:_shouldalarm()
-  if self._inforceid ~= nil then
-    local hazard = self._hazards[self._inforceid]
-    return math.abs(self._getspeed_mps()) > hazard.alert_mps
-  else
-    return false
+  -- Update attached subsystems.
+  self._limittracker:update(dt)
+  self._signaltracker:update(dt)
+  self._trackspeed:update(dt)
+
+  -- Refresh the list of hazards, and maintain persistent hazard state.
+  self._hazards = gethazardsdict(self)
+  local newstate = TupleDict:new{}
+  for k, hazard in TupleDict.pairs(self._hazards) do
+    local s = self._hazardstate[k]
+    newstate[k] = s == nil and {} or s
+  end
+  self._hazardstate = newstate
+
+  -- Get the current hazard in force. If this hazard is violated, trip its
+  -- persistent flag.
+  local inforceid = Iterator.min(Iterator.ltcomp,
+                                 Iterator.map(
+                                   function(k, hazard)
+      return k, hazard.alert_mps
+    end, TupleDict.pairs(self._hazards)))
+  if inforceid ~= nil and inforceid[1] == P._hazardtype.advancelimit then
+    local hazard = self._hazards[inforceid]
+    self._hazardstate[inforceid].violated =
+      self._hazardstate[inforceid].violated or math.abs(self._getspeed_mps()) >
+        hazard.alert_mps
+  end
+  self._inforceid = inforceid
+
+  -- Activate the debug views if enabled.
+  if self._getacknowledge() then
+    if debuglimits then showlimits(self) end
+    if debugsignals then showsignals(self) end
   end
 end
 
--- True if ACSES should enter the penalty state. (Implies _shouldalarm() is
--- true, too.) May be subclassed by other implementations.
-function P:_shouldpenalty()
-  if self._inforceid ~= nil then
-    local hazard = self._hazards[self._inforceid]
-    return math.abs(self._getspeed_mps()) > hazard.penalty_mps
-  else
-    return false
-  end
+-- Returns the current alert curve speed, which includes track speed, positive
+-- stops, and Approach Medium 30. This counts down to upcoming restrictions.
+function P:getalertcurve_mps()
+  local ok = self:isrunning() and self._inforceid ~= nil
+  return ok and self._hazards[self._inforceid].alert_mps or nil
 end
 
-local function penalty(self)
-  self._ispenalty = true
-  local trippedid = self._inforceid
-  if trippedid[1] == P._hazardtype.stopsignal then
-    self._sched:select(nil, function()
-      return getdirection(self) == direction.stopped
-    end)
-    self._isalarm = false
-    -- Now wait for the signal to upgrade.
-    -- TODO: Implement stop release function.
-    self._sched:select(nil, function()
-      return not tableeq(self._inforceid, trippedid)
-    end)
-  else
-    self._sched:select(nil, function()
-      return self._getacknowledge() and not self:_shouldalarm()
-    end)
-  end
-  self._ispenalty = false
-end
-
-local function enforce(self)
-  while true do
-    self._sched:select(nil, function() return self:_shouldalarm() end)
-    self._isalarm = true
-    local ack = self._sched:select(self._alertwarning_s, self._getacknowledge,
-                                   function() return self:_shouldpenalty() end)
-    if ack == nil or ack == 2 then
-      penalty(self)
-    else
-      local curve = self._sched:select(nil, function()
-        return not self:_shouldalarm()
-      end, function() return self:_shouldpenalty() end)
-      if curve == 2 then penalty(self) end
-    end
-    self._isalarm = false
-  end
-end
-
--- From the main coroutine, initialize this subsystem.
-function P:start()
-  if not self._running then
-    self._running = true
-
-    self._limitfilter = AcsesLimits:new{iterspeedlimits = self._iterspeedlimits}
-    self._limittracker = AcsesTracker:new{
-      scheduler = self._sched,
-      getspeed_mps = self._getspeed_mps,
-      iterbydistance = function()
-        return self._limitfilter:iterspeedlimits()
-      end
-    }
-    self._signaltracker = AcsesTracker:new{
-      scheduler = self._sched,
-      getspeed_mps = self._getspeed_mps,
-      iterbydistance = self._iterrestrictsignals
-    }
-    self._trackspeed = AcsesTrackSpeed:new{
-      scheduler = self._sched,
-      speedlimittracker = self._limittracker,
-      gettrackspeed_mps = self._gettrackspeed_mps,
-      getconsistlength_m = self._getconsistlength_m
-    }
-
-    self._coroutines = {
-      self._sched:run(setstate, self),
-      self._sched:run(enforce, self)
-    }
-    if not self._sched:isstartup() then self._sched:alert("ACSES", "Cut In") end
-  end
-end
-
--- From the main coroutine, halt and reset this subsystem.
-function P:stop()
-  if self._running then
-    self._running = false
-    for _, co in ipairs(self._coroutines) do self._sched:kill(co) end
-    self._limittracker:kill()
-    self._signaltracker:kill()
-    self._trackspeed:kill()
-    initstate(self)
-    self._sched:alert("ACSES", "Cut Out")
-  end
+-- Returns the current penalty curve speed, which includes track speed, positive
+-- stops, and Approach Medium 30. This counts down to upcoming restrictions.
+function P:getpenaltycurve_mps()
+  local ok = self:isrunning() and self._inforceid ~= nil
+  return ok and self._hazards[self._inforceid].penalty_mps or nil
 end
 
 -- Returns the time to penalty countdown for positive stop signals.
@@ -476,12 +393,6 @@ function P:gettimetopenalty_s()
   end
   return nil
 end
-
--- Returns true when the alarm is sounding.
-function P:isalarm() return self._isalarm end
-
--- Returns true when a penalty brake is applied.
-function P:ispenalty() return self._ispenalty end
 
 -- Returns the current enforcing state.
 function P:getmode()

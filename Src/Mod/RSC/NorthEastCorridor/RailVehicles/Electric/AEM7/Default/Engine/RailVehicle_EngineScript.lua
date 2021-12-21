@@ -4,11 +4,8 @@
 -- @include RollingStock/PowerSupply/PowerSupply.lua
 -- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/CruiseControl.lua
--- @include SafetySystems/Acses/AmtrakAcses.lua
 -- @include SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
 -- @include SafetySystems/Alerter.lua
--- @include SafetySystems/Atc.lua
--- @include Signals/CabSignal.lua
 -- @include Flash.lua
 -- @include Iterator.lua
 -- @include Misc.lua
@@ -16,9 +13,6 @@
 -- @include Scheduler.lua
 -- @include Units.lua
 local sched
-local cabsig
-local atc
-local acses
 local adu
 local cruise
 local alerter
@@ -42,40 +36,18 @@ local state = {
 Initialise = Misc.wraperrors(function()
   sched = Scheduler:new{}
 
-  cabsig = CabSignal:new{scheduler = sched}
-
-  atc = Atc:new{
-    scheduler = sched,
-    cabsignal = cabsig,
-    getspeed_mps = function() return state.speed_mps end,
-    getacceleration_mps2 = function() return state.acceleration_mps2 end,
+  local onebeep_s = 0.3
+  adu = AmtrakTwoSpeedAdu:new{
+    alerttone_s = onebeep_s,
+    getbrakesuppression = function() return state.train_brake >= 0.5 end,
     getacknowledge = function() return state.acknowledge end,
-    getbrakesuppression = function() return state.train_brake >= 0.5 end
-  }
-
-  acses = AmtrakAcses:new{
-    scheduler = sched,
-    cabsignal = cabsig,
     getspeed_mps = function() return state.speed_mps end,
     gettrackspeed_mps = function() return state.trackspeed_mps end,
     getconsistlength_m = function() return state.consistlength_m end,
     iterspeedlimits = function() return pairs(state.speedlimits) end,
     iterrestrictsignals = function() return pairs(state.restrictsignals) end,
-    getacknowledge = function() return state.acknowledge end,
     consistspeed_mps = 125 * Units.mph.tomps
   }
-
-  local onebeep_s = 0.3
-  adu = AmtrakTwoSpeedAdu:new{
-    scheduler = sched,
-    cabsignal = cabsig,
-    atc = atc,
-    acses = acses,
-    alert_s = onebeep_s
-  }
-
-  atc:start()
-  acses:start()
 
   cruise = Cruise:new{
     scheduler = sched,
@@ -132,7 +104,7 @@ local function readlocostate()
 end
 
 local function writelocostate()
-  local penalty = atc:ispenalty() or acses:ispenalty() or alerter:ispenalty()
+  local penalty = alerter:ispenalty() or adu:ispenalty()
 
   local throttle
   if not power:haspower() then
@@ -165,7 +137,7 @@ local function writelocostate()
                             math.abs(RailWorks.GetControlValue("Ammeter", 0)))
 
   local alerteralarm = alerter:isalarm()
-  local safetyalarm = atc:isalarm() or acses:isalarm()
+  local safetyalarm = adu:isalarm()
   RailWorks.SetControlValue("AWS", 0, Misc.intbool(alerteralarm or safetyalarm))
   RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alerteralarm))
   RailWorks.SetControlValue("OverSpeedAlert", 0,
@@ -227,11 +199,11 @@ local function setcutin()
   -- by default. If we set them ourselves, they won't stick.
   alerter:setrunstate(RailWorks.GetControlValue("AlertControl", 0) == 0)
   local speedcontrol = RailWorks.GetControlValue("SpeedControl", 0) == 0
-  atc:setrunstate(speedcontrol)
-  acses:setrunstate(speedcontrol)
+  adu:setatcstate(speedcontrol)
+  adu:setacsesstate(speedcontrol)
 end
 
-Update = Misc.wraperrors(function(_)
+Update = Misc.wraperrors(function(dt)
   if not RailWorks.GetIsEngineWithKey() then
     RailWorks.EndUpdate()
     return
@@ -241,6 +213,7 @@ Update = Misc.wraperrors(function(_)
   readlocostate()
 
   sched:update()
+  adu:update(dt)
   power:update()
   blight:playerupdate()
 
@@ -254,7 +227,7 @@ OnControlValueChange = RailWorks.SetControlValue
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
   power:receivemessage(message)
-  cabsig:receivemessage(message)
+  adu:receivemessage(message)
 end)
 
 OnConsistMessage = Misc.wraperrors(function(message, argument, direction)

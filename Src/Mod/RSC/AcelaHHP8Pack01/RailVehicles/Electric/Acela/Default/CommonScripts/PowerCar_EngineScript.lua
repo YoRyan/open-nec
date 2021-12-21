@@ -5,11 +5,8 @@
 -- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/CruiseControl.lua
 -- @include RollingStock/Spark.lua
--- @include SafetySystems/Acses/AmtrakAcses.lua
 -- @include SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
 -- @include SafetySystems/Alerter.lua
--- @include SafetySystems/Atc.lua
--- @include Signals/CabSignal.lua
 -- @include Animation.lua
 -- @include Flash.lua
 -- @include Iterator.lua
@@ -19,9 +16,6 @@
 -- @include Scheduler.lua
 -- @include Units.lua
 local playersched, anysched
-local cabsig
-local atc
-local acses
 local adu
 local alerter
 local cruise
@@ -59,40 +53,16 @@ Initialise = Misc.wraperrors(function()
   playersched = Scheduler:new{}
   anysched = Scheduler:new{}
 
-  cabsig = CabSignal:new{scheduler = playersched}
-
-  atc = Atc:new{
-    scheduler = playersched,
-    cabsignal = cabsig,
-    getspeed_mps = function() return state.speed_mps end,
-    getacceleration_mps2 = function() return state.acceleration_mps2 end,
+  adu = AmtrakTwoSpeedAdu:new{
+    getbrakesuppression = function() return state.train_brake > 0.3 end,
     getacknowledge = function() return state.acknowledge end,
-    getbrakesuppression = function() return state.train_brake > 0.3 end
-  }
-
-  acses = AmtrakAcses:new{
-    scheduler = playersched,
-    cabsignal = cabsig,
     getspeed_mps = function() return state.speed_mps end,
     gettrackspeed_mps = function() return state.trackspeed_mps end,
     getconsistlength_m = function() return state.consistlength_m end,
     iterspeedlimits = function() return pairs(state.speedlimits) end,
     iterrestrictsignals = function() return pairs(state.restrictsignals) end,
-    getacknowledge = function() return state.acknowledge end,
     consistspeed_mps = 125 * Units.mph.tomps
   }
-
-  local alert_s = 1
-  adu = AmtrakTwoSpeedAdu:new{
-    scheduler = playersched,
-    cabsignal = cabsig,
-    atc = atc,
-    acses = acses,
-    alert_s = alert_s
-  }
-
-  atc:start()
-  acses:start()
 
   alerter = Alerter:new{
     scheduler = playersched,
@@ -179,7 +149,7 @@ local function readlocostate()
 end
 
 local function writelocostate()
-  local penalty = alerter:ispenalty() or atc:ispenalty() or acses:ispenalty()
+  local penalty = alerter:ispenalty() or adu:ispenalty()
 
   local throttle
   if not power:haspower() then
@@ -205,9 +175,7 @@ local function writelocostate()
                      0
   RailWorks.SetControlValue("DynamicBrake", 0, dynbrake)
 
-  RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(
-                              alerter:isalarm() or atc:isalarm() or
-                                acses:isalarm()))
+  RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(adu:isalarm()))
   RailWorks.SetControlValue("SpeedIncreaseAlert", 0,
                             Misc.intbool(adu:isalertplaying()))
 end
@@ -315,8 +283,8 @@ end
 
 local function setcutin()
   if not playersched:isstartup() then
-    atc:setrunstate(RailWorks.GetControlValue("ATCCutIn", 0) == 1)
-    acses:setrunstate(RailWorks.GetControlValue("ACSESCutIn", 0) == 1)
+    adu:setatcstate(RailWorks.GetControlValue("ATCCutIn", 0) == 1)
+    adu:setacsesstate(RailWorks.GetControlValue("ACSESCutIn", 0) == 1)
   end
 end
 
@@ -392,12 +360,13 @@ local function setgroundlights()
   Call("Bwd_DitchLightRight:Activate", Misc.intbool(false))
 end
 
-local function updateplayer()
+local function updateplayer(dt)
   readcontrols()
   readlocostate()
 
   playersched:update()
   anysched:update()
+  adu:update(dt)
   power:update()
   blight:playerupdate()
   frontpantoanim:update()
@@ -436,11 +405,11 @@ local function updatehelper()
   setgroundlights()
 end
 
-Update = Misc.wraperrors(function(_)
+Update = Misc.wraperrors(function(dt)
   -- -> [helper][coach]...[coach][player] ->
   -- -> [ai    ][coach]...[coach][ai    ] ->
   if RailWorks.GetIsEngineWithKey() then
-    updateplayer()
+    updateplayer(dt)
   elseif RailWorks.GetIsPlayer() then
     updatehelper()
   else
@@ -460,7 +429,7 @@ end)
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
   power:receivemessage(message)
-  cabsig:receivemessage(message)
+  adu:receivemessage(message)
 end)
 
 OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
