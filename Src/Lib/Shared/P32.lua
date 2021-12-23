@@ -65,7 +65,9 @@ Initialise = Misc.wraperrors(function()
     modereadfn = function(v)
       local ishelper = not RailWorks.GetIsEngineWithKey() and
                          RailWorks.GetIsPlayer()
-      return ishelper and 1 - v or v
+      local mode = ishelper and 1 - v or v
+      -- AI locos require some extra safeguards. Control values may be raw.
+      return math.max(Misc.round(mode), 0)
     end,
     transition_s = 20,
     getcantransition = function() return state.throttle <= 0 end,
