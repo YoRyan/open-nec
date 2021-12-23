@@ -423,7 +423,7 @@ local function setinteriorlights()
   Call("HallLight_002:Activate", Misc.intbool(hep))
 end
 
-local function setexteriorlights()
+local function setstatuslights()
   local brakesapplied = blight:isapplied()
   RailWorks.ActivateNode("SL_green", not brakesapplied)
   RailWorks.ActivateNode("SL_yellow", brakesapplied)
@@ -433,9 +433,35 @@ local function setexteriorlights()
                            "DoorsOpenCloseLeft", 0) == 1)
   RailWorks.ActivateNode("SL_doors_R", RailWorks.GetControlValue(
                            "DoorsOpenCloseRight", 0) == 1)
+end
 
+local function setplayerditchlights()
   local headlights = RailWorks.GetControlValue("Headlights", 0)
   local show = headlights > 0.5 and headlights < 1.5
+  RailWorks.ActivateNode("left_ditch_light", show)
+  RailWorks.ActivateNode("right_ditch_light", show)
+  Call("Fwd_DitchLightLeft:Activate", Misc.intbool(show))
+  Call("Fwd_DitchLightRight:Activate", Misc.intbool(show))
+end
+
+local function sethelperditchlights()
+  local headlights = RailWorks.GetControlValue("Headlights", 0)
+  local isend = not RailWorks.Engine_SendConsistMessage(messageid.locationprobe,
+                                                        "", 0)
+  local show = headlights > 1.5 and isend
+  RailWorks.ActivateNode("left_ditch_light", show)
+  RailWorks.ActivateNode("right_ditch_light", show)
+  Call("Fwd_DitchLightLeft:Activate", Misc.intbool(show))
+  Call("Fwd_DitchLightRight:Activate", Misc.intbool(show))
+end
+
+local function setaiditchlights()
+  local isend = not RailWorks.Engine_SendConsistMessage(messageid.locationprobe,
+                                                        "", 0)
+  -- There's no surefire way to determine which end of the train an AI unit is on,
+  -- so use speed (just like DTG).
+  local isforward = RailWorks.GetSpeed() > Misc.stopped_mps
+  local show = isend and isforward
   RailWorks.ActivateNode("left_ditch_light", show)
   RailWorks.ActivateNode("right_ditch_light", show)
   Call("Fwd_DitchLightLeft:Activate", Misc.intbool(show))
@@ -465,7 +491,8 @@ local function updateplayer(dt)
   setpanto()
   setgate()
   setinteriorlights()
-  setexteriorlights()
+  setstatuslights()
+  setplayerditchlights()
 end
 
 local function updatehelper()
@@ -479,7 +506,8 @@ local function updatehelper()
   setpanto()
   setgate()
   setinteriorlights()
-  setexteriorlights()
+  setstatuslights()
+  sethelperditchlights()
 end
 
 local function updateai()
@@ -492,7 +520,8 @@ local function updateai()
   setpanto()
   setgate()
   setinteriorlights()
-  setexteriorlights()
+  setstatuslights()
+  setaiditchlights()
 end
 
 Update = Misc.wraperrors(function(dt)
