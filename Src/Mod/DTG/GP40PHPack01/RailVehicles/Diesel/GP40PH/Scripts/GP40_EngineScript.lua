@@ -61,7 +61,7 @@ Initialise = Misc.wraperrors(function()
     getconsistlength_m = function() return state.consistlength_m end,
     iterspeedlimits = function() return pairs(state.speedlimits) end,
     iterrestrictsignals = function() return pairs(state.restrictsignals) end,
-    consistspeed_mps = 90 * Units.mph.tomps
+    consistspeed_mps = 100 * Units.mph.tomps
   }
 
   alerter = Alerter:new{
