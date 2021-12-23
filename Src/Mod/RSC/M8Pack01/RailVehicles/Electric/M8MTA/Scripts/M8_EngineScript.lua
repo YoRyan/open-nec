@@ -197,6 +197,8 @@ local function writelocostate()
                             Misc.intbool(alarmonoff:ison()))
   RailWorks.SetControlValue("SpeedIncreaseAlert", 0,
                             Misc.intbool(adu:isalertplaying()))
+  -- Unfortunately, we cannot display the AWS symbol without also playing the
+  -- fast beep-beep sound. So, use it to sound the alerter.
   RailWorks.SetControlValue("AWS", 0, Misc.intbool(alerter:isalarm()))
 end
 
