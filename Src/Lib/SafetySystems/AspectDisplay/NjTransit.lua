@@ -63,7 +63,8 @@ end
 function P:update(dt)
   self._acses:update(dt)
 
-  -- Read the current speed limit. Play tone for any speed increase alerts.
+  -- Read the current speed limit. Sound alarm for ATC speed decreases. Play tone
+  -- for any other speed changes.
   local targetspeed_mps, enforcing
   local pulsecode = self._cabsig:getpulsecode()
   local isclear = pulsecode == Nec.pulsecode.clear125 or pulsecode ==
@@ -83,13 +84,18 @@ function P:update(dt)
     targetspeed_mps, enforcing = nil, nil
   end
   local intoservice = self._targetspeed_mps == nil and targetspeed_mps ~= nil
-  local speeddec = (self._targetspeed_mps ~= nil and targetspeed_mps ~= nil and
-                     self._targetspeed_mps > targetspeed_mps) or
-                     (self._isclear and not isclear)
-  local speedinc = (self._targetspeed_mps ~= nil and targetspeed_mps ~= nil and
-                     self._targetspeed_mps < targetspeed_mps) or
-                     (not self._isclear and isclear)
-  if intoservice or speedinc then self._alert:trigger() end
+  local doalarm, doalert
+  if self._targetspeed_mps ~= nil and targetspeed_mps ~= nil then
+    doalarm = (self._targetspeed_mps > targetspeed_mps and enforcing ==
+                subsystem.atc) or (self._isclear and not isclear)
+    doalert = (self._targetspeed_mps > targetspeed_mps and enforcing ~=
+                subsystem.atc) or (self._targetspeed_mps < targetspeed_mps) or
+                (not self._isclear and isclear)
+  else
+    doalarm = self._isclear and not isclear
+    doalert = not self._isclear and isclear
+  end
+  if intoservice or doalert then self._alert:trigger() end
   self._targetspeed_mps, self._enforcing = targetspeed_mps, enforcing
   self._isclear = isclear
 
@@ -134,7 +140,7 @@ function P:update(dt)
     self._acknowledged = not acknowledged and
                            (self._acknowledged or acknowledge) or false
     self._penalty = nil
-  elseif (overspeed and not suppressed) or speeddec then
+  elseif (overspeed and not suppressed) or doalarm then
     self._overspeed_s = now
     self._acknowledged = false
     self._penalty = nil
