@@ -91,16 +91,8 @@ Initialise = Misc.wraperrors(function()
 
   blight = BrakeLight:new{}
 
-  frontpantoanim = Animation:new{
-    scheduler = anysched,
-    animation = "frontPanto",
-    duration_s = 2
-  }
-  rearpantoanim = Animation:new{
-    scheduler = anysched,
-    animation = "rearPanto",
-    duration_s = 2
-  }
+  frontpantoanim = Animation:new{animation = "frontPanto", duration_s = 2}
+  rearpantoanim = Animation:new{animation = "rearPanto", duration_s = 2}
 
   tracteffort = Average:new{nsamples = 30}
 
@@ -369,8 +361,8 @@ local function updateplayer(dt)
   adu:update(dt)
   power:update()
   blight:playerupdate()
-  frontpantoanim:update()
-  rearpantoanim:update()
+  frontpantoanim:update(dt)
+  rearpantoanim:update(dt)
 
   writelocostate()
   setplayerpantos()
@@ -383,23 +375,23 @@ local function updateplayer(dt)
   setgroundlights()
 end
 
-local function updateai()
+local function updatehelper(dt)
   anysched:update()
-  frontpantoanim:update()
-  rearpantoanim:update()
+  frontpantoanim:update(dt)
+  rearpantoanim:update(dt)
 
-  setaipantos()
+  setslavepantos()
   setpantosparks()
   setcablight()
   setgroundlights()
 end
 
-local function updatehelper()
+local function updateai(dt)
   anysched:update()
-  frontpantoanim:update()
-  rearpantoanim:update()
+  frontpantoanim:update(dt)
+  rearpantoanim:update(dt)
 
-  setslavepantos()
+  setaipantos()
   setpantosparks()
   setcablight()
   setgroundlights()
@@ -411,9 +403,9 @@ Update = Misc.wraperrors(function(dt)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer(dt)
   elseif RailWorks.GetIsPlayer() then
-    updatehelper()
+    updatehelper(dt)
   else
-    updateai()
+    updateai(dt)
   end
 end)
 

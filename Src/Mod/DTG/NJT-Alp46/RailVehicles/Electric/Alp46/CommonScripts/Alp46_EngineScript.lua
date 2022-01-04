@@ -94,12 +94,10 @@ Initialise = Misc.wraperrors(function()
 
   local raisepanto_s = 2
   frontpantoanim = Animation:new{
-    scheduler = anysched,
     animation = "Pantograph1",
     duration_s = raisepanto_s
   }
   rearpantoanim = Animation:new{
-    scheduler = anysched,
     animation = "Pantograph2",
     duration_s = raisepanto_s
   }
@@ -304,9 +302,9 @@ local function updateplayer(dt)
   adu:update(dt)
   power:update()
   blight:playerupdate()
-  frontpantoanim:update()
-  rearpantoanim:update()
-  doors:update()
+  frontpantoanim:update(dt)
+  rearpantoanim:update(dt)
+  doors:update(dt)
 
   writelocostate()
   setpanto()
@@ -319,11 +317,11 @@ local function updateplayer(dt)
   setdestination()
 end
 
-local function updatenonplayer()
+local function updatenonplayer(dt)
   anysched:update()
   power:update()
-  frontpantoanim:update()
-  rearpantoanim:update()
+  frontpantoanim:update(dt)
+  rearpantoanim:update(dt)
 
   setpanto()
   setcablights()
@@ -336,7 +334,7 @@ Update = Misc.wraperrors(function(dt)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer(dt)
   else
-    updatenonplayer()
+    updatenonplayer(dt)
   end
 end)
 

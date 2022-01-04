@@ -67,11 +67,7 @@ Initialise = Misc.wraperrors(function()
 
   blight = BrakeLight:new{}
 
-  pantoanim = Animation:new{
-    scheduler = anysched,
-    animation = "panto",
-    duration_s = 0.5
-  }
+  pantoanim = Animation:new{animation = "panto", duration_s = 0.5}
 
   -- Modulate the speed reduction alert sound, which normally plays just once.
   decreaseonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
@@ -231,7 +227,7 @@ local function updateplayer(dt)
   adu:update(dt)
   power:update()
   blight:playerupdate()
-  pantoanim:update()
+  pantoanim:update(dt)
 
   writelocostate()
   setpanto()
@@ -241,10 +237,10 @@ local function updateplayer(dt)
   setlights()
 end
 
-local function updatenonplayer()
+local function updatenonplayer(dt)
   anysched:update()
   power:update()
-  pantoanim:update()
+  pantoanim:update(dt)
 
   setpanto()
   setcabfx()
@@ -255,7 +251,7 @@ Update = Misc.wraperrors(function(dt)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer(dt)
   else
-    updatenonplayer()
+    updatenonplayer(dt)
   end
 end)
 

@@ -124,13 +124,9 @@ Initialise = Misc.wraperrors(function()
     end
   }
 
-  pantoanim = Animation:new{
-    scheduler = anysched,
-    animation = "Pantograph",
-    duration_s = 2
-  }
+  pantoanim = Animation:new{animation = "Pantograph", duration_s = 2}
 
-  doors = Doors:new{scheduler = playersched}
+  doors = Doors:new{}
 
   -- Modulate the speed reduction alert sound, which normally plays just once.
   decreaseonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
@@ -427,8 +423,8 @@ local function updateplayer(dt)
   adu:update(dt)
   power:update()
   blight:playerupdate()
-  pantoanim:update()
-  doors:update()
+  pantoanim:update(dt)
+  doors:update(dt)
 
   setplayerpanto()
   writelocostate()
@@ -443,10 +439,10 @@ local function updateplayer(dt)
   setdestination()
 end
 
-local function updatehelper()
+local function updatehelper(dt)
   anysched:update()
   power:update()
-  pantoanim:update()
+  pantoanim:update(dt)
 
   sethelperstate()
   setplayerpanto()
@@ -457,10 +453,10 @@ local function updatehelper()
   setdestination()
 end
 
-local function updateai()
+local function updateai(dt)
   anysched:update()
   power:update()
-  pantoanim:update()
+  pantoanim:update(dt)
 
   setaipanto()
   setpowerfx()
@@ -474,9 +470,9 @@ Update = Misc.wraperrors(function(dt)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer(dt)
   elseif RailWorks.GetIsPlayer() then
-    updatehelper()
+    updatehelper(dt)
   else
-    updateai()
+    updateai(dt)
   end
 end)
 

@@ -8,7 +8,6 @@ Doors = P
 -- From the main coroutine, create a new Doors context.
 function P:new(conf)
   local o = {
-    _sched = conf.scheduler,
     _leftanimation = conf.leftanimation,
     _rightanimation = conf.rightanimation,
     _leftopen = false,
@@ -20,8 +19,8 @@ function P:new(conf)
   return o
 end
 
--- From the main coroutine, update the door state.
-function P:update()
+-- Update the door state every frame.
+function P:update(_)
   local ismanual = RailWorks.GetControlValue("DoorsManual", 0) == 1
   if ismanual ~= self._lastmanual then
     if self._lastmanual ~= nil and RailWorks.GetIsEngineWithKey() then

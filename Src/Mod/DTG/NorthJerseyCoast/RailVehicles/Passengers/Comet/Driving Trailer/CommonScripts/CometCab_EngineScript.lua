@@ -115,18 +115,9 @@ Initialise = Misc.wraperrors(function()
   }
 
   local doors_s = 2
-  leftdoorsanim = Animation:new{
-    scheduler = anysched,
-    animation = "Doors_L",
-    duration_s = doors_s
-  }
-  rightdoorsanim = Animation:new{
-    scheduler = anysched,
-    animation = "Doors_R",
-    duration_s = doors_s
-  }
+  leftdoorsanim = Animation:new{animation = "Doors_L", duration_s = doors_s}
+  rightdoorsanim = Animation:new{animation = "Doors_R", duration_s = doors_s}
   doors = Doors:new{
-    scheduler = anysched,
     leftanimation = leftdoorsanim,
     rightanimation = rightdoorsanim
   }
@@ -310,9 +301,9 @@ local function updateplayer(dt)
   adu:update(dt)
   power:update()
   blight:playerupdate()
-  leftdoorsanim:update()
-  rightdoorsanim:update()
-  doors:update()
+  leftdoorsanim:update(dt)
+  rightdoorsanim:update(dt)
+  doors:update(dt)
 
   writelocostate()
   setplayerpanto()
@@ -325,12 +316,12 @@ local function updateplayer(dt)
   setdestination()
 end
 
-local function updatenonplayer()
+local function updatenonplayer(dt)
   anysched:update()
   power:update()
-  leftdoorsanim:update()
-  rightdoorsanim:update()
-  doors:update()
+  leftdoorsanim:update(dt)
+  rightdoorsanim:update(dt)
+  doors:update(dt)
 
   setcablight()
   setditchlights()
@@ -343,7 +334,7 @@ Update = Misc.wraperrors(function(dt)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer(dt)
   else
-    updatenonplayer()
+    updatenonplayer(dt)
   end
 end)
 
