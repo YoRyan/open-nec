@@ -17,7 +17,7 @@ local function initstate(self)
   }
 end
 
--- From the main coroutine, create a new CabSignal context.
+-- Create a new CabSignal context.
 function P:new(conf)
   local o = {}
   setmetatable(o, self)

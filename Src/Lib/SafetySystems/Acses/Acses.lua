@@ -23,7 +23,6 @@ local direction = {forward = 0, stopped = 1, backward = 2}
 -- Create a new Acses context.
 function P:new(conf)
   local o = {
-    _sched = conf.scheduler,
     _cabsig = conf.cabsignal,
     _getspeed_mps = conf.getspeed_mps,
     _gettrackspeed_mps = conf.gettrackspeed_mps or function() return 0 end,
