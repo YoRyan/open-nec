@@ -1,17 +1,17 @@
 -- Adds virtual notches to a controller by slewing its value to a target, but
 -- doing so infrequently enough for the player to still be able to manipulate
 -- the control.
+--
+-- @include RailWorks.lua
 local P = {}
 Notch = P
 
--- From the main coroutine, create a new Notch context.
+-- Create a new Notch context.
 function P:new(conf)
   local o = {
-    _sched = conf.scheduler,
     _control = conf.control or "",
     _index = conf.index or 0,
     _gettarget = conf.gettarget or function(value) return value end,
-    _lastclock_s = conf.scheduler:clock(),
     _framecount = 0
   }
   setmetatable(o, self)
@@ -19,14 +19,12 @@ function P:new(conf)
   return o
 end
 
--- From the main coroutine, update this module every frame.
-function P:update()
+-- Update this system once every frame.
+function P:update(dt)
   if self._framecount >= 15 then
     self._framecount = 0
 
-    local now = self._sched:clock()
-    local maxslew = 0.25 / (now - self._lastclock_s)
-    self._lastclock_s = now
+    local maxslew = 0.25 / dt
     local curval = RailWorks.GetControlValue(self._control, self._index)
     local target = self._gettarget(curval)
     local newval = target > curval and math.min(target, curval + maxslew) or

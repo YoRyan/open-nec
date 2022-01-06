@@ -114,7 +114,6 @@ Initialise = Misc.wraperrors(function()
   blight = BrakeLight:new{}
 
   mcnotch = Notch:new{
-    scheduler = playersched,
     control = "ThrottleAndBrake",
     index = 0,
     gettarget = function(v)
@@ -467,7 +466,7 @@ local function updateplayer(dt)
   adu:update(dt)
   ivc:update(dt)
   blight:playerupdate()
-  mcnotch:update()
+  mcnotch:update(dt)
   pantoanim:update(dt)
   gateanim:update(dt)
 
