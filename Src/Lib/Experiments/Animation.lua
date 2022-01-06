@@ -1,18 +1,16 @@
 -- Continuously cycle through an animation.
+--
 -- @include Misc.lua
+-- @include RailWorks.lua
 local P = {}
 AnimationExperiment = P
 
--- From the main coroutine, create a new AnimationExperiment context.
+-- Create a new AnimationExperiment context.
 function P:new(conf)
-  local sched = conf.scheduler
-  local now = sched:clock()
   local o = {
-    _sched = sched,
     _anim = conf.animation,
     _cycle_s = conf.cycle_s or 1,
     _increase = true,
-    _lasttime = now,
     _lastcycle = now
   }
   setmetatable(o, self)
@@ -20,18 +18,15 @@ function P:new(conf)
   return o
 end
 
--- From the main coroutine, update this experiment.
-function P:update()
-  local now = self._sched:clock()
-  local dt = now - self._lasttime
-  self._lasttime = now
-
+-- Update this experiment once every frame.
+function P:update(dt)
   if self._increase then
     RailWorks.AddTime(self._anim, dt)
   else
     RailWorks.AddTime(self._anim, -dt)
   end
 
+  local now = RailWorks.GetSimulationTime()
   if now - self._lastcycle >= self._cycle_s then
     if self._increase then
       Misc.showalert(self._anim, "switching backwards")

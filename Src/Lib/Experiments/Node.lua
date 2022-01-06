@@ -1,16 +1,17 @@
 -- Continuously hide and display a model node.
+--
+-- @include Misc.lua
+-- @include RailWorks.lua
 local P = {}
 NodeExperiment = P
 
 local onoff_s = 1
 
--- From the main coroutine, create a new NodeExperiment context.
+-- Create a new NodeExperiment context.
 function P:new(conf)
-  local sched = conf.scheduler
   local o = {
-    _sched = sched,
     _node = conf.node,
-    _lasttime = sched:clock(),
+    _lasttime = RailWorks.GetSimulationTime(),
     _show = true
   }
   setmetatable(o, self)
@@ -20,7 +21,7 @@ end
 
 -- From the main coroutine, update this experiment.
 function P:update()
-  local time = self._sched:clock()
+  local time = RailWorks.GetSimulationTime()
   if time - onoff_s >= self._lasttime then
     self._lasttime = time
     self._show = not self._show

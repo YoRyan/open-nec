@@ -1,17 +1,17 @@
 -- Continuously turn a light on and off.
+--
 -- @include Misc.lua
+-- @include RailWorks.lua
 local P = {}
 LightExperiment = P
 
 local onoff_s = 1
 
--- From the main coroutine, create a new LightExperiment context.
+-- Create a new LightExperiment context.
 function P:new(conf)
-  local sched = conf.scheduler
   local o = {
-    _sched = sched,
     _light = conf.light,
-    _lasttime = sched:clock(),
+    _lasttime = RailWorks.GetSimulationTime(),
     _show = true
   }
   setmetatable(o, self)
@@ -19,9 +19,9 @@ function P:new(conf)
   return o
 end
 
--- From the main coroutine, update this experiment.
-function P:update()
-  local time = self._sched:clock()
+-- Update this experiment once every frame.
+function P:update(_)
+  local time = RailWorks.GetSimulationTime()
   if time - onoff_s >= self._lasttime then
     self._lasttime = time
     self._show = not self._show
