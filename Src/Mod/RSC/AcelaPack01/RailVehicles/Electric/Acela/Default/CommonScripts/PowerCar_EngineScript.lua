@@ -134,7 +134,6 @@ Initialise = Misc.wraperrors(function()
   spark = PantoSpark:new{}
 
   destscroller = RangeScroll:new{
-    scheduler = playersched,
     getdirection = function()
       if state.destinationjoy == -1 then
         return RangeScroll.direction.previous
@@ -437,6 +436,7 @@ local function updateplayer(dt)
   frontpantoanim:update(dt)
   rearpantoanim:update(dt)
   coneanim:update(dt)
+  destscroller:update(dt)
 
   writelocostate()
   setplayerpantos()
