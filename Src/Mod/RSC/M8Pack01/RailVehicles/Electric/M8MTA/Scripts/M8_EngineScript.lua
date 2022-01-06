@@ -142,7 +142,7 @@ Initialise = Misc.wraperrors(function()
   -- Modulate the speed reduction alert sound, which normally plays just once.
   alarmonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
 
-  spark = PantoSpark:new{scheduler = anysched}
+  spark = PantoSpark:new{}
 
   RailWorks.BeginUpdate()
 end)

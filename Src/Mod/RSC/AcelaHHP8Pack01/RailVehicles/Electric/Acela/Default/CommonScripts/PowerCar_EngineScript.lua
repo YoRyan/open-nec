@@ -103,7 +103,7 @@ Initialise = Misc.wraperrors(function()
     on_s = groundflash_s
   }
 
-  spark = PantoSpark:new{scheduler = anysched}
+  spark = PantoSpark:new{}
 
   RailWorks.BeginUpdate()
 end)

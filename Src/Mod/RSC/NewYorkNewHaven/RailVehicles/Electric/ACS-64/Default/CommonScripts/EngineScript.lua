@@ -87,7 +87,7 @@ Initialise = Misc.wraperrors(function()
   local ditchflash_s = 0.65
   ditchflasher = Flash:new{off_s = ditchflash_s, on_s = ditchflash_s}
 
-  spark = PantoSpark:new{scheduler = anysched}
+  spark = PantoSpark:new{}
 
   RailWorks.BeginUpdate()
 end)

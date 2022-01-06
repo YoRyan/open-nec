@@ -132,7 +132,7 @@ Initialise = Misc.wraperrors(function()
   local groundflash_s = 0.65
   groundflasher = Flash:new{off_s = groundflash_s, on_s = groundflash_s}
 
-  spark = PantoSpark:new{scheduler = anysched}
+  spark = PantoSpark:new{}
 
   destscroller = RangeScroll:new{
     scheduler = playersched,
