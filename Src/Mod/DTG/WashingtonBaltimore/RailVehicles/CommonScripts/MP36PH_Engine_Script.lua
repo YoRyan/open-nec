@@ -51,7 +51,7 @@ Initialise = Misc.wraperrors(function()
   }
   alerter:start()
 
-  hep = Hep:new{scheduler = sched, getrun = function() return state.hep end}
+  hep = Hep:new{getrun = function() return state.hep end}
 
   blight = BrakeLight:new{}
 
@@ -228,6 +228,7 @@ local function updateplayer(dt)
 
   sched:update()
   adu:update(dt)
+  hep:update(dt)
   blight:playerupdate()
 
   writelocostate()

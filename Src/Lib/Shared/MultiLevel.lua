@@ -104,10 +104,7 @@ Initialise = Misc.wraperrors(function()
     end
   }
 
-  hep = Hep:new{
-    scheduler = playersched,
-    getrun = function() return state.hep end
-  }
+  hep = Hep:new{getrun = function() return state.hep end}
 
   blight = BrakeLight:new{
     getbrakeson = function()
@@ -290,6 +287,7 @@ local function updateplayer(dt)
   anysched:update()
   adu:update(dt)
   power:update()
+  hep:update(dt)
   blight:playerupdate()
   leftdoorsanim:update(dt)
   rightdoorsanim:update(dt)
