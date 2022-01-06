@@ -50,8 +50,7 @@ Initialise = Misc.wraperrors(function()
   }
 
   cruise = Cruise:new{
-    scheduler = sched,
-    getspeed_mps = function() return state.speed_mps end,
+    getplayerthrottle = function() return state.throttle end,
     gettargetspeed_mps = function() return state.cruisespeed_mps end,
     getenabled = function() return state.cruiseenabled end
   }
@@ -111,10 +110,8 @@ local function writelocostate()
     throttle = 0
   elseif penalty then
     throttle = 0
-  elseif state.cruiseenabled then
-    throttle = math.min(state.throttle, cruise:getthrottle())
   else
-    throttle = state.throttle
+    throttle = cruise:getpower()
   end
   RailWorks.SetControlValue("Regulator", 0, throttle)
 
@@ -214,6 +211,7 @@ Update = Misc.wraperrors(function(dt)
 
   sched:update()
   adu:update(dt)
+  cruise:update(dt)
   power:update()
   blight:playerupdate()
 

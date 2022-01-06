@@ -1,48 +1,47 @@
 -- PID-based cruise control implementation. For now, it only handles throttle.
+-- It reads the player's power setting and outputs its own setting.
+--
+-- @include Units.lua
 local P = {}
 Cruise = P
 
-local function run(self)
-  -- https://en.wikipedia.org/wiki/PID_controller#Pseudocode
-  local prevtime = self._sched:clock()
-  local preverror = 0
-  local integral = 0
-  while true do
-    self._sched:select(nil, function() return self._getenabled() end)
-    local time = self._sched:clock()
-    local dt = time - prevtime
-    prevtime = time
-    if dt > 0 then
-      local error = self._gettargetspeed_mps() - self._getspeed_mps()
-      integral = integral + error * dt
-      local derivative = (error - preverror) / dt
-      self._throttle = self._kp * error + self._ki * integral + self._kd *
-                         derivative
-      preverror = error
-    end
-  end
-end
-
--- From the main coroutine, create a new CruiseControl context. This will add
--- coroutines to the provided scheduler.
+-- Create a new CruiseControl context.
 function P:new(conf)
   local o = {
-    _sched = conf.scheduler,
-    _getspeed_mps = conf.getspeed_mps or function() return 0 end,
+    _getplayerthrottle = conf.getplayerthrottle or function() return 0 end,
     _gettargetspeed_mps = conf.gettargetspeed_mps or function() return 0 end,
     _getenabled = conf.getenabled or function() return false end,
     _kp = conf.kp or 1,
     _ki = conf.ki or 0,
     _kd = conf.kd or 0,
+    _preverror = 0,
+    _integral = 0,
     _throttle = 0
   }
   setmetatable(o, self)
   self.__index = self
-  o._sched:run(run, o)
   return o
 end
 
--- Get the amount of throttle applied by the cruise control, from 0 to 1.
-function P:getthrottle() return self._throttle end
+-- Update this system once every frame.
+-- See https://en.wikipedia.org/wiki/PID_controller#Pseudocode
+function P:update(dt)
+  if self._getenabled() and dt > 0 then
+    local speed_mps = RailWorks.GetControlValue("SpeedometerMPH", 0) *
+                        Units.mph.tomps
+    local error = self._gettargetspeed_mps() - speed_mps
+    self._integral = self._integral + error * dt
+    local derivative = (error - self._preverror) / dt
+    self._throttle = self._kp * error + self._ki * self._integral + self._kd *
+                       derivative
+    self._preverror = error
+  end
+end
+
+-- Get the amount of throttle applied by the cruise control system, from 0 to 1.
+function P:getpower()
+  local factor = self._getenabled() and self._throttle or 1
+  return self._getplayerthrottle() * factor
+end
 
 return P
