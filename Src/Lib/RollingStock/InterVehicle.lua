@@ -5,10 +5,9 @@
 local P = {}
 InterVehicle = P
 
--- From the main coroutine, create a new InterVehicle context.
+-- Create a new InterVehicle context.
 function P:new(conf)
   local o = {
-    _sched = conf.scheduler,
     _messageid = conf.messageid or 101,
     _expire_s = conf.expire_s or 3,
     _tosend = "",
@@ -38,14 +37,14 @@ function P:getnahead() return table.getn(self._messagesahead) end
 function P:getmessageahead(n) return self._messagesahead[n] end
 
 local function dropstale(self, messages, seen)
-  local now = self._sched:clock()
+  local now = RailWorks.GetSimulationTime()
   return Iterator.totable(Iterator.filter(function(k, v)
     return now - seen[k] <= self._expire_s
   end, pairs(messages)))
 end
 
--- From the main coroutine, update this module every frame.
-function P:update()
+-- Update this system once every frame.
+function P:update(_)
   local send = "1:" .. self._tosend
   RailWorks.Engine_SendConsistMessage(self._messageid, send, 0)
   RailWorks.Engine_SendConsistMessage(self._messageid, send, 1)
@@ -54,15 +53,15 @@ function P:update()
   self._messagesahead = dropstale(self, self._messagesahead, self._seenahead)
 end
 
--- From the main coroutine, receive a consist message and, if it was processed
--- and shouldn't be forwarded again, return true.
+-- Receive a consist message and, if it was processed and shouldn't be forwarded
+-- again, return true.
 function P:receivemessage(message, argument, direction)
   if message == self._messageid then
     local _, _, nstr, msg = string.find(argument, "^(%d+):(.*)$")
     if nstr ~= nil then
       local n = tonumber(nstr)
       -- Store the received message and set the time last seen.
-      local now = self._sched:clock()
+      local now = RailWorks.GetSimulationTime()
       if direction == 0 then
         self._messagesbehind[n] = msg
         self._seenbehind[n] = now

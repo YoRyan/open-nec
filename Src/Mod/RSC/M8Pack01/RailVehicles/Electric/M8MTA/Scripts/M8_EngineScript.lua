@@ -109,10 +109,7 @@ Initialise = Misc.wraperrors(function()
     end
   }
 
-  ivc = InterVehicle:new{
-    scheduler = anysched,
-    messageid = messageid.intervehicle
-  }
+  ivc = InterVehicle:new{messageid = messageid.intervehicle}
 
   blight = BrakeLight:new{}
 
@@ -468,7 +465,7 @@ local function updateplayer(dt)
   anysched:update()
   power:update()
   adu:update(dt)
-  ivc:update()
+  ivc:update(dt)
   blight:playerupdate()
   mcnotch:update()
   pantoanim:update(dt)
@@ -490,7 +487,7 @@ end
 local function updatehelper(dt)
   anysched:update()
   power:update()
-  ivc:update()
+  ivc:update(dt)
   pantoanim:update(dt)
   gateanim:update(dt)
 
