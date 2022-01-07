@@ -74,7 +74,6 @@ Initialise = Misc.wraperrors(function()
 
   local isthirdrail = string.sub(RailWorks.GetRVNumber(), 1, 1) == "T"
   power = PowerSupply:new{
-    scheduler = anysched,
     modecontrol = "Panto",
     -- Combine AC panto down/up into a single mode.
     modereadfn = function(v) return math.max(v, 1) end,
@@ -462,7 +461,7 @@ local function updateplayer(dt)
 
   playersched:update()
   anysched:update()
-  power:update()
+  power:update(dt)
   adu:update(dt)
   ivc:update(dt)
   blight:playerupdate()
@@ -485,7 +484,7 @@ end
 
 local function updatehelper(dt)
   anysched:update()
-  power:update()
+  power:update(dt)
   ivc:update(dt)
   pantoanim:update(dt)
   gateanim:update(dt)
@@ -500,7 +499,7 @@ end
 
 local function updateai(dt)
   anysched:update()
-  power:update()
+  power:update(dt)
   pantoanim:update(dt)
   gateanim:update(dt)
 

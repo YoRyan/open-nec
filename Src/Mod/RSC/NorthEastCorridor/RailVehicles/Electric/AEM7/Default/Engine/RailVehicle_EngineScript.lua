@@ -62,7 +62,6 @@ Initialise = Misc.wraperrors(function()
   alerter:start()
 
   power = PowerSupply:new{
-    scheduler = sched,
     modes = {
       [0] = function(elec)
         local pantoup = RailWorks.GetControlValue("PantographControl", 0) == 1
@@ -212,7 +211,7 @@ Update = Misc.wraperrors(function(dt)
   sched:update()
   adu:update(dt)
   cruise:update(dt)
-  power:update()
+  power:update(dt)
   blight:playerupdate()
 
   writelocostate()

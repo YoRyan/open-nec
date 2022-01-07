@@ -58,7 +58,6 @@ Initialise = Misc.wraperrors(function()
 
   local iselectric = string.sub(RailWorks.GetRVNumber(), 1, 1) == "T"
   power = PowerSupply:new{
-    scheduler = anysched,
     modecontrol = "PowerMode",
     -- The power mode control is reversed in DTG's cab car; compensate for this
     -- (while sacrificing P32-to-P32 MU capability).
@@ -284,7 +283,7 @@ local function updateplayer(dt)
   playersched:update()
   anysched:update()
   adu:update(dt)
-  power:update()
+  power:update(dt)
   blight:playerupdate()
 
   writelocostate()
@@ -296,9 +295,9 @@ local function updateplayer(dt)
   setexhaust()
 end
 
-local function updatenonplayer()
+local function updatenonplayer(dt)
   anysched:update()
-  power:update()
+  power:update(dt)
 
   setnonplayerstate()
   setditchlights()
@@ -310,7 +309,7 @@ Update = Misc.wraperrors(function(dt)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer(dt)
   else
-    updatenonplayer()
+    updatenonplayer(dt)
   end
 end)
 

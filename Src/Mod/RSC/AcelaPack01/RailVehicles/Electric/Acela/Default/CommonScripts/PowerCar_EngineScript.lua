@@ -108,7 +108,6 @@ Initialise = Misc.wraperrors(function()
   alerter:start()
 
   power = PowerSupply:new{
-    scheduler = anysched,
     modes = {
       [0] = function(elec)
         local pantoup = frontpantoanim:getposition() == 1 or
@@ -431,7 +430,7 @@ local function updateplayer(dt)
   anysched:update()
   adu:update(dt)
   cruise:update(dt)
-  power:update()
+  power:update(dt)
   blight:playerupdate()
   frontpantoanim:update(dt)
   rearpantoanim:update(dt)

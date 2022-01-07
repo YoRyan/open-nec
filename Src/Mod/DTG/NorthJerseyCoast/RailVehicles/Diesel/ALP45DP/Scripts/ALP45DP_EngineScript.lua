@@ -85,7 +85,6 @@ Initialise = Misc.wraperrors(function()
   alerter:start()
 
   power = PowerSupply:new{
-    scheduler = anysched,
     modecontrol = "PowerMode",
     eleccontrolmap = {[Electrification.type.overhead] = "PowerState"},
     transition_s = 100,
@@ -418,7 +417,7 @@ local function updateplayer(dt)
   playersched:update()
   anysched:update()
   adu:update(dt)
-  power:update()
+  power:update(dt)
   hep:update(dt)
   blight:playerupdate()
   pantoanim:update(dt)
@@ -439,7 +438,7 @@ end
 
 local function updatehelper(dt)
   anysched:update()
-  power:update()
+  power:update(dt)
   pantoanim:update(dt)
 
   sethelperstate()
@@ -453,7 +452,7 @@ end
 
 local function updateai(dt)
   anysched:update()
-  power:update()
+  power:update(dt)
   pantoanim:update(dt)
 
   setaipanto()

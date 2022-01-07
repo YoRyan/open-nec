@@ -81,7 +81,6 @@ Initialise = Misc.wraperrors(function()
   }
 
   power = PowerSupply:new{
-    scheduler = anysched,
     modes = {
       [0] = function(elec)
         local contact = frontpantoanim:getposition() == 1 or
@@ -300,7 +299,7 @@ local function updateplayer(dt)
   playersched:update()
   anysched:update()
   adu:update(dt)
-  power:update()
+  power:update(dt)
   blight:playerupdate()
   frontpantoanim:update(dt)
   rearpantoanim:update(dt)
@@ -319,7 +318,7 @@ end
 
 local function updatenonplayer(dt)
   anysched:update()
-  power:update()
+  power:update(dt)
   frontpantoanim:update(dt)
   rearpantoanim:update(dt)
 

@@ -5,6 +5,7 @@
 -- of electrification status--i.e., a diesel or steam engine.
 --
 -- @include RollingStock/PowerSupply/Electrification.lua
+-- @include Misc.lua
 -- @include Iterator.lua
 -- @include RailWorks.lua
 local P = {}
@@ -17,10 +18,9 @@ local function onautochangepoint(self, cp)
   end
 end
 
--- From the main coroutine, create a new PowerSupply context.
+-- Create a new PowerSupply context.
 function P:new(conf)
   local o = {
-    _sched = conf.scheduler,
     -- name of the control that stores the currently selected power mode; if
     -- not supplied, the player will not be able to switch between modes
     _control = conf.modecontrol,
@@ -72,8 +72,7 @@ end
 -- return the *previous* mode.
 function P:getmode() return self._currentmode end
 
--- From the main coroutine, set the current power mode without going through a
--- transition.
+-- Set the current power mode without going through a transition.
 function P:setmode(newmode)
   self._currentmode = newmode
   setcv(self, newmode)
@@ -82,22 +81,21 @@ end
 -- Set the presence of a type of electrification.
 function P:setavailable(type, present) self._elec:setavailable(type, present) end
 
--- From the main coroutine, get information about the current mode transition,
--- if any. Returns last mode, next mode, and remaining transition time, or nil
--- if there is no transition.
+-- Get information about the current mode transition, if any. Returns last mode,
+-- next mode, and remaining transition time, or nil if there is no transition.
 function P:gettransition()
   if self._transitionstart ~= nil then
-    local remaining_s = self._transition_s -
-                          (self._sched:clock() - self._transitionstart)
+    local now = RailWorks.GetSimulationTime()
+    local remaining_s = self._transition_s - (now - self._transitionstart)
     return self._currentmode, getcv(self), remaining_s
   else
     return nil, nil, nil
   end
 end
 
--- From the main coroutine, determine whether or not the locomotive has power
--- available. This is true when the locomotive is not in a transition phase and
--- the selected power mode is available for use.
+-- Determine whether or not the locomotive has power available. This is true when
+-- the locomotive is not in a transition phase and the selected power mode is
+-- available for use.
 function P:haspower()
   if self._currentmode == nil then
     return true
@@ -107,12 +105,12 @@ function P:haspower()
   end
 end
 
--- From the main coroutine, update this module every frame.
-function P:update()
-  if self._sched:isstartup() then return end
+-- Update this system every frame.
+function P:update(_)
+  if not Misc.isinitialized() then return end
 
   local selmode = getcv(self)
-  local now = self._sched:clock()
+  local now = RailWorks.GetSimulationTime()
   if self._currentmode == nil then
     -- Read the initialized mode after startup.
     local initmode = selmode ~= nil and selmode or
@@ -132,8 +130,7 @@ function P:update()
   end
 end
 
--- From the main coroutine, receive a custom signal message and, if it is a
--- power change point, process it.
+-- Receive a custom signal message and, if it is a power change point, process it.
 function P:receivemessage(message) self._elec:receivemessage(message) end
 
 return P

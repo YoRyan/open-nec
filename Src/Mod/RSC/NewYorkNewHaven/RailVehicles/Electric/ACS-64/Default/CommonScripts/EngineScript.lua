@@ -61,7 +61,6 @@ Initialise = Misc.wraperrors(function()
   alerter:start()
 
   power = PowerSupply:new{
-    scheduler = anysched,
     modes = {
       [0] = function(elec)
         local frontcontact = RailWorks.GetControlValue("FrontPantographControl",
@@ -372,7 +371,7 @@ local function updateplayer(dt)
   playersched:update()
   anysched:update()
   adu:update(dt)
-  power:update()
+  power:update(dt)
   blight:playerupdate()
 
   writelocostate()

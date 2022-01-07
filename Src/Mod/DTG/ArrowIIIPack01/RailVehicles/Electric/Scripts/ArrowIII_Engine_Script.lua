@@ -55,7 +55,6 @@ Initialise = Misc.wraperrors(function()
   alerter:start()
 
   power = PowerSupply:new{
-    scheduler = anysched,
     modes = {
       [0] = function(elec)
         local contact = pantoanim:getposition() == 1
@@ -225,7 +224,7 @@ local function updateplayer(dt)
   playersched:update()
   anysched:update()
   adu:update(dt)
-  power:update()
+  power:update(dt)
   blight:playerupdate()
   pantoanim:update(dt)
 
@@ -239,7 +238,7 @@ end
 
 local function updatenonplayer(dt)
   anysched:update()
-  power:update()
+  power:update(dt)
   pantoanim:update(dt)
 
   setpanto()

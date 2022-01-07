@@ -83,7 +83,6 @@ Initialise = Misc.wraperrors(function()
   }
 
   power = PowerSupply:new{
-    scheduler = anysched,
     modecontrol = "PowerMode",
     eleccontrolmap = {[Electrification.type.overhead] = "PowerState"},
     transition_s = 100,
@@ -299,7 +298,7 @@ local function updateplayer(dt)
   playersched:update()
   anysched:update()
   adu:update(dt)
-  power:update()
+  power:update(dt)
   blight:playerupdate()
   leftdoorsanim:update(dt)
   rightdoorsanim:update(dt)
@@ -318,7 +317,7 @@ end
 
 local function updatenonplayer(dt)
   anysched:update()
-  power:update()
+  power:update(dt)
   leftdoorsanim:update(dt)
   rightdoorsanim:update(dt)
   doors:update(dt)
