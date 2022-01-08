@@ -132,7 +132,7 @@ Initialise = Misc.wraperrors(function()
   gateanim = Animation:new{animation = "ribbons", duration_s = 1}
 
   -- Modulate the speed reduction alert sound, which normally plays just once.
-  alarmonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
+  alarmonoff = Flash:new{off_s = 0.1, on_s = 0.5}
 
   spark = PantoSpark:new{}
 
@@ -460,7 +460,7 @@ local function updateplayer(dt)
   adu:update(dt)
   alerter:update(dt)
   ivc:update(dt)
-  blight:playerupdate()
+  blight:playerupdate(dt)
   mcnotch:update(dt)
   pantoanim:update(dt)
   gateanim:update(dt)

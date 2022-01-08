@@ -4,7 +4,7 @@
 local P = {}
 Flash = P
 
--- From the main coroutine, create a new Flash context.
+-- Create a new Flash context.
 function P:new(conf)
   local o = {
     _off_s = conf.off_s or 1,

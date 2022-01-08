@@ -23,7 +23,7 @@ local controlmap = {
   [P.type.overhead] = "PowerOverhead"
 }
 
--- From the main coroutine, create a new Electrification context.
+-- Create a new Electrification context.
 function P:new(conf)
   local o = {
     -- maps electrification type to status control
@@ -40,7 +40,7 @@ function P:new(conf)
   return o
 end
 
--- From the main coroutine, check for the presence of a type of electrification.
+-- Check for the presence of a type of electrification.
 function P:isavailable(type)
   local control = self._controlmap[type]
   if control == nil then
@@ -52,7 +52,7 @@ function P:isavailable(type)
   end
 end
 
--- From the main coroutine, set the presence of a type of electrification.
+-- Set the presence of a type of electrification.
 function P:setavailable(type, present)
   local control = self._controlmap[type]
   if control == nil then
@@ -79,8 +79,7 @@ end
 
 local function readautocp(self, cp) self._onautochangepoint(cp) end
 
--- From the main coroutine, receive a custom signal message and, if it is a
--- power change point, process it.
+-- Receive a custom signal message and, if it is a power change point, process it.
 function P:receivemessage(message)
   local _, _, point = string.find(message, "P%-(%a+)")
 

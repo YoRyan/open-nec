@@ -98,10 +98,10 @@ Initialise = Misc.wraperrors(function()
     duration_s = raisepanto_s
   }
 
-  doors = Doors:new{scheduler = playersched}
+  doors = Doors:new{}
 
   -- Modulate the speed reduction alert sound, which normally plays just once.
-  decreaseonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
+  decreaseonoff = Flash:new{off_s = 0.1, on_s = 0.5}
 
   readrvnumber()
   RailWorks.BeginUpdate()
@@ -295,7 +295,7 @@ local function updateplayer(dt)
   adu:update(dt)
   alerter:update(dt)
   power:update(dt)
-  blight:playerupdate()
+  blight:playerupdate(dt)
   frontpantoanim:update(dt)
   rearpantoanim:update(dt)
   doors:update(dt)

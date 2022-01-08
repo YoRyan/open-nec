@@ -367,7 +367,7 @@ local function updateplayer(dt)
   adu:update(dt)
   alerter:update(dt)
   power:update(dt)
-  blight:playerupdate()
+  blight:playerupdate(dt)
 
   writelocostate()
   setpantosparks()

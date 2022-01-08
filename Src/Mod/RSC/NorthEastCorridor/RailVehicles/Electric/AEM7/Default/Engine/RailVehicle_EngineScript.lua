@@ -207,7 +207,7 @@ Update = Misc.wraperrors(function(dt)
   cruise:update(dt)
   alerter:update(dt)
   power:update(dt)
-  blight:playerupdate()
+  blight:playerupdate(dt)
 
   writelocostate()
   setadu()

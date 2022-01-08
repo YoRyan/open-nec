@@ -88,11 +88,7 @@ Initialise = Misc.wraperrors(function()
   blight = BrakeLight:new{}
 
   local ditchflash_s = 0.65
-  ditchflasher = Flash:new{
-    scheduler = playersched,
-    off_s = ditchflash_s,
-    on_s = ditchflash_s
-  }
+  ditchflasher = Flash:new{off_s = ditchflash_s, on_s = ditchflash_s}
 
   RailWorks.BeginUpdate()
 end)
@@ -279,7 +275,7 @@ local function updateplayer(dt)
   adu:update(dt)
   alerter:update(dt)
   power:update(dt)
-  blight:playerupdate()
+  blight:playerupdate(dt)
 
   writelocostate()
   setcutin()

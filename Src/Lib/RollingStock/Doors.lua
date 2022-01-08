@@ -5,7 +5,7 @@
 local P = {}
 Doors = P
 
--- From the main coroutine, create a new Doors context.
+-- Create a new Doors context.
 function P:new(conf)
   local o = {
     _leftanimation = conf.leftanimation,

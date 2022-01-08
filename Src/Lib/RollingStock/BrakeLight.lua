@@ -7,7 +7,7 @@
 local P = {}
 BrakeLight = P
 
--- From the main coroutine, create a new BrakeLight context.
+-- Create a new BrakeLight context.
 function P:new(conf)
   local o = {
     _messageid = conf.messageid or 10101,
@@ -22,8 +22,8 @@ function P:new(conf)
   return o
 end
 
--- From the main coroutine, update this module every frame.
-function P:playerupdate()
+-- Update this module every frame.
+function P:playerupdate(_)
   local status = self._getbrakeson()
   if status ~= self._lastsent then
     local send = status and "1" or "0"
@@ -33,13 +33,12 @@ function P:playerupdate()
   end
 end
 
--- From the main coroutine, receive and process a consist message.
+-- Receive and process a consist message.
 function P:receivemessage(message, argument, direction)
   if message == self._messageid then self._lastrecv = argument == "1" end
 end
 
--- From the main coroutine, determine whether the brake indicators should be in
--- the "applied" state.
+-- Determine whether the brake indicators should be in the "applied" state.
 function P:isapplied()
   if self._lastrecv ~= nil then
     return self._lastrecv

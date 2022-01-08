@@ -125,11 +125,7 @@ Initialise = Misc.wraperrors(function()
   alerter:start()
 
   local ditchflash_s = 1
-  ditchflasher = Flash:new{
-    scheduler = playersched,
-    off_s = ditchflash_s,
-    on_s = ditchflash_s
-  }
+  ditchflasher = Flash:new{off_s = ditchflash_s, on_s = ditchflash_s}
 
   readrvnumber()
   RailWorks.BeginUpdate()
@@ -294,7 +290,7 @@ local function updateplayer(dt)
   adu:update(dt)
   alerter:update(dt)
   power:update(dt)
-  blight:playerupdate()
+  blight:playerupdate(dt)
   leftdoorsanim:update(dt)
   rightdoorsanim:update(dt)
   doors:update(dt)

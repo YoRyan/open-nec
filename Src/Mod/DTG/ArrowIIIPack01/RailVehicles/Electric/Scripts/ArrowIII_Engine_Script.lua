@@ -66,7 +66,7 @@ Initialise = Misc.wraperrors(function()
   pantoanim = Animation:new{animation = "panto", duration_s = 0.5}
 
   -- Modulate the speed reduction alert sound, which normally plays just once.
-  decreaseonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
+  decreaseonoff = Flash:new{off_s = 0.1, on_s = 0.5}
 
   RailWorks.BeginUpdate()
 end)
@@ -220,7 +220,7 @@ local function updateplayer(dt)
   adu:update(dt)
   alerter:update(dt)
   power:update(dt)
-  blight:playerupdate()
+  blight:playerupdate(dt)
   pantoanim:update(dt)
 
   writelocostate()

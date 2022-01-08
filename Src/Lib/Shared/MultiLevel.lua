@@ -124,7 +124,7 @@ Initialise = Misc.wraperrors(function()
   alerter:start()
 
   -- Modulate the speed reduction alert sound, which normally plays just once.
-  alarmonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
+  alarmonoff = Flash:new{off_s = 0.1, on_s = 0.5}
 
   readrvnumber()
   RailWorks.BeginUpdate()
@@ -282,7 +282,7 @@ local function updateplayer(dt)
   alerter:update(dt)
   power:update(dt)
   hep:update(dt)
-  blight:playerupdate()
+  blight:playerupdate(dt)
   leftdoorsanim:update(dt)
   rightdoorsanim:update(dt)
   doors:update(dt)

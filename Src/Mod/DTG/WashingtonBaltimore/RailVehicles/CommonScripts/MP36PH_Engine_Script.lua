@@ -53,11 +53,7 @@ Initialise = Misc.wraperrors(function()
   blight = BrakeLight:new{}
 
   local ditchflash_s = 1
-  ditchflasher = Flash:new{
-    scheduler = sched,
-    off_s = ditchflash_s,
-    on_s = ditchflash_s
-  }
+  ditchflasher = Flash:new{off_s = ditchflash_s, on_s = ditchflash_s}
 
   RailWorks.BeginUpdate()
 end)
@@ -224,7 +220,7 @@ local function updateplayer(dt)
   adu:update(dt)
   alerter:update(dt)
   hep:update(dt)
-  blight:playerupdate()
+  blight:playerupdate(dt)
 
   writelocostate()
   setspeedometer()

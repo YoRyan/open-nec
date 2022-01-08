@@ -92,11 +92,7 @@ Initialise = Misc.wraperrors(function()
   tracteffort = Average:new{nsamples = 30}
 
   local groundflash_s = 0.65
-  groundflasher = Flash:new{
-    scheduler = playersched,
-    off_s = groundflash_s,
-    on_s = groundflash_s
-  }
+  groundflasher = Flash:new{off_s = groundflash_s, on_s = groundflash_s}
 
   spark = PantoSpark:new{}
 
@@ -353,7 +349,7 @@ local function updateplayer(dt)
   alerter:update(dt)
   cruise:update(dt)
   power:update(dt)
-  blight:playerupdate()
+  blight:playerupdate(dt)
   frontpantoanim:update(dt)
   rearpantoanim:update(dt)
 

@@ -19,7 +19,7 @@ function P:new(conf)
   return o
 end
 
--- From the main coroutine, update this experiment.
+-- Update this experiment.
 function P:update()
   local time = RailWorks.GetSimulationTime()
   if time - onoff_s >= self._lasttime then

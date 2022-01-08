@@ -76,17 +76,13 @@ Initialise = Misc.wraperrors(function()
     end
   }
 
-  doors = Doors:new{scheduler = anysched}
+  doors = Doors:new{}
 
   local ditchflash_s = 1
-  ditchflasher = Flash:new{
-    scheduler = playersched,
-    off_s = ditchflash_s,
-    on_s = ditchflash_s
-  }
+  ditchflasher = Flash:new{off_s = ditchflash_s, on_s = ditchflash_s}
 
   -- Modulate the speed reduction alert sound, which normally plays just once.
-  decreaseonoff = Flash:new{scheduler = playersched, off_s = 0.1, on_s = 0.5}
+  decreaseonoff = Flash:new{off_s = 0.1, on_s = 0.5}
 
   readrvnumber()
   RailWorks.BeginUpdate()
@@ -308,7 +304,7 @@ local function updateplayer(dt)
   adu:update(dt)
   alerter:update(dt)
   hep:update(dt)
-  blight:playerupdate()
+  blight:playerupdate(dt)
   doors:update()
 
   writelocostate()
