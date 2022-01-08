@@ -120,10 +120,7 @@ Initialise = Misc.wraperrors(function()
     rightanimation = rightdoorsanim
   }
 
-  alerter = Alerter:new{
-    scheduler = playersched,
-    getspeed_mps = function() return state.speed_mps end
-  }
+  alerter = Alerter:new{}
   alerter:start()
 
   -- Modulate the speed reduction alert sound, which normally plays just once.
@@ -134,13 +131,10 @@ Initialise = Misc.wraperrors(function()
 end)
 
 local function readcontrols()
-  local throttle = RailWorks.GetControlValue("ThrottleAndBrake", 0)
-  local vbrake = RailWorks.GetControlValue("VirtualBrake", 0)
-  local change = throttle ~= state.throttle or vbrake ~= state.train_brake
-  state.throttle = throttle
-  state.train_brake = vbrake
+  state.throttle = RailWorks.GetControlValue("ThrottleAndBrake", 0)
+  state.train_brake = RailWorks.GetControlValue("VirtualBrake", 0)
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
-  if state.acknowledge or change then alerter:acknowledge() end
+  if state.acknowledge then alerter:acknowledge() end
   state.hep = RailWorks.GetControlValue("HEP", 0) == 1
 end
 
@@ -285,6 +279,7 @@ local function updateplayer(dt)
   playersched:update()
   anysched:update()
   adu:update(dt)
+  alerter:update(dt)
   power:update(dt)
   hep:update(dt)
   blight:playerupdate()
@@ -386,6 +381,10 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
         RailWorks.SetControlValue("PowerMode", 0, powermode.diesel)
       end
     end
+  end
+
+  if name == "ThrottleAndBrake" or name == "VirtualBrake" then
+    alerter:acknowledge()
   end
 
   RailWorks.SetControlValue(name, index, value)

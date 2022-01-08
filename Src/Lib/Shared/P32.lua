@@ -50,10 +50,7 @@ Initialise = Misc.wraperrors(function()
     iterrestrictsignals = function() return pairs(state.restrictsignals) end
   }
 
-  alerter = Alerter:new{
-    scheduler = playersched,
-    getspeed_mps = function() return state.speed_mps end
-  }
+  alerter = Alerter:new{}
   alerter:start()
 
   local iselectric = string.sub(RailWorks.GetRVNumber(), 1, 1) == "T"
@@ -101,13 +98,10 @@ Initialise = Misc.wraperrors(function()
 end)
 
 local function readcontrols()
-  local vthrottle = RailWorks.GetControlValue("VirtualThrottle", 0)
-  local brake = RailWorks.GetControlValue("TrainBrakeControl", 0)
-  local change = vthrottle ~= state.throttle or brake ~= state.train_brake
-  state.throttle = vthrottle
-  state.train_brake = brake
+  state.throttle = RailWorks.GetControlValue("VirtualThrottle", 0)
+  state.train_brake = RailWorks.GetControlValue("TrainBrakeControl", 0)
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
-  if state.acknowledge or change then alerter:acknowledge() end
+  if state.acknowledge then alerter:acknowledge() end
 
   if RailWorks.GetControlValue("Horn", 0) > 0 then
     state.lasthorntime_s = playersched:clock()
@@ -283,6 +277,7 @@ local function updateplayer(dt)
   playersched:update()
   anysched:update()
   adu:update(dt)
+  alerter:update(dt)
   power:update(dt)
   blight:playerupdate()
 
@@ -317,6 +312,10 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
   if name == "ExpertPowerMode" and RailWorks.GetIsEngineWithKey() and
     not anysched:isstartup() and (value == 0 or value == 1) then
     Misc.showalert("Not available in OpenNEC")
+  end
+
+  if name == "VirtualThrottle" or name == "TrainBrakeControl" then
+    alerter:acknowledge()
   end
 
   RailWorks.SetControlValue(name, index, value)

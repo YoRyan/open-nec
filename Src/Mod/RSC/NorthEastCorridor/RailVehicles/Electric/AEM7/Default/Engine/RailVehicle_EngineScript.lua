@@ -55,10 +55,7 @@ Initialise = Misc.wraperrors(function()
     getenabled = function() return state.cruiseenabled end
   }
 
-  alerter = Alerter:new{
-    scheduler = sched,
-    getspeed_mps = function() return state.speed_mps end
-  }
+  alerter = Alerter:new{}
   alerter:start()
 
   power = PowerSupply:new{
@@ -77,13 +74,10 @@ Initialise = Misc.wraperrors(function()
 end)
 
 local function readcontrols()
-  local vthrottle = RailWorks.GetControlValue("VirtualThrottle", 0)
-  local vbrake = RailWorks.GetControlValue("VirtualBrake", 0)
-  local change = vthrottle ~= state.throttle or vbrake ~= state.train_brake
-  state.throttle = vthrottle
-  state.train_brake = vbrake
+  state.throttle = RailWorks.GetControlValue("VirtualThrottle", 0)
+  state.train_brake = RailWorks.GetControlValue("VirtualBrake", 0)
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
-  if state.acknowledge or change then alerter:acknowledge() end
+  if state.acknowledge then alerter:acknowledge() end
 end
 
 local function readlocostate()
@@ -211,6 +205,7 @@ Update = Misc.wraperrors(function(dt)
   sched:update()
   adu:update(dt)
   cruise:update(dt)
+  alerter:update(dt)
   power:update(dt)
   blight:playerupdate()
 
@@ -220,7 +215,13 @@ Update = Misc.wraperrors(function(dt)
   setcutin()
 end)
 
-OnControlValueChange = RailWorks.SetControlValue
+OnControlValueChange = Misc.wraperrors(function(name, index, value)
+  if name == "VirtualThrottle" or name == "VirtualBrake" then
+    alerter:acknowledge()
+  end
+
+  RailWorks.SetControlValue(name, index, value)
+end)
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
   power:receivemessage(message)

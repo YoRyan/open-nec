@@ -64,10 +64,7 @@ Initialise = Misc.wraperrors(function()
     consistspeed_mps = 125 * Units.mph.tomps
   }
 
-  alerter = Alerter:new{
-    scheduler = playersched,
-    getspeed_mps = function() return state.speed_mps end
-  }
+  alerter = Alerter:new{}
   alerter:start()
 
   cruise = Cruise:new{
@@ -114,12 +111,10 @@ local function readcontrols()
   else
     vthrottle = RailWorks.GetControlValue("VirtualThrottle", 0)
   end
-  local brake = RailWorks.GetControlValue("TrainBrakeControl", 0)
-  local change = vthrottle ~= state.throttle or brake ~= state.train_brake
   state.throttle = vthrottle
-  state.train_brake = brake
+  state.train_brake = RailWorks.GetControlValue("TrainBrakeControl", 0)
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
-  if state.acknowledge or change then alerter:acknowledge() end
+  if state.acknowledge then alerter:acknowledge() end
 
   state.cruisespeed_mps = RailWorks.GetControlValue("SpeedSetControl", 0) * 10 *
                             Units.mph.tomps
@@ -355,6 +350,7 @@ local function updateplayer(dt)
   playersched:update()
   anysched:update()
   adu:update(dt)
+  alerter:update(dt)
   cruise:update(dt)
   power:update(dt)
   blight:playerupdate()
@@ -412,6 +408,9 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
     RailWorks.ControlExists("NewVirtualThrottle", 0) then
     RailWorks.SetControlValue("NewVirtualThrottle", 0, value)
   end
+
+  if name == "NewVirtualThrottle" or name == "VirtualThrottle" or name ==
+    "TrainBrakeControl" then alerter:acknowledge() end
 
   RailWorks.SetControlValue(name, index, value)
 end)

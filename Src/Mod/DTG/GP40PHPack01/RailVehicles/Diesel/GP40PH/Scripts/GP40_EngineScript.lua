@@ -64,10 +64,7 @@ Initialise = Misc.wraperrors(function()
     consistspeed_mps = 100 * Units.mph.tomps
   }
 
-  alerter = Alerter:new{
-    scheduler = playersched,
-    getspeed_mps = function() return state.speed_mps end
-  }
+  alerter = Alerter:new{}
   alerter:start()
 
   hep = Hep:new{getrun = function() return state.startup end}
@@ -96,13 +93,10 @@ Initialise = Misc.wraperrors(function()
 end)
 
 local function readcontrols()
-  local throttle = RailWorks.GetControlValue("VirtualThrottle", 0)
-  local vbrake = RailWorks.GetControlValue("VirtualBrake", 0)
-  local change = throttle ~= state.throttle or vbrake ~= state.train_brake
-  state.throttle = throttle
-  state.train_brake = vbrake
+  state.throttle = RailWorks.GetControlValue("VirtualThrottle", 0)
+  state.train_brake = RailWorks.GetControlValue("VirtualBrake", 0)
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
-  if state.acknowledge or change then alerter:acknowledge() end
+  if state.acknowledge then alerter:acknowledge() end
   state.startup = RailWorks.GetControlValue("VirtualStartup", 0) >= 0
 
   if RailWorks.GetControlValue("VirtualBell", 0) > 0 then
@@ -312,6 +306,7 @@ local function updateplayer(dt)
   playersched:update()
   anysched:update()
   adu:update(dt)
+  alerter:update(dt)
   hep:update(dt)
   blight:playerupdate()
   doors:update()
@@ -361,6 +356,10 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
   if name == "Destination" and not anysched:isstartup() then
     RailWorks.Engine_SendConsistMessage(messageid.destination, value, 0)
     RailWorks.Engine_SendConsistMessage(messageid.destination, value, 1)
+  end
+
+  if name == "VirtualThrottle" or name == "VirtualBrake" then
+    alerter:acknowledge()
   end
 
   RailWorks.SetControlValue(name, index, value)

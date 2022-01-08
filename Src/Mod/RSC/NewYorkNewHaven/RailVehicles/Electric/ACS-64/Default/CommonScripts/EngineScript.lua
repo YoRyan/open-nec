@@ -54,10 +54,7 @@ Initialise = Misc.wraperrors(function()
     consistspeed_mps = 125 * Units.mph.tomps
   }
 
-  alerter = Alerter:new{
-    scheduler = playersched,
-    getspeed_mps = function() return state.speed_mps end
-  }
+  alerter = Alerter:new{}
   alerter:start()
 
   power = PowerSupply:new{
@@ -92,13 +89,10 @@ Initialise = Misc.wraperrors(function()
 end)
 
 local function readcontrols()
-  local throttle = RailWorks.GetControlValue("ThrottleAndBrake", 0)
-  local vbrake = RailWorks.GetControlValue("VirtualBrake", 0)
-  local change = throttle ~= state.throttle or vbrake ~= state.train_brake
-  state.throttle = throttle
-  state.train_brake = vbrake
+  state.throttle = RailWorks.GetControlValue("ThrottleAndBrake", 0)
+  state.train_brake = RailWorks.GetControlValue("VirtualBrake", 0)
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
-  if state.acknowledge or change then alerter:acknowledge() end
+  if state.acknowledge then alerter:acknowledge() end
 
   if RailWorks.GetControlValue("Horn", 0) > 0 then
     state.lasthorntime_s = playersched:clock()
@@ -371,6 +365,7 @@ local function updateplayer(dt)
   playersched:update()
   anysched:update()
   adu:update(dt)
+  alerter:update(dt)
   power:update(dt)
   blight:playerupdate()
 
@@ -413,6 +408,10 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
   if name == "AutoSuppression" and value > 0 then
     RailWorks.SetControlValue("AutoSuppression", 0, 0)
     RailWorks.SetControlValue("VirtualBrake", 0, 0.75)
+  end
+
+  if name == "ThrottleAndBrake" or name == "VirtualBrake" then
+    alerter:acknowledge()
   end
 
   RailWorks.SetControlValue(name, index, value)

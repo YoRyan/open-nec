@@ -1,35 +1,25 @@
 -- Alerter implementation with a penalty state.
 --
--- @include Event.lua
+-- @include Misc.lua
+-- @include RailWorks.lua
+-- @include Units.lua
 local P = {}
 Alerter = P
 
-local function initstate(self)
-  self._running = false
-  self._ispenalty = false
-  self._isalarm = false
-  self._acknowledge = Event:new{scheduler = self._sched}
-  self._coroutines = {}
-end
-
--- From the main coroutine, create a new Alerter context. This will add coroutines
--- to the provided scheduler.
+-- Create a new Alerter context.
 function P:new(conf)
   local o = {
-    _sched = conf.scheduler,
-    _getspeed_mps = conf.getspeed_mps or function() return 0 end,
-    _minspeed_mps = conf.minspeed_mps or 1 * Units.mph.tomps,
     _countdown_s = conf.countdown_s or 60,
-    _alarm_s = conf.alarm_s or 6
+    _alarm_s = conf.alarm_s or 6,
+    _ack = false,
+    _lastack_s = RailWorks.GetSimulationTime()
   }
   setmetatable(o, self)
   self.__index = self
-  initstate(o)
   return o
 end
 
--- From the main coroutine, start or stop the subsystem based on the provided
--- condition.
+-- Start or stop the subsystem based on the provided condition.
 function P:setrunstate(cond)
   if cond and not self._running then
     self:start()
@@ -38,59 +28,60 @@ function P:setrunstate(cond)
   end
 end
 
-local function isstopped(self) return self._getspeed_mps() < self._minspeed_mps end
+-- Update this system once every frame.
+function P:update(_)
+  local acknowledge = self._ack
+  self._ack = false
 
-local function penalty(self)
-  self._ispenalty = true
-  self._sched:select(nil, function()
-    return self._acknowledge:poll() and isstopped(self)
-  end)
-  self._ispenalty = false
-end
-
-local function run(self)
-  while true do
-    local ev = self._sched:select(self._countdown_s,
-                                  function() return isstopped(self) end,
-                                  function() return self._acknowledge:poll() end)
-    if ev == nil then
-      self._isalarm = true
-      ev = self._sched:select(self._alarm_s,
-                              function() return self._acknowledge:poll() end)
-      if ev == nil then penalty(self) end
-      self._isalarm = false
-    end
+  local speed_mps = RailWorks.GetControlValue("SpeedometerMPH", 0) *
+                      Units.mph.tomps
+  local stopped = speed_mps < Misc.stopped_mps
+  local clock_s = RailWorks.GetSimulationTime()
+  if self:ispenalty() then
+    -- Release the penalty when the train is stopped and the alerter is
+    -- acknowledged.
+    if acknowledge and stopped then self._lastack_s = clock_s end
+  elseif self:isalarm() then
+    -- Silence the alarm when acknowledged.
+    if acknowledge then self._lastack_s = clock_s end
+  elseif acknowledge or stopped then
+    -- Reset the alerter when acknowledged (or not moving).
+    self._lastack_s = clock_s
   end
 end
 
--- From the main coroutine, initialize this subsystem.
+-- Initialize this subsystem.
 function P:start()
   if not self._running then
     self._running = true
-    self._coroutines = {self._sched:run(run, self)}
-    if not self._sched:isstartup() then
-      self._sched:alert("Alerter", "Cut In")
-    end
+    self._ack = false
+    self._lastack_s = RailWorks.GetSimulationTime()
+    if Misc.isinitialized() then Misc.showalert("Alerter", "Cut In") end
   end
 end
 
--- From the main coroutine, halt and reset this subsystem.
+-- Halt and reset this subsystem.
 function P:stop()
   if self._running then
     self._running = false
-    for _, co in ipairs(self._coroutines) do self._sched:kill(co) end
-    initstate(self)
-    self._sched:alert("Alerter", "Cut Out")
+    if Misc.isinitialized() then Misc.showalert("Alerter", "Cut Out") end
   end
 end
 
 -- Returns true when a penalty brake is applied.
-function P:ispenalty() return self._ispenalty end
+function P:ispenalty()
+  local clock_s = RailWorks.GetSimulationTime()
+  return clock_s - self._lastack_s > self._countdown_s + self._alarm_s
+end
 
 -- Returns true when the alarm is applied.
-function P:isalarm() return self._isalarm end
+function P:isalarm()
+  local clock_s = RailWorks.GetSimulationTime()
+  return clock_s - self._lastack_s > self._countdown_s
+end
 
--- Call to acknowledge the alerter.
-function P:acknowledge() self._acknowledge:trigger() end
+-- Call to reset the alerter. This sets an internal flag that will be cleared on
+-- the next update.
+function P:acknowledge() self._ack = true end
 
 return P

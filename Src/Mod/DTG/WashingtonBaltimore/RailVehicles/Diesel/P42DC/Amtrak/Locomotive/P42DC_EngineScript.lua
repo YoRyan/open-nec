@@ -55,10 +55,7 @@ Initialise = Misc.wraperrors(function()
     iterrestrictsignals = function() return pairs(state.restrictsignals) end
   }
 
-  alerter = Alerter:new{
-    scheduler = sched,
-    getspeed_mps = function() return state.speed_mps end
-  }
+  alerter = Alerter:new{}
   alerter:start()
 
   blight = BrakeLight:new{}
@@ -74,13 +71,10 @@ Initialise = Misc.wraperrors(function()
 end)
 
 local function readcontrols()
-  local throttle = RailWorks.GetControlValue("ThrottleAndBrake", 0)
-  local brake = RailWorks.GetControlValue("TrainBrakeControl", 0)
-  local change = throttle ~= state.throttle or brake ~= state.train_brake
-  state.throttle = throttle
-  state.train_brake = brake
+  state.throttle = RailWorks.GetControlValue("ThrottleAndBrake", 0)
+  state.train_brake = RailWorks.GetControlValue("TrainBrakeControl", 0)
   state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
-  if state.acknowledge or change then alerter:acknowledge() end
+  if state.acknowledge then alerter:acknowledge() end
 
   if RailWorks.GetControlValue("Horn", 0) > 0 then
     state.lasthorntime_s = sched:clock()
@@ -243,6 +237,7 @@ local function updateplayer(dt)
 
   sched:update()
   adu:update(dt)
+  alerter:update(dt)
   blight:playerupdate()
 
   writelocostate()
@@ -269,7 +264,13 @@ Update = Misc.wraperrors(function(dt)
   end
 end)
 
-OnControlValueChange = RailWorks.SetControlValue
+OnControlValueChange = Misc.wraperrors(function(name, index, value)
+  if name == "ThrottleAndBrake" or name == "TrainBrakeControl" then
+    alerter:acknowledge()
+  end
+
+  RailWorks.SetControlValue(name, index, value)
+end)
 
 OnCustomSignalMessage = Misc.wraperrors(function(message)
   adu:receivemessage(message)
