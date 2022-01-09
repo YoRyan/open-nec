@@ -9,45 +9,26 @@
 -- @include Iterator.lua
 -- @include Misc.lua
 -- @include RailWorks.lua
--- @include Scheduler.lua
 -- @include Units.lua
 local powermode = {thirdrail = 0, diesel = 1}
 
-local playersched, anysched
 local adu
 local alerter
 local power
 local blight
 local ditchflasher
-local state = {
-  throttle = 0,
-  train_brake = 0,
-  acknowledge = false,
 
-  speed_mps = 0,
-  acceleration_mps2 = 0,
-  trackspeed_mps = 0,
-  consistlength_m = 0,
-  speedlimits = {},
-  restrictsignals = {},
-
-  lastchangetime_s = nil,
-  lasthorntime_s = nil
-}
+local lasthorntime_s = nil
 
 Initialise = Misc.wraperrors(function()
-  playersched = Scheduler:new{}
-  anysched = Scheduler:new{}
-
   adu = GenesisAdu:new{
     isamtrak = isamtrak,
-    getbrakesuppression = function() return state.train_brake >= 0.4 end,
-    getacknowledge = function() return state.acknowledge end,
-    getspeed_mps = function() return state.speed_mps end,
-    gettrackspeed_mps = function() return state.trackspeed_mps end,
-    getconsistlength_m = function() return state.consistlength_m end,
-    iterspeedlimits = function() return pairs(state.speedlimits) end,
-    iterrestrictsignals = function() return pairs(state.restrictsignals) end
+    getbrakesuppression = function()
+      return RailWorks.GetControlValue("TrainBrakeControl", 0) >= 0.4
+    end,
+    getacknowledge = function()
+      return RailWorks.GetControlValue("AWSReset", 0) > 0
+    end
   }
 
   alerter = Alerter:new{}
@@ -66,7 +47,12 @@ Initialise = Misc.wraperrors(function()
       return math.max(Misc.round(mode), 0)
     end,
     transition_s = 20,
-    getcantransition = function() return state.throttle <= 0 end,
+    getcantransition = function()
+      -- If not the player, read throttle and power mode from the lead locomotive.
+      local isplayer = RailWorks.GetIsEngineWithKey()
+      return RailWorks.GetControlValue(isplayer and "VirtualThrottle" or
+                                         "Regulator", 0) <= 0
+    end,
     modes = {
       [powermode.thirdrail] = function(elec)
         return elec:isavailable(Electrification.type.thirdrail)
@@ -94,32 +80,16 @@ Initialise = Misc.wraperrors(function()
 end)
 
 local function readcontrols()
-  state.throttle = RailWorks.GetControlValue("VirtualThrottle", 0)
-  state.train_brake = RailWorks.GetControlValue("TrainBrakeControl", 0)
-  state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
-  if state.acknowledge then alerter:acknowledge() end
-
   if RailWorks.GetControlValue("Horn", 0) > 0 then
-    state.lasthorntime_s = playersched:clock()
+    lasthorntime_s = RailWorks.GetSimulationTime()
   end
-end
-
-local function readlocostate()
-  state.speed_mps = RailWorks.GetControlValue("SpeedometerMPH", 0) *
-                      Units.mph.tomps
-  state.acceleration_mps2 = RailWorks.GetAcceleration()
-  state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
-  state.consistlength_m = RailWorks.GetConsistLength()
-  state.speedlimits = Iterator.totable(Misc.iterspeedlimits(
-                                         Acses.nlimitlookahead))
-  state.restrictsignals = Iterator.totable(
-                            Misc.iterrestrictsignals(Acses.nsignallookahead))
 end
 
 local function writelocostate()
   local penalty = alerter:ispenalty() or adu:ispenalty()
   local haspower = power:haspower()
-  local throttle = (penalty or not haspower) and 0 or state.throttle
+  local throttle = (penalty or not haspower) and 0 or
+                     RailWorks.GetControlValue("VirtualThrottle", 0)
   RailWorks.SetControlValue("Regulator", 0, throttle)
   RailWorks.SetPowerProportion(-1, Misc.intbool(haspower))
   -- There's no virtual train brake, so just move the braking handle.
@@ -145,13 +115,11 @@ local function writelocostate()
 end
 
 local function setnonplayerstate()
-  -- Read throttle and power mode from the lead locomotive.
-  state.throttle = RailWorks.GetControlValue("Regulator", 0)
   RailWorks.SetPowerProportion(-1, Misc.intbool(power:haspower()))
 end
 
 local function setcutin()
-  if not playersched:isstartup() then
+  if Misc.isinitialized() then
     adu:setatcstate(RailWorks.GetControlValue("ATCCutIn", 0) == 1)
     adu:setacsesstate(RailWorks.GetControlValue("ACSESCutIn", 0) == 1)
   end
@@ -206,8 +174,8 @@ end
 
 local function setditchlights()
   local horntime_s = 30
-  local horn = state.lasthorntime_s ~= nil and playersched:clock() <=
-                 state.lasthorntime_s + horntime_s
+  local horn = lasthorntime_s ~= nil and RailWorks.GetSimulationTime() <=
+                 lasthorntime_s + horntime_s
   local flash = isamtrak and horn
   local headlights = RailWorks.GetControlValue("Headlights", 0)
   local crosslights = RailWorks.GetControlValue("CrossingLight", 0) == 1
@@ -268,10 +236,7 @@ end
 
 local function updateplayer(dt)
   readcontrols()
-  readlocostate()
 
-  playersched:update()
-  anysched:update()
   adu:update(dt)
   alerter:update(dt)
   power:update(dt)
@@ -287,7 +252,6 @@ local function updateplayer(dt)
 end
 
 local function updatenonplayer(dt)
-  anysched:update()
   power:update(dt)
 
   setnonplayerstate()
@@ -306,13 +270,12 @@ end)
 
 OnControlValueChange = Misc.wraperrors(function(name, index, value)
   if name == "ExpertPowerMode" and RailWorks.GetIsEngineWithKey() and
-    not anysched:isstartup() and (value == 0 or value == 1) then
+    Misc.isinitialized() and (value == 0 or value == 1) then
     Misc.showalert("Not available in OpenNEC")
   end
 
-  if name == "VirtualThrottle" or name == "TrainBrakeControl" then
-    alerter:acknowledge()
-  end
+  if name == "AWSReset" or name == "VirtualThrottle" or name ==
+    "TrainBrakeControl" then alerter:acknowledge() end
 
   RailWorks.SetControlValue(name, index, value)
 end)

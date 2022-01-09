@@ -6,12 +6,12 @@
 -- @include SafetySystems/Acses/TrackSpeed.lua
 -- @include Iterator.lua
 -- @include Misc.lua
+-- @include RailWorks.lua
 -- @include TupleDictionary.lua
+-- @include Units.lua
 local P = {}
 Acses = P
 
-P.nlimitlookahead = 5
-P.nsignallookahead = 3
 P.mode = {normal = 0, approachmed30 = 1, positivestop = 2}
 P._hazardtype = {currentlimit = 0, advancelimit = 1, stopsignal = 2}
 
@@ -19,18 +19,12 @@ local debuglimits = false
 local debugsignals = false
 local debugtrackers = false
 local direction = {forward = 0, stopped = 1, backward = 2}
+local nsignallookahead = 3
 
 -- Create a new Acses context.
 function P:new(conf)
   local o = {
     _cabsig = conf.cabsignal,
-    _getspeed_mps = conf.getspeed_mps,
-    _gettrackspeed_mps = conf.gettrackspeed_mps or function() return 0 end,
-    _getconsistlength_m = conf.getconsistlength_m or function() return 0 end,
-    _iterspeedlimits = conf.iterspeedlimits or
-      function() return Iterator.empty() end,
-    _iterrestrictsignals = conf.iterrestrictsignals or
-      function() return Iterator.empty() end,
     _getacknowledge = conf.getacknowledge,
     _consistspeed_mps = conf.consistspeed_mps,
     _alertlimit_mps = conf.alertlimit_mps,
@@ -68,21 +62,19 @@ function P:start()
     self._inforceid = nil
     self._movingdirection = direction.forward
 
-    self._limitfilter = AcsesLimits:new{iterspeedlimits = self._iterspeedlimits}
+    self._limitfilter = AcsesLimits:new{}
     self._limittracker = AcsesTracker:new{
-      getspeed_mps = self._getspeed_mps,
       iterbydistance = function()
         return self._limitfilter:iterspeedlimits()
       end
     }
     self._signaltracker = AcsesTracker:new{
-      getspeed_mps = self._getspeed_mps,
-      iterbydistance = self._iterrestrictsignals
+      iterbydistance = function()
+        return Misc.iterrestrictsignals(nsignallookahead)
+      end
     }
     self._trackspeed = AcsesTrackSpeed:new{
-      speedlimittracker = self._limittracker,
-      gettrackspeed_mps = self._gettrackspeed_mps,
-      getconsistlength_m = self._getconsistlength_m
+      speedlimittracker = self._limittracker
     }
   end
 end
@@ -101,8 +93,12 @@ end
 -- Determine whether this system is currently cut in.
 function P:isrunning() return self._running end
 
+local function getspeed_mps(self)
+  return RailWorks.GetControlValue("SpeedometerMPH", 0) * Units.mph.tomps
+end
+
 local function getdirection(self)
-  local speed_mps = self._getspeed_mps()
+  local speed_mps = getspeed_mps(self)
   if math.abs(speed_mps) < Misc.stopped_mps then
     return direction.stopped
   elseif speed_mps > 0 then
@@ -144,7 +140,7 @@ local function showlimits(self)
     end
     Misc.showinfo(Iterator.join("\n", Iterator.imap(show, ipairs(ids))))
   else
-    local speedlimits = Iterator.totable(self._iterspeedlimits())
+    local speedlimits = Iterator.totable(Misc.iterspeedlimits(5))
     local distances_m = Iterator.totable(Iterator.keys(pairs(speedlimits)))
     table.sort(distances_m)
     local show = function(_, distance_m)
@@ -153,9 +149,10 @@ local function showlimits(self)
                ", distance=" .. fdist(distance_m)
     end
     local posts = Iterator.join("\n", Iterator.imap(show, ipairs(distances_m)))
-    Misc.showinfo("Track: " .. fspeed(self._gettrackspeed_mps()) .. " " ..
-                    "Sensed: " .. fspeed(self._trackspeed:gettrackspeed_mps()) ..
-                    "\n" .. "Posts: " .. posts)
+    Misc.showinfo(
+      "Track: " .. fspeed(RailWorks.GetCurrentSpeedLimit(1)) .. " " ..
+        "Sensed: " .. fspeed(self._trackspeed:gettrackspeed_mps()) .. "\n" ..
+        "Posts: " .. posts)
   end
 end
 
@@ -195,7 +192,8 @@ local function showsignals(self)
     end
     Misc.showinfo(Iterator.join("\n", Iterator.imap(show, ipairs(ids))))
   else
-    local restrictsignals = Iterator.totable(self._iterrestrictsignals())
+    local restrictsignals = Iterator.totable(
+                              Misc.iterrestrictsignals(nsignallookahead))
     local distances_m = Iterator.totable(Iterator.keys(pairs(restrictsignals)))
     table.sort(distances_m)
     local show = function(_, distance_m)
@@ -220,7 +218,7 @@ end
 
 local function calctimetopenalty(self, vf, d)
   local a = self._penaltycurve_mps2
-  local vi = math.abs(self._getspeed_mps())
+  local vi = math.abs(getspeed_mps(self))
   if vi <= vf or a == 0 or vi == 0 then
     return nil
   else
@@ -353,7 +351,7 @@ function P:update(dt)
   if inforceid ~= nil and inforceid[1] == P._hazardtype.advancelimit then
     local hazard = self._hazards[inforceid]
     self._hazardstate[inforceid].violated =
-      self._hazardstate[inforceid].violated or math.abs(self._getspeed_mps()) >
+      self._hazardstate[inforceid].violated or math.abs(getspeed_mps(self)) >
         hazard.alert_mps
   end
   self._inforceid = inforceid

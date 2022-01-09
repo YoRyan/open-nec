@@ -7,28 +7,14 @@
 -- @include Iterator.lua
 -- @include Misc.lua
 -- @include RailWorks.lua
--- @include Scheduler.lua
 -- @include Units.lua
-local sched
 local adu
 local alerter
 local blight
 local ditchflasher
-local state = {
-  throttle = 0,
-  train_brake = 0,
-  acknowledge = false,
 
-  speed_mps = 0,
-  acceleration_mps2 = 0,
-  trackspeed_mps = 0,
-  consistlength_m = 0,
-  speedlimits = {},
-  restrictsignals = {},
-
-  lasthorntime_s = nil,
-  lastthrottletime_s = nil
-}
+local lasthorntime_s = nil
+local lastthrottletime_s = nil
 
 local function setenginenumber()
   local number = tonumber(RailWorks.GetRVNumber()) or 0
@@ -40,19 +26,16 @@ end
 Initialise = Misc.wraperrors(function()
   setenginenumber()
 
-  sched = Scheduler:new{}
-
   local onebeep_s = 0.25
   adu = GenesisAdu:new{
     isamtrak = true,
     alerttone_s = onebeep_s,
-    getbrakesuppression = function() return state.train_brake >= 0.4 end,
-    getacknowledge = function() return state.acknowledge end,
-    getspeed_mps = function() return state.speed_mps end,
-    gettrackspeed_mps = function() return state.trackspeed_mps end,
-    getconsistlength_m = function() return state.consistlength_m end,
-    iterspeedlimits = function() return pairs(state.speedlimits) end,
-    iterrestrictsignals = function() return pairs(state.restrictsignals) end
+    getbrakesuppression = function()
+      return RailWorks.GetControlValue("TrainBrakeControl", 0) >= 0.4
+    end,
+    getacknowledge = function()
+      return RailWorks.GetControlValue("AWSReset", 0) > 0
+    end
   }
 
   alerter = Alerter:new{}
@@ -67,26 +50,9 @@ Initialise = Misc.wraperrors(function()
 end)
 
 local function readcontrols()
-  state.throttle = RailWorks.GetControlValue("ThrottleAndBrake", 0)
-  state.train_brake = RailWorks.GetControlValue("TrainBrakeControl", 0)
-  state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
-  if state.acknowledge then alerter:acknowledge() end
-
   if RailWorks.GetControlValue("Horn", 0) > 0 then
-    state.lasthorntime_s = sched:clock()
+    lasthorntime_s = RailWorks.GetSimulationTime()
   end
-end
-
-local function readlocostate()
-  state.speed_mps = RailWorks.GetControlValue("SpeedometerMPH", 0) *
-                      Units.mph.tomps
-  state.acceleration_mps2 = RailWorks.GetAcceleration()
-  state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
-  state.consistlength_m = RailWorks.GetConsistLength()
-  state.speedlimits = Iterator.totable(Misc.iterspeedlimits(
-                                         Acses.nlimitlookahead))
-  state.restrictsignals = Iterator.totable(
-                            Misc.iterrestrictsignals(Acses.nsignallookahead))
 end
 
 local function writelocostate()
@@ -102,7 +68,7 @@ local function writelocostate()
 end
 
 local function setcutin()
-  if not sched:isstartup() then
+  if Misc.isinitialized() then
     local atcon = RailWorks.GetControlValue("ATCCutIn", 0) == 1
     local acseson = RailWorks.GetControlValue("ACSESCutIn", 0) == 1
     adu:setatcstate(atcon)
@@ -114,9 +80,13 @@ end
 local function setdynamicbraketab()
   local setuptime_s = 7
   local setuppos = 0.444444
-  if state.throttle >= 0.5 then state.lastthrottletime_s = sched:clock() end
-  if state.lastthrottletime_s ~= nil and sched:clock() <
-    state.lastthrottletime_s + setuptime_s and state.throttle < setuppos then
+  local insetup = RailWorks.GetControlValue("ThrottleAndBrake", 0) < setuppos
+  local clock_s = RailWorks.GetSimulationTime()
+  if RailWorks.GetControlValue("ThrottleAndBrake", 0) >= 0.5 then
+    lastthrottletime_s = clock_s
+  end
+  if lastthrottletime_s ~= nil and clock_s < lastthrottletime_s + setuptime_s and
+    insetup then
     RailWorks.SetControlValue("ThrottleAndBrake", 0, setuppos)
     RailWorks.SetControlValue("Buzzer", 0, 1)
   else
@@ -167,8 +137,8 @@ end
 
 local function setditchlights()
   local horntime_s = 30
-  local horn = state.lasthorntime_s ~= nil and sched:clock() <=
-                 state.lasthorntime_s + horntime_s
+  local horn = lasthorntime_s ~= nil and RailWorks.GetSimulationTime() <=
+                 lasthorntime_s + horntime_s
   local flash = horn
   local headlights = RailWorks.GetControlValue("Headlights", 0)
   local crosslights = RailWorks.GetControlValue("CrossingLight", 0)
@@ -229,9 +199,7 @@ end
 
 local function updateplayer(dt)
   readcontrols()
-  readlocostate()
 
-  sched:update()
   adu:update(dt)
   alerter:update(dt)
   blight:playerupdate(dt)
@@ -261,9 +229,8 @@ Update = Misc.wraperrors(function(dt)
 end)
 
 OnControlValueChange = Misc.wraperrors(function(name, index, value)
-  if name == "ThrottleAndBrake" or name == "TrainBrakeControl" then
-    alerter:acknowledge()
-  end
+  if name == "AWSReset" or name == "ThrottleAndBrake" or name ==
+    "TrainBrakeControl" then alerter:acknowledge() end
 
   RailWorks.SetControlValue(name, index, value)
 end)

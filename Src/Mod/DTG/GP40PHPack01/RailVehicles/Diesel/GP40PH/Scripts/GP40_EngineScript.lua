@@ -8,11 +8,9 @@
 -- @include Flash.lua
 -- @include Misc.lua
 -- @include RailWorks.lua
--- @include Scheduler.lua
 -- @include Units.lua
 local messageid = {destination = 10100}
 
-local playersched, anysched
 local adu
 local alerter
 local hep
@@ -20,23 +18,9 @@ local blight
 local doors
 local ditchflasher
 local decreaseonoff
-local state = {
-  throttle = 0,
-  train_brake = 0,
-  acknowledge = false,
-  startup = false,
-  rv_destination = nil,
 
-  speed_mps = 0,
-  acceleration_mps2 = 0,
-  trackspeed_mps = 0,
-  consistlength_m = 0,
-  speedlimits = {},
-  restrictsignals = {},
-
-  lastrpmclock_s = nil,
-  strobetime_s = nil
-}
+local initdestination = nil
+local strobetime_s = nil
 
 local function readrvnumber()
   local _, _, deststr = string.find(RailWorks.GetRVNumber(), "(%a)")
@@ -46,28 +30,28 @@ local function readrvnumber()
   else
     dest = nil
   end
-  state.rv_destination = dest
+  initdestination = dest
+end
+
+local function isstarted()
+  return RailWorks.GetControlValue("VirtualStartup", 0) >= 0
 end
 
 Initialise = Misc.wraperrors(function()
-  playersched = Scheduler:new{}
-  anysched = Scheduler:new{}
-
   adu = NjTransitAdu:new{
-    getbrakesuppression = function() return state.train_brake >= 0.5 end,
-    getacknowledge = function() return state.acknowledge end,
-    getspeed_mps = function() return state.speed_mps end,
-    gettrackspeed_mps = function() return state.trackspeed_mps end,
-    getconsistlength_m = function() return state.consistlength_m end,
-    iterspeedlimits = function() return pairs(state.speedlimits) end,
-    iterrestrictsignals = function() return pairs(state.restrictsignals) end,
+    getbrakesuppression = function()
+      return RailWorks.GetControlValue("VirtualBrake", 0) >= 0.5
+    end,
+    getacknowledge = function()
+      return RailWorks.GetControlValue("AWSReset", 0) > 0
+    end,
     consistspeed_mps = 100 * Units.mph.tomps
   }
 
   alerter = Alerter:new{}
   alerter:start()
 
-  hep = Hep:new{getrun = function() return state.startup end}
+  hep = Hep:new{getrun = isstarted}
 
   blight = BrakeLight:new{
     getbrakeson = function()
@@ -89,39 +73,22 @@ Initialise = Misc.wraperrors(function()
 end)
 
 local function readcontrols()
-  state.throttle = RailWorks.GetControlValue("VirtualThrottle", 0)
-  state.train_brake = RailWorks.GetControlValue("VirtualBrake", 0)
-  state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
-  if state.acknowledge then alerter:acknowledge() end
-  state.startup = RailWorks.GetControlValue("VirtualStartup", 0) >= 0
-
   if RailWorks.GetControlValue("VirtualBell", 0) > 0 then
-    if state.strobetime_s == nil then
+    if strobetime_s == nil then
       -- Randomize the starting point of the flash sequence.
-      state.strobetime_s = playersched:clock() - math.random() * 60
+      strobetime_s = RailWorks.GetSimulationTime() - math.random() * 60
     end
   else
-    state.strobetime_s = nil
+    strobetime_s = nil
   end
-end
-
-local function readlocostate()
-  state.speed_mps = RailWorks.GetControlValue("SpeedometerMPH", 0) *
-                      Units.mph.tomps
-  state.acceleration_mps2 = RailWorks.GetAcceleration()
-  state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
-  state.consistlength_m = RailWorks.GetConsistLength()
-  state.speedlimits = Iterator.totable(Misc.iterspeedlimits(
-                                         Acses.nlimitlookahead))
-  state.restrictsignals = Iterator.totable(
-                            Misc.iterrestrictsignals(Acses.nsignallookahead))
 end
 
 local function writelocostate()
   local penalty = adu:ispenalty() or alerter:ispenalty()
-  RailWorks.SetControlValue("Regulator", 0, state.throttle)
-  RailWorks.SetControlValue("TrainBrakeControl", 0,
-                            penalty and 0.5 or state.train_brake)
+  RailWorks.SetControlValue("Regulator", 0,
+                            RailWorks.GetControlValue("VirtualThrottle", 0))
+  RailWorks.SetControlValue("TrainBrakeControl", 0, penalty and 0.5 or
+                              RailWorks.GetControlValue("VirtualBrake", 0))
 
   local psi = RailWorks.GetControlValue("AirBrakePipePressurePSI", 0)
   RailWorks.SetControlValue("DynamicBrake", 0, math.min((89 - psi) / 16, 1))
@@ -141,7 +108,7 @@ local function writelocostate()
                             RailWorks.GetControlValue("UserVirtualReverser", 0))
   RailWorks.SetControlValue("EngineBrakeControl", 0, RailWorks.GetControlValue(
                               "VirtualEngineBrakeControl", 0))
-  RailWorks.SetControlValue("Startup", 0, state.startup and 1 or -1)
+  RailWorks.SetControlValue("Startup", 0, isstarted() and 1 or -1)
   RailWorks.SetControlValue("Sander", 0,
                             RailWorks.GetControlValue("VirtualSander", 0))
   RailWorks.SetControlValue("Bell", 0,
@@ -159,7 +126,8 @@ end
 
 local function setadu()
   local isclear = adu:isclearsignal()
-  local rspeed_mph = Misc.round(math.abs(state.speed_mps) * Units.mps.tomph)
+  local rspeed_mph = Misc.round(math.abs(
+                                  RailWorks.GetControlValue("SpeedometerMPH", 0)))
   local h = Misc.getdigit(rspeed_mph, 2)
   local t = Misc.getdigit(rspeed_mph, 1)
   local u = Misc.getdigit(rspeed_mph, 0)
@@ -171,10 +139,8 @@ local function setadu()
   RailWorks.SetControlValue("Speed2U", 0, isclear and -1 or u)
   RailWorks.SetControlValue("SpeedP", 0, Misc.getdigitguide(rspeed_mph))
 
-  RailWorks.SetControlValue("ACSES_SpeedGreen", 0,
-                            adu:getgreenzone_mph(state.speed_mps))
-  RailWorks.SetControlValue("ACSES_SpeedRed", 0,
-                            adu:getredzone_mph(state.speed_mps))
+  RailWorks.SetControlValue("ACSES_SpeedGreen", 0, adu:getgreenzone_mph())
+  RailWorks.SetControlValue("ACSES_SpeedRed", 0, adu:getredzone_mph())
 
   RailWorks.SetControlValue("ATC_Node", 0, Misc.intbool(adu:getatcenforcing()))
   RailWorks.SetControlValue("ACSES_Node", 0,
@@ -188,10 +154,7 @@ local function setcutin()
   adu:setacsesstate(RailWorks.GetControlValue("ATC", 0) == 0)
 end
 
-local function setexhaust()
-  local now = anysched:clock()
-  local dt = state.lastrpmclock_s == nil and 0 or now - state.lastrpmclock_s
-  state.lastrpmclock_s = now
+local function setexhaust(dt)
   local rpm = RailWorks.GetControlValue("RPM", 0)
   local fansleft = RailWorks.AddTime("Fans", dt * math.min(1, rpm / 200))
   if fansleft > 0 then RailWorks.SetTime("Fans", fansleft) end
@@ -260,8 +223,8 @@ end
 
 local function setstrobelights()
   local function isshowing(period)
-    if state.strobetime_s ~= nil then
-      local since_s = playersched:clock() - state.strobetime_s
+    if strobetime_s ~= nil then
+      local since_s = RailWorks.GetSimulationTime() - strobetime_s
       return math.mod(since_s, period) <= 0.1
     else
       return false
@@ -287,20 +250,17 @@ end
 
 local function setdestination()
   -- Broadcast the rail vehicle-derived destination, if any.
-  if state.rv_destination ~= nil and anysched:isstartup() then
-    RailWorks.Engine_SendConsistMessage(messageid.destination,
-                                        state.rv_destination, 0)
-    RailWorks.Engine_SendConsistMessage(messageid.destination,
-                                        state.rv_destination, 1)
+  if initdestination ~= nil and not Misc.isinitialized() then
+    RailWorks.Engine_SendConsistMessage(messageid.destination, initdestination,
+                                        0)
+    RailWorks.Engine_SendConsistMessage(messageid.destination, initdestination,
+                                        1)
   end
 end
 
 local function updateplayer(dt)
   readcontrols()
-  readlocostate()
 
-  playersched:update()
-  anysched:update()
   adu:update(dt)
   alerter:update(dt)
   hep:update(dt)
@@ -310,18 +270,17 @@ local function updateplayer(dt)
   writelocostate()
   setadu()
   setcutin()
-  setexhaust()
+  setexhaust(dt)
   setlights()
   setditchlights()
   setstrobelights()
   setdestination()
 end
 
-local function updatenonplayer()
-  anysched:update()
+local function updatenonplayer(dt)
   doors:update()
 
-  setexhaust()
+  setexhaust(dt)
   setlights()
   setditchlights()
   setstrobelights()
@@ -332,7 +291,7 @@ Update = Misc.wraperrors(function(dt)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer(dt)
   else
-    updatenonplayer()
+    updatenonplayer(dt)
   end
 end)
 
@@ -349,12 +308,12 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
   end
 
   -- The player has changed the destination sign.
-  if name == "Destination" and not anysched:isstartup() then
+  if name == "Destination" and Misc.isinitialized() then
     RailWorks.Engine_SendConsistMessage(messageid.destination, value, 0)
     RailWorks.Engine_SendConsistMessage(messageid.destination, value, 1)
   end
 
-  if name == "VirtualThrottle" or name == "VirtualBrake" then
+  if name == "AWSReset" or name == "VirtualThrottle" or name == "VirtualBrake" then
     alerter:acknowledge()
   end
 

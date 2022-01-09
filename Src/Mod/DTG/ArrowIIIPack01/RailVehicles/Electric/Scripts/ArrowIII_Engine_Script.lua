@@ -9,42 +9,24 @@
 -- @include Flash.lua
 -- @include Misc.lua
 -- @include RailWorks.lua
--- @include Scheduler.lua
 -- @include Units.lua
 local messageid = {locationprobe = 10100}
 
-local playersched, anysched
 local adu
 local alerter
 local power
 local blight
 local pantoanim
 local decreaseonoff
-local state = {
-  mcontroller = 0,
-  train_brake = 0,
-  acknowledge = false,
-
-  speed_mps = 0,
-  acceleration_mps2 = 0,
-  trackspeed_mps = 0,
-  consistlength_m = 0,
-  speedlimits = {},
-  restrictsignals = {}
-}
 
 Initialise = Misc.wraperrors(function()
-  playersched = Scheduler:new{}
-  anysched = Scheduler:new{}
-
   adu = NjTransitAdu:new{
-    getbrakesuppression = function() return state.train_brake >= 0.5 end,
-    getacknowledge = function() return state.acknowledge end,
-    getspeed_mps = function() return state.speed_mps end,
-    gettrackspeed_mps = function() return state.trackspeed_mps end,
-    getconsistlength_m = function() return state.consistlength_m end,
-    iterspeedlimits = function() return pairs(state.speedlimits) end,
-    iterrestrictsignals = function() return pairs(state.restrictsignals) end,
+    getbrakesuppression = function()
+      return RailWorks.GetControlValue("VirtualBrake", 0) >= 0.5
+    end,
+    getacknowledge = function()
+      return RailWorks.GetControlValue("AWSReset", 0) > 0
+    end,
     consistspeed_mps = 80 * Units.mph.tomps
   }
 
@@ -71,41 +53,23 @@ Initialise = Misc.wraperrors(function()
   RailWorks.BeginUpdate()
 end)
 
-local function readcontrols()
-  state.mcontroller = RailWorks.GetControlValue("VirtualThrottle", 0)
-  state.train_brake = RailWorks.GetControlValue("VirtualBrake", 0)
-  state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
-  if state.acknowledge then alerter:acknowledge() end
-end
-
-local function readlocostate()
-  state.speed_mps = RailWorks.GetControlValue("SpeedometerMPH", 0) *
-                      Units.mph.tomps
-  state.acceleration_mps2 = RailWorks.GetAcceleration()
-  state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
-  state.consistlength_m = RailWorks.GetConsistLength()
-  state.speedlimits = Iterator.totable(Misc.iterspeedlimits(
-                                         Acses.nlimitlookahead))
-  state.restrictsignals = Iterator.totable(
-                            Misc.iterrestrictsignals(Acses.nsignallookahead))
-end
-
 local function writelocostate()
   local penalty = alerter:ispenalty() or adu:ispenalty()
+  local mcontroller = RailWorks.GetControlValue("VirtualThrottle", 0)
   local throttle, reverser
   if not power:haspower() then
     throttle, reverser = 0, 0
-  elseif state.mcontroller > -1.5 and state.mcontroller < 1.5 then
+  elseif mcontroller > -1.5 and mcontroller < 1.5 then
     throttle, reverser = 0, 0
-  elseif state.mcontroller > 0 then
-    throttle, reverser = (state.mcontroller - 1) / 5, 1
+  elseif mcontroller > 0 then
+    throttle, reverser = (mcontroller - 1) / 5, 1
   else
-    throttle, reverser = (-state.mcontroller - 1) / 5, -1
+    throttle, reverser = (-mcontroller - 1) / 5, -1
   end
   RailWorks.SetControlValue("Regulator", 0, throttle)
   RailWorks.SetControlValue("Reverser", 0, reverser)
-  RailWorks.SetControlValue("TrainBrakeControl", 0,
-                            penalty and 0.9 or state.train_brake)
+  RailWorks.SetControlValue("TrainBrakeControl", 0, penalty and 0.9 or
+                              RailWorks.GetControlValue("VirtualBrake", 0))
 
   local psi = RailWorks.GetControlValue("AirBrakePipePressurePSI", 0)
   local dynbrake = math.min((110 - psi) / 16, 1)
@@ -131,7 +95,7 @@ end
 
 local function setadu()
   local isclear = adu:isclearsignal()
-  local rspeed_mph = Misc.round(math.abs(state.speed_mps) * Units.mps.tomph)
+  local rspeed_mph = Misc.round(RailWorks.GetControlValue("SpeedometerMPH", 0))
   local h = Misc.getdigit(rspeed_mph, 2)
   local t = Misc.getdigit(rspeed_mph, 1)
   local u = Misc.getdigit(rspeed_mph, 0)
@@ -145,8 +109,7 @@ local function setadu()
 
   -- The animations on this model are bugged and the green speed zone behaves
   -- like a speedometer, so use the red zone to show MAS.
-  RailWorks.SetControlValue("ACSES_SpeedRed", 0,
-                            adu:getgreenzone_mph(state.speed_mps))
+  RailWorks.SetControlValue("ACSES_SpeedRed", 0, adu:getgreenzone_mph())
 
   RailWorks.SetControlValue("ATC_Node", 0, Misc.intbool(adu:getatcenforcing()))
   RailWorks.SetControlValue("ACSES_Node", 0,
@@ -212,11 +175,6 @@ local function setlights()
 end
 
 local function updateplayer(dt)
-  readcontrols()
-  readlocostate()
-
-  playersched:update()
-  anysched:update()
   adu:update(dt)
   alerter:update(dt)
   power:update(dt)
@@ -232,7 +190,6 @@ local function updateplayer(dt)
 end
 
 local function updatenonplayer(dt)
-  anysched:update()
   power:update(dt)
   pantoanim:update(dt)
 
@@ -256,7 +213,7 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
     return
   end
 
-  if name == "VirtualThrottle" or name == "VirtualBrake" then
+  if name == "AWSReset" or name == "VirtualThrottle" or name == "VirtualBrake" then
     alerter:acknowledge()
   end
 

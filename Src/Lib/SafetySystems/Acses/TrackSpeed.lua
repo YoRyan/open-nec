@@ -1,5 +1,7 @@
 -- A speed post tracker that calculates the speed limit in force at the
 -- player's location, irrespective of train length.
+--
+-- @include RailWorks.lua
 local P = {}
 AcsesTrackSpeed = P
 
@@ -7,8 +9,6 @@ AcsesTrackSpeed = P
 function P:new(conf)
   local o = {
     _limittracker = conf.speedlimittracker,
-    _gettrackspeed_mps = conf.gettrackspeed_mps or function() return 0 end,
-    _getconsistlength_m = conf.getconsistlength_m or function() return 0 end,
     _before_mps = {},
     _after_mps = {},
     _sensedspeed_mps = nil
@@ -50,7 +50,7 @@ function P:update(dt)
   -- than 10km away.
   local sensed_mps = self._after_mps[lastid] or self._before_mps[nextid] or
                        self._sensedspeed_mps
-  local gamespeed_mps = self._gettrackspeed_mps()
+  local gamespeed_mps = RailWorks.GetCurrentSpeedLimit(1)
   if sensed_mps == nil then
     self._sensedspeed_mps = gamespeed_mps
     -- The game-calculated speed limit is strictly lower than the track
@@ -60,7 +60,7 @@ function P:update(dt)
     -- If the previous speed post is behind the end of our train, then we
     -- can use the game-calculated speed limit.
   elseif lastid ~= nil and -self._limittracker:getdistance_m(lastid) >
-    self._getconsistlength_m() then
+    RailWorks.GetConsistLength() then
     self._sensedspeed_mps = gamespeed_mps
   else
     self._sensedspeed_mps = sensed_mps

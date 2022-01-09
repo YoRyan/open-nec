@@ -29,11 +29,6 @@ function P:new(conf)
     cabsignal = o._cabsig,
     getbrakesuppression = conf.getbrakesuppression,
     getacknowledge = conf.getacknowledge,
-    getspeed_mps = conf.getspeed_mps,
-    gettrackspeed_mps = conf.gettrackspeed_mps,
-    getconsistlength_m = conf.getconsistlength_m,
-    iterspeedlimits = conf.iterspeedlimits,
-    iterrestrictsignals = conf.iterrestrictsignals,
     consistspeed_mps = conf.consistspeed_mps,
     alertlimit_mps = o._alertlimit_mps,
     penaltylimit_mps = o._penaltylimit_mps,
@@ -101,7 +96,7 @@ function P:update(dt)
 
   -- Read the engineer's controls. Initiate enforcement actions and look for
   -- acknowledgement presses.
-  local aspeed_mps = math.abs(self._getspeed_mps())
+  local aspeed_mps = math.abs(self:_getspeed_mps())
   local now = RailWorks.GetSimulationTime()
   local acknowledge = self._getacknowledge()
   local suppressed = self._getbrakesuppression()
@@ -209,7 +204,7 @@ function P:getgreenzone_mph() return getgreenspeed_mph(self) or 0 end
 function P:getredzone_mph()
   local green_mph = getgreenspeed_mph(self)
   if green_mph ~= nil then
-    local aspeed_mph = math.abs(self._getspeed_mps()) * Units.mps.tomph
+    local aspeed_mph = math.abs(self:_getspeed_mps()) * Units.mps.tomph
     return aspeed_mph > green_mph and aspeed_mph or 0
   else
     return 0

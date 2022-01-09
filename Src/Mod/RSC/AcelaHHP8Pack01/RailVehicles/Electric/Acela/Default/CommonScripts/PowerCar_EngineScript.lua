@@ -13,9 +13,7 @@
 -- @include Misc.lua
 -- @include MovingAverage.lua
 -- @include RailWorks.lua
--- @include Scheduler.lua
 -- @include Units.lua
-local playersched, anysched
 local adu
 local alerter
 local cruise
@@ -25,23 +23,6 @@ local frontpantoanim, rearpantoanim
 local tracteffort
 local groundflasher
 local spark
-local state = {
-  throttle = 0,
-  train_brake = 0,
-  acknowledge = false,
-  cruisespeed_mps = 0,
-  cruiseenabled = false,
-
-  speed_mps = 0,
-  acceleration_mps2 = 0,
-  trackspeed_mps = 0,
-  consistlength_m = 0,
-  speedlimits = {},
-  restrictsignals = {},
-
-  raisefrontpantomsg = nil,
-  raiserearpantomsg = nil
-}
 
 local messageid = {
   -- ID's must be reused from the DTG engine script so coaches will pass them down.
@@ -49,18 +30,24 @@ local messageid = {
   raiserearpanto = 1208
 }
 
-Initialise = Misc.wraperrors(function()
-  playersched = Scheduler:new{}
-  anysched = Scheduler:new{}
+local raisefrontpantomsg = nil
+local raiserearpantomsg = nil
 
+local function getplayerthrottle()
+  -- For compatibility with Fan Railer's HHP-8 mod.
+  local isfanrailer = RailWorks.ControlExists("NewVirtualThrottle", 0)
+  return RailWorks.GetControlValue(isfanrailer and "NewVirtualThrottle" or
+                                     "VirtualThrottle", 0)
+end
+
+Initialise = Misc.wraperrors(function()
   adu = AmtrakTwoSpeedAdu:new{
-    getbrakesuppression = function() return state.train_brake > 0.3 end,
-    getacknowledge = function() return state.acknowledge end,
-    getspeed_mps = function() return state.speed_mps end,
-    gettrackspeed_mps = function() return state.trackspeed_mps end,
-    getconsistlength_m = function() return state.consistlength_m end,
-    iterspeedlimits = function() return pairs(state.speedlimits) end,
-    iterrestrictsignals = function() return pairs(state.restrictsignals) end,
+    getbrakesuppression = function()
+      return RailWorks.GetControlValue("TrainBrakeControl", 0) > 0.3
+    end,
+    getacknowledge = function()
+      return RailWorks.GetControlValue("AWSReset", 0) > 0
+    end,
     consistspeed_mps = 125 * Units.mph.tomps
   }
 
@@ -68,9 +55,14 @@ Initialise = Misc.wraperrors(function()
   alerter:start()
 
   cruise = Cruise:new{
-    getplayerthrottle = function() return state.throttle end,
-    gettargetspeed_mps = function() return state.cruisespeed_mps end,
-    getenabled = function() return state.cruiseenabled end
+    getplayerthrottle = getplayerthrottle,
+    gettargetspeed_mps = function()
+      return RailWorks.GetControlValue("SpeedSetControl", 0) * 10 *
+               Units.mph.tomps
+    end,
+    getenabled = function()
+      return RailWorks.GetControlValue("CruiseControl", 0) == 1
+    end
   }
 
   power = PowerSupply:new{
@@ -99,36 +91,6 @@ Initialise = Misc.wraperrors(function()
   RailWorks.BeginUpdate()
 end)
 
-local function readcontrols()
-  local vthrottle
-  if RailWorks.ControlExists("NewVirtualThrottle", 0) then
-    -- For compatibility with Fan Railer's HHP-8 mod.
-    vthrottle = RailWorks.GetControlValue("NewVirtualThrottle", 0)
-  else
-    vthrottle = RailWorks.GetControlValue("VirtualThrottle", 0)
-  end
-  state.throttle = vthrottle
-  state.train_brake = RailWorks.GetControlValue("TrainBrakeControl", 0)
-  state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
-  if state.acknowledge then alerter:acknowledge() end
-
-  state.cruisespeed_mps = RailWorks.GetControlValue("SpeedSetControl", 0) * 10 *
-                            Units.mph.tomps
-  state.cruiseenabled = RailWorks.GetControlValue("CruiseControl", 0) == 1
-end
-
-local function readlocostate()
-  state.speed_mps = RailWorks.GetControlValue("SpeedometerMPH", 0) *
-                      Units.mph.tomps
-  state.acceleration_mps2 = RailWorks.GetAcceleration()
-  state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
-  state.consistlength_m = RailWorks.GetConsistLength()
-  state.speedlimits = Iterator.totable(Misc.iterspeedlimits(
-                                         Acses.nlimitlookahead))
-  state.restrictsignals = Iterator.totable(
-                            Misc.iterrestrictsignals(Acses.nsignallookahead))
-end
-
 local function writelocostate()
   local penalty = alerter:ispenalty() or adu:ispenalty()
 
@@ -149,9 +111,10 @@ local function writelocostate()
   end
 
   -- DTG's "blended braking" algorithm
-  local airbrake = penalty and penaltybrake or state.train_brake
-  local dynbrake = state.speed_mps >= 10 * Units.mph.tomps and airbrake * 0.3 or
-                     0
+  local speed_mph = RailWorks.GetControlValue("SpeedometerMPH", 0)
+  local airbrake = penalty and penaltybrake or
+                     RailWorks.GetControlValue("TrainBrakeControl", 0)
+  local dynbrake = speed_mph >= 10 and airbrake * 0.3 or 0
   RailWorks.SetControlValue("DynamicBrake", 0, dynbrake)
 
   RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(adu:isalarm()))
@@ -185,11 +148,11 @@ local function setaipantos()
 end
 
 local function setslavepantos()
-  if state.raisefrontpantomsg ~= nil then
-    frontpantoanim:setanimatedstate(state.raisefrontpantomsg)
+  if raisefrontpantomsg ~= nil then
+    frontpantoanim:setanimatedstate(raisefrontpantomsg)
   end
-  if state.raiserearpantomsg ~= nil then
-    rearpantoanim:setanimatedstate(state.raiserearpantomsg)
+  if raiserearpantomsg ~= nil then
+    rearpantoanim:setanimatedstate(raiserearpantomsg)
   end
 end
 
@@ -249,19 +212,19 @@ local function setdrivescreen()
   RailWorks.SetControlValue("ControlScreenDer", 0,
                             Misc.intbool(not power:haspower()))
 
-  local speed_mph = Misc.round(state.speed_mps * Units.mps.tomph)
+  local speed_mph = Misc.round(RailWorks.GetControlValue("SpeedometerMPH", 0))
   RailWorks.SetControlValue("SPHundreds", 0, Misc.getdigit(speed_mph, 2))
   RailWorks.SetControlValue("SPTens", 0, Misc.getdigit(speed_mph, 1))
   RailWorks.SetControlValue("SPUnits", 0, Misc.getdigit(speed_mph, 0))
   RailWorks.SetControlValue("SpeedoGuide", 0, Misc.getdigitguide(speed_mph))
 
-  local pstate = state.cruiseenabled and 8 or
-                   math.floor(state.throttle * 6 + 0.5)
+  local cruiseon = RailWorks.GetControlValue("CruiseControl", 0) == 1
+  local pstate = cruiseon and 8 or math.floor(getplayerthrottle() * 6 + 0.5)
   RailWorks.SetControlValue("PowerState", 0, pstate)
 end
 
 local function setcutin()
-  if not playersched:isstartup() then
+  if Misc.isinitialized() then
     adu:setatcstate(RailWorks.GetControlValue("ATCCutIn", 0) == 1)
     adu:setacsesstate(RailWorks.GetControlValue("ACSESCutIn", 0) == 1)
   end
@@ -340,11 +303,6 @@ local function setgroundlights()
 end
 
 local function updateplayer(dt)
-  readcontrols()
-  readlocostate()
-
-  playersched:update()
-  anysched:update()
   adu:update(dt)
   alerter:update(dt)
   cruise:update(dt)
@@ -365,7 +323,6 @@ local function updateplayer(dt)
 end
 
 local function updatehelper(dt)
-  anysched:update()
   frontpantoanim:update(dt)
   rearpantoanim:update(dt)
 
@@ -376,7 +333,6 @@ local function updatehelper(dt)
 end
 
 local function updateai(dt)
-  anysched:update()
   frontpantoanim:update(dt)
   rearpantoanim:update(dt)
 
@@ -405,8 +361,8 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
     RailWorks.SetControlValue("NewVirtualThrottle", 0, value)
   end
 
-  if name == "NewVirtualThrottle" or name == "VirtualThrottle" or name ==
-    "TrainBrakeControl" then alerter:acknowledge() end
+  if name == "AWSReset" or name == "NewVirtualThrottle" or name ==
+    "VirtualThrottle" or name == "TrainBrakeControl" then alerter:acknowledge() end
 
   RailWorks.SetControlValue(name, index, value)
 end)
@@ -420,9 +376,9 @@ OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
   blight:receivemessage(message, argument, direction)
 
   if message == messageid.raisefrontpanto then
-    state.raisefrontpantomsg = argument == "true"
+    raisefrontpantomsg = argument == "true"
   elseif message == messageid.raiserearpanto then
-    state.raiserearpantomsg = argument == "true"
+    raiserearpantomsg = argument == "true"
   end
 
   RailWorks.Engine_SendConsistMessage(message, argument, direction)

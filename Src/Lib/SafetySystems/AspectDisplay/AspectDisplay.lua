@@ -1,6 +1,7 @@
 -- Base class for an Aspect Display Unit that interfaces with ATC and ACSES.
 --
 -- @include Signals/CabSignal.lua
+-- @include RailWorks.lua
 -- @include Units.lua
 local P = {}
 Adu = P
@@ -12,7 +13,6 @@ function P:new(conf)
     _getbrakesuppression = conf.getbrakesuppression or
       function() return false end,
     _getacknowledge = conf.getacknowledge or function() return false end,
-    _getspeed_mps = conf.getspeed_mps or function() return 0 end,
     _alertlimit_mps = conf.alertlimit_mps or 3 * Units.mph.tomps,
     _penaltylimit_mps = conf.penaltylimit_mps or 6 * Units.mph.tomps,
     _alertwarning_s = conf.alertwarning_s or 7
@@ -27,5 +27,10 @@ function P:update(dt) end
 
 -- Receive a custom signal message.
 function P:receivemessage(message) self._cabsig:receivemessage(message) end
+
+-- Get the current speedometer speed.
+function P:_getspeed_mps()
+  return RailWorks.GetControlValue("SpeedometerMPH", 0) * Units.mph.tomps
+end
 
 return P

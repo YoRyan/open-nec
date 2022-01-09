@@ -2,6 +2,8 @@
 -- their relative distances from the player.
 --
 -- @include Iterator.lua
+-- @include RailWorks.lua
+-- @include Units.lua
 local P = {}
 AcsesTracker = P
 
@@ -12,7 +14,6 @@ local trackmargin_m = 1
 -- iterator of (distance (m), tracked object) pairs.
 function P:new(conf)
   local o = {
-    _getspeed_mps = conf.getspeed_mps or function() return 0 end,
     _iterbydistance = conf.iterbydistance or
       function() return Iterator.empty() end,
     _ctr = 1,
@@ -35,7 +36,8 @@ end
 
 -- Update this system once every frame.
 function P:update(dt)
-  local travel_m = self._getspeed_mps() * dt
+  local speed_mps = RailWorks.GetSpeed() -- speed needs to be very accurate
+  local travel_m = speed_mps * dt
   local newobjects = {}
   local newdistances_m = {}
   local newpassing_m = {}

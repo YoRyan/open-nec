@@ -44,11 +44,6 @@ function P:new(conf)
     cabsignal = o._cabsig,
     getbrakesuppression = conf.getbrakesuppression,
     getacknowledge = conf.getacknowledge,
-    getspeed_mps = conf.getspeed_mps,
-    gettrackspeed_mps = conf.gettrackspeed_mps,
-    getconsistlength_m = conf.getconsistlength_m,
-    iterspeedlimits = conf.iterspeedlimits,
-    iterrestrictsignals = conf.iterrestrictsignals,
     consistspeed_mps = conf.consistspeed_mps,
     alertlimit_mps = o._alertlimit_mps,
     penaltylimit_mps = o._penaltylimit_mps,
@@ -112,7 +107,7 @@ function P:update(dt)
 
   -- Read the engineer's controls. Initiate enforcement actions and look for
   -- acknowledgement presses.
-  local aspeed_mps = math.abs(self._getspeed_mps())
+  local aspeed_mps = math.abs(self:_getspeed_mps())
   local now = RailWorks.GetSimulationTime()
   local acknowledge = self._getacknowledge()
   local suppressed = self._getbrakesuppression()
@@ -194,7 +189,7 @@ function P:ispenalty() return self._penalty ~= nil end
 function P:isalarm()
   -- ACSES forces the alarm on even if the engineer has already acknowledged
   -- and suppressed.
-  local aspeed_mps = math.abs(self._getspeed_mps())
+  local aspeed_mps = math.abs(self:_getspeed_mps())
   local acsesalarm = self._enforcing == subsystem.acses and aspeed_mps >
                        self._speedlimit_mps + self._alertlimit_mps
   return self._overspeed_s ~= nil or acsesalarm

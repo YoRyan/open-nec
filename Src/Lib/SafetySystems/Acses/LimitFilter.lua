@@ -2,20 +2,21 @@
 -- appropriate speed limit type.
 --
 -- @include Iterator.lua
+-- @include Misc.lua
 local P = {}
 AcsesLimits = P
 
+local nlookahead = 5
+
 -- Create a new speed limit filter context.
 function P:new(conf)
-  local o = {
-    _iterspeedlimits = conf.iterspeedlimits or
-      function() return Iterator.empty() end,
-    _hastype2limits = false
-  }
+  local o = {_hastype2limits = false}
   setmetatable(o, self)
   self.__index = self
   return o
 end
+
+local function iterspeedlimits() return Misc.iterspeedlimits(nlookahead) end
 
 local function isvalid(speedlimit)
   return speedlimit.speed_mps < 1e9 and speedlimit.speed_mps > -1e9
@@ -28,7 +29,7 @@ function P:iterspeedlimits()
     -- New York), at which point we'll search solely for type 2 limits.
     self._hastype2limits = Iterator.hasone(function(_, limit)
       return limit.type == 2
-    end, self._iterspeedlimits())
+    end, iterspeedlimits())
   end
   return Iterator.filter(function(_, limit)
     local righttype
@@ -38,7 +39,7 @@ function P:iterspeedlimits()
       righttype = limit.type == 1
     end
     return isvalid(limit) and righttype
-  end, self._iterspeedlimits())
+  end, iterspeedlimits())
 end
 
 return P

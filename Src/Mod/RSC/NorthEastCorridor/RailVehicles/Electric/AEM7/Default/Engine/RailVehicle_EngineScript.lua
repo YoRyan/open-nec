@@ -10,49 +10,36 @@
 -- @include Iterator.lua
 -- @include Misc.lua
 -- @include RailWorks.lua
--- @include Scheduler.lua
 -- @include Units.lua
-local sched
 local adu
 local cruise
 local alerter
 local power
 local blight
-local state = {
-  throttle = 0,
-  train_brake = 0,
-  acknowledge = false,
-  cruisespeed_mps = 0,
-  cruiseenabled = false,
-
-  speed_mps = 0,
-  acceleration_mps2 = 0,
-  trackspeed_mps = 0,
-  consistlength_m = 0,
-  speedlimits = {},
-  restrictsignals = {}
-}
 
 Initialise = Misc.wraperrors(function()
-  sched = Scheduler:new{}
-
   local onebeep_s = 0.3
   adu = AmtrakTwoSpeedAdu:new{
     alerttone_s = onebeep_s,
-    getbrakesuppression = function() return state.train_brake >= 0.5 end,
-    getacknowledge = function() return state.acknowledge end,
-    getspeed_mps = function() return state.speed_mps end,
-    gettrackspeed_mps = function() return state.trackspeed_mps end,
-    getconsistlength_m = function() return state.consistlength_m end,
-    iterspeedlimits = function() return pairs(state.speedlimits) end,
-    iterrestrictsignals = function() return pairs(state.restrictsignals) end,
+    getbrakesuppression = function()
+      return RailWorks.GetControlValue("VirtualBrake", 0) >= 0.5
+    end,
+    getacknowledge = function()
+      return RailWorks.GetControlValue("AWSReset", 0) > 0
+    end,
     consistspeed_mps = 125 * Units.mph.tomps
   }
 
   cruise = Cruise:new{
-    getplayerthrottle = function() return state.throttle end,
-    gettargetspeed_mps = function() return state.cruisespeed_mps end,
-    getenabled = function() return state.cruiseenabled end
+    getplayerthrottle = function()
+      return RailWorks.GetControlValue("VirtualThrottle", 0)
+    end,
+    gettargetspeed_mps = function()
+      return RailWorks.GetControlValue("CruiseSet", 0) * Units.mph.tomps
+    end,
+    getenabled = function()
+      return RailWorks.GetControlValue("CruiseSet", 0) > 10
+    end
   }
 
   alerter = Alerter:new{}
@@ -73,40 +60,11 @@ Initialise = Misc.wraperrors(function()
   RailWorks.BeginUpdate()
 end)
 
-local function readcontrols()
-  state.throttle = RailWorks.GetControlValue("VirtualThrottle", 0)
-  state.train_brake = RailWorks.GetControlValue("VirtualBrake", 0)
-  state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
-  if state.acknowledge then alerter:acknowledge() end
-end
-
-local function readlocostate()
-  local cruise_mph = RailWorks.GetControlValue("CruiseSet", 0)
-  state.cruisespeed_mps = cruise_mph * Units.mph.tomps
-  state.cruiseenabled = cruise_mph > 10
-  state.speed_mps = RailWorks.GetControlValue("SpeedometerMPH", 0) *
-                      Units.mph.tomps
-  state.acceleration_mps2 = RailWorks.GetAcceleration()
-  state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
-  state.consistlength_m = RailWorks.GetConsistLength()
-  state.speedlimits = Iterator.totable(Misc.iterspeedlimits(
-                                         Acses.nlimitlookahead))
-  state.restrictsignals = Iterator.totable(
-                            Misc.iterrestrictsignals(Acses.nsignallookahead))
-end
-
 local function writelocostate()
   local penalty = alerter:ispenalty() or adu:ispenalty()
 
-  local throttle
-  if not power:haspower() then
-    throttle = 0
-  elseif penalty then
-    throttle = 0
-  else
-    throttle = cruise:getpower()
-  end
-  RailWorks.SetControlValue("Regulator", 0, throttle)
+  local nopower = penalty or not power:haspower()
+  RailWorks.SetControlValue("Regulator", 0, nopower and 0 or cruise:getpower())
 
   local airbrake
   if RailWorks.GetControlValue("CutIn", 0) < 1 then
@@ -114,12 +72,13 @@ local function writelocostate()
   elseif penalty then
     airbrake = 0.99
   else
-    airbrake = state.train_brake
+    airbrake = RailWorks.GetControlValue("VirtualBrake", 0)
   end
   RailWorks.SetControlValue("TrainBrakeControl", 0, airbrake)
 
   -- DTG's "blended braking" algorithm
-  local dynbrake = penalty and 0.5 or state.train_brake / 2
+  local dynbrake = penalty and 0.5 or
+                     RailWorks.GetControlValue("VirtualBrake", 0) / 2
   RailWorks.SetControlValue("DynamicBrake", 0, dynbrake)
 
   -- Used for the dynamic brake sound?
@@ -199,10 +158,6 @@ Update = Misc.wraperrors(function(dt)
     return
   end
 
-  readcontrols()
-  readlocostate()
-
-  sched:update()
   adu:update(dt)
   cruise:update(dt)
   alerter:update(dt)
@@ -216,7 +171,7 @@ Update = Misc.wraperrors(function(dt)
 end)
 
 OnControlValueChange = Misc.wraperrors(function(name, index, value)
-  if name == "VirtualThrottle" or name == "VirtualBrake" then
+  if name == "AWSReset" or name == "VirtualThrottle" or name == "VirtualBrake" then
     alerter:acknowledge()
   end
 

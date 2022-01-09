@@ -14,9 +14,7 @@
 -- @include Misc.lua
 -- @include MovingAverage.lua
 -- @include RailWorks.lua
--- @include Scheduler.lua
 -- @include Units.lua
-local playersched, anysched
 local adu
 local cruise
 local alerter
@@ -27,26 +25,6 @@ local coneanim
 local tracteffort
 local groundflasher
 local spark
-local state = {
-  throttle = 0,
-  train_brake = 0,
-  acknowledge = false,
-  cruisespeed_mps = 0,
-  cruiseenabled = false,
-  startup = true,
-  destinationjoy = 0,
-
-  speed_mps = 0,
-  acceleration_mps2 = 0,
-  trackspeed_mps = 0,
-  consistlength_m = 0,
-  speedlimits = {},
-  restrictsignals = {},
-
-  raisefrontpantomsg = nil,
-  raiserearpantomsg = nil,
-  adualertplaying = false
-}
 
 local destscroller
 local destinations = {
@@ -81,24 +59,31 @@ local messageid = {
   destination = 1210
 }
 
-Initialise = Misc.wraperrors(function()
-  playersched = Scheduler:new{}
-  anysched = Scheduler:new{}
+local raisefrontpantomsg = nil
+local raiserearpantomsg = nil
+local adualertplaying = false
 
+Initialise = Misc.wraperrors(function()
   adu = AmtrakTwoSpeedAdu:new{
-    getbrakesuppression = function() return state.train_brake > 0.3 end,
-    getacknowledge = function() return state.acknowledge end,
-    getspeed_mps = function() return state.speed_mps end,
-    gettrackspeed_mps = function() return state.trackspeed_mps end,
-    getconsistlength_m = function() return state.consistlength_m end,
-    iterspeedlimits = function() return pairs(state.speedlimits) end,
-    iterrestrictsignals = function() return pairs(state.restrictsignals) end
+    getbrakesuppression = function()
+      return RailWorks.GetControlValue("VirtualBrake", 0) > 0.3
+    end,
+    getacknowledge = function()
+      return RailWorks.GetControlValue("AWSReset", 0) > 0
+    end
   }
 
   cruise = Cruise:new{
-    getplayerthrottle = function() return state.throttle end,
-    gettargetspeed_mps = function() return state.cruisespeed_mps end,
-    getenabled = function() return state.cruiseenabled end
+    getplayerthrottle = function()
+      return RailWorks.GetControlValue("VirtualThrottle", 0)
+    end,
+    gettargetspeed_mps = function()
+      return RailWorks.GetControlValue("CruiseControlSpeed", 0) *
+               Units.mph.tomps
+    end,
+    getenabled = function()
+      return RailWorks.GetControlValue("CruiseControl", 0) == 1
+    end
   }
 
   alerter = Alerter:new{}
@@ -131,9 +116,10 @@ Initialise = Misc.wraperrors(function()
 
   destscroller = RangeScroll:new{
     getdirection = function()
-      if state.destinationjoy == -1 then
+      local joy = RailWorks.GetControlValue("DestJoy", 0)
+      if joy == -1 then
         return RangeScroll.direction.previous
-      elseif state.destinationjoy == 1 then
+      elseif joy == 1 then
         return RangeScroll.direction.next
       else
         return RangeScroll.direction.neutral
@@ -141,7 +127,7 @@ Initialise = Misc.wraperrors(function()
     end,
     onchange = function(v)
       local destination, _ = unpack(destinations[v])
-      playersched:alert(destination)
+      Misc.showalert(destination)
     end,
     limit = table.getn(destinations),
     move_s = 0.5
@@ -149,31 +135,6 @@ Initialise = Misc.wraperrors(function()
 
   RailWorks.BeginUpdate()
 end)
-
-local function readcontrols()
-  state.throttle = RailWorks.GetControlValue("VirtualThrottle", 0)
-  state.train_brake = RailWorks.GetControlValue("VirtualBrake", 0)
-  state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
-  if state.acknowledge then alerter:acknowledge() end
-
-  state.startup = RailWorks.GetControlValue("Startup", 0) == 1
-  state.cruisespeed_mps = RailWorks.GetControlValue("CruiseControlSpeed", 0) *
-                            Units.mph.tomps
-  state.cruiseenabled = RailWorks.GetControlValue("CruiseControl", 0) == 1
-  state.destinationjoy = RailWorks.GetControlValue("DestJoy", 0)
-end
-
-local function readlocostate()
-  state.speed_mps = RailWorks.GetControlValue("SpeedometerMPH", 0) *
-                      Units.mph.tomps
-  state.acceleration_mps2 = RailWorks.GetAcceleration()
-  state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
-  state.consistlength_m = RailWorks.GetConsistLength()
-  state.speedlimits = Iterator.totable(Misc.iterspeedlimits(
-                                         Acses.nlimitlookahead))
-  state.restrictsignals = Iterator.totable(
-                            Misc.iterrestrictsignals(Acses.nsignallookahead))
-end
 
 local function writelocostate()
   local penalty = alerter:ispenalty() or adu:ispenalty()
@@ -188,12 +149,13 @@ local function writelocostate()
   end
   RailWorks.SetControlValue("Regulator", 0, throttle)
 
-  local airbrake = penalty and 0.6 or state.train_brake
+  local airbrake = penalty and 0.6 or
+                     RailWorks.GetControlValue("VirtualBrake", 0)
   RailWorks.SetControlValue("TrainBrakeControl", 0, airbrake)
 
   -- DTG's "blended braking" algorithm
-  local dynbrake = state.speed_mps >= 10 * Units.mph.tomps and airbrake * 0.3 or
-                     0
+  local speed_mph = RailWorks.GetControlValue("SpeedometerMPH", 0)
+  local dynbrake = speed_mph >= 10 and airbrake * 0.3 or 0
   RailWorks.SetControlValue("DynamicBrake", 0, dynbrake)
 
   RailWorks.SetControlValue("AWSWarnCount", 0,
@@ -201,12 +163,12 @@ local function writelocostate()
 
   -- Quick and dirty way to execute only when the sound starts to play.
   local adualert = adu:isalertplaying()
-  if not state.adualertplaying and adualert then
+  if not adualertplaying and adualert then
     RailWorks.SetControlValue("AWSClearCount", 0, Misc.intbool(
                                 RailWorks.GetControlValue("AWSClearCount", 0) ==
                                   0))
   end
-  state.adualertplaying = adualert
+  adualertplaying = adualert
 end
 
 local function setplayerpantos()
@@ -232,11 +194,11 @@ end
 
 local function setslavepantos()
   -- We assume the helper engine is flipped.
-  if state.raisefrontpantomsg ~= nil then
-    rearpantoanim:setanimatedstate(state.raisefrontpantomsg)
+  if raisefrontpantomsg ~= nil then
+    rearpantoanim:setanimatedstate(raisefrontpantomsg)
   end
-  if state.raiserearpantomsg ~= nil then
-    frontpantoanim:setanimatedstate(state.raiserearpantomsg)
+  if raiserearpantomsg ~= nil then
+    frontpantoanim:setanimatedstate(raiserearpantomsg)
   end
 end
 
@@ -325,14 +287,16 @@ local function setdrivescreen()
   RailWorks.SetControlValue("ControlScreenDer", 0,
                             Misc.intbool(not power:haspower()))
 
-  local speed_mph = Misc.round(state.speed_mps * Units.mps.tomph)
+  local speed_mph = Misc.round(RailWorks.GetControlValue("SpeedometerMPH", 0))
   RailWorks.SetControlValue("SPHundreds", 0, Misc.getdigit(speed_mph, 2))
   RailWorks.SetControlValue("SPTens", 0, Misc.getdigit(speed_mph, 1))
   RailWorks.SetControlValue("SPUnits", 0, Misc.getdigit(speed_mph, 0))
   RailWorks.SetControlValue("SpeedoGuide", 0, Misc.getdigitguide(speed_mph))
 
-  local pstate = state.cruiseenabled and 8 or
-                   math.floor(state.throttle * 6 + 0.5)
+  local cruiseon = RailWorks.GetControlValue("CruiseControl", 0) == 1
+  local pstate = cruiseon and 8 or
+                   math.floor(
+                     RailWorks.GetControlValue("VirtualThrottle", 0) * 6 + 0.5)
   RailWorks.SetControlValue("PowerState", 0, pstate)
 end
 
@@ -368,7 +332,7 @@ local function setadu()
 
   -- If we set the digits too early, they flicker (or turn invisible) for the
   -- rest of the game.
-  if not playersched:isstartup() then
+  if Misc.isinitialized() then
     local signalspeed_mph = adu:getsignalspeed_mph()
     if signalspeed_mph == nil then
       RailWorks.SetControlValue("SignalSpeed", 0, 1) -- blank
@@ -417,11 +381,6 @@ local function setgroundlights()
 end
 
 local function updateplayer(dt)
-  readcontrols()
-  readlocostate()
-
-  playersched:update()
-  anysched:update()
   adu:update(dt)
   cruise:update(dt)
   alerter:update(dt)
@@ -447,7 +406,6 @@ local function updateplayer(dt)
 end
 
 local function updatehelper(dt)
-  anysched:update()
   frontpantoanim:update(dt)
   rearpantoanim:update(dt)
 
@@ -458,7 +416,6 @@ local function updatehelper(dt)
 end
 
 local function updateai(dt)
-  anysched:update()
   frontpantoanim:update(dt)
   rearpantoanim:update(dt)
 
@@ -482,7 +439,7 @@ Update = Misc.wraperrors(function(dt)
 end)
 
 OnControlValueChange = Misc.wraperrors(function(name, index, value)
-  if name == "VirtualThrottle" or name == "VirtualBrake" then
+  if name == "AWSReset" or name == "VirtualThrottle" or name == "VirtualBrake" then
     alerter:acknowledge()
   end
 
@@ -498,9 +455,9 @@ OnConsistMessage = Misc.wraperrors(function(message, argument, direction)
   blight:receivemessage(message, argument, direction)
 
   if message == messageid.raisefrontpanto then
-    state.raisefrontpantomsg = argument == "true"
+    raisefrontpantomsg = argument == "true"
   elseif message == messageid.raiserearpanto then
-    state.raiserearpantomsg = argument == "true"
+    raiserearpantomsg = argument == "true"
   end
 
   RailWorks.Engine_SendConsistMessage(message, argument, direction)

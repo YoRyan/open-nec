@@ -13,7 +13,6 @@
 -- @include Iterator.lua
 -- @include Misc.lua
 -- @include RailWorks.lua
--- @include Scheduler.lua
 -- @include Units.lua
 local powermode = {overhead = 1, thirdrail = 2}
 local messageid = {
@@ -25,7 +24,6 @@ local messageid = {
   compressorstate = 10115
 }
 
-local playersched, anysched
 local adu
 local alerter
 local power
@@ -35,34 +33,18 @@ local mcnotch
 local pantoanim, gateanim
 local alarmonoff
 local spark
-local state = {
-  mcontroller = 0,
-  acknowledge = false,
 
-  speed_mps = 0,
-  acceleration_mps2 = 0,
-  trackspeed_mps = 0,
-  consistlength_m = 0,
-  speedlimits = {},
-  restrictsignals = {},
-
-  lastmotorclock_s = nil,
-  lastmotorvol = 0,
-  lastmotorpitch = 0
-}
+local lastmotorpitch = 0
+local lastmotorvol = 0
 
 Initialise = Misc.wraperrors(function()
-  playersched = Scheduler:new{}
-  anysched = Scheduler:new{}
-
   adu = MetroNorthAdu:new{
-    getbrakesuppression = function() return state.mcontroller <= -0.4 end,
-    getacknowledge = function() return state.acknowledge end,
-    getspeed_mps = function() return state.speed_mps end,
-    gettrackspeed_mps = function() return state.trackspeed_mps end,
-    getconsistlength_m = function() return state.consistlength_m end,
-    iterspeedlimits = function() return pairs(state.speedlimits) end,
-    iterrestrictsignals = function() return pairs(state.restrictsignals) end,
+    getbrakesuppression = function()
+      return RailWorks.GetControlValue("ThrottleAndBrake", 0) <= -0.4
+    end,
+    getacknowledge = function()
+      return RailWorks.GetControlValue("AWSReset", 0) > 0
+    end,
     consistspeed_mps = 80 * Units.mph.tomps
   }
 
@@ -74,7 +56,9 @@ Initialise = Misc.wraperrors(function()
     modecontrol = "Panto",
     -- Combine AC panto down/up into a single mode.
     modereadfn = function(v) return math.max(v, 1) end,
-    getcantransition = function() return state.mcontroller <= 0 end,
+    getcantransition = function()
+      return RailWorks.GetControlValue("ThrottleAndBrake", 0) <= 0
+    end,
     modes = {
       [powermode.overhead] = function(elec)
         local energyon = RailWorks.GetControlValue("PantographControl", 0) == 1
@@ -139,24 +123,6 @@ Initialise = Misc.wraperrors(function()
   RailWorks.BeginUpdate()
 end)
 
-local function readcontrols()
-  state.mcontroller = RailWorks.GetControlValue("ThrottleAndBrake", 0)
-  state.acknowledge = RailWorks.GetControlValue("AWSReset", 0) > 0
-  if state.acknowledge then alerter:acknowledge() end
-end
-
-local function readlocostate()
-  state.speed_mps = RailWorks.GetControlValue("SpeedometerMPH", 0) *
-                      Units.mph.tomps
-  state.acceleration_mps2 = RailWorks.GetAcceleration()
-  state.trackspeed_mps = RailWorks.GetCurrentSpeedLimit(1)
-  state.consistlength_m = RailWorks.GetConsistLength()
-  state.speedlimits = Iterator.totable(Misc.iterspeedlimits(
-                                         Acses.nlimitlookahead))
-  state.restrictsignals = Iterator.totable(
-                            Misc.iterrestrictsignals(Acses.nsignallookahead))
-end
-
 local function writelocostate()
   local haspower = power:haspower()
   local penalty = alerter:ispenalty() or adu:ispenalty()
@@ -164,8 +130,9 @@ local function writelocostate()
   if penalty then
     throttle, brake = 0, 0.85
   else
-    throttle = haspower and math.max(state.mcontroller, 0) or 0
-    brake = math.max(-state.mcontroller, 0)
+    local controller = RailWorks.GetControlValue("ThrottleAndBrake", 0)
+    throttle = haspower and math.max(controller, 0) or 0
+    brake = math.max(-controller, 0)
   end
   RailWorks.SetControlValue("Regulator", 0, throttle)
   RailWorks.SetControlValue("TrainBrakeControl", 0, brake)
@@ -207,10 +174,7 @@ local function sendconsiststatus()
   ivc:setmessage(motors .. ":" .. doors)
 end
 
-local function setplayersounds()
-  local now = playersched:clock()
-  local dt = state.lastmotorclock_s == nil and 0 or now - state.lastmotorclock_s
-  state.lastmotorclock_s = now
+local function setplayersounds(dt)
   local dconsound = (power:haspower() and 1 or -1) * dt / 5
   RailWorks.SetControlValue("FanSound", 0, RailWorks.GetControlValue("FanSound",
                                                                      0) +
@@ -251,12 +215,12 @@ local function setplayersounds()
     pitch = aspeed_mph * speedcurvemult * v2 + acoffset
     pitch = math.min(pitch, acspeedmax)
   end
-  pitch = clampincdec(state.lastmotorpitch, pitch, pitch_incdecmax)
-  state.lastmotorpitch = pitch
+  pitch = clampincdec(lastmotorpitch, pitch, pitch_incdecmax)
+  lastmotorpitch = pitch
 
   local volume = (pitch > acdcspeedmin + 0.01) and 1 or v2
-  volume = clampincdec(state.lastmotorvol, volume, vol_incdecmax)
-  state.lastmotorvol = volume
+  volume = clampincdec(lastmotorvol, volume, vol_incdecmax)
+  lastmotorvol = volume
 
   local lowpitch = aspeed_mph * lowpitch_speedcurvemult
   RailWorks.SetControlValue("MotorLowPitch", 0, lowpitch)
@@ -288,7 +252,7 @@ local function setaisounds()
 end
 
 local function setdrivescreen()
-  local speed_mph = Misc.round(state.speed_mps * Units.mps.tomph)
+  local speed_mph = Misc.round(RailWorks.GetControlValue("SpeedometerMPH", 0))
   RailWorks.SetControlValue("SpeedoHundreds", 0, Misc.getdigit(speed_mph, 2))
   RailWorks.SetControlValue("SpeedoTens", 0, Misc.getdigit(speed_mph, 1))
   RailWorks.SetControlValue("SpeedoUnits", 0, Misc.getdigit(speed_mph, 0))
@@ -317,7 +281,7 @@ local function setdrivescreen()
   end
 
   -- Impose a startup delay so that the car displays don't flicker.
-  if not playersched:isstartup() then
+  if Misc.isinitialized() then
     local nbehind = ivc:getnbehind()
     RailWorks.SetControlValue("Cars", 0, nbehind)
     for i = 1, nbehind do
@@ -332,7 +296,7 @@ local function setdrivescreen()
 end
 
 local function setcutin()
-  if not playersched:isstartup() then
+  if Misc.isinitialized() then
     adu:setatcstate(RailWorks.GetControlValue("ATCCutIn", 0) == 1)
     adu:setacsesstate(RailWorks.GetControlValue("ACSESCutIn", 0) == 1)
   end
@@ -451,11 +415,6 @@ local function setaiditchlights()
 end
 
 local function updateplayer(dt)
-  readcontrols()
-  readlocostate()
-
-  playersched:update()
-  anysched:update()
   power:update(dt)
   adu:update(dt)
   alerter:update(dt)
@@ -467,7 +426,7 @@ local function updateplayer(dt)
 
   writelocostate()
   sendconsiststatus()
-  setplayersounds()
+  setplayersounds(dt)
   setdrivescreen()
   setcutin()
   setadu()
@@ -479,7 +438,6 @@ local function updateplayer(dt)
 end
 
 local function updatehelper(dt)
-  anysched:update()
   power:update(dt)
   ivc:update(dt)
   pantoanim:update(dt)
@@ -494,7 +452,6 @@ local function updatehelper(dt)
 end
 
 local function updateai(dt)
-  anysched:update()
   power:update(dt)
   pantoanim:update(dt)
   gateanim:update(dt)
@@ -518,7 +475,9 @@ Update = Misc.wraperrors(function(dt)
 end)
 
 OnControlValueChange = Misc.wraperrors(function(name, index, value)
-  if name == "ThrottleAndBrake" then alerter:acknowledge() end
+  if name == "AWSReset" or name == "ThrottleAndBrake" then
+    alerter:acknowledge()
+  end
 
   RailWorks.SetControlValue(name, index, value)
 end)
