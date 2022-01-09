@@ -129,6 +129,8 @@ local function writelocostate()
 
   RailWorks.SetControlValue("Horn", 0,
                             RailWorks.GetControlValue("VirtualHorn", 0))
+  RailWorks.SetControlValue("EngineBrakeControl", 0, RailWorks.GetControlValue(
+                              "VirtualEngineBrakeControl", 0))
   RailWorks.SetControlValue("Startup", 0,
                             RailWorks.GetControlValue("VirtualStartup", 0))
   RailWorks.SetControlValue("PantographControl", 0, RailWorks.GetControlValue(
