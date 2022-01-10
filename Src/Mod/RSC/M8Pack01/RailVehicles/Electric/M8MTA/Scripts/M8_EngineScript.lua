@@ -48,7 +48,11 @@ Initialise = Misc.wraperrors(function()
     consistspeed_mps = 80 * Units.mph.tomps
   }
 
-  alerter = Alerter:new{}
+  alerter = Alerter:new{
+    getacknowledge = function()
+      return RailWorks.GetControlValue("AWSReset", 0) > 0
+    end
+  }
   alerter:start()
 
   local isthirdrail = string.sub(RailWorks.GetRVNumber(), 1, 1) == "T"
@@ -475,9 +479,7 @@ Update = Misc.wraperrors(function(dt)
 end)
 
 OnControlValueChange = Misc.wraperrors(function(name, index, value)
-  if name == "AWSReset" or name == "ThrottleAndBrake" then
-    alerter:acknowledge()
-  end
+  if name == "ThrottleAndBrake" then alerter:acknowledge() end
 
   RailWorks.SetControlValue(name, index, value)
 end)

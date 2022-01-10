@@ -102,7 +102,11 @@ Initialise = Misc.wraperrors(function()
     rightanimation = rightdoorsanim
   }
 
-  alerter = Alerter:new{}
+  alerter = Alerter:new{
+    getacknowledge = function()
+      return RailWorks.GetControlValue("AWSReset", 0) > 0
+    end
+  }
   alerter:start()
 
   -- Modulate the speed reduction alert sound, which normally plays just once.
@@ -343,7 +347,7 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
     end
   end
 
-  if name == "AWSReset" or name == "ThrottleAndBrake" or name == "VirtualBrake" then
+  if name == "ThrottleAndBrake" or name == "VirtualBrake" then
     alerter:acknowledge()
   end
 

@@ -102,7 +102,11 @@ Initialise = Misc.wraperrors(function()
     rightanimation = rightdoorsanim
   }
 
-  alerter = Alerter:new{}
+  alerter = Alerter:new{
+    getacknowledge = function()
+      return RailWorks.GetControlValue("AWSReset", 0) > 0
+    end
+  }
   alerter:start()
 
   local ditchflash_s = 1
@@ -369,7 +373,7 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
     return
   end
 
-  if name == "AWSReset" or name == "ThrottleAndBrake" or name == "VirtualBrake" then
+  if name == "ThrottleAndBrake" or name == "VirtualBrake" then
     alerter:acknowledge()
   end
 

@@ -61,7 +61,11 @@ Initialise = Misc.wraperrors(function()
     consistspeed_mps = 100 * Units.mph.tomps
   }
 
-  alerter = Alerter:new{}
+  alerter = Alerter:new{
+    getacknowledge = function()
+      return RailWorks.GetControlValue("AWSReset", 0) > 0
+    end
+  }
   alerter:start()
 
   power = PowerSupply:new{
@@ -558,7 +562,7 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
     return
   end
 
-  if name == "AWSReset" or name == "ThrottleAndBrake" or name == "VirtualBrake" then
+  if name == "ThrottleAndBrake" or name == "VirtualBrake" then
     alerter:acknowledge()
   end
 

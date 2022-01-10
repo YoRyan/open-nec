@@ -31,7 +31,11 @@ Initialise = Misc.wraperrors(function()
     end
   }
 
-  alerter = Alerter:new{}
+  alerter = Alerter:new{
+    getacknowledge = function()
+      return RailWorks.GetControlValue("AWSReset", 0) > 0
+    end
+  }
   alerter:start()
 
   local iselectric = string.sub(RailWorks.GetRVNumber(), 1, 1) == "T"
@@ -274,8 +278,9 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
     Misc.showalert("Not available in OpenNEC")
   end
 
-  if name == "AWSReset" or name == "VirtualThrottle" or name ==
-    "TrainBrakeControl" then alerter:acknowledge() end
+  if name == "VirtualThrottle" or name == "TrainBrakeControl" then
+    alerter:acknowledge()
+  end
 
   RailWorks.SetControlValue(name, index, value)
 end)

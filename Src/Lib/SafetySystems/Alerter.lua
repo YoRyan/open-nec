@@ -9,9 +9,10 @@ Alerter = P
 -- Create a new Alerter context.
 function P:new(conf)
   local o = {
+    _getacknowledge = conf.getacknowledge or function() return false end,
+    _ackevent = false,
     _countdown_s = conf.countdown_s or 60,
     _alarm_s = conf.alarm_s or 6,
-    _ack = false,
     _lastack_s = RailWorks.GetSimulationTime()
   }
   setmetatable(o, self)
@@ -30,8 +31,8 @@ end
 
 -- Update this system once every frame.
 function P:update(_)
-  local acknowledge = self._ack
-  self._ack = false
+  local acknowledge = self._getacknowledge() or self._ackevent
+  self._ackevent = false
 
   local speed_mps = RailWorks.GetControlValue("SpeedometerMPH", 0) *
                       Units.mph.tomps
@@ -54,7 +55,7 @@ end
 function P:start()
   if not self._running then
     self._running = true
-    self._ack = false
+    self._ackevent = false
     self._lastack_s = RailWorks.GetSimulationTime()
     if Misc.isinitialized() then Misc.showalert("Alerter", "Cut In") end
   end
@@ -80,8 +81,8 @@ function P:isalarm()
   return clock_s - self._lastack_s > self._countdown_s
 end
 
--- Call to reset the alerter. This sets an internal flag that will be cleared on
--- the next update.
-function P:acknowledge() self._ack = true end
+-- Call to reset the alerter as a one-time event. (This sets an internal flag
+-- that will be cleared on the next update.)
+function P:acknowledge() self._ackevent = true end
 
 return P

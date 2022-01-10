@@ -51,7 +51,11 @@ Initialise = Misc.wraperrors(function()
     consistspeed_mps = 125 * Units.mph.tomps
   }
 
-  alerter = Alerter:new{}
+  alerter = Alerter:new{
+    getacknowledge = function()
+      return RailWorks.GetControlValue("AWSReset", 0) > 0
+    end
+  }
   alerter:start()
 
   cruise = Cruise:new{
@@ -361,8 +365,8 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
     RailWorks.SetControlValue("NewVirtualThrottle", 0, value)
   end
 
-  if name == "AWSReset" or name == "NewVirtualThrottle" or name ==
-    "VirtualThrottle" or name == "TrainBrakeControl" then alerter:acknowledge() end
+  if name == "NewVirtualThrottle" or name == "VirtualThrottle" or name ==
+    "TrainBrakeControl" then alerter:acknowledge() end
 
   RailWorks.SetControlValue(name, index, value)
 end)
