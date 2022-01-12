@@ -103,12 +103,16 @@ Initialise = Misc.wraperrors(function()
     gettarget = function(v)
       local coast = 0.0667
       local min = 0.2
-      if v >= coast and v < min then
+      if v >= coast and v < min then -- minimum power
         return min
-      elseif math.abs(v) < coast then
+      elseif math.abs(v) < coast then -- coast
         return 0
-      elseif v > -min and v <= -coast then
+      elseif v > -min and v <= -coast then -- minimum brake
         return -min
+      elseif v >= -0.99 and v < -0.9 then -- maximum brake
+        return -0.9
+      elseif v < -0.99 then -- emergency brake
+        return -1
       else
         return v
       end
