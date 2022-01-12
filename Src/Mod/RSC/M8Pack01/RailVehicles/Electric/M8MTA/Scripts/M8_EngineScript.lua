@@ -139,11 +139,37 @@ local function writelocostate()
     brake = math.max(-controller, 0)
   end
   RailWorks.SetControlValue("Regulator", 0, throttle)
-  RailWorks.SetControlValue("TrainBrakeControl", 0, brake)
 
-  local psi = RailWorks.GetControlValue("AirBrakePipePressurePSI", 0)
-  RailWorks.SetControlValue("DynamicBrake", 0,
-                            math.max((150 - psi) * 0.01428, 0))
+  -- custom blended braking for Fan Railer's physics
+  local isfanrailer = RailWorks.GetTotalMass() ~= 65
+  local airbrake, dynbrake
+  if isfanrailer then
+    local aspeed_mph = math.abs(RailWorks.GetSpeed()) * Units.mps.tomph
+    local dynbrakestart, dynbrakefull = 3, 8
+    local minairbrake = 0.03 -- 8 psi
+    local isemergency, maxairbrake = brake > 0.99, 0.4
+    if aspeed_mph > dynbrakefull then
+      airbrake = isemergency and 1 or math.min(brake, minairbrake)
+      dynbrake = brake
+    elseif aspeed_mph > dynbrakestart then
+      local dynproportion = (aspeed_mph - dynbrakestart) /
+                              (dynbrakefull - dynbrakestart)
+      airbrake = isemergency and 1 or
+                   math.max(maxairbrake * (1 - dynproportion) * brake,
+                            math.min(brake, minairbrake))
+      dynbrake = dynproportion * brake
+    else
+      airbrake = isemergency and 1 or maxairbrake * brake
+      dynbrake = 0
+    end
+  else
+    -- for stock physics, use DTG's algorithm
+    local psi = RailWorks.GetControlValue("AirBrakePipePressurePSI", 0)
+    airbrake = brake
+    dynbrake = math.max((150 - psi) * 0.01428, 0)
+  end
+  RailWorks.SetControlValue("TrainBrakeControl", 0, airbrake)
+  RailWorks.SetControlValue("DynamicBrake", 0, dynbrake)
 
   alarmonoff:setflashstate(adu:isalarm())
   RailWorks.SetControlValue("SpeedReductionAlert", 0,

@@ -24,6 +24,8 @@ function P.GetSpeed() return Call("GetSpeed") end
 
 function P.GetAcceleration() return Call("GetAcceleration") end
 
+function P.GetTotalMass() return Call("GetTotalMass") end
+
 function P.GetConsistLength() return Call("GetConsistLength") end
 
 function P.GetRVNumber() return Call("GetRVNumber") end
