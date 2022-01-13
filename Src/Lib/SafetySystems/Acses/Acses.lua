@@ -249,43 +249,33 @@ local function iteradvancelimithazards(self)
 end
 
 local function iterstopsignalhazards(self)
-  -- Positive stop disabled until we can figure out how to avoid irritating
-  -- activations in yard and platform areas.
-  return Iterator.empty()
-  --[[return Iterator.map(
-    function (id, distance_m)
-      local target_m
-      if distance_m > 0 then
-        target_m = distance_m - self._positivestop_m
-      else
-        target_m = distance_m + self._positivestop_m
-      end
-      local prostate =
-        self._signaltracker:getobject(id).prostate
-      local alert_mps =
-        calcbrakecurve(self, 0, target_m, self._positivestopwarning_s)
-      if prostate == 3 and alert_mps <= self._restrictingspeed_mps then
-        return {P._hazardtype.stopsignal, id}, {
-          inforce_mps = 0,
-          penalty_mps = calcbrakecurve(self, 0, target_m, 0),
-          alert_mps = alert_mps,
-          timetopenalty_s = calctimetopenalty(self, 0, target_m)
-        }
-      else
-        return nil, nil
-      end
-    end,
-    Iterator.filter(
-      function (_, distance_m)
-        if getmovingdirection(self) == direction.forward then
-          return distance_m >= 0
-        else
-          return distance_m <= 0
-        end
-      end,
-      self._signaltracker:iterdistances_m()
-    )
-  )]]
+  return Iterator.map(function(id, distance_m)
+    local target_m
+    if distance_m > 0 then
+      target_m = distance_m - self._positivestop_m
+    else
+      target_m = distance_m + self._positivestop_m
+    end
+    local prostate = self._signaltracker:getobject(id).prostate
+    local alert_mps = calcbrakecurve(self, 0, target_m,
+                                     self._positivestopwarning_s)
+    if prostate == 3 and alert_mps <= self._restrictingspeed_mps then
+      return {P._hazardtype.stopsignal, id}, {
+        inforce_mps = 0,
+        penalty_mps = calcbrakecurve(self, 0, target_m, 0),
+        alert_mps = alert_mps,
+        timetopenalty_s = calctimetopenalty(self, 0, target_m)
+      }
+    else
+      return nil, nil
+    end
+  end, Iterator.filter(function(_, distance_m)
+    if getmovingdirection(self) == direction.forward then
+      return distance_m >= 0
+    else
+      return distance_m <= 0
+    end
+  end, self._signaltracker:iterdistances_m()))
 end
 
 local function itercurrentlimithazards(self)
@@ -348,7 +338,7 @@ function P:update(dt)
                                    function(k, hazard)
       return k, hazard.alert_mps
     end, TupleDict.pairs(self._hazards)))
-  if inforceid ~= nil and inforceid[1] == P._hazardtype.advancelimit then
+  if inforceid ~= nil then
     local hazard = self._hazards[inforceid]
     self._hazardstate[inforceid].violated =
       self._hazardstate[inforceid].violated or math.abs(getspeed_mps(self)) >
@@ -366,15 +356,33 @@ end
 -- Returns the current alert curve speed, which includes track speed, positive
 -- stops, and Approach Medium 30. This counts down to upcoming restrictions.
 function P:getalertcurve_mps()
-  local ok = self:isrunning() and self._inforceid ~= nil
-  return ok and self._hazards[self._inforceid].alert_mps or nil
+  if self:isrunning() and self._inforceid ~= nil then
+    -- For positive stops, we currently don't actually enforce the braking curve.
+    -- It's too annoying if enforced for every signal.
+    if self._inforceid[1] == P._hazardtype.stopsignal then
+      return self._restrictingspeed_mps
+    else
+      return self._hazards[self._inforceid].alert_mps
+    end
+  else
+    return nil
+  end
 end
 
 -- Returns the current penalty curve speed, which includes track speed, positive
 -- stops, and Approach Medium 30. This counts down to upcoming restrictions.
 function P:getpenaltycurve_mps()
-  local ok = self:isrunning() and self._inforceid ~= nil
-  return ok and self._hazards[self._inforceid].penalty_mps or nil
+  if self:isrunning() and self._inforceid ~= nil then
+    -- For positive stops, we currently don't actually enforce the braking curve.
+    -- It's too annoying if enforced for every signal.
+    if self._inforceid[1] == P._hazardtype.stopsignal then
+      return self._restrictingspeed_mps + self._penaltylimit_mps
+    else
+      return self._hazards[self._inforceid].penalty_mps
+    end
+  else
+    return nil
+  end
 end
 
 -- Returns the time to penalty countdown for positive stop signals.
