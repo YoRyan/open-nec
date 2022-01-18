@@ -26,6 +26,7 @@ P.aspect = {
 }
 
 local subsystem = {atc = 1, acses = 2}
+local event = {downgrade = 1, upgrade = 2}
 
 -- Ensure we have inherited the properties of the base class, PiL-style.
 -- We can't run code on initialization in TS, so we do this in :new().
@@ -56,19 +57,83 @@ function P:new(conf)
   o._alert = Tone:new{}
   -- ATC on/off state
   o._atcon = true
-  -- Communicates the current safety systems speed limit.
-  o._speedlimit_mps = nil
-  -- Communicates the current safety system in force.
-  o._enforcing = nil
   -- Clock time when first entering the overspeed/alert curve state.
   o._overspeed_s = nil
   -- Used to track the player's acknowledgement presses.
   o._acknowledged = false
   -- Used to track the safety system that triggered the last overspeed.
   o._penalty = nil
+  o._lastspeedlimit_mps = nil
   setmetatable(o, self)
   self.__index = self
   return o
+end
+
+local function getpulsecode(self) return self._cabsig:getpulsecode() end
+
+local function getatcspeed_mps(self)
+  local pulsecode = getpulsecode(self)
+  return self._atcon and CabSignal.amtrakpulsecodespeed_mps(pulsecode) or nil
+end
+
+local function getacsesspeed_mps(self) return self._acses:getcivilspeed_mps() end
+
+local function getacsesmode(self) return self._acses:getmode() end
+
+local function getspeedlimit_mps(self)
+  local acsesmode = getacsesmode(self)
+  if acsesmode == Acses.mode.positivestop then
+    return 0
+  else
+    local atcspeed_mps = getatcspeed_mps(self)
+    local acsesspeed_mps = getacsesspeed_mps(self)
+    if atcspeed_mps ~= nil and acsesspeed_mps ~= nil then
+      return acsesspeed_mps < atcspeed_mps and acsesspeed_mps or atcspeed_mps
+    elseif atcspeed_mps ~= nil then
+      return atcspeed_mps
+    else
+      return acsesspeed_mps
+    end
+  end
+end
+
+local function getenforcingsubsystem(self)
+  local acsesmode = getacsesmode(self)
+  if acsesmode == Acses.mode.positivestop then
+    return subsystem.acses
+  else
+    local atcspeed_mps = getatcspeed_mps(self)
+    local acsesspeed_mps = getacsesspeed_mps(self)
+    if atcspeed_mps ~= nil and acsesspeed_mps ~= nil then
+      local is150 = getpulsecode(self) == Nec.pulsecode.clear150
+      return (acsesspeed_mps < atcspeed_mps or is150) and subsystem.acses or
+               subsystem.atc
+    elseif atcspeed_mps ~= nil then
+      return subsystem.atc
+    elseif acsesspeed_mps ~= nil then
+      return subsystem.acses
+    else
+      return nil
+    end
+  end
+end
+
+local function getevent(self)
+  local ret
+
+  local speedlimit_mps = getspeedlimit_mps(self)
+  if self._lastspeedlimit_mps == nil and speedlimit_mps ~= nil then
+    ret = event.upgrade
+  elseif self._lastspeedlimit_mps ~= nil and speedlimit_mps ~= nil then
+    if self._lastspeedlimit_mps < speedlimit_mps then
+      ret = event.upgrade
+    elseif self._lastspeedlimit_mps > speedlimit_mps then
+      ret = event.downgrade
+    end
+  end
+
+  self._lastspeedlimit_mps = speedlimit_mps
+  return ret
 end
 
 -- Update this system once every frame.
@@ -76,34 +141,13 @@ function P:update(dt)
   self._acses:update(dt)
 
   -- Read the current cab signal. Set the cab signal flash if needed.
-  local pulsecode = self._cabsig:getpulsecode()
+  local pulsecode = getpulsecode(self)
   self._csflasher:setflashstate(pulsecode == Nec.pulsecode.cabspeed60 or
                                   pulsecode == Nec.pulsecode.cabspeed80)
 
   -- Read the current speed limit. Play tone for any speed increase alerts.
-  local speedlimit_mps, enforcing
-  local atcspeed_mps = self._atcon and
-                         CabSignal.amtrakpulsecodespeed_mps(pulsecode) or nil
-  local acsesspeed_mps = self._acses:getinforcespeed_mps()
-  if atcspeed_mps ~= nil and acsesspeed_mps ~= nil then
-    local is150 = pulsecode == Nec.pulsecode.clear150
-    speedlimit_mps = math.min(atcspeed_mps, acsesspeed_mps)
-    enforcing = (acsesspeed_mps < atcspeed_mps or is150) and subsystem.acses or
-                  subsystem.atc
-  elseif atcspeed_mps ~= nil then
-    speedlimit_mps, enforcing = atcspeed_mps, subsystem.atc
-  elseif acsesspeed_mps ~= nil then
-    speedlimit_mps, enforcing = acsesspeed_mps, subsystem.acses
-  else
-    speedlimit_mps, enforcing = nil, nil
-  end
-  local intoservice = self._speedlimit_mps == nil and speedlimit_mps ~= nil
-  local speeddec = self._speedlimit_mps ~= nil and speedlimit_mps ~= nil and
-                     self._speedlimit_mps > speedlimit_mps
-  local speedinc = self._speedlimit_mps ~= nil and speedlimit_mps ~= nil and
-                     self._speedlimit_mps < speedlimit_mps
-  if intoservice or speedinc then self._alert:trigger() end
-  self._speedlimit_mps, self._enforcing = speedlimit_mps, enforcing
+  local evt = getevent(self)
+  if evt == event.upgrade then self._alert:trigger() end
 
   -- Read the engineer's controls. Initiate enforcement actions and look for
   -- acknowledgement presses.
@@ -111,13 +155,12 @@ function P:update(dt)
   local now = RailWorks.GetSimulationTime()
   local acknowledge = self._getacknowledge()
   local suppressed = self._getbrakesuppression()
+  local enforcing = getenforcingsubsystem(self) -- easiest way to avoid nils
   local acsespenalty = enforcing == subsystem.acses and aspeed_mps >
                          self._acses:getpenaltycurve_mps()
-  local overspeed =
-    (enforcing == subsystem.atc and aspeed_mps > speedlimit_mps +
-      self._alertlimit_mps) or
-      (enforcing == subsystem.acses and aspeed_mps >
-        self._acses:getalertcurve_mps())
+  local speedlimit_mps = getspeedlimit_mps(self)
+  local overspeed = enforcing ~= nil and aspeed_mps > speedlimit_mps +
+                      self._alertlimit_mps
   local overspeedelapsed =
     self._overspeed_s ~= nil and now - self._overspeed_s > self._alertwarning_s
   if self._penalty == subsystem.atc then
@@ -139,14 +182,14 @@ function P:update(dt)
   elseif overspeedelapsed then
     self._overspeed_s = self._overspeed_s
     self._acknowledged = false
-    self._penalty = self._enforcing
+    self._penalty = getenforcingsubsystem(self)
   elseif self._overspeed_s ~= nil then
     local acknowledged = self._acknowledged and (suppressed or not overspeed)
     self._overspeed_s = not acknowledged and self._overspeed_s or nil
     self._acknowledged = not acknowledged and
                            (self._acknowledged or acknowledge) or false
     self._penalty = nil
-  elseif (overspeed and not suppressed) or speeddec then
+  elseif (overspeed and not suppressed) or evt == event.downgrade then
     self._overspeed_s = now
     self._acknowledged = false
     self._penalty = nil
@@ -190,8 +233,10 @@ function P:isalarm()
   -- ACSES forces the alarm on even if the engineer has already acknowledged
   -- and suppressed.
   local aspeed_mps = math.abs(self:_getspeed_mps())
-  local acsesalarm = self._enforcing == subsystem.acses and aspeed_mps >
-                       self._speedlimit_mps + self._alertlimit_mps
+  local enforcing = getenforcingsubsystem(self)
+  local speedlimit_mps = getspeedlimit_mps(self)
+  local acsesalarm = enforcing == subsystem.acses and aspeed_mps >
+                       speedlimit_mps + self._alertlimit_mps
   return self._overspeed_s ~= nil or acsesalarm
 end
 
@@ -200,8 +245,8 @@ function P:isalertplaying() return self._alert:isplaying() end
 
 -- Get the currently displayed cab signal aspect.
 function P:getaspect()
-  local acsesmode = self._acses:getmode()
-  local atccode = self._cabsig:getpulsecode()
+  local acsesmode = getacsesmode(self)
+  local atccode = getpulsecode(self)
   local cson = self._csflasher:ison()
   if acsesmode == Acses.mode.positivestop then
     return P.aspect.stop
@@ -235,14 +280,13 @@ end
 
 -- Get the current speed limit in force.
 function P:getspeedlimit_mph()
-  return
-    self._speedlimit_mps ~= nil and self._speedlimit_mps * Units.mps.tomph or
-      nil
+  local speedlimit_mps = getspeedlimit_mps(self)
+  return speedlimit_mps ~= nil and speedlimit_mps * Units.mps.tomph or nil
 end
 
 -- Get the current time to penalty counter, if any.
 function P:gettimetopenalty_s()
-  if self._acses:getmode() == Acses.mode.positivestop then
+  if getacsesmode(self) == Acses.mode.positivestop then
     local ttp_s = self._acses:gettimetopenalty_s()
     if ttp_s ~= nil then
       return math.floor(ttp_s)
@@ -255,10 +299,12 @@ function P:gettimetopenalty_s()
 end
 
 -- Get the current state of the ATC indicator light.
-function P:getatcindicator() return self._enforcing == subsystem.atc end
+function P:getatcindicator() return getenforcingsubsystem(self) == subsystem.atc end
 
 -- Get the current state of the ACSES indicator light.
-function P:getacsesindicator() return self._enforcing == subsystem.acses end
+function P:getacsesindicator()
+  return getenforcingsubsystem(self) == subsystem.acses
+end
 
 -- Get the current state of the ATC system.
 function P:atccutin() return self._atcon end

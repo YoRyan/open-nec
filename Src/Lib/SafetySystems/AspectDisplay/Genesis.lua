@@ -122,8 +122,10 @@ function P:getoverspeed_mph()
   else
     truesigspeed_mph = nil
   end
+
   local flashsigspeed = self._sigspeedflasher:getflashstate()
-  local civilspeed_mph = self._acsesspeed_mps ~= nil and self._acsesspeed_mps *
+  local acsesspeed_mps = self._acses:getcivilspeed_mps()
+  local civilspeed_mph = acsesspeed_mps ~= nil and acsesspeed_mps *
                            Units.mps.tomph or nil
   if self._overspeedflasher:getflashstate() then
     local showoverspeed = self._overspeedflasher:ison()

@@ -116,8 +116,8 @@ function P:getcivilspeed_mph()
   elseif self._showsigspeed:isplaying() then
     return truesigspeed_mph
   else
-    return self._acsesspeed_mps ~= nil and self._acsesspeed_mps *
-             Units.mps.tomph or nil
+    local acsesspeed_mps = self._acses:getcivilspeed_mps()
+    return acsesspeed_mps ~= nil and acsesspeed_mps * Units.mps.tomph or nil
   end
 end
 
