@@ -53,7 +53,31 @@ Open NEC enables all safety systems by default, which must be responded to, even
 
 ## Release history
 
-The current stable release is Open NEC version **0.7.0**.
+The current stable release is Open NEC version **1.0.0**.
+
+#### v1.0.0 (January 21, 2022)
+
+- Support for the Metro-North M8.
+    - Includes a notched master controller and, when used with Fan Railer's physics mod, blended braking.
+- ATC:
+    - Fixed duplicate enforcement alarms.
+- ACSES:
+    - Added acknowledgement for all civil speed drops.
+    - Increased alert and penalty curve margins to 3 and 6 mph.
+    - Cab displays now show a Stop aspect when nearing a Stop signal with a Restricting pulse code in force, to simulate a positive stop. There is a braking curve for the detection of positive stops, but there is no enforcement of the positive stop. Scripting limitations require OpenNEC to show a positive stop for *all* stop signals, not just ones at interlockings.
+    - Reduced instances of "forgetting" the upcoming speed limit on heavier routes like New York-New Haven and Washington-Baltimore.
+- Acela Express:
+    - Added a destination sign for New Carrollton, which Acela stopped at during its first few years of service.
+- EMD GP40PH-2B:
+    - Changed strobe light pattern to be more prototypical.
+- Amtrak locomotives:
+    - Changed ditch lights to flash at a prototypical frequency.
+- NJ Transit locomotives:
+    - Speed drop alarms can now be acknowledged and silenced.
+    - Speed drop sounds now play at the beginning of the braking curve, not the end.
+- All locomotives:
+    - For locomotives for which it would be unrealistic, sounding the horn no longer flashes the ditch lights.
+    - Train brake status is now sent via consist message 10101, which enables the brake lights on Dovetail's Superliners and Ragno's Viewliner to work.
 
 #### v0.7.0 (September 16, 2021)
 
