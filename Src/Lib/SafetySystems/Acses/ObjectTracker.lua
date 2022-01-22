@@ -8,7 +8,7 @@ local P = {}
 AcsesTracker = P
 
 local maxpassing_m = 28.5 -- 1.1*85 ft
-local trackmargin_m = 1
+local trackmargin_m = 4
 
 -- Create a new track object tracker context. iterbydistance should return an
 -- iterator of (distance (m), tracked object) pairs.
