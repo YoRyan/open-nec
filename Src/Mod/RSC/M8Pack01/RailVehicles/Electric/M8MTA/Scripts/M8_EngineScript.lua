@@ -403,7 +403,7 @@ local function setinteriorlights()
   Call("HallLight_002:Activate", Misc.intbool(hep))
 end
 
-local function setstatuslights()
+local function setplayerstatuslights()
   local brakesapplied = blight:isapplied()
   RailWorks.ActivateNode("SL_green", not brakesapplied)
   RailWorks.ActivateNode("SL_yellow", brakesapplied)
@@ -413,6 +413,17 @@ local function setstatuslights()
                            "DoorsOpenCloseLeft", 0) == 1)
   RailWorks.ActivateNode("SL_doors_R", RailWorks.GetControlValue(
                            "DoorsOpenCloseRight", 0) == 1)
+end
+
+local function setaistatuslights()
+  local aspeed_mps = math.abs(RailWorks.GetSpeed())
+  local isslow = aspeed_mps < 20 * Units.mph.tomps
+  RailWorks.ActivateNode("SL_green", not isslow)
+  RailWorks.ActivateNode("SL_yellow", isslow)
+  RailWorks.ActivateNode("SL_blue", false)
+  local isstopped = aspeed_mps < Misc.stopped_mps
+  RailWorks.ActivateNode("SL_doors_L", isstopped)
+  RailWorks.ActivateNode("SL_doors_R", isstopped)
 end
 
 local function setplayerditchlights()
@@ -467,7 +478,7 @@ local function updateplayer(dt)
   setpanto()
   setgate()
   setinteriorlights()
-  setstatuslights()
+  setplayerstatuslights()
   setplayerditchlights()
 end
 
@@ -481,7 +492,7 @@ local function updatehelper(dt)
   setpanto()
   setgate()
   setinteriorlights()
-  setstatuslights()
+  setplayerstatuslights()
   sethelperditchlights()
 end
 
@@ -494,7 +505,7 @@ local function updateai(dt)
   setpanto()
   setgate()
   setinteriorlights()
-  setstatuslights()
+  setaistatuslights()
   setaiditchlights()
 end
 
