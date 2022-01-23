@@ -136,7 +136,7 @@ local function setcabfx()
   RailWorks.SetTime("cabwindow", RailWorks.GetControlValue("CabWindow", 0) * 2)
 end
 
-local function setlights()
+local function setplayerlights()
   local stepslight = RailWorks.GetControlValue("StepsLight", 0)
   for i = 1, 4 do Call("StepLight_0" .. i .. ":Activate", stepslight) end
 
@@ -178,6 +178,45 @@ local function setlights()
   Call("Ditch_R:Activate", Misc.intbool(ditchlights))
 end
 
+local function setailights()
+  local speed_mps = RailWorks.GetSpeed()
+  local aspeed_mps = math.abs(speed_mps)
+  local isend = not RailWorks.Engine_SendConsistMessage(messageid.locationprobe,
+                                                        "", 0)
+  -- There's no surefire way to determine which end of the train an AI unit is on,
+  -- so use speed.
+
+  local isslow = aspeed_mps < 20 * Units.mph.tomps
+  RailWorks.ActivateNode("st_red", false) -- unknown function
+  RailWorks.ActivateNode("st_green", not isslow)
+  RailWorks.ActivateNode("st_yellow", isslow)
+
+  local isstopped = aspeed_mps < Misc.stopped_mps
+  RailWorks.ActivateNode("left_door_light", isstopped)
+  RailWorks.ActivateNode("right_door_light", isstopped)
+  for i = 1, 4 do
+    Call("StepLight_0" .. i .. ":Activate", Misc.intbool(isstopped))
+  end
+
+  RailWorks.ActivateNode("numbers_lit", true)
+
+  local ishead = isend and speed_mps > Misc.stopped_mps
+  RailWorks.ActivateNode("lighthead", ishead)
+  Call("Headlight_Dim_1:Activate", Misc.intbool(false))
+  Call("Headlight_Dim_2:Activate", Misc.intbool(false))
+  Call("Headlight_Bright_1:Activate", Misc.intbool(ishead))
+  Call("Headlight_Bright_2:Activate", Misc.intbool(ishead))
+  RailWorks.ActivateNode("ditch", ishead)
+  Call("Ditch_L:Activate", Misc.intbool(ishead))
+  Call("Ditch_R:Activate", Misc.intbool(ishead))
+
+  local istail = isend and speed_mps < -Misc.stopped_mps
+  RailWorks.ActivateNode("lighttail", istail)
+  for i = 1, 3 do
+    Call("MarkerLight_" .. i .. ":Activate", Misc.intbool(istail))
+  end
+end
+
 local function updateplayer(dt)
   adu:update(dt)
   alerter:update(dt)
@@ -190,23 +229,34 @@ local function updateplayer(dt)
   setadu()
   setcutin()
   setcabfx()
-  setlights()
+  setplayerlights()
 end
 
-local function updatenonplayer(dt)
+local function updatehelper(dt)
   power:update(dt)
   pantoanim:update(dt)
 
   setpanto()
   setcabfx()
-  setlights()
+  setplayerlights()
+end
+
+local function updateai(dt)
+  power:update(dt)
+  pantoanim:update(dt)
+
+  setpanto()
+  setcabfx()
+  setailights()
 end
 
 Update = Misc.wraperrors(function(dt)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer(dt)
+  elseif RailWorks.GetIsPlayer() then
+    updatehelper(dt)
   else
-    updatenonplayer(dt)
+    updateai(dt)
   end
 end)
 
