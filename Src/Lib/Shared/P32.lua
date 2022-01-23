@@ -176,7 +176,7 @@ local function setdisplay()
   RailWorks.SetControlValue("AlerterVisual", 0, Misc.intbool(alerter:isalarm()))
 end
 
-local function setditchlights()
+local function setplayerditchlights()
   local horntime_s = 30
   local horn = lasthorntime_s ~= nil and RailWorks.GetSimulationTime() <=
                  lasthorntime_s + horntime_s
@@ -195,6 +195,21 @@ local function setditchlights()
   local showright = fixed or (flash and not flashleft)
   RailWorks.ActivateNode("ditch_right", showright)
   Call("DitchLight_R:Activate", Misc.intbool(showright))
+end
+
+local function sethelperditchlights()
+  RailWorks.ActivateNode("ditch_left", false)
+  Call("DitchLight_L:Activate", Misc.intbool(false))
+  RailWorks.ActivateNode("ditch_right", false)
+  Call("DitchLight_R:Activate", Misc.intbool(false))
+end
+
+local function setaiditchlights()
+  local ishead = RailWorks.GetSpeed() > Misc.stopped_mps
+  RailWorks.ActivateNode("ditch_left", ishead)
+  Call("DitchLight_L:Activate", Misc.intbool(ishead))
+  RailWorks.ActivateNode("ditch_right", ishead)
+  Call("DitchLight_R:Activate", Misc.intbool(ishead))
 end
 
 local function setcablights()
@@ -250,16 +265,25 @@ local function updateplayer(dt)
   setcutin()
   setadu()
   setdisplay()
-  setditchlights()
+  setplayerditchlights()
   setcablights()
   setexhaust()
 end
 
-local function updatenonplayer(dt)
+local function updatehelper(dt)
   power:update(dt)
 
   setnonplayerstate()
-  setditchlights()
+  sethelperditchlights()
+  setcablights()
+  setexhaust()
+end
+
+local function updateai(dt)
+  power:update(dt)
+
+  setnonplayerstate()
+  setaiditchlights()
   setcablights()
   setexhaust()
 end
@@ -267,8 +291,10 @@ end
 Update = Misc.wraperrors(function(dt)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer(dt)
+  elseif RailWorks.GetIsPlayer() then
+    updatehelper(dt)
   else
-    updatenonplayer(dt)
+    updateai(dt)
   end
 end)
 
