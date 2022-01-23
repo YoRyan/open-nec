@@ -17,12 +17,12 @@ P.aspect = {
   approachmed30 = 3,
   approachmed45 = 4,
   cabspeed60 = 5,
-  cabspeed60off = 6,
-  cabspeed80 = 7,
-  cabspeed80off = 8,
-  clear100 = 9,
-  clear125 = 10,
-  clear150 = 11
+  cabspeed60off = 5.5,
+  cabspeed80 = 6,
+  cabspeed80off = 6.5,
+  clear100 = 7,
+  clear125 = 8,
+  clear150 = 9
 }
 
 local subsystem = {atc = 1, acses = 2}
@@ -64,6 +64,7 @@ function P:new(conf)
   -- Used to track the safety system that triggered the last overspeed.
   o._penalty = nil
   o._lastspeedlimit_mps = nil
+  o._lastaspect = nil
   setmetatable(o, self)
   self.__index = self
   return o
@@ -132,7 +133,21 @@ local function getevent(self)
     end
   end
 
+  local aspect = self:getaspect()
+  if self._lastaspect == nil and aspect ~= nil then
+    ret = event.upgrade
+  elseif self._lastaspect ~= nil and aspect ~= nil then
+    local lastaspectf = math.floor(self._lastaspect)
+    local aspectf = math.floor(aspect)
+    if lastaspectf < aspectf then
+      ret = event.upgrade
+    elseif lastaspectf > aspectf then
+      ret = event.downgrade
+    end
+  end
+
   self._lastspeedlimit_mps = speedlimit_mps
+  self._lastaspect = aspect
   return ret
 end
 
