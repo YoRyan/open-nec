@@ -31,7 +31,9 @@ end
 
 -- Update this system once every frame.
 function P:update(_)
-  local acknowledge = self._getacknowledge() or self._ackevent
+  local isstopped = RailWorks.GetControlValue("SpeedometerMPH", 0) *
+                      Units.mph.tomps < Misc.stopped_mps
+  local acknowledge = self._getacknowledge() or isstopped or self._ackevent
   self._ackevent = false
 
   local speed_mps = RailWorks.GetControlValue("SpeedometerMPH", 0) *
