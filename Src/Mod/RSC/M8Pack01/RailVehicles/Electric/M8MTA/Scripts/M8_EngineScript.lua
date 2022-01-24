@@ -2,6 +2,7 @@
 --
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
+-- @include RollingStock/AiDirection.lua
 -- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/InterVehicle.lua
 -- @include RollingStock/Notch.lua
@@ -14,16 +15,6 @@
 -- @include Misc.lua
 -- @include RailWorks.lua
 -- @include Units.lua
-local powermode = {overhead = 1, thirdrail = 2}
-local messageid = {
-  locationprobe = 10110,
-  intervehicle = 10111,
-  motorlowpitch = 10112,
-  motorhighpitch = 10113,
-  motorvolume = 10114,
-  compressorstate = 10115
-}
-
 local adu
 local alerter
 local power
@@ -33,9 +24,20 @@ local mcnotch
 local pantoanim, gateanim
 local alarmonoff
 local spark
+local aidirection
 
 local lastmotorpitch = 0
 local lastmotorvol = 0
+
+local powermode = {overhead = 1, thirdrail = 2}
+local messageid = {
+  locationprobe = 10110,
+  intervehicle = 10111,
+  motorlowpitch = 10112,
+  motorhighpitch = 10113,
+  motorvolume = 10114,
+  compressorstate = 10115
+}
 
 Initialise = Misc.wraperrors(function()
   adu = MetroNorthAdu:new{
@@ -127,6 +129,8 @@ Initialise = Misc.wraperrors(function()
   alarmonoff = Flash:new{off_s = 0.1, on_s = 0.5}
 
   spark = PantoSpark:new{}
+
+  aidirection = AiDirection:new{}
 
   RailWorks.BeginUpdate()
 end)
@@ -449,10 +453,8 @@ end
 local function setaiditchlights()
   local isend = not RailWorks.Engine_SendConsistMessage(messageid.locationprobe,
                                                         "", 0)
-  -- There's no surefire way to determine which end of the train an AI unit is on,
-  -- so use speed (just like DTG).
-  local isforward = RailWorks.GetSpeed() > Misc.stopped_mps
-  local show = isend and isforward
+  local show = isend and aidirection:getdirection() ==
+                 AiDirection.direction.forward
   RailWorks.ActivateNode("left_ditch_light", show)
   RailWorks.ActivateNode("right_ditch_light", show)
   Call("Fwd_DitchLightLeft:Activate", Misc.intbool(show))
@@ -500,6 +502,7 @@ local function updateai(dt)
   power:update(dt)
   pantoanim:update(dt)
   gateanim:update(dt)
+  aidirection:aiupdate(dt)
 
   setaisounds()
   setpanto()

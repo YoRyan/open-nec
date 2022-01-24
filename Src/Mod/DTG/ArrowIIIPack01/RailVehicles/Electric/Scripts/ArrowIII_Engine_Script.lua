@@ -2,6 +2,7 @@
 --
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
+-- @include RollingStock/AiDirection.lua
 -- @include RollingStock/BrakeLight.lua
 -- @include SafetySystems/AspectDisplay/NjTransit.lua
 -- @include SafetySystems/Alerter.lua
@@ -10,14 +11,15 @@
 -- @include Misc.lua
 -- @include RailWorks.lua
 -- @include Units.lua
-local messageid = {locationprobe = 10100}
-
 local adu
 local alerter
 local power
 local blight
 local pantoanim
 local decreaseonoff
+local aidirection
+
+local messageid = {locationprobe = 10100}
 
 Initialise = Misc.wraperrors(function()
   adu = NjTransitAdu:new{
@@ -53,6 +55,8 @@ Initialise = Misc.wraperrors(function()
 
   -- Modulate the speed reduction alert sound, which normally plays just once.
   decreaseonoff = Flash:new{off_s = 0.1, on_s = 0.5}
+
+  aidirection = AiDirection:new{}
 
   RailWorks.BeginUpdate()
 end)
@@ -179,8 +183,8 @@ local function setplayerlights()
 end
 
 local function setailights()
-  local speed_mps = RailWorks.GetSpeed()
-  local aspeed_mps = math.abs(speed_mps)
+  local aspeed_mps = math.abs(RailWorks.GetSpeed())
+  local direction = aidirection:getdirection()
   local isend = not RailWorks.Engine_SendConsistMessage(messageid.locationprobe,
                                                         "", 0)
   -- There's no surefire way to determine which end of the train an AI unit is on,
@@ -200,7 +204,7 @@ local function setailights()
 
   RailWorks.ActivateNode("numbers_lit", true)
 
-  local ishead = isend and speed_mps > Misc.stopped_mps
+  local ishead = isend and direction == AiDirection.direction.forward
   RailWorks.ActivateNode("lighthead", ishead)
   Call("Headlight_Dim_1:Activate", Misc.intbool(false))
   Call("Headlight_Dim_2:Activate", Misc.intbool(false))
@@ -210,7 +214,7 @@ local function setailights()
   Call("Ditch_L:Activate", Misc.intbool(ishead))
   Call("Ditch_R:Activate", Misc.intbool(ishead))
 
-  local istail = isend and speed_mps < -Misc.stopped_mps
+  local istail = isend and direction == AiDirection.direction.reverse
   RailWorks.ActivateNode("lighttail", istail)
   for i = 1, 3 do
     Call("MarkerLight_" .. i .. ":Activate", Misc.intbool(istail))
@@ -244,6 +248,7 @@ end
 local function updateai(dt)
   power:update(dt)
   pantoanim:update(dt)
+  aidirection:aiupdate(dt)
 
   setpanto()
   setcabfx()

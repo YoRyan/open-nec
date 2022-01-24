@@ -1,5 +1,6 @@
 -- Engine script for the P42DC operated by Amtrak.
 --
+-- @include RollingStock/AiDirection.lua
 -- @include RollingStock/BrakeLight.lua
 -- @include SafetySystems/AspectDisplay/Genesis.lua
 -- @include SafetySystems/Alerter.lua
@@ -12,9 +13,12 @@ local adu
 local alerter
 local blight
 local ditchflasher
+local aidirection
 
 local lasthorntime_s = nil
 local lastthrottletime_s = nil
+
+local messageid = {locationprobe = 10110}
 
 local function setenginenumber()
   local number = tonumber(RailWorks.GetRVNumber()) or 0
@@ -49,6 +53,8 @@ Initialise = Misc.wraperrors(function()
 
   local ditchflash_s = 0.65
   ditchflasher = Flash:new{off_s = ditchflash_s, on_s = ditchflash_s}
+
+  aidirection = AiDirection:new{}
 
   RailWorks.BeginUpdate()
 end)
@@ -168,7 +174,10 @@ local function sethelperditchlights()
 end
 
 local function setaiditchlights()
-  local ishead = RailWorks.GetSpeed() > Misc.stopped_mps
+  local isend = not RailWorks.Engine_SendConsistMessage(messageid.locationprobe,
+                                                        "", 0)
+  local ishead = isend and aidirection:getdirection() ==
+                   AiDirection.direction.forward
   RailWorks.ActivateNode("ditch_left", ishead)
   Call("DitchLight_L:Activate", Misc.intbool(ishead))
   RailWorks.ActivateNode("ditch_right", ishead)
@@ -233,13 +242,15 @@ local function updateplayer(dt)
   setexhaust()
 end
 
-local function updatehelper()
+local function updatehelper(_)
   sethelperditchlights()
   setcablights()
   setexhaust()
 end
 
-local function updateai()
+local function updateai(dt)
+  aidirection:aiupdate(dt)
+
   setaiditchlights()
   setcablights()
   setexhaust()
@@ -251,7 +262,7 @@ Update = Misc.wraperrors(function(dt)
   elseif RailWorks.GetIsPlayer() then
     updatehelper(dt)
   else
-    updateai()
+    updateai(dt)
   end
 end)
 

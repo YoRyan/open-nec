@@ -2,6 +2,7 @@
 --
 -- @include RollingStock/PowerSupply/Electrification.lua
 -- @include RollingStock/PowerSupply/PowerSupply.lua
+-- @include RollingStock/AiDirection.lua
 -- @include RollingStock/BrakeLight.lua
 -- @include SafetySystems/AspectDisplay/Genesis.lua
 -- @include SafetySystems/Alerter.lua
@@ -10,15 +11,17 @@
 -- @include Misc.lua
 -- @include RailWorks.lua
 -- @include Units.lua
-local powermode = {thirdrail = 0, diesel = 1}
-
 local adu
 local alerter
 local power
 local blight
 local ditchflasher
+local aidirection
 
 local lasthorntime_s = nil
+
+local powermode = {thirdrail = 0, diesel = 1}
+local messageid = {locationprobe = 10110}
 
 Initialise = Misc.wraperrors(function()
   adu = GenesisAdu:new{
@@ -79,6 +82,8 @@ Initialise = Misc.wraperrors(function()
 
   local ditchflash_s = 0.65
   ditchflasher = Flash:new{off_s = ditchflash_s, on_s = ditchflash_s}
+
+  aidirection = AiDirection:new{}
 
   RailWorks.BeginUpdate()
 end)
@@ -205,7 +210,10 @@ local function sethelperditchlights()
 end
 
 local function setaiditchlights()
-  local ishead = RailWorks.GetSpeed() > Misc.stopped_mps
+  local isend = not RailWorks.Engine_SendConsistMessage(messageid.locationprobe,
+                                                        "", 0)
+  local ishead = isend and aidirection:getdirection() ==
+                   AiDirection.direction.forward
   RailWorks.ActivateNode("ditch_left", ishead)
   Call("DitchLight_L:Activate", Misc.intbool(ishead))
   RailWorks.ActivateNode("ditch_right", ishead)
@@ -281,6 +289,7 @@ end
 
 local function updateai(dt)
   power:update(dt)
+  aidirection:aiupdate(dt)
 
   setnonplayerstate()
   setaiditchlights()

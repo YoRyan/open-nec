@@ -1,5 +1,6 @@
 -- Engine script for the MPI MP36PH operated by MARC.
 --
+-- @include RollingStock/AiDirection.lua
 -- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/Hep.lua
 -- @include SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
@@ -14,6 +15,9 @@ local alerter
 local hep
 local blight
 local ditchflasher
+local aidirection
+
+local messageid = {locationprobe = 10110}
 
 Initialise = Misc.wraperrors(function()
   adu = AmtrakTwoSpeedAdu:new{
@@ -38,6 +42,8 @@ Initialise = Misc.wraperrors(function()
   }
 
   blight = BrakeLight:new{}
+
+  aidirection = AiDirection:new{}
 
   local ditchflash_s = 1
   ditchflasher = Flash:new{off_s = ditchflash_s, on_s = ditchflash_s}
@@ -142,7 +148,7 @@ local function setcablight()
   Call("Cablight:Activate", RailWorks.GetControlValue("CabLight", 0))
 end
 
-local function setheadlight()
+local function setplayerheadlight()
   local headlights = RailWorks.GetControlValue("Headlights", 0)
   local isdim = headlights >= 0.44 and headlights < 1.49 and headlights ~= 1
   local isbright = headlights >= 1.49 or headlights == 1
@@ -152,7 +158,27 @@ local function setheadlight()
   Call("Headlight_02_Bright:Activate", Misc.intbool(isbright))
 end
 
-local function setditchlights()
+local function sethelperheadlight()
+  -- Headlights = 2 means bright, not reverse, so there's no reason to ever turn
+  -- on the headlights on a helper engine.
+  Call("Headlight_01_Dim:Activate", Misc.intbool(false))
+  Call("Headlight_02_Dim:Activate", Misc.intbool(false))
+  Call("Headlight_01_Bright:Activate", Misc.intbool(false))
+  Call("Headlight_02_Bright:Activate", Misc.intbool(false))
+end
+
+local function setaiheadlight()
+  local isend = not RailWorks.Engine_SendConsistMessage(messageid.locationprobe,
+                                                        "", 0)
+  local ishead = isend and aidirection:getdirection() ==
+                   AiDirection.direction.forward
+  Call("Headlight_01_Dim:Activate", Misc.intbool(false))
+  Call("Headlight_02_Dim:Activate", Misc.intbool(false))
+  Call("Headlight_01_Bright:Activate", Misc.intbool(ishead))
+  Call("Headlight_02_Bright:Activate", Misc.intbool(ishead))
+end
+
+local function setplayerditchlights()
   local headlights = RailWorks.GetControlValue("Headlights", 0)
   local pulselights = RailWorks.GetControlValue("DitchLights", 0)
   local flash = pulselights == 1
@@ -171,7 +197,15 @@ local function setditchlights()
   RailWorks.ActivateNode("lights_dim", fixed or flash)
 end
 
-local function setrearlight()
+local function setnonplayerditchlights()
+  RailWorks.ActivateNode("ditch_left", false)
+  Call("Ditch_L:Activate", Misc.intbool(false))
+  RailWorks.ActivateNode("ditch_right", false)
+  Call("Ditch_R:Activate", Misc.intbool(false))
+  RailWorks.ActivateNode("lights_dim", false)
+end
+
+local function setplayerrearlight()
   local rearlights = RailWorks.GetControlValue("Rearlights", 0)
   local isdim = rearlights >= 1 and rearlights < 2
   local isbright = rearlights == 2
@@ -179,6 +213,13 @@ local function setrearlight()
   Call("Rearlight_02_Dim:Activate", Misc.intbool(isdim or isbright))
   Call("Rearlight_01_Bright:Activate", Misc.intbool(isbright))
   Call("Rearlight_02_Bright:Activate", Misc.intbool(isbright))
+end
+
+local function setnonplayerrearlight()
+  Call("Rearlight_01_Dim:Activate", Misc.intbool(false))
+  Call("Rearlight_02_Dim:Activate", Misc.intbool(false))
+  Call("Rearlight_01_Bright:Activate", Misc.intbool(false))
+  Call("Rearlight_02_Bright:Activate", Misc.intbool(false))
 end
 
 local function updateplayer(dt)
@@ -192,25 +233,36 @@ local function updateplayer(dt)
   setcutin()
   setadu()
   setcablight()
-  setheadlight()
-  setditchlights()
-  setrearlight()
+  setplayerheadlight()
+  setplayerditchlights()
+  setplayerrearlight()
 end
 
-local function updatenonplayer()
+local function updatehelper(_)
   setcablight()
-  setheadlight()
-  setditchlights()
-  setrearlight()
+  sethelperheadlight()
+  setnonplayerditchlights()
+  setnonplayerrearlight()
+end
+
+local function updateai(dt)
+  aidirection:aiupdate(dt)
+
+  setcablight()
+  setaiheadlight()
+  setnonplayerditchlights()
+  setnonplayerrearlight()
 end
 
 Update = Misc.wraperrors(function(dt)
   if RailWorks.GetIsEngineWithKey() then
     updateplayer(dt)
-  else
-    updatenonplayer()
+  elseif RailWorks.GetIsPlayer() then
+    updatehelper(dt)
     RailWorks.EndUpdate()
     return
+  else
+    updateai(dt)
   end
 end)
 
