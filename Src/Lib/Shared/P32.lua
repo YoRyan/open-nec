@@ -74,9 +74,11 @@ Initialise = Misc.wraperrors(function()
       else
         return nil
       end
+    end,
+    oninit = function()
+      power:setavailable(Electrification.type.thirdrail, iselectric)
     end
   }
-  power:setavailable(Electrification.type.thirdrail, iselectric)
 
   blight = BrakeLight:new{}
 
