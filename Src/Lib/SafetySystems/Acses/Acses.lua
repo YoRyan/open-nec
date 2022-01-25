@@ -360,7 +360,7 @@ function P:getalertcurve_mps()
     -- For positive stops, we currently don't actually enforce the braking curve.
     -- It's too annoying if enforced for every signal.
     if self._inforceid[1] == P._hazardtype.stopsignal then
-      return self._restrictingspeed_mps
+      return self._restrictingspeed_mps + self._alertlimit_mps
     else
       return self._hazards[self._inforceid].alert_mps
     end
@@ -387,15 +387,14 @@ end
 
 -- Returns the time to penalty countdown for positive stop signals.
 function P:gettimetopenalty_s()
-  if self:getmode() == P.mode.positivestop then
+  -- We don't enforce the braking curve, therefore there's no time to penalty.
+  --[[if self:getmode() == P.mode.positivestop then
     local maxttp_s = 60
     -- This cannot be nil because getmode() already checked it.
     local hazard = self._hazards[self._inforceid]
     local ttp_s = hazard.timetopenalty_s
-    if not self:_shouldpenalty() and ttp_s ~= nil and ttp_s <= maxttp_s then
-      return ttp_s
-    end
-  end
+    if ttp_s ~= nil and ttp_s <= maxttp_s then return ttp_s end
+  end]]
   return nil
 end
 

@@ -171,11 +171,14 @@ function P:update(dt)
   local acknowledge = self._getacknowledge()
   local suppressed = self._getbrakesuppression()
   local enforcing = getenforcingsubsystem(self) -- easiest way to avoid nils
+  local speedlimit_mps = getspeedlimit_mps(self)
+  local atcoverspeed = enforcing == subsystem.atc and aspeed_mps >
+                         speedlimit_mps + self._alertlimit_mps
+  local acsesoverspeed = enforcing == subsystem.acses and aspeed_mps >
+                           self._acses:getalertcurve_mps()
   local acsespenalty = enforcing == subsystem.acses and aspeed_mps >
                          self._acses:getpenaltycurve_mps()
-  local speedlimit_mps = getspeedlimit_mps(self)
-  local overspeed = enforcing ~= nil and aspeed_mps > speedlimit_mps +
-                      self._alertlimit_mps
+  local overspeed = atcoverspeed or acsesoverspeed
   local overspeedelapsed =
     self._overspeed_s ~= nil and now - self._overspeed_s > self._alertwarning_s
   if self._penalty == subsystem.atc then
@@ -247,11 +250,9 @@ function P:ispenalty() return self._penalty ~= nil end
 function P:isalarm()
   -- ACSES forces the alarm on even if the engineer has already acknowledged
   -- and suppressed.
+  local isacses = getenforcingsubsystem(self) == subsystem.acses
   local aspeed_mps = math.abs(self:_getspeed_mps())
-  local enforcing = getenforcingsubsystem(self)
-  local speedlimit_mps = getspeedlimit_mps(self)
-  local acsesalarm = enforcing == subsystem.acses and aspeed_mps >
-                       speedlimit_mps + self._alertlimit_mps
+  local acsesalarm = isacses and aspeed_mps > self._acses:getalertcurve_mps()
   return self._overspeed_s ~= nil or acsesalarm
 end
 

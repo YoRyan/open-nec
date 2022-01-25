@@ -63,6 +63,25 @@ function P:update(dt)
     civilid ~= nil and self._hazards[civilid].inforce_mps or nil
 end
 
+-- Returns the current alert curve speed, which unlike the base implementation
+-- takes into account any advance limit violations.
+function P:getalertcurve_mps()
+  if self:isrunning() and self._inforceid ~= nil then
+    -- For positive stops, we currently don't actually enforce the braking curve.
+    -- It's too annoying if enforced for every signal.
+    if self._inforceid[1] == P._hazardtype.stopsignal then
+      return self._restrictingspeed_mps + self._alertlimit_mps
+    elseif self._inforceid[1] == P._hazardtype.advancelimit and
+      self._hazardstate[self._inforceid].violated then
+      return self._hazards[self._inforceid].inforce_mps + self._alertlimit_mps
+    else
+      return self._hazards[self._inforceid].alert_mps
+    end
+  else
+    return nil
+  end
+end
+
 -- Returns the ACSES-enforced speed revealed to the operator. This includes track
 -- speed, positive stops, and Approach Medium 30. Returns nil if ACSES is not in
 -- service.

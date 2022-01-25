@@ -290,11 +290,9 @@ function P:ispenalty() return self._penalty ~= nil end
 function P:isalarm()
   -- ACSES forces the alarm on even if the engineer has already acknowledged
   -- and suppressed.
-  local aspeed_mps = math.abs(self:_getspeed_mps())
   local isacses = getenforcingsubsystem(self) == subsystem.acses
-  local acsesspeed_mps = getacsesspeed_mps(self)
-  local acsesalarm = isacses and aspeed_mps > acsesspeed_mps +
-                       self._alertlimit_mps
+  local aspeed_mps = math.abs(self:_getspeed_mps())
+  local acsesalarm = isacses and aspeed_mps > self._acses:getalertcurve_mps()
   return self._overspeed_s ~= nil or acsesalarm
 end
 
