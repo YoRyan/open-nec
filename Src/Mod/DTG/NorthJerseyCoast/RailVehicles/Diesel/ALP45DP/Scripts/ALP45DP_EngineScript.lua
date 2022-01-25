@@ -12,10 +12,6 @@
 -- @include Misc.lua
 -- @include RailWorks.lua
 -- @include Units.lua
-local powermode = {diesel = 0, overhead = 1}
-local messageid = {destination = 10100}
-local dieselpower = 3600 / 5900
-
 local adu
 local alerter
 local power
@@ -27,6 +23,10 @@ local decreaseonoff
 
 local initdestination = nil
 local lastwipertime_s = nil
+
+local powermode = {diesel = 0, overhead = 1}
+local messageid = {destination = 10100}
+local dieselpower = 3600 / 5900
 
 local function readrvnumber()
   local _, _, deststr, unitstr = string.find(RailWorks.GetRVNumber(),

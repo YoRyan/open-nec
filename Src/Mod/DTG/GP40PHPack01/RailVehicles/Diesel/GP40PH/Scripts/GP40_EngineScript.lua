@@ -9,8 +9,6 @@
 -- @include Misc.lua
 -- @include RailWorks.lua
 -- @include Units.lua
-local messageid = {destination = 10100}
-
 local adu
 local alerter
 local hep
@@ -21,6 +19,8 @@ local decreaseonoff
 
 local initdestination = nil
 local strobetime_s = nil
+
+local messageid = {destination = 10100}
 
 local function readrvnumber()
   local _, _, deststr = string.find(RailWorks.GetRVNumber(), "(%a)")

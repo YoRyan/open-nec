@@ -25,8 +25,17 @@ local coneanim
 local tracteffort
 local groundflasher
 local spark
-
 local destscroller
+
+local messageid = {
+  -- ID's must be reused from the DTG engine script so coaches will pass them down.
+  raisefrontpanto = 1207,
+  raiserearpanto = 1208,
+
+  -- Used by the Acela coaches. Do not change.
+  tiltisolate = 1209,
+  destination = 1210
+}
 local destinations = {
   {"No service", 24},
   {"Union Station", 3},
@@ -47,16 +56,6 @@ local destinations = {
   {"Route 128", 13},
   {"Back Bay", 14},
   {"South Station", 15}
-}
-
-local messageid = {
-  -- ID's must be reused from the DTG engine script so coaches will pass them down.
-  raisefrontpanto = 1207,
-  raiserearpanto = 1208,
-
-  -- Used by the Acela coaches. Do not change.
-  tiltisolate = 1209,
-  destination = 1210
 }
 
 local raisefrontpantomsg = nil

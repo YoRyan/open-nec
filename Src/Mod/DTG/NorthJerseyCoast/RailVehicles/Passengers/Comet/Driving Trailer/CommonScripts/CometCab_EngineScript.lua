@@ -12,8 +12,6 @@
 -- @include Misc.lua
 -- @include RailWorks.lua
 -- @include Units.lua
-local powermode = {diesel = 0, overhead = 1}
-
 local adu
 local alerter
 local blight
@@ -25,6 +23,7 @@ local ditchflasher
 local initdestination = nil
 
 local messageid = {destination = 10100}
+local powermode = {diesel = 0, overhead = 1}
 local destinations = {
   "Dest_Trenton",
   "Dest_NewYork",

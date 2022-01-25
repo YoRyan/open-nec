@@ -24,14 +24,14 @@ local tracteffort
 local groundflasher
 local spark
 
+local raisefrontpantomsg = nil
+local raiserearpantomsg = nil
+
 local messageid = {
   -- ID's must be reused from the DTG engine script so coaches will pass them down.
   raisefrontpanto = 1207,
   raiserearpanto = 1208
 }
-
-local raisefrontpantomsg = nil
-local raiserearpantomsg = nil
 
 local function getplayerthrottle()
   -- For compatibility with Fan Railer's HHP-8 mod.
