@@ -11,7 +11,12 @@ local P = {}
 NjTransitAdu = P
 
 local subsystem = {atc = 1, acses = 2}
-local event = {downgrade = 1, upgrade = 2, atcdowngrade = 3}
+local event = {
+  acsesdowngrade = 1,
+  acsesupgrade = 2,
+  atcdowngrade = 3,
+  atcupgrade = 4
+}
 
 -- Ensure we have inherited the properties of the base class, PiL-style.
 -- We can't run code on initialization in TS, so we do this in :new().
@@ -117,20 +122,20 @@ local function getevent(self)
   -- about drops that change the combined speed.
   if self._lasttargetspeed_mps ~= targetspeed_mps then
     if self._lastacsesspeed_mps == nil and acsesspeed_mps ~= nil then
-      ret = event.upgrade
+      ret = event.acsesupgrade
     elseif self._lastacsesspeed_mps ~= nil and acsesspeed_mps ~= nil then
       if self._lastacsesspeed_mps < acsesspeed_mps then
-        ret = event.upgrade
+        ret = event.acsesupgrade
       elseif self._lastacsesspeed_mps > acsesspeed_mps then
-        ret = event.downgrade
+        ret = event.acsesdowngrade
       end
     end
 
     if self._lastatcspeed_mps == nil and atcspeed_mps ~= nil then
-      ret = event.upgrade
+      ret = event.atcupgrade
     elseif self._lastatcspeed_mps ~= nil and atcspeed_mps ~= nil then
       if self._lastatcspeed_mps < atcspeed_mps then
-        ret = event.upgrade
+        ret = event.atcupgrade
       elseif self._lastatcspeed_mps > atcspeed_mps then
         ret = event.atcdowngrade
       end
@@ -140,7 +145,7 @@ local function getevent(self)
   local isclear = getisclear(self)
   if self._lastclear ~= nil then
     if not self._lastclear and isclear then
-      ret = event.upgrade
+      ret = event.atcupgrade
     elseif self._lastclear and not isclear then
       ret = event.atcdowngrade
     end
@@ -160,7 +165,10 @@ function P:update(dt)
   -- Read the current speed limit. Sound alarm for ATC speed decreases. Play tone
   -- for any other speed changes.
   local evt = getevent(self)
-  if evt == event.upgrade or evt == event.downgrade then self._alert:trigger() end
+  if evt == event.acsesdowngrade or evt == event.acsesupgrade or
+    (self._atcon and (evt == event.atcdowngrade or evt == event.atcupgrade)) then
+    self._alert:trigger()
+  end
 
   -- Read the engineer's controls. Initiate enforcement actions and look for
   -- acknowledgement presses.
@@ -178,6 +186,7 @@ function P:update(dt)
   local overspeed = atcoverspeed or acsesoverspeed
   local overspeedelapsed =
     self._overspeed_s ~= nil and now - self._overspeed_s > self._alertwarning_s
+  local atcdowngrade = self._atcon and evt == event.atcdowngrade
   if self._penalty == subsystem.atc then
     -- ATC requires a complete stop.
     local penalty = aspeed_mps > Misc.stopped_mps or not acknowledge
@@ -204,7 +213,7 @@ function P:update(dt)
     self._acknowledged = not acknowledged and
                            (self._acknowledged or acknowledge) or false
     self._penalty = nil
-  elseif (overspeed and not suppressed) or evt == event.atcdowngrade then
+  elseif (overspeed and not suppressed) or atcdowngrade then
     self._overspeed_s = now
     self._acknowledged = false
     self._penalty = nil

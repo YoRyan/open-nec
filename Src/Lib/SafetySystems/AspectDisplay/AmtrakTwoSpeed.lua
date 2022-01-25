@@ -179,9 +179,8 @@ function P:update(dt)
   -- Read the current speed limits. Play tone for any speed increase alerts. Set
   -- the signal limit flashers if needed.
   local evt = getevent(self)
-  if evt == P._event.acsesupgrade or evt == P._event.atcupgrade then
-    self._alert:trigger()
-  end
+  if evt == P._event.acsesupgrade or
+    (self._atcon and evt == P._event.atcupgrade) then self._alert:trigger() end
   if (evt == P._event.atcupgrade or evt == P._event.atcdowngrade) and
     not self:_canshowpulsecode(pulsecode) then self._showsigspeed:trigger() end
   self._sigspeedflasher:setflashstate(getflashsigspeed(self))
@@ -203,8 +202,8 @@ function P:update(dt)
   local overspeed = atcoverspeed or acsesoverspeed
   local overspeedelapsed =
     self._overspeed_s ~= nil and now - self._overspeed_s > self._alertwarning_s
-  local downgrade = evt == P._event.atcdowngrade or evt ==
-                      P._event.acsesdowngrade
+  local downgrade = evt == P._event.acsesdowngrade or
+                      (self._atcon and evt == P._event.atcdowngrade)
   if self._penalty == subsystem.atc then
     -- ATC requires a complete stop.
     local penalty = aspeed_mps > Misc.stopped_mps or not acknowledge

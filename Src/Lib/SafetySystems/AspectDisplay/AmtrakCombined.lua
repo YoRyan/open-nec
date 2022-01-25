@@ -26,7 +26,12 @@ P.aspect = {
 }
 
 local subsystem = {atc = 1, acses = 2}
-local event = {downgrade = 1, upgrade = 2}
+local event = {
+  speeddowngrade = 1,
+  speedupgrade = 2,
+  aspectdowngrade = 3,
+  aspectupgrade = 4
+}
 
 -- Ensure we have inherited the properties of the base class, PiL-style.
 -- We can't run code on initialization in TS, so we do this in :new().
@@ -124,25 +129,25 @@ local function getevent(self)
 
   local speedlimit_mps = getspeedlimit_mps(self)
   if self._lastspeedlimit_mps == nil and speedlimit_mps ~= nil then
-    ret = event.upgrade
+    ret = event.speedupgrade
   elseif self._lastspeedlimit_mps ~= nil and speedlimit_mps ~= nil then
     if self._lastspeedlimit_mps < speedlimit_mps then
-      ret = event.upgrade
+      ret = event.speedupgrade
     elseif self._lastspeedlimit_mps > speedlimit_mps then
-      ret = event.downgrade
+      ret = event.speeddowngrade
     end
   end
 
   local aspect = self:getaspect()
   if self._lastaspect == nil and aspect ~= nil then
-    ret = event.upgrade
+    ret = event.aspectupgrade
   elseif self._lastaspect ~= nil and aspect ~= nil then
     local lastaspectf = math.floor(self._lastaspect)
     local aspectf = math.floor(aspect)
     if lastaspectf < aspectf then
-      ret = event.upgrade
+      ret = event.aspectupgrade
     elseif lastaspectf > aspectf then
-      ret = event.downgrade
+      ret = event.aspectdowngrade
     end
   end
 
@@ -162,7 +167,9 @@ function P:update(dt)
 
   -- Read the current speed limit. Play tone for any speed increase alerts.
   local evt = getevent(self)
-  if evt == event.upgrade then self._alert:trigger() end
+  if evt == event.speedupgrade or (self._atcon and evt == event.aspectupgrade) then
+    self._alert:trigger()
+  end
 
   -- Read the engineer's controls. Initiate enforcement actions and look for
   -- acknowledgement presses.
@@ -181,6 +188,8 @@ function P:update(dt)
   local overspeed = atcoverspeed or acsesoverspeed
   local overspeedelapsed =
     self._overspeed_s ~= nil and now - self._overspeed_s > self._alertwarning_s
+  local downgrade = evt == event.speeddowngrade or
+                      (self._atcon and evt == event.aspectdowngrade)
   if self._penalty == subsystem.atc then
     -- ATC requires a complete stop.
     local penalty = aspeed_mps > Misc.stopped_mps or not acknowledge
@@ -207,7 +216,7 @@ function P:update(dt)
     self._acknowledged = not acknowledged and
                            (self._acknowledged or acknowledge) or false
     self._penalty = nil
-  elseif (overspeed and not suppressed) or evt == event.downgrade then
+  elseif (overspeed and not suppressed) or downgrade then
     self._overspeed_s = now
     self._acknowledged = false
     self._penalty = nil
