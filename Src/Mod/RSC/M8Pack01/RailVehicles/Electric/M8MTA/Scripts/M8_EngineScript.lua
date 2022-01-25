@@ -301,7 +301,8 @@ local function setdrivescreen()
   RailWorks.SetControlValue("PipeTens", 0, Misc.getdigit(bp_psi, 1))
   RailWorks.SetControlValue("PipeUnits", 0, Misc.getdigit(bp_psi, 0))
 
-  local bc_psi = Misc.round(RailWorks.GetControlValue(
+  -- Don't round this number; it gets stuck at 1.
+  local bc_psi = math.floor(RailWorks.GetControlValue(
                               "TrainBrakeCylinderPressurePSI", 0))
   RailWorks.SetControlValue("CylinderHundreds", 0, Misc.getdigit(bc_psi, 2))
   RailWorks.SetControlValue("CylinderTens", 0, Misc.getdigit(bc_psi, 1))
