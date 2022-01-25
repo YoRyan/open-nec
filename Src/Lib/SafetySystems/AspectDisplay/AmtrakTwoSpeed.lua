@@ -119,7 +119,7 @@ local function getflashsigspeed(self)
   local canshowsigspeed = self:_canshowpulsecode(getpulsecode(self))
   if atcspeed_mps ~= nil and acsesspeed_mps ~= nil then
     return atcspeed_mps < acsesspeed_mps and not canshowsigspeed
-  elseif acsesspeed_mps ~= nil then
+  elseif atcspeed_mps ~= nil then
     return not canshowsigspeed
   else
     return false
