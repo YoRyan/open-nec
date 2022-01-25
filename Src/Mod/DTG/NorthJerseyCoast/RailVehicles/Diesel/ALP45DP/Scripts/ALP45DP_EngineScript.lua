@@ -5,7 +5,7 @@
 -- @include RollingStock/BrakeLight.lua
 -- @include RollingStock/Doors.lua
 -- @include RollingStock/Hep.lua
--- @include SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
+-- @include SafetySystems/AspectDisplay/NjTransitAnalog.lua
 -- @include SafetySystems/Alerter.lua
 -- @include Animation.lua
 -- @include Flash.lua
@@ -51,7 +51,7 @@ local function isstopped()
 end
 
 Initialise = Misc.wraperrors(function()
-  adu = AmtrakTwoSpeedAdu:new{
+  adu = NjTransitAnalogAdu:new{
     getbrakesuppression = function()
       return RailWorks.GetControlValue("VirtualBrake", 0) > 0.5
     end,
@@ -265,32 +265,30 @@ local function setspeedometer()
   local aspect = adu:getaspect()
   local sigspeed_mph = adu:getsignalspeed_mph()
   local sig
-  if aspect == AmtrakTwoSpeedAdu.aspect.stop then
+  if aspect == NjTransitAnalogAdu.aspect.stop then
     sig = 8
-  elseif aspect == AmtrakTwoSpeedAdu.aspect.restrict then
+  elseif aspect == NjTransitAnalogAdu.aspect.restrict then
     sig = 7
-  elseif aspect == AmtrakTwoSpeedAdu.aspect.approach then
+  elseif aspect == NjTransitAnalogAdu.aspect.approach then
     sig = 6
-  elseif aspect == AmtrakTwoSpeedAdu.aspect.approachmed then
+  elseif aspect == NjTransitAnalogAdu.aspect.approachmed then
     sig = sigspeed_mph == 45 and 4 or 5
-  elseif aspect == AmtrakTwoSpeedAdu.aspect.cabspeed or aspect ==
-    AmtrakTwoSpeedAdu.aspect.cabspeedoff then
+  elseif aspect == NjTransitAnalogAdu.aspect.cabspeed or aspect ==
+    NjTransitAnalogAdu.aspect.cabspeedoff then
     sig = sigspeed_mph == 60 and 3 or 2
-  elseif aspect == AmtrakTwoSpeedAdu.aspect.clear then
+  elseif aspect == NjTransitAnalogAdu.aspect.clear then
     sig = 1
   else
     sig = 0
   end
   RailWorks.SetControlValue("ACSES_SignalDisplay", 0, sig)
 
-  local alarm = adu:isalarm()
-  local square = adu:getsquareindicator()
-  RailWorks.SetControlValue("ATC_Node", 0, Misc.intbool(
-                              alarm and square ==
-                                AmtrakTwoSpeedAdu.square.signal))
+  local alarm = adu:getalarmsource()
+  RailWorks.SetControlValue("ATC_Node", 0,
+                            Misc.intbool(alarm == NjTransitAnalogAdu.alarm.atc))
   RailWorks.SetControlValue("ATC_CutOut", 0, Misc.intbool(not adu:getatcstate()))
   RailWorks.SetControlValue("ACSES_Node", 0, Misc.intbool(
-                              alarm and square == AmtrakTwoSpeedAdu.square.track))
+                              alarm == NjTransitAnalogAdu.alarm.acses))
   local acseson = adu:getacsesstate()
   RailWorks.SetControlValue("ACSES_CutIn", 0, Misc.intbool(acseson))
   RailWorks.SetControlValue("ACSES_CutOut", 0, Misc.intbool(not acseson))

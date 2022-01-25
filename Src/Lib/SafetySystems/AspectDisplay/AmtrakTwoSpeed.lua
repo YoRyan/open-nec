@@ -23,9 +23,14 @@ P.aspect = {
   clear = 6
 }
 P.square = {none = -1, signal = 0, track = 1}
+P._event = {
+  acsesdowngrade = 1,
+  acsesupgrade = 2,
+  atcdowngrade = 3,
+  atcupgrade = 4
+}
 
 local subsystem = {atc = 1, acses = 2}
-local event = {downgrade = 1, upgrade = 2, atcdowngrade = 3, atcupgrade = 4}
 
 -- Ensure we have inherited the properties of the base class, PiL-style.
 -- We can't run code on initialization in TS, so we do this in :new().
@@ -128,31 +133,31 @@ local function getevent(self)
   local acsesmode = getacsesmode(self)
   if self._lastacsesmode ~= Acses.mode.positivestop and acsesmode ==
     Acses.mode.positivestop then
-    ret = event.downgrade
+    ret = P._event.acsesdowngrade
   elseif self._lastacsesmode == Acses.mode.positivestop and acsesmode ~=
     Acses.mode.positivestop then
-    ret = event.upgrade
+    ret = P._event.acsesupgrade
   end
 
   local acsesspeed_mps = getacsesspeed_mps(self)
   if self._lastacsesspeed_mps == nil and acsesspeed_mps ~= nil then
-    ret = event.upgrade
+    ret = P._event.acsesupgrade
   elseif self._lastacsesspeed_mps ~= nil and acsesspeed_mps ~= nil then
     if self._lastacsesspeed_mps < acsesspeed_mps then
-      ret = event.upgrade
+      ret = P._event.acsesupgrade
     elseif self._lastacsesspeed_mps > acsesspeed_mps then
-      ret = event.downgrade
+      ret = P._event.acsesdowngrade
     end
   end
 
   local atcspeed_mps = getatcspeed_mps(self)
   if self._lastatcspeed_mps == nil and atcspeed_mps ~= nil then
-    ret = event.atcupgrade
+    ret = P._event.atcupgrade
   elseif self._lastatcspeed_mps ~= nil and atcspeed_mps ~= nil then
     if self._lastatcspeed_mps < atcspeed_mps then
-      ret = event.atcupgrade
+      ret = P._event.atcupgrade
     elseif self._lastatcspeed_mps > atcspeed_mps then
-      ret = event.atcdowngrade
+      ret = P._event.atcdowngrade
     end
   end
 
@@ -174,10 +179,13 @@ function P:update(dt)
   -- Read the current speed limits. Play tone for any speed increase alerts. Set
   -- the signal limit flashers if needed.
   local evt = getevent(self)
-  if evt == event.upgrade or evt == event.atcupgrade then self._alert:trigger() end
-  if (evt == event.atcupgrade or evt == event.atcdowngrade) and
+  if evt == P._event.acsesupgrade or evt == P._event.atcupgrade then
+    self._alert:trigger()
+  end
+  if (evt == P._event.atcupgrade or evt == P._event.atcdowngrade) and
     not self:_canshowpulsecode(pulsecode) then self._showsigspeed:trigger() end
   self._sigspeedflasher:setflashstate(getflashsigspeed(self))
+  if evt ~= nil then self:_enforceevent(evt) end -- used by subclasses
 
   -- Read the engineer's controls. Initiate enforcement actions and look for
   -- acknowledgement presses.
@@ -195,7 +203,8 @@ function P:update(dt)
   local overspeed = atcoverspeed or acsesoverspeed
   local overspeedelapsed =
     self._overspeed_s ~= nil and now - self._overspeed_s > self._alertwarning_s
-  local downgrade = evt == event.atcdowngrade or evt == event.downgrade
+  local downgrade = evt == P._event.atcdowngrade or evt ==
+                      P._event.acsesdowngrade
   if self._penalty == subsystem.atc then
     -- ATC requires a complete stop.
     local penalty = aspeed_mps > Misc.stopped_mps or not acknowledge
@@ -232,6 +241,9 @@ function P:update(dt)
     self._penalty = nil
   end
 end
+
+-- Handle a speed upgrade or downgrade event. Useful for subclasses.
+function P:_enforceevent(event) end
 
 -- True if the ADU model is capable of displaying the supplied cab signal pulse
 -- code.
