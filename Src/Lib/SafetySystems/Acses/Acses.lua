@@ -400,13 +400,14 @@ end
 
 -- Returns the current enforcing state.
 function P:getmode()
-  local isstop = self._inforceid ~= nil and self._inforceid[1] ==
-                   P._hazardtype.stopsignal
-  if isstop and self._hazardstate[self._inforceid].violated then
-    return P.mode.positivestop
-  else
-    return P.mode.normal
+  if self:isrunning() then
+    local isstop = self._inforceid ~= nil and self._inforceid[1] ==
+                     P._hazardtype.stopsignal
+    if isstop and self._hazardstate[self._inforceid].violated then
+      return P.mode.positivestop
+    end
   end
+  return P.mode.normal
 end
 
 return P
