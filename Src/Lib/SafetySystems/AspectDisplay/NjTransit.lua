@@ -53,6 +53,7 @@ function P:new(conf)
   o._lastatcspeed_mps = nil
   o._lastacsesspeed_mps = nil
   o._lastclear = nil
+  o._lastdowngrade = nil
   setmetatable(o, self)
   self.__index = self
   return o
@@ -222,6 +223,21 @@ function P:update(dt)
     self._acknowledged = false
     self._penalty = nil
   end
+
+  -- In the event of a downgrade, save the reason for retrieval by
+  -- getatcenforcing() and getacsesenforcing().
+  if not self:isalarm() then
+    -- If the alarm has ceased, clear the saved reason. The cause of the next
+    -- alarm will not necessarily be a downgrade.
+    self._lastdowngrade = nil
+  elseif self._lastdowngrade == nil then
+    -- Don't override an alarm that is still sounding.
+    if evt == event.acsesdowngrade then
+      self._lastdowngrade = subsystem.acses
+    elseif evt == event.atcdowngrade then
+      self._lastdowngrade = subsystem.atc
+    end
+  end
 end
 
 -- Set the current ATC enforcement status.
@@ -292,12 +308,16 @@ end
 
 -- Get the current state of the ATC indicator light.
 function P:getatcenforcing()
-  return self:isalarm() and getenforcingsubsystem(self) == subsystem.atc
+  local atcinforce = getenforcingsubsystem(self) == subsystem.atc
+  return self:isalarm() and (self._lastdowngrade == subsystem.atc or
+           (self._lastdowngrade == nil and atcinforce))
 end
 
 -- Get the current state of the ACSES indicator light.
 function P:getacsesenforcing()
-  return self:isalarm() and getenforcingsubsystem(self) == subsystem.acses
+  local acsesinforce = getenforcingsubsystem(self) == subsystem.acses
+  return self:isalarm() and (self._lastdowngrade == subsystem.acses or
+           (self._lastdowngrade == nil and acsesinforce))
 end
 
 -- Get the current state of the ATC system.

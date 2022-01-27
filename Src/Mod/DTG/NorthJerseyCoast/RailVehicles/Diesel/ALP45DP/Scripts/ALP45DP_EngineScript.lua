@@ -283,12 +283,10 @@ local function setspeedometer()
   end
   RailWorks.SetControlValue("ACSES_SignalDisplay", 0, sig)
 
-  local alarm = adu:getalarmsource()
-  RailWorks.SetControlValue("ATC_Node", 0,
-                            Misc.intbool(alarm == NjTransitAnalogAdu.alarm.atc))
+  RailWorks.SetControlValue("ATC_Node", 0, Misc.intbool(adu:getatcenforcing()))
   RailWorks.SetControlValue("ATC_CutOut", 0, Misc.intbool(not adu:getatcstate()))
-  RailWorks.SetControlValue("ACSES_Node", 0, Misc.intbool(
-                              alarm == NjTransitAnalogAdu.alarm.acses))
+  RailWorks.SetControlValue("ACSES_Node", 0,
+                            Misc.intbool(adu:getacsesenforcing()))
   local acseson = adu:getacsesstate()
   RailWorks.SetControlValue("ACSES_CutIn", 0, Misc.intbool(acseson))
   RailWorks.SetControlValue("ACSES_CutOut", 0, Misc.intbool(not acseson))

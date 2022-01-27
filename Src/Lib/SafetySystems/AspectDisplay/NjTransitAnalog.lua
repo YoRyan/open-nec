@@ -6,7 +6,8 @@ local P = {}
 NjTransitAnalogAdu = P
 
 P.aspect = AmtrakTwoSpeedAdu.aspect
-P.alarm = {atc = 1, acses = 2}
+
+local downgrade = {atc = 1, acses = 2}
 
 -- Ensure we have inherited the properties of the base class, PiL-style.
 -- We can't run code on initialization in TS, so we do this in :new().
@@ -22,7 +23,7 @@ function P:new(conf)
   inherit(AmtrakTwoSpeedAdu)
   local o = AmtrakTwoSpeedAdu:new(conf)
   setmetatable(o, self)
-  o._downgrade = nil
+  o._lastdowngrade = nil
   self.__index = self
   return o
 end
@@ -36,38 +37,40 @@ function P:update(dt)
   if not self:isalarm() then
     -- Clear the saved event. The cause of the next alarm will not necessarily be
     -- a downgrade.
-    self._downgrade = nil
+    self._lastdowngrade = nil
   end
 end
 
--- Store the speed change event for retrieval by getalarmsource().
+-- Store the speed change event for retrieval by getatcenforcing() and
+-- getacsesenforcing().
 function P:_enforceevent(event)
-  -- We're only interested in saving downgrade events.
-  local isdowngrade =
-    event == AmtrakTwoSpeedAdu._event.acsesdowngrade or event ==
-      AmtrakTwoSpeedAdu._event.atcdowngrade
-  if isdowngrade and self._downgrade == nil then
-    -- Don't override an alarm that is still sounding.
-    self._downgrade = event
+  -- Don't override an alarm that is still sounding.
+  if self._lastdowngrade == nil then
+    if event == AmtrakTwoSpeedAdu._event.acsesdowngrade then
+      self._lastdowngrade = downgrade.acses
+    elseif event == AmtrakTwoSpeedAdu._event.atcdowngrade then
+      self._lastdowngrade = downgrade.atc
+    end
   end
 end
 
 -- On the ALP-45DP, we can show all the aspects we need.
 function P:_canshowpulsecode(pulsecode) return true end
 
--- If the alarm is sounding, return the source of the alarm. Otherwise, return nil.
-function P:getalarmsource()
-  if self:isalarm() then
-    if self._downgrade == AmtrakTwoSpeedAdu._event.acsesdowngrade then
-      return P.alarm.acses
-    elseif self._downgrade == AmtrakTwoSpeedAdu._event.atcdowngrade then
-      return P.alarm.atc
-    else
-      local isatc = self:getsquareindicator() == AmtrakTwoSpeedAdu.square.signal
-      return isatc and P.alarm.atc or P.alarm.acses
-    end
-  end
-  return nil
+-- Get the current state of the ATC indicator light.
+function P:getatcenforcing()
+  local atcinforce = self:getsquareindicator() ==
+                       AmtrakTwoSpeedAdu.square.signal
+  return self:isalarm() and (self._lastdowngrade == downgrade.atc or
+           (self._lastdowngrade == nil and atcinforce))
+end
+
+-- Get the current state of the ACSES indicator light.
+function P:getacsesenforcing()
+  local acsesinforce = self:getsquareindicator() ==
+                         AmtrakTwoSpeedAdu.square.track
+  return self:isalarm() and (self._lastdowngrade == downgrade.acses or
+           (self._lastdowngrade == nil and acsesinforce))
 end
 
 return P
