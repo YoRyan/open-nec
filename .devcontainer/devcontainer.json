@@ -1,4 +1,5 @@
 {
+	"name": "MkDocs",
 	"build": {
 		"dockerfile": "Dockerfile"
 	},
