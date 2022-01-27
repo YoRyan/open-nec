@@ -121,7 +121,8 @@ local function writelocostate()
   local dynbrake = speed_mph >= 10 and airbrake * 0.3 or 0
   RailWorks.SetControlValue("DynamicBrake", 0, dynbrake)
 
-  RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(adu:isalarm()))
+  RailWorks.SetControlValue("AWSWarnCount", 0,
+                            Misc.intbool(alerter:isalarm() or adu:isalarm()))
   RailWorks.SetControlValue("SpeedIncreaseAlert", 0,
                             Misc.intbool(adu:isalertplaying()))
 end
