@@ -266,10 +266,10 @@ Update = Misc.wraperrors(function(dt)
 end)
 
 OnControlValueChange = Misc.wraperrors(function(name, index, value)
-  if name == "PantoOn" and value == 1 then
-    RailWorks.SetControlValue("PantographControl", 0, 1)
-    RailWorks.SetControlValue("PantoOn", 0, 0)
-    return
+  if name == "PantoOn" then
+    RailWorks.SetControlValue("PantographControl", 0, value)
+  elseif name == "PantographControl" then
+    RailWorks.SetControlValue("PantoOn", 0, value)
   end
 
   if name == "VirtualThrottle" or name == "VirtualBrake" then
