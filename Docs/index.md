@@ -70,6 +70,9 @@ The current stable release is Open NEC version **1.0.0**.
     - Added a destination sign for New Carrollton, which Acela stopped at during its first few years of service.
 - EMD GP40PH-2B:
     - Changed strobe light pattern to be more prototypical.
+- GE Arrow III:
+    - Restored ability to lower the pantograph using the cab control.
+    - AI trains now turn on their bright headlights.
 - Amtrak locomotives:
     - Changed ditch lights to flash at a prototypical frequency.
 - NJ Transit locomotives:
