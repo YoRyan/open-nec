@@ -55,7 +55,7 @@ Open NEC enables all safety systems by default, which must be responded to, even
 
 The current stable release is Open NEC version **1.0.0**.
 
-#### v1.0.0 (January 21, 2022)
+#### v1.0.0 (January 27, 2022)
 
 - Support for the Metro-North M8.
     - Includes a notched master controller and, when used with Fan Railer's physics mod, blended braking.
