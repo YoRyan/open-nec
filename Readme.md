@@ -10,7 +10,7 @@ Find out more about Open NEC on the project [website](https://opennec.trinancrat
 
 ## Current status
 
-Currently, the mod includes enhancements for each these locomotives:
+Currently, the mod includes enhancements for each of these locomotives:
 
 - [Amtrak EMD AEM-7](https://store.steampowered.com/app/65232/Train_Simulator_Northeast_Corridor_New_York__Philadelphia_Route_AddOn/)
 - [Amtrak Acela Express](https://store.steampowered.com/app/65231/Train_Simulator_Amtrak_Acela_Express_EMU_AddOn/)
