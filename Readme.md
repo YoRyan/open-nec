@@ -2,7 +2,7 @@
 
 # Open Northeast Corridor Project
 
-The Open NEC Project is a free and open-source Train Simulator 20xx mod that encompasses present-day Northeast Corridor (Washington, D.C. to Boston) content for the game. The mod modifies the behavior of each locomotive’s cab signaling and safety systems to behave much more realistically, and to work across all Northeast Corridor routes, while also providing some small bug fixes, extra features, and quality of life improvements.
+The Open NEC Project is a free and open-source Train Simulator 20xx mod that encompasses present-day Northeast Corridor (Washington, D.C. to Boston) content released for the game. The mod modifies the behavior of each locomotive’s cab signaling and safety systems to behave much more realistically, and to work across all Northeast Corridor routes, while also providing some small bug fixes, extra features, and quality of life improvements.
 
 Combined with Dovetail Games’ assets, the result is the ultimate Amtrak, NJ Transit, and Metro-North driving experience for Train Simulator—and best of all, because the mod is open-source, if you see something that isn’t right, you can change it yourself!
 
