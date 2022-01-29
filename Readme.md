@@ -2,13 +2,15 @@
 
 # Open Northeast Corridor Project
 
-The Open NEC Project is a massive systems overhaul mod for Northeast Corridor content for Train Simulator 20xx, in the style of the flight simulation community's [A32NX Project](https://github.com/flybywiresim/a32nx). The objectives are to fix the control bugs, permit every locomotive to run on every route, and create as realistic an experience as possible.
+The Open NEC Project is a free and open-source Train Simulator 20xx mod that encompasses present-day Northeast Corridor (Washington, D.C. to Boston) content for the game. The mod modifies the behavior of each locomotive’s cab signaling and safety systems to behave much more realistically, and to work across all Northeast Corridor routes, while also providing some small bug fixes, extra features, and quality of life improvements.
 
-Currently, the project enhances most of the Northeast Corridor locomotives available for Train Simulator, adding complete Automatic Train Control (ATC) and Advanced Civil Speed Enforcement System (ACSES) safety system implementations that work across all Northeast Corridor routes. It also includes some minor extra features and quality of life improvements.
+Combined with Dovetail Games’ assets, the result is the ultimate Amtrak, NJ Transit, and Metro-North driving experience for Train Simulator—and best of all, because the mod is open-source, if you see something that isn’t right, you can change it yourself!
+
+Find out more about Open NEC on the project [website](https://opennec.trinancrat.me), which contains extensive information on how to install, use, and contribute to the project.
 
 ## Current status
 
-The following locomotives have been successfully overhauled:
+Currently, the mod includes enhancements for each these locomotives:
 
 - [Amtrak EMD AEM-7](https://store.steampowered.com/app/65232/Train_Simulator_Northeast_Corridor_New_York__Philadelphia_Route_AddOn/)
 - [Amtrak Acela Express](https://store.steampowered.com/app/65231/Train_Simulator_Amtrak_Acela_Express_EMU_AddOn/)
@@ -27,7 +29,7 @@ The following locomotives have been successfully overhauled:
 - [Metro-North GE P32AC-DM](https://store.steampowered.com/app/258655/Train_Simulator_MetroNorth_P32_ACDM_Genesis_Loco_AddOn/)
 - [Metro-North Kawasaki M8](https://store.steampowered.com/app/258647/Train_Simulator_MetroNorth_Kawasaki_M8_EMU_AddOn/)
 
-These locomotives have been made compatible with the signaling systems of the following routes:
+And provides full compatibility for each of these routes:
 
 - [Northeast Corridor: New York - Philadelphia](https://store.steampowered.com/app/65232/Train_Simulator_Northeast_Corridor_New_York__Philadelphia_Route_AddOn/)
 - [NEC: New York - New Haven](https://store.steampowered.com/app/258643/Train_Simulator_NEC_New_YorkNew_Haven_Route_AddOn/)
@@ -39,10 +41,6 @@ These locomotives have been made compatible with the signaling systems of the fo
 ## Downloads
 
 Releases are available at the [Releases](https://github.com/YoRyan/open-nec/releases) page.
-
-## Documentation
-
-Please refer to the project [website](https://opennec.trinancrat.me). It contains extensive information on how to install, use, and contribute to the project.
 
 ## Legal
 
