@@ -24,7 +24,9 @@ local spark
 local lasthorntime_s = nil
 
 local function issuppression()
-  return RailWorks.GetControlValue("VirtualBrake", 0) > 0.6
+  local isenhancedpack = RailWorks.ControlExists("TAPRBYL", 0)
+  return RailWorks.GetControlValue("VirtualBrake", 0) >=
+           (isenhancedpack and 0.4 or 0.6)
 end
 
 Initialise = Misc.wraperrors(function()
