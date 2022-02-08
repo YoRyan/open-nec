@@ -11,7 +11,7 @@ function P:new(conf)
     _anim = conf.animation,
     _cycle_s = conf.cycle_s or 1,
     _increase = true,
-    _lastcycle = now
+    _lastcycle = RailWorks.GetSimulationTime()
   }
   setmetatable(o, self)
   self.__index = self
