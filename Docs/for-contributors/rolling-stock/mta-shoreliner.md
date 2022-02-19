@@ -40,6 +40,10 @@ The throttle lever. Ranges from 0 to 1, with 8 detents.
 
 The true throttle state, which is transmitted to helper units. Ranges from 0 to 1.
 
+#### DynamicBrake
+
+The true dynamic brake position used by the physics model. Ranges from 0 to 1.
+
 #### Horn
 
 The horn plunger.
@@ -121,15 +125,27 @@ Illuminates the exclamation mark icon on the HUD.
 
 Plays a continuous beep-beep warning sound.
 
+#### SpeedReductionAlert
+
+Plays a single electronic warning chrip.
+
+#### SpeedIncreaseAlert
+
+Plays a short electronic upgrade chirp.
+
 ### Keyboard shortcuts
 
 #### ATCCutIn
 
 The Ctrl+D ATC cut in toggle. Defaults to 1 (cut in).
 
-### ACSESCutIn
+#### ACSESCutIn
 
 The Ctrl+F ACSES cut in toggle. Defaults to 1 (cut in).
+
+#### CabLight
+
+The L cab dome light toggle.
 
 #### ExpertPowerMode
 

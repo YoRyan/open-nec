@@ -3,6 +3,7 @@
 -- We assume it is not possible to display 100, 125, or 150 mph signal speeds,
 -- so we will use the track speed limit display to present them.
 --
+-- @include Flash.lua
 -- @include Misc.lua
 -- @include RailWorks.lua
 -- @include RollingStock/Tone.lua
