@@ -302,22 +302,22 @@ function P:isalertplaying() return self._alert:isplaying() end
 -- Get the currently displayed cab signal aspect.
 function P:getaspect()
   local acsesmode = getacsesmode(self)
-  local atccode = getpulsecode(self)
+  local pulsecode = getpulsecode(self)
   if acsesmode == Acses.mode.positivestop then
     return P.aspect.stop
-  elseif acsesmode == Acses.mode.approachmed30 or atccode ==
+  elseif pulsecode == Nec.pulsecode.approachmed30 or pulsecode ==
     Nec.pulsecode.approachmed then
     return P.aspect.approachmed
-  elseif atccode == Nec.pulsecode.restrict then
+  elseif pulsecode == Nec.pulsecode.restrict then
     return P.aspect.restrict
-  elseif atccode == Nec.pulsecode.approach then
+  elseif pulsecode == Nec.pulsecode.approach then
     return P.aspect.approach
-  elseif atccode == Nec.pulsecode.cabspeed60 or atccode ==
+  elseif pulsecode == Nec.pulsecode.cabspeed60 or pulsecode ==
     Nec.pulsecode.cabspeed80 then
     local cson = self._csflasher:ison()
     return cson and P.aspect.cabspeed or P.aspect.cabspeedoff
-  elseif atccode == Nec.pulsecode.clear100 or atccode == Nec.pulsecode.clear125 or
-    atccode == Nec.pulsecode.clear150 then
+  elseif pulsecode == Nec.pulsecode.clear100 or pulsecode ==
+    Nec.pulsecode.clear125 or pulsecode == Nec.pulsecode.clear150 then
     return P.aspect.clear
   else
     return nil
@@ -329,20 +329,19 @@ end
 -- using the civil speed limit display.
 function P:getsignalspeed_mph()
   local acsesmode = getacsesmode(self)
-  local atccode = getpulsecode(self)
+  local pulsecode = getpulsecode(self)
   if acsesmode == Acses.mode.positivestop then
     return 0
-  elseif acsesmode == Acses.mode.approachmed30 then
-    return 30
-  elseif atccode == Nec.pulsecode.restrict then
+  elseif pulsecode == Nec.pulsecode.restrict then
     return 20
-  elseif atccode == Nec.pulsecode.approach then
+  elseif pulsecode == Nec.pulsecode.approach or pulsecode ==
+    Nec.pulsecode.approachmed30 then
     return 30
-  elseif atccode == Nec.pulsecode.approachmed then
+  elseif pulsecode == Nec.pulsecode.approachmed then
     return 45
-  elseif atccode == Nec.pulsecode.cabspeed60 then
+  elseif pulsecode == Nec.pulsecode.cabspeed60 then
     return 60
-  elseif atccode == Nec.pulsecode.cabspeed80 then
+  elseif pulsecode == Nec.pulsecode.cabspeed80 then
     return 80
   else
     return nil
@@ -352,13 +351,13 @@ end
 -- Get the current civil speed limit. Some signal speeds cannot be displayed by
 -- any Dovetail ADU; they are displayed here.
 function P:getcivilspeed_mph()
-  local atccode = getpulsecode(self)
+  local pulsecode = getpulsecode(self)
   local truesigspeed_mph
-  if atccode == Nec.pulsecode.clear100 then
+  if pulsecode == Nec.pulsecode.clear100 then
     truesigspeed_mph = 100
-  elseif atccode == Nec.pulsecode.clear125 then
+  elseif pulsecode == Nec.pulsecode.clear125 then
     truesigspeed_mph = 125
-  elseif atccode == Nec.pulsecode.clear150 then
+  elseif pulsecode == Nec.pulsecode.clear150 then
     truesigspeed_mph = 150
   else
     truesigspeed_mph = nil

@@ -12,7 +12,7 @@
 local P = {}
 Acses = P
 
-P.mode = {normal = 0, approachmed30 = 1, positivestop = 2}
+P.mode = {normal = 0, positivestop = 1}
 P._hazardtype = {currentlimit = 0, advancelimit = 1, stopsignal = 2}
 
 local debuglimits = false
