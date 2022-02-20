@@ -41,6 +41,11 @@ function P:new(conf)
   return o
 end
 
+-- Get pulse code speed.
+function P:_getpulsecodespeed_mps(pulsecode)
+  return CabSignal.mtapulsecodespeed_mps(pulsecode)
+end
+
 -- True if the ADU model is capable of displaying the supplied cab signal pulse
 -- code.
 function P:_canshowpulsecode(pulsecode)

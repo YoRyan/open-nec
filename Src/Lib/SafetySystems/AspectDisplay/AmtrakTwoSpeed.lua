@@ -84,9 +84,14 @@ end
 
 local function getpulsecode(self) return self._cabsig:getpulsecode() end
 
+-- Get pulse code speed. May be overridden by subclasses.
+function P:_getpulsecodespeed_mps(pulsecode)
+  return CabSignal.amtrakpulsecodespeed_mps(pulsecode)
+end
+
 local function getatcspeed_mps(self)
   local pulsecode = getpulsecode(self)
-  return self._atcon and CabSignal.amtrakpulsecodespeed_mps(pulsecode) or nil
+  return self._atcon and self:_getpulsecodespeed_mps(pulsecode) or nil
 end
 
 local function getacsesspeed_mps(self) return self._acses:getcivilspeed_mps() end
