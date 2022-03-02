@@ -2,13 +2,24 @@
 
 ![Cover image](opennec-cover.jpg)
 
-The Open NEC Project is a massive, work-in-progress systems overhaul mod for [Train Simulator 20xx](https://live.dovetailgames.com/live/train-simulator) that encompasses Amtrak's Northeast Corridor locale from Washington, DC to Boston. The mod is planned to include enhancements for all of the Amtrak, NJ Transit, Metro-North, and other equipment that Dovetail Games has released for the Northeast Corridor. It will also include upgrades for the signaling systems of the various routes.
+The Open NEC Project is a free and open-source Train Simulator 20xx mod that encompasses present-day Northeast Corridor (Washington, D.C. to Boston) content released for the game.
 
-To make this all possible, the project provides drop-in replacements for Dovetail's Lua bytecode. With control of the Lua scripting, we have complete control over the behavior of locomotive's systems, as well as the route's signaling system. Thus, we can fix bugs and make dramatic improvements to the gameplay experience.
+As the fastest and busiest rail corridor in the Americas, with trains screaming at speeds up to 150 mph, the Northeast Corridor relies heavily on cab signaling and onboard safety systems to keep an intricate mix of freight, Amtrak, and commuter trains below safe operating speeds. Computers constantly read the current speed, the positions of the controls, the status of the occupying signal block, and the locations of upcoming speed restrictions to determine the maximum safe speed for a given train. If the train's engineer violates that speed, or fails to respond to a change in driving conditions, then the system penalizes them—first with an alarm, and then, eventually, a full application of the service brakes.
 
-Currently, the project enhances most of the Northeast Corridor locomotives available for Train Simulator, adding complete Automatic Train Control (ATC) and Advanced Civil Speed Enforcement System (ACSES) implementations.
+Simply put, if your locomotive isn't beeping at you, sounding alarms, or even occasionally stopping itself on you, then you're not really driving a train on the Northeast Corridor. Unfortunately, when it comes to incorporating these essential and engaging systems into the gameplay of Train Simulator, Dovetail Games has a rather mediocre track record. While their 3D models include the correct displays, the logic that drives the systems themselves—the indicators they present, the sounds they make, the enforcement actions they take—has been consistently incomplete and inaccurate across every Northeast Corridor DLC released.
 
-Locomotives overhauled by the Open NEC project include:
+To be more specific, Dovetail has only partially modeled the corridor's Automatic Train Control (ATC) system, which is responsible for enforcing the maximum signal block speed. With respect to realism, Dovetail's ATC implementation is actually passable, but it often bugs out, leaving the train stuck with cab signals that freeze or brakes that won't release until the player turns ATC off and on again. And because every DLC release is developed and tested separately, every locomotive behaves ever so differently; indeed, the ATC for a given locomotive often doesn't function on other Northeast Corridor segments it wasn't tested on, even though in reality, the entire corridor uses the same set of cab signaling codes. Meanwhile, the Advanced Civil Speed Enforcement System (ACSES), which is responsible for enforcing the permanent track speed, is entirely absent, or only uselessly shows the same speed limit as the game's HUD does.
+
+That's a harsh assessment, but fortunately, things don't have to be this way. By swapping the Lua code in each locomotive for open-source replacements, we can change the safety systems to behave as realistically as possible. Combined with Dovetail's assets, Train Simulator with Open NEC represents the ultimate Northeast Corridor driving experience, and it works with the routes you already own and the scenarios you have already downloaded.
+
+Demonstrations:
+
+- [Video demo #1](https://youtu.be/EFRsUOw1sGo)
+- [Video demo #2](https://youtu.be/MjvzT8cTnnE)
+
+## Current status
+
+Currently, the mod includes enhancements for each of these locomotives:
 
 - [Amtrak EMD AEM-7](https://store.steampowered.com/app/65232/Train_Simulator_Northeast_Corridor_New_York__Philadelphia_Route_AddOn/)
 - [Amtrak Acela Express](https://store.steampowered.com/app/65231/Train_Simulator_Amtrak_Acela_Express_EMU_AddOn/)
@@ -27,10 +38,14 @@ Locomotives overhauled by the Open NEC project include:
 - [Metro-North GE P32AC-DM](https://store.steampowered.com/app/258655/Train_Simulator_MetroNorth_P32_ACDM_Genesis_Loco_AddOn/)
 - [Metro-North Kawasaki M8](https://store.steampowered.com/app/258647/Train_Simulator_MetroNorth_Kawasaki_M8_EMU_AddOn/)
 
-Demonstrations:
+And provides full compatibility for each of these routes:
 
-- [Video demo #1](https://youtu.be/EFRsUOw1sGo)
-- [Video demo #2](https://youtu.be/MjvzT8cTnnE)
+- [Northeast Corridor: New York - Philadelphia](https://store.steampowered.com/app/65232/Train_Simulator_Northeast_Corridor_New_York__Philadelphia_Route_AddOn/)
+- [NEC: New York - New Haven](https://store.steampowered.com/app/258643/Train_Simulator_NEC_New_YorkNew_Haven_Route_AddOn/)
+- [North Jersey Coast Line](https://store.steampowered.com/app/325970/Train_Simulator_North_Jersey_Coast_Line_Route_AddOn/)
+- [North Jersey Coast & Morristown Lines](https://store.steampowered.com/app/500218/Train_Simulator_North_Jersey_Coast__Morristown_Lines_Route_AddOn/)
+- [Hudson Line: New York - Croton-Harmon](https://store.steampowered.com/app/896719/Train_Simulator_Hudson_Line_New_York__CrotonHarmon_Route_AddOn/)
+- [Northeast Corridor: Washington DC - Baltimore](https://store.steampowered.com/app/1429754/Train_Simulator_Northeast_Corridor_Washington_DC__Baltimore_Route_AddOn/)
 
 ## Overview
 
