@@ -209,7 +209,7 @@ function P:update(dt)
   elseif overspeedelapsed then
     self._overspeed_s = self._overspeed_s
     self._acknowledged = false
-    self._penalty = getenforcingsubsystem(self)
+    self._penalty = enforcing
   elseif self._overspeed_s ~= nil then
     local acknowledged = self._acknowledged and (suppressed or not overspeed)
     self._overspeed_s = not acknowledged and self._overspeed_s or nil
@@ -271,27 +271,27 @@ function P:isalertplaying() return self._alert:isplaying() end
 -- Get the currently displayed cab signal aspect.
 function P:getaspect()
   local acsesmode = getacsesmode(self)
-  local atccode = getpulsecode(self)
+  local pulsecode = getpulsecode(self)
   local cson = self._csflasher:ison()
   if acsesmode == Acses.mode.positivestop then
     return P.aspect.stop
-  elseif acsesmode == Acses.mode.approachmed30 then
-    return P.aspect.approachmed30
-  elseif atccode == Nec.pulsecode.restrict then
+  elseif pulsecode == Nec.pulsecode.restrict then
     return P.aspect.restrict
-  elseif atccode == Nec.pulsecode.approach then
+  elseif pulsecode == Nec.pulsecode.approach then
     return P.aspect.approach
-  elseif atccode == Nec.pulsecode.approachmed then
+  elseif pulsecode == Nec.pulsecode.approachmed30 then
+    return P.aspect.approachmed30
+  elseif pulsecode == Nec.pulsecode.approachmed then
     return P.aspect.approachmed45
-  elseif atccode == Nec.pulsecode.cabspeed60 then
+  elseif pulsecode == Nec.pulsecode.cabspeed60 then
     return cson and P.aspect.cabspeed60 or P.aspect.cabspeed60off
-  elseif atccode == Nec.pulsecode.cabspeed80 then
+  elseif pulsecode == Nec.pulsecode.cabspeed80 then
     return cson and P.aspect.cabspeed80 or P.aspect.cabspeed80off
-  elseif atccode == Nec.pulsecode.clear100 then
+  elseif pulsecode == Nec.pulsecode.clear100 then
     return P.aspect.clear100
-  elseif atccode == Nec.pulsecode.clear125 then
+  elseif pulsecode == Nec.pulsecode.clear125 then
     return P.aspect.clear125
-  elseif atccode == Nec.pulsecode.clear150 then
+  elseif pulsecode == Nec.pulsecode.clear150 then
     return P.aspect.clear150
   else
     return nil

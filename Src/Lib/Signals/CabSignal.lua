@@ -12,7 +12,6 @@ local debugsignals = false
 local function initstate(self)
   self._lastsig = {
     pulsecode = Nec.pulsecode.restrict,
-    interlock = Nec.interlock.none,
     territory = Nec.territory.other
   }
 end
@@ -36,9 +35,6 @@ end
 -- Get the current cab signal pulse code.
 function P:getpulsecode() return self._lastsig.pulsecode end
 
--- Get the current ACSES interlocking code.
-function P:getinterlock() return self._lastsig.interlock end
-
 -- Get the current ACSES territory code.
 function P:getterritory() return self._lastsig.territory end
 
@@ -48,6 +44,8 @@ function P.amtrakpulsecodespeed_mps(pulsecode)
   if pulsecode == Nec.pulsecode.restrict then
     return 20 * Units.mph.tomps
   elseif pulsecode == Nec.pulsecode.approach then
+    return 30 * Units.mph.tomps
+  elseif pulsecode == Nec.pulsecode.approachmed30 then
     return 30 * Units.mph.tomps
   elseif pulsecode == Nec.pulsecode.approachmed then
     return 45 * Units.mph.tomps

@@ -44,8 +44,8 @@ Initialise = Misc.wraperrors(function()
   local iselectric = string.sub(RailWorks.GetRVNumber(), 1, 1) == "T"
   power = PowerSupply:new{
     modecontrol = "PowerMode",
-    -- The power mode control is reversed in DTG's cab car; compensate for this
-    -- (while sacrificing P32-to-P32 MU capability).
+    -- The power mode control is reversed in the Shoreliner cab car; compensate
+    -- for this (while sacrificing P32-to-P32 MU capability).
     modereadfn = function(v)
       local ishelper = not RailWorks.GetIsEngineWithKey() and
                          RailWorks.GetIsPlayer()
