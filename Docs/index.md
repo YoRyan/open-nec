@@ -52,7 +52,6 @@ And provides full compatibility for each of these routes:
 
 This website is divided into several sections. In the [Get the mod](installation) chapter, you can find information on obtaining and installing the mod and when you can expect the next release. In the [For players](for-players) chapter, you can learn how to navigate the newly improved Northeast Corridor with your newly upgraded equipment. In the [For contributors](for-contributors) chapter, developers can find information on how to contribute to the project, as well as technical documentation on Dovetail's content.
 
-
 ## FAQ
 
 ##### Does this mod include any route or model improvements?
