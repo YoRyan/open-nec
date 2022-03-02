@@ -2,11 +2,13 @@
 
 Releases are periodically made and are available at the Open NEC Project's [GitHub page](https://github.com/YoRyan/open-nec/releases). Please be sure to browse the release notes and peruse this manual to understand exactly what you are installing.
 
-To install one of the Zip files, copy of the contents of the Assets\ subfolder into your own Train Simulator Assets\ folder. This is a large mod, with many modifications, so some users may wish to audit the contents of the package and install only the files they need. [Below](#package-contents) is a listing of the mod's contents.
+To install one of the Zip files, copy of the contents of the Assets\ subfolder into your own Train Simulator Assets\ folder. This is a large mod, with many modifications, so power users may wish to audit the contents of the package and install only the files they need. [Below](#package-contents) is a listing of the mod's contents.
 
 ### Compatibility
 
-I've endeavoured to maintain compatibility with Fan Railer's physics and sound mods, since they are freely available. In general, for the mods to work together, Open NEC must be installed last. For specific information, see the notes pages for a particular rolling stock or route.
+You can use Open NEC with other mods, but it should always be the *last* mod you install. This is because some other Train Simulator mods also provide their own Lua code replacements, and these conflict with Open NEC's. Open NEC strives to be compatible with as many mods as possible; it is already tested with Fan Railer's physics and sound mods. If you encounter a compatibility issue with another mod, please file a bug report!
+
+For more specific information, see the notes pages for a particular rolling stock or route.
 
 ### Package contents
 
