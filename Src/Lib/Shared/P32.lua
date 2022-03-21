@@ -96,7 +96,7 @@ local function readcontrols()
   end
 end
 
-local function writelocostate()
+local function setplayercontrols()
   local penalty = alerter:ispenalty() or adu:ispenalty()
   local haspower = power:haspower()
   local throttle = (penalty or not haspower) and 0 or
@@ -271,7 +271,7 @@ local function updateplayer(dt)
   power:update(dt)
   blight:playerupdate(dt)
 
-  writelocostate()
+  setplayercontrols()
   setcutin()
   setadu()
   setdisplay()

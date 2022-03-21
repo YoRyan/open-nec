@@ -87,7 +87,7 @@ local function readcontrols()
   end
 end
 
-local function writelocostate()
+local function setplayercontrols()
   local penalty = adu:ispenalty() or alerter:ispenalty()
   RailWorks.SetControlValue("Regulator", 0,
                             RailWorks.GetControlValue("VirtualThrottle", 0))
@@ -271,7 +271,7 @@ local function updateplayer(dt)
   blight:playerupdate(dt)
   doors:update()
 
-  writelocostate()
+  setplayercontrols()
   setadu()
   setcutin()
   setexhaust(dt)

@@ -61,7 +61,7 @@ Initialise = Misc.wraperrors(function()
   RailWorks.BeginUpdate()
 end)
 
-local function writelocostate()
+local function setplayercontrols()
   local penalty = alerter:ispenalty() or adu:ispenalty()
   local mcontroller = RailWorks.GetControlValue("VirtualThrottle", 0)
   local throttle, reverser
@@ -228,7 +228,7 @@ local function updateplayer(dt)
   blight:playerupdate(dt)
   pantoanim:update(dt)
 
-  writelocostate()
+  setplayercontrols()
   setpanto()
   setadu()
   setcutin()

@@ -95,7 +95,7 @@ Initialise = Misc.wraperrors(function()
   RailWorks.BeginUpdate()
 end)
 
-local function writelocostate()
+local function setplayercontrols()
   local penalty = alerter:ispenalty() or adu:ispenalty()
   local haspower = power:haspower()
   local throttle = (penalty or not haspower) and 0 or
@@ -270,7 +270,7 @@ local function updateplayer(dt)
   rearpantoanim:update(dt)
   doors:update(dt)
 
-  writelocostate()
+  setplayercontrols()
   setpanto()
   setspeedometer()
   setcutin()

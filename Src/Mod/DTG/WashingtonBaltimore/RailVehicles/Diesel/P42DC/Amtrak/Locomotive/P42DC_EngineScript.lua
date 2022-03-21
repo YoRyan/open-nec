@@ -65,7 +65,7 @@ local function readcontrols()
   end
 end
 
-local function writelocostate()
+local function setplayercontrols()
   local penalty = alerter:ispenalty() or adu:ispenalty()
   -- There's no virtual throttle, so just move the combined power handle.
   if penalty then RailWorks.SetControlValue("ThrottleAndBrake", 0, 0.5) end
@@ -232,7 +232,7 @@ local function updateplayer(dt)
   alerter:update(dt)
   blight:playerupdate(dt)
 
-  writelocostate()
+  setplayercontrols()
   setcutin()
   setdynamicbraketab()
   setadu()

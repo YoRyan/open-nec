@@ -82,7 +82,7 @@ local function readcontrols()
   end
 end
 
-local function writelocostate()
+local function setplayercontrols()
   local penalty = alerter:ispenalty() or adu:ispenalty()
 
   local throttle, dynbrake
@@ -339,7 +339,7 @@ local function updateplayer(dt)
   power:update(dt)
   blight:playerupdate(dt)
 
-  writelocostate()
+  setplayercontrols()
   setpantosparks()
   setscreen()
   setcutin()

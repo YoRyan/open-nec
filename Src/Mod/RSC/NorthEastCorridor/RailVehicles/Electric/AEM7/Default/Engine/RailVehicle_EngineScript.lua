@@ -64,7 +64,7 @@ Initialise = Misc.wraperrors(function()
   RailWorks.BeginUpdate()
 end)
 
-local function writelocostate()
+local function setplayercontrols()
   local penalty = alerter:ispenalty() or adu:ispenalty()
 
   local nopower = penalty or not power:haspower()
@@ -168,7 +168,7 @@ Update = Misc.wraperrors(function(dt)
   power:update(dt)
   blight:playerupdate(dt)
 
-  writelocostate()
+  setplayercontrols()
   setadu()
   setcablight()
   setcutin()

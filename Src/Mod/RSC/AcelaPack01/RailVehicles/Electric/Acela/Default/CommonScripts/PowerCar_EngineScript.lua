@@ -139,7 +139,7 @@ Initialise = Misc.wraperrors(function()
   RailWorks.BeginUpdate()
 end)
 
-local function writelocostate()
+local function setplayercontrols()
   local penalty = alerter:ispenalty() or adu:ispenalty()
 
   local throttle
@@ -394,7 +394,7 @@ local function updateplayer(dt)
   coneanim:update(dt)
   destscroller:update(dt)
 
-  writelocostate()
+  setplayercontrols()
   setplayerpantos()
   setpantosparks()
   settilt()

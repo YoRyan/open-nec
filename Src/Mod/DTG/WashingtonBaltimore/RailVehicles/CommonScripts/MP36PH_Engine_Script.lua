@@ -51,7 +51,7 @@ Initialise = Misc.wraperrors(function()
   RailWorks.BeginUpdate()
 end)
 
-local function writelocostate()
+local function setplayercontrols()
   local penalty = alerter:ispenalty() or adu:ispenalty()
 
   local throttle, dynbrake
@@ -228,7 +228,7 @@ local function updateplayer(dt)
   hep:update(dt)
   blight:playerupdate(dt)
 
-  writelocostate()
+  setplayercontrols()
   setspeedometer()
   setcutin()
   setadu()
