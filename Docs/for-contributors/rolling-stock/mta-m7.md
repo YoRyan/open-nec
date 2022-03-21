@@ -28,8 +28,6 @@ The horn plunger, which activates the horn.
 
 ### Control desk
 
-### Control desk
-
 #### AWSReset
 
 The safety systems acknowledge button.

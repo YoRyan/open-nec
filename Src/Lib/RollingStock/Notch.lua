@@ -21,7 +21,7 @@ end
 
 -- Update this system once every frame.
 function P:update(dt)
-  if self._framecount >= 15 then
+  if self._framecount >= 30 then
     self._framecount = 0
 
     local maxslew = 0.25 / dt
