@@ -38,26 +38,27 @@ Other useful WAF commands include:
 
 - [Lua 5.0 Reference Manual](https://www.lua.org/manual/5.0/manual.html)
 - [Programming in Lua, First Edition](https://www.lua.org/pil/contents.html)
+- [Train Simulator Developer Documentation](https://sites.google.com/a/railsimdev.com/dtgts1sdk/reference-manual) (sadly, incomplete)
+- [David Richardson's TS scripting reference](https://rail-sim.de/forum/lexicon/entry/104-lua-script-referenzen/)
 - [AndiS's guide to signal messages](https://forums.uktrainsim.com/viewtopic.php?f=359&t=129485)
 - [AndiS's guide to AI train behavior](https://www.trainsimdev.com/forum/viewtopic.php?p=509)
 
 The following tools are not needed to compile project, but they may assist you in development work:
 
 - [unluac](https://sourceforge.net/projects/unluac) can be used to decompile and study (to varying degrees of success) Dovetail's Lua bytecode.
-- [MkDocs](https://www.mkdocs.org/) is used to build and maintain this manual's Markdown text.
 - My [Rail Sim Remote](https://github.com/yoryan/railsim-remote) program exposes Train Simulator's RailDriver interface via a REST API. You can use this in conjunction with cURL or a browser developer console to experiment with a locomotive's controls.
-- If you have Discord, join the Train Simulator community for modding tips, street cred, and comradery.
-
-## Coding style
-
-- Please follow the standard Lua style. That means 2-space indents.
-- Dovetail's programmers don't take full advantage of the language's features, so don't use their source files as a reference.
-- Write packages using PiL's suggested "privacy" [style](https://www.lua.org/pil/15.2.html), and classes using PiL's suggested "basic" [style](https://www.lua.org/pil/16.1.html). You should also check out Dovetail's own [Train Simulator SDK](https://sites.google.com/a/railsimdev.com/dtgts1sdk/reference-manual) docs—even if they are, unfortunately, incomplete.
-- I use coroutines to keep the modeling of many independent subsystems down to a manageable level of complexity. They work perfectly in Train Simulator, with the exception of `Call()` and `SysCall()`, which only work from the main coroutine. I've created the `Scheduler` package to centralize the management of coroutines. Please do learn to use it, especially its `:select()` method.
-- Lua places heavy emphasis on tables and their `pairs()` and `ipairs()` iterators. I've created the `Iterator` package to introduce useful transformations and compositions for such key-value iterators.
+- Build the website with MkDocs using the included Visual Studio Code [development container](https://code.visualstudio.com/docs/remote/containers). Or, [install](https://www.mkdocs.org/) MkDocs directly.
+- If you have Discord, join the [Train Sim Community server](https://discord.trainsimcommunity.com/) for modding tips, street cred, and comradery.
 
 ## Reference material
 
 - [NORAC signal rules](https://signals.jovet.net/rules/NORAC%20Signal%20Rules.pdf)
 - [cActUsjUiCe's guide to the Northeast Corridor](https://forums.dovetailgames.com/threads/nec-ny-signal-tutorials.4174/)
-- [cActUsjUiCe's critique of Train Sim World](https://forums.dovetailgames.com/threads/nec-new-york-signals-atc-acses-and-how-to-fix-them.4057/)
+- [cActUsjUiCe's critique of Train Sim World's Northeast Corridor New York DLC](https://forums.dovetailgames.com/threads/nec-new-york-signals-atc-acses-and-how-to-fix-them.4057/)
+
+## Coding style
+
+- Please follow the standard Lua style. That means 2-space indents.
+- Dovetail's programmers don't take full advantage of the language's features, so don't use their source files as a reference.
+- Write packages using PiL's suggested "privacy" [style](https://www.lua.org/pil/15.2.html), and classes using PiL's suggested "basic" [style](https://www.lua.org/pil/16.1.html).
+- Lua places heavy emphasis on tables and their `pairs()` and `ipairs()` iterators. I've created the `Iterator` package to introduce useful transformations and compositions for such key-value iterators.
