@@ -69,8 +69,20 @@ end
 function P.mtapulsecodespeed_mps(pulsecode)
   if pulsecode == Nec.pulsecode.restrict then
     return 15 * Units.mph.tomps
+  elseif pulsecode == Nec.pulsecode.approach then
+    return 30 * Units.mph.tomps
+  elseif pulsecode == Nec.pulsecode.approachmed30 then
+    return 30 * Units.mph.tomps
+  elseif pulsecode == Nec.pulsecode.approachmed then
+    return 45 * Units.mph.tomps
+  elseif pulsecode == Nec.pulsecode.cabspeed60 then
+    return 60 * Units.mph.tomps
+  elseif pulsecode == Nec.pulsecode.cabspeed80 or pulsecode ==
+    Nec.pulsecode.clear100 or pulsecode == Nec.pulsecode.clear125 or pulsecode ==
+    Nec.pulsecode.clear150 then
+    return 80 * Units.mph.tomps
   else
-    return P.amtrakpulsecodespeed_mps(pulsecode)
+    return nil
   end
 end
 

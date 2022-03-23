@@ -30,7 +30,6 @@ function P:new(conf)
     cabsignal = o._cabsig,
     getbrakesuppression = conf.getbrakesuppression,
     getacknowledge = conf.getacknowledge,
-    consistspeed_mps = conf.consistspeed_mps,
     alertlimit_mps = o._alertlimit_mps,
     penaltylimit_mps = o._penaltylimit_mps,
     alertwarning_s = o._alertwarning_s,

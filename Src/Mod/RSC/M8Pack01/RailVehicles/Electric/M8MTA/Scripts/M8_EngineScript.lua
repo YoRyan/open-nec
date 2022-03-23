@@ -46,8 +46,7 @@ Initialise = Misc.wraperrors(function()
     end,
     getacknowledge = function()
       return RailWorks.GetControlValue("AWSReset", 0) > 0
-    end,
-    consistspeed_mps = 80 * Units.mph.tomps
+    end
   }
 
   alerter = Alerter:new{
