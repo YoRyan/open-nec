@@ -160,7 +160,7 @@ def build(bld):
                for c in (ConvertToDav, ConvertToTg, Serz, Luac)):
             output = task.outputs[0]
             bld.install_as(
-                f'{bld.env.RAILWORKS}\\Assets\\{output.path_from(out)}', output)
+                f'{bld.env.RAILWORKS}\\{output.path_from(out)}', output)
         bld.add_to_group(task)
 
 
@@ -175,7 +175,7 @@ def release(ctx):
     ]
     with ZipFile(f'{APPNAME}-{VERSION}.zip', 'w', compression=ZIP_LZMA) as zip:
         for f in itertools.chain(*(out_dir.ant_glob(glob) for glob in files)):
-            zip.write(f.abspath(), arcname=f'{root}/Assets/{f.path_from(out_dir)}')
+            zip.write(f.abspath(), arcname=f'{root}/{f.path_from(out_dir)}')
         for f in ctx.path.ant_glob('Docs/**/*'):
             zip.write(f.abspath(), arcname=f'{root}/{f.path_from(ctx.path)}')
         zip.write('Readme.md', arcname=f'{root}/Readme.md')
