@@ -1,7 +1,7 @@
 -- A speed post tracker that calculates the speed limit in force at the
 -- player's location, irrespective of train length.
 --
--- @include RailWorks.lua
+-- @include YoRyan/LibRailWorks/RailWorks.lua
 local P = {}
 AcsesTrackSpeed = P
 

@@ -4,10 +4,10 @@
 -- This implementation creates a single mode that is always available regardless
 -- of electrification status--i.e., a diesel or steam engine.
 --
--- @include RollingStock/PowerSupply/Electrification.lua
--- @include Misc.lua
--- @include Iterator.lua
--- @include RailWorks.lua
+-- @include YoRyan/LibRailWorks/RollingStock/PowerSupply/Electrification.lua
+-- @include YoRyan/LibRailWorks/Misc.lua
+-- @include YoRyan/LibRailWorks/Iterator.lua
+-- @include YoRyan/LibRailWorks/RailWorks.lua
 local P = {}
 PowerSupply = P
 

@@ -3,14 +3,14 @@
 -- We assume it is not possible to display 100, 125, or 150 mph signal speeds,
 -- so we will use the track speed limit display to present them.
 --
--- @include Flash.lua
--- @include Misc.lua
--- @include RailWorks.lua
--- @include RollingStock/Tone.lua
+-- @include YoRyan/LibRailWorks/Flash.lua
+-- @include YoRyan/LibRailWorks/Misc.lua
+-- @include YoRyan/LibRailWorks/RailWorks.lua
+-- @include YoRyan/LibRailWorks/RollingStock/Tone.lua
 -- @include SafetySystems/Acses/AmtrakAcses.lua
 -- @include SafetySystems/AspectDisplay/AspectDisplay.lua
 -- @include NecSignals.lua
--- @include Units.lua
+-- @include YoRyan/LibRailWorks/Units.lua
 local P = {}
 AmtrakTwoSpeedAdu = P
 

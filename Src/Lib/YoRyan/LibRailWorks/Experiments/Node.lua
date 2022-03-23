@@ -1,7 +1,7 @@
 -- Continuously hide and display a model node.
 --
--- @include Misc.lua
--- @include RailWorks.lua
+-- @include YoRyan/LibRailWorks/Misc.lua
+-- @include YoRyan/LibRailWorks/RailWorks.lua
 local P = {}
 NodeExperiment = P
 

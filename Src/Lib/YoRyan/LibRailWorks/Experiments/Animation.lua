@@ -1,7 +1,7 @@
 -- Continuously cycle through an animation.
 --
--- @include Misc.lua
--- @include RailWorks.lua
+-- @include YoRyan/LibRailWorks/Misc.lua
+-- @include YoRyan/LibRailWorks/RailWorks.lua
 local P = {}
 AnimationExperiment = P
 

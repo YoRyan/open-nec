@@ -2,7 +2,7 @@
 -- braking curves that "count down" to speed restrictions.
 --
 -- @include SafetySystems/Acses/Acses.lua
--- @include Units.lua
+-- @include YoRyan/LibRailWorks/Units.lua
 local P = {}
 NjtAses = P
 

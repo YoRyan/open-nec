@@ -1,12 +1,12 @@
 -- A contemporary Amtrak ADU with a combined speed limit display.
 --
--- @include Misc.lua
--- @include RailWorks.lua
--- @include RollingStock/Tone.lua
+-- @include YoRyan/LibRailWorks/Misc.lua
+-- @include YoRyan/LibRailWorks/RailWorks.lua
+-- @include YoRyan/LibRailWorks/RollingStock/Tone.lua
 -- @include SafetySystems/Acses/AmtrakAcses.lua
 -- @include SafetySystems/AspectDisplay/AspectDisplay.lua
 -- @include NecSignals.lua
--- @include Units.lua
+-- @include YoRyan/LibRailWorks/Units.lua
 local P = {}
 AmtrakCombinedAdu = P
 

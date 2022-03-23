@@ -9,8 +9,8 @@
 -- across the entire consist. However, if these controls are unavailable,
 -- then a Lua dictionary (which won't be synced) can also be used.
 --
--- @include Misc.lua
--- @include RailWorks.lua
+-- @include YoRyan/LibRailWorks/Misc.lua
+-- @include YoRyan/LibRailWorks/RailWorks.lua
 local P = {}
 Electrification = P
 

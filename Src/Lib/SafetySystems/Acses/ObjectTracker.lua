@@ -1,9 +1,9 @@
 -- Assigns persistent unique identifiers to trackside objects that are sensed by
 -- their relative distances from the player.
 --
--- @include Iterator.lua
--- @include RailWorks.lua
--- @include Units.lua
+-- @include YoRyan/LibRailWorks/Iterator.lua
+-- @include YoRyan/LibRailWorks/RailWorks.lua
+-- @include YoRyan/LibRailWorks/Units.lua
 local P = {}
 AcsesTracker = P
 

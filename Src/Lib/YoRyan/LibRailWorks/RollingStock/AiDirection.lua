@@ -2,8 +2,8 @@
 -- useful for controlling Lua-driven headlights and taillights. A locomotive
 -- moving backwards could be reversing--or it could be reversed in the consist.
 --
--- @include Misc.lua
--- @include RailWorks.lua
+-- @include YoRyan/LibRailWorks/Misc.lua
+-- @include YoRyan/LibRailWorks/RailWorks.lua
 local P = {}
 AiDirection = P
 

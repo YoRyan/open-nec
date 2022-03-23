@@ -1,7 +1,7 @@
 -- Inter-vehicle communication throughout a consist. Allows coupled units to
 -- send status messages to each other and address each other by position.
 --
--- @include Iterator.lua
+-- @include YoRyan/LibRailWorks/Iterator.lua
 local P = {}
 InterVehicle = P
 

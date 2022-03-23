@@ -1,7 +1,7 @@
 -- Continuously turn a light on and off.
 --
--- @include Misc.lua
--- @include RailWorks.lua
+-- @include YoRyan/LibRailWorks/Misc.lua
+-- @include YoRyan/LibRailWorks/RailWorks.lua
 local P = {}
 LightExperiment = P
 

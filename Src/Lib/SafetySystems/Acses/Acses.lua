@@ -4,11 +4,11 @@
 -- @include SafetySystems/Acses/LimitFilter.lua
 -- @include SafetySystems/Acses/ObjectTracker.lua
 -- @include SafetySystems/Acses/TrackSpeed.lua
--- @include Iterator.lua
--- @include Misc.lua
--- @include RailWorks.lua
--- @include TupleDictionary.lua
--- @include Units.lua
+-- @include YoRyan/LibRailWorks/Iterator.lua
+-- @include YoRyan/LibRailWorks/Misc.lua
+-- @include YoRyan/LibRailWorks/RailWorks.lua
+-- @include YoRyan/LibRailWorks/TupleDictionary.lua
+-- @include YoRyan/LibRailWorks/Units.lua
 local P = {}
 Acses = P
 

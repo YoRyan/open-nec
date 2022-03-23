@@ -1,15 +1,15 @@
 -- Engine script for the Shoreliner operated by Metro-North.
 --
--- @include RollingStock/PowerSupply/Electrification.lua
--- @include RollingStock/PowerSupply/PowerSupply.lua
--- @include RollingStock/AiDirection.lua
--- @include RollingStock/BrakeLight.lua
+-- @include YoRyan/LibRailWorks/RollingStock/PowerSupply/Electrification.lua
+-- @include YoRyan/LibRailWorks/RollingStock/PowerSupply/PowerSupply.lua
+-- @include YoRyan/LibRailWorks/RollingStock/AiDirection.lua
+-- @include YoRyan/LibRailWorks/RollingStock/BrakeLight.lua
 -- @include SafetySystems/AspectDisplay/MetroNorth.lua
 -- @include SafetySystems/Alerter.lua
--- @include Animation.lua
--- @include Misc.lua
--- @include RailWorks.lua
--- @include Units.lua
+-- @include YoRyan/LibRailWorks/Animation.lua
+-- @include YoRyan/LibRailWorks/Misc.lua
+-- @include YoRyan/LibRailWorks/RailWorks.lua
+-- @include YoRyan/LibRailWorks/Units.lua
 local adu
 local alerter
 local blight

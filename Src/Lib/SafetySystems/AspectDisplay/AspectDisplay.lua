@@ -1,8 +1,8 @@
 -- Base class for an Aspect Display Unit that interfaces with ATC and ACSES.
 --
 -- @include SafetySystems/CabSignal.lua
--- @include RailWorks.lua
--- @include Units.lua
+-- @include YoRyan/LibRailWorks/RailWorks.lua
+-- @include YoRyan/LibRailWorks/Units.lua
 local P = {}
 Adu = P
 

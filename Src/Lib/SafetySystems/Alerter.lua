@@ -1,8 +1,8 @@
 -- Alerter implementation with a penalty state.
 --
--- @include Misc.lua
--- @include RailWorks.lua
--- @include Units.lua
+-- @include YoRyan/LibRailWorks/Misc.lua
+-- @include YoRyan/LibRailWorks/RailWorks.lua
+-- @include YoRyan/LibRailWorks/Units.lua
 local P = {}
 Alerter = P
 

@@ -2,8 +2,8 @@
 -- current status over console messages, and non-player locomotives/coaches can
 -- receive them (or use fallback logic).
 --
--- @include Misc.lua
--- @include RailWorks.lua
+-- @include YoRyan/LibRailWorks/Misc.lua
+-- @include YoRyan/LibRailWorks/RailWorks.lua
 local P = {}
 BrakeLight = P
 

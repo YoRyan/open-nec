@@ -1,7 +1,7 @@
 -- PID-based cruise control implementation. For now, it only handles throttle.
 -- It reads the player's power setting and outputs its own setting.
 --
--- @include Units.lua
+-- @include YoRyan/LibRailWorks/Units.lua
 local P = {}
 Cruise = P
 

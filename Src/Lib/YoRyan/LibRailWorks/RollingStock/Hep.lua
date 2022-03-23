@@ -1,6 +1,6 @@
 -- Head-end power simulator with a start/stop flicker effect.
 --
--- @include Misc.lua
+-- @include YoRyan/LibRailWorks/Misc.lua
 local P = {}
 Hep = P
 

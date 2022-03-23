@@ -1,6 +1,6 @@
 -- A probabilistic pantograph spark generator.
 --
--- @include RailWorks.lua
+-- @include YoRyan/LibRailWorks/RailWorks.lua
 local P = {}
 PantoSpark = P
 

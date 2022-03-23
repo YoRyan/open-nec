@@ -1,8 +1,8 @@
 -- A speed limits filter that selects posts with valid speeds and with the
 -- appropriate speed limit type.
 --
--- @include Iterator.lua
--- @include Misc.lua
+-- @include YoRyan/LibRailWorks/Iterator.lua
+-- @include YoRyan/LibRailWorks/Misc.lua
 local P = {}
 AcsesLimits = P
 

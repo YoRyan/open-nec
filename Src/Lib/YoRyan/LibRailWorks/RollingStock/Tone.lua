@@ -1,6 +1,6 @@
 -- An event-based warning tone that plays a sound for a predefined amount of time.
 --
--- @include RailWorks.lua
+-- @include YoRyan/LibRailWorks/RailWorks.lua
 local P = {}
 Tone = P
 

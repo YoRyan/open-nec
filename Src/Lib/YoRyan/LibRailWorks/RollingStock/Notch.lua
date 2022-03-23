@@ -2,7 +2,7 @@
 -- doing so infrequently enough for the player to still be able to manipulate
 -- the control.
 --
--- @include RailWorks.lua
+-- @include YoRyan/LibRailWorks/RailWorks.lua
 local P = {}
 Notch = P
 

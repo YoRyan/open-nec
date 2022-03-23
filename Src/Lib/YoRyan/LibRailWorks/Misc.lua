@@ -1,6 +1,6 @@
 -- "Junk drawer" of Lua helper functions.
 --
--- @include Iterator.lua
+-- @include YoRyan/LibRailWorks/Iterator.lua
 local P = {}
 Misc = P
 

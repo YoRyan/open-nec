@@ -1,6 +1,6 @@
 -- An on-off flash state machine.
 --
--- @include RailWorks.lua
+-- @include YoRyan/LibRailWorks/RailWorks.lua
 local P = {}
 Flash = P
 
