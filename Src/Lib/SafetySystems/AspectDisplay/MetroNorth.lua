@@ -6,7 +6,7 @@
 --
 -- @include SafetySystems/Acses/AmtrakAcses.lua
 -- @include SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
--- @include Signals/NecSignals.lua
+-- @include NecSignals.lua
 -- @include Units.lua
 local P = {}
 MetroNorthAdu = P

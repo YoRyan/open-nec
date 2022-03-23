@@ -3,7 +3,7 @@
 -- It is used by the ATC and ACSES systems, but unlike them, it cannot be reset
 -- by the player.
 --
--- @include Signals/NecSignals.lua
+-- @include NecSignals.lua
 local P = {}
 CabSignal = P
 

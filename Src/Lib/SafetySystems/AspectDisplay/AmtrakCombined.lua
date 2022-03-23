@@ -5,7 +5,7 @@
 -- @include RollingStock/Tone.lua
 -- @include SafetySystems/Acses/AmtrakAcses.lua
 -- @include SafetySystems/AspectDisplay/AspectDisplay.lua
--- @include Signals/NecSignals.lua
+-- @include NecSignals.lua
 -- @include Units.lua
 local P = {}
 AmtrakCombinedAdu = P
