@@ -148,7 +148,7 @@ local function setplayercontrols()
   RailWorks.SetControlValue("Regulator", 0, throttle)
 
   -- custom blended braking for Fan Railer's physics
-  local isfanrailer = RailWorks.GetTotalMass() ~= 65
+  local isfanrailer = RailWorks.GetTotalMass() == 65.7
   local airbrake, dynbrake
   if isfanrailer then
     local aspeed_mph = math.abs(RailWorks.GetSpeed()) * Units.mps.tomph
