@@ -55,5 +55,8 @@ Rolling stock:
 - [Metro-North Shoreliner Cab Car](/for-players/mta-shoreliner)
     - `RSC\P32Pack01\RailVehicles\Passengers\Shoreliner\Driving Trailer\CommonScripts\CabCarEngineScript.out` (standalone version)
     - `DTG\HudsonLine\RailVehicles\Passengers\Shoreliner\Driving Trailer\CommonScripts\CabCarEngineScript.out` (Hudson Line version)
+- [Metro-North M7](/for-players/mta-m7)
+    - `DTG\HudsonLine\RailVehicles\Electric\M7HudsonLine\Scripts\M7_EngineScript.out`
+    - `DTG\HudsonLine\RailVehicles\Electric\M7HudsonLine\Scripts\M7_SimulationScript.out`
 - [Metro-North M8](/for-players/mta-m8)
     - `RSC\M8Pack01\RailVehicles\Electric\M8MTA\Scripts\M8_EngineScript.out`
