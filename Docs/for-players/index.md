@@ -22,7 +22,7 @@ The single-speed style of ADU has a combined display for the ATC and ACSES speed
 
 ![Amtrak one-speed ADU](adu-onespeed.jpg)
 
-The NJ Transit style of ADU also combines the ATC and ACES speeds. It uses a green arc on the speedometer to show the lower of the two speeds; if you exceed this speed, the part of the arc beyond the safe speed turns red. The digits at the center of the speedometer show not just the current speed, but also the current cab signal aspect. If the aspect is Clear/100 or more favorable, the digits turn green. If the aspect is not a Clear one, the digits turn black.
+The NJ Transit style of ADU also combines the ATC and ACSES speeds. It uses a green arc on the speedometer to show the lower of the two speeds; if you exceed this speed, the part of the arc beyond the safe speed turns red. The digits at the center of the speedometer show not just the current speed, but also the current cab signal aspect. If the aspect is Clear/100 or more favorable, the digits turn green. If the aspect is not a Clear one, the digits turn black.
 
 ![NJ Transit ADU](adu-njt.jpg)
 
@@ -36,7 +36,7 @@ Cab signals on the modern Northeast Corridor communicate the following aspects:
 | --- | --- | --- |
 | Clear/150* | 150 | Clear to proceed up to 150 mph. |
 | Clear/125 | 125 | Clear to proceed up to 125 mph. |
-| Clear/100* | 100 | Clear to proceed up to 100 mph. Used for high-density signaling around New York. |
+| Clear/100* | 100 | Clear to proceed up to 100 mph. |
 | Cab Speed/80 | 80 | Clear to proceed up to 80 mph. |
 | Cab Speed/60 | 60 | Clear to proceed up to 60 mph. |
 | Approach Medium/45 | 45 | Slow to 45 mph. |
@@ -62,14 +62,14 @@ ACSES enforces permanent track speed limits. It uses the positions of upcoming s
 
 When your locomotive encounters a posted speed limit increase, ACSES increases the track speed limit immediately, rather than waiting for the rear of your train to clear the speed limit increase, as the game's HUD does. Because the transponder reader is mounted on the locomotive, ACSES does *not* take into account the length of your train. As the engineer, it is your responsibility not to increase your speed until the rear of your train has cleared the previous speed restriction.
 
-As your train approaches a posted speed limit decrease, ACSES will calculate the last possible moment at which it can apply a penalty brake application and still keep the train within safe limits. This trigger speed is called the "penalty curve." In addition, ACSES calculates a braking curve approximately 8 seconds in advance of the penalty curve called the "alert curve."
+As your train approaches a posted speed limit decrease, ACSES will calculate the last possible moment at which it can apply a penalty brake application and still keep the train within safe limits. This trigger speed is called the "braking curve." In addition, ACSES calculates a trigger speed approximately 8 seconds in advance of the braking curve called the "alert curve."
 
 If you violate the advance alert curve, ACSES will display the upcoming speed limit on the track speed display and sound an alarm. You should move the train brake lever to the Suppression detent and acknowledge (Q) this alarm. If you fail to slow down and violate the penalty curve, ACSES will immediately apply a penalty brake that you can release once you are in compliance with the lower speed limit.
 
-If the track speed limit changes, but you are already in compliance with the new limit, ACSES will sound an informational tone that does not need to be acknowledged.
+ACSES requires you to acknowledge all track speed limit drops, even if you are already in compliance with the new limit.
 
 ### Positive stop enforcement
 
-ACSES also has the ability to detect upcoming interlocking signals that are at "Danger." If, as your train approaches a stop signal that protects an interlocking, the current pulse code cab signal aspect reads Restricting, ACSES will display a special (non-pulse code) Stop cab signal aspect and use a braking curve to halt the train in advance of the interlocking. This state is called a "positive stop."
+ACSES also has the ability to detect upcoming interlocking signals that are at "Danger." As your train approaches a stop signal that protects an interlocking, ACSES will display a special (non-pulse code) Stop cab signal aspect and use a braking curve to halt the train in advance of the interlocking. This state is called a "positive stop."
 
-Due to limitations with Train Simulator's scripting interface, Open NEC cannot currently tell the difference between stop signals at interlockings and stop signals at less critical locations (such as yards, platforms, and mid-block distant signals). As a compromise, Open NEC implements a "soft" positive stop that activates for any and all stop signals, but never enforces a braking curve.
+Due to limitations with Train Simulator's scripting interface, Open NEC cannot currently tell the difference between stop signals at interlockings and stop signals at less critical locations such as yards, platforms, and mid-block distant signals. As a compromise, Open NEC implements a "soft" positive stop that activates for any and all stop signals, but never enforces a braking curve.
