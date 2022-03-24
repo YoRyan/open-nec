@@ -37,6 +37,7 @@ Currently, the mod includes enhancements for each of these locomotives:
 - [MARC Bombardier Multilevel Cab Car](https://store.steampowered.com/app/1429754/Train_Simulator_Northeast_Corridor_Washington_DC__Baltimore_Route_AddOn/)
 - [Metro-North GE P32AC-DM](https://store.steampowered.com/app/258655/Train_Simulator_MetroNorth_P32_ACDM_Genesis_Loco_AddOn/)
 - [Metro-North Shoreliner Cab Car](https://store.steampowered.com/app/258655/Train_Simulator_MetroNorth_P32_ACDM_Genesis_Loco_AddOn/)
+- [Metro-North Bombardier M7](https://store.steampowered.com/app/258655/Train_Simulator_MetroNorth_P32_ACDM_Genesis_Loco_AddOn/)
 - [Metro-North Kawasaki M8](https://store.steampowered.com/app/258647/Train_Simulator_MetroNorth_Kawasaki_M8_EMU_AddOn/)
 
 And provides full compatibility for each of these routes:
