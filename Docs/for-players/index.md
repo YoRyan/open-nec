@@ -16,11 +16,15 @@ The ADU is the cockpit display that shows the states of the CSS, ATC, and ACSES 
 
 The two-speed style of ADU has separate displays for the speeds enforced by ATC and ACSES. The "signal speed" display communicates the ATC-enforced speed limit, while the "track speed" display communicates the ACSES-enforced speed limit. Placed above the speeds is the signal aspect display, an imitation of a PRR-style circular signal head that communicates the current cab signal aspect in force.
 
-This is the ADU for the AEM-7. It is showing "Restricting" as the cab signal aspect, 20 mph for the signal speed, and 15 mph for the track speed:
+![Amtrak two-speed ADU](adu-twospeed.jpg)
 
 The single-speed style of ADU has a combined display for the ATC and ACSES speeds. It shows the lower of the two speeds (the "safe speed") at all times, and it also shows the current cab signal aspect in force. In Train Simulator, this style is found only on the Amtrak ACS-64.
 
+![Amtrak one-speed ADU](adu-onespeed.jpg)
+
 The NJ Transit style of ADU also combines the ATC and ACES speeds. It uses a green arc on the speedometer to show the lower of the two speeds; if you exceed this speed, the part of the arc beyond the safe speed turns red. The digits at the center of the speedometer show not just the current speed, but also the current cab signal aspect. If the aspect is Clear/100 or more favorable, the digits turn green. If the aspect is not a Clear one, the digits turn black.
+
+![NJ Transit ADU](adu-njt.jpg)
 
 ## Cab Signaling System (CSS)
 
