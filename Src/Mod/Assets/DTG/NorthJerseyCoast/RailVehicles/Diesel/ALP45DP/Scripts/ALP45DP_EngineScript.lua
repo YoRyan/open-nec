@@ -1,16 +1,16 @@
 -- Engine script for the dual-power ALP-45DP operated by New Jersey Transit.
 --
--- @include YoRyan/LibRailWorks/RollingStock/PowerSupply/Electrification.lua
--- @include YoRyan/LibRailWorks/RollingStock/PowerSupply/PowerSupply.lua
--- @include YoRyan/LibRailWorks/RollingStock/BrakeLight.lua
--- @include YoRyan/LibRailWorks/RollingStock/Doors.lua
--- @include YoRyan/LibRailWorks/RollingStock/Hep.lua
--- @include SafetySystems/AspectDisplay/NjTransitAnalog.lua
 -- @include SafetySystems/Alerter.lua
+-- @include SafetySystems/AspectDisplay/NjTransitAnalog.lua
 -- @include YoRyan/LibRailWorks/Animation.lua
 -- @include YoRyan/LibRailWorks/Flash.lua
 -- @include YoRyan/LibRailWorks/Misc.lua
 -- @include YoRyan/LibRailWorks/RailWorks.lua
+-- @include YoRyan/LibRailWorks/RollingStock/BrakeLight.lua
+-- @include YoRyan/LibRailWorks/RollingStock/Doors.lua
+-- @include YoRyan/LibRailWorks/RollingStock/Hep.lua
+-- @include YoRyan/LibRailWorks/RollingStock/PowerSupply/Electrification.lua
+-- @include YoRyan/LibRailWorks/RollingStock/PowerSupply/PowerSupply.lua
 -- @include YoRyan/LibRailWorks/Units.lua
 local adu
 local alerter

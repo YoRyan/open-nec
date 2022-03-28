@@ -1,13 +1,13 @@
 -- Engine script for the GP40PH operated by New Jersey Transit.
 --
--- @include YoRyan/LibRailWorks/RollingStock/BrakeLight.lua
--- @include YoRyan/LibRailWorks/RollingStock/Doors.lua
--- @include YoRyan/LibRailWorks/RollingStock/Hep.lua
--- @include SafetySystems/AspectDisplay/NjTransit.lua
 -- @include SafetySystems/Alerter.lua
+-- @include SafetySystems/AspectDisplay/NjTransit.lua
 -- @include YoRyan/LibRailWorks/Flash.lua
 -- @include YoRyan/LibRailWorks/Misc.lua
 -- @include YoRyan/LibRailWorks/RailWorks.lua
+-- @include YoRyan/LibRailWorks/RollingStock/BrakeLight.lua
+-- @include YoRyan/LibRailWorks/RollingStock/Doors.lua
+-- @include YoRyan/LibRailWorks/RollingStock/Hep.lua
 -- @include YoRyan/LibRailWorks/Units.lua
 local adu
 local alerter

@@ -1,15 +1,15 @@
 -- Engine script for the P32AC-DM operated by Amtrak and Metro-North.
 --
--- @include YoRyan/LibRailWorks/RollingStock/PowerSupply/Electrification.lua
--- @include YoRyan/LibRailWorks/RollingStock/PowerSupply/PowerSupply.lua
--- @include YoRyan/LibRailWorks/RollingStock/AiDirection.lua
--- @include YoRyan/LibRailWorks/RollingStock/BrakeLight.lua
--- @include SafetySystems/AspectDisplay/Genesis.lua
 -- @include SafetySystems/Alerter.lua
+-- @include SafetySystems/AspectDisplay/Genesis.lua
 -- @include YoRyan/LibRailWorks/Flash.lua
 -- @include YoRyan/LibRailWorks/Iterator.lua
 -- @include YoRyan/LibRailWorks/Misc.lua
 -- @include YoRyan/LibRailWorks/RailWorks.lua
+-- @include YoRyan/LibRailWorks/RollingStock/AiDirection.lua
+-- @include YoRyan/LibRailWorks/RollingStock/BrakeLight.lua
+-- @include YoRyan/LibRailWorks/RollingStock/PowerSupply/Electrification.lua
+-- @include YoRyan/LibRailWorks/RollingStock/PowerSupply/PowerSupply.lua
 -- @include YoRyan/LibRailWorks/Units.lua
 local adu
 local alerter

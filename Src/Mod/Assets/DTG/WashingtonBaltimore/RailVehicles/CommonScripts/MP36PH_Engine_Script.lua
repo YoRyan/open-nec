@@ -1,14 +1,14 @@
 -- Engine script for the MPI MP36PH operated by MARC.
 --
--- @include YoRyan/LibRailWorks/RollingStock/AiDirection.lua
--- @include YoRyan/LibRailWorks/RollingStock/BrakeLight.lua
--- @include YoRyan/LibRailWorks/RollingStock/Hep.lua
--- @include SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
 -- @include SafetySystems/Alerter.lua
+-- @include SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
 -- @include YoRyan/LibRailWorks/Flash.lua
 -- @include YoRyan/LibRailWorks/Iterator.lua
 -- @include YoRyan/LibRailWorks/Misc.lua
 -- @include YoRyan/LibRailWorks/RailWorks.lua
+-- @include YoRyan/LibRailWorks/RollingStock/AiDirection.lua
+-- @include YoRyan/LibRailWorks/RollingStock/BrakeLight.lua
+-- @include YoRyan/LibRailWorks/RollingStock/Hep.lua
 -- @include YoRyan/LibRailWorks/Units.lua
 local adu
 local alerter
