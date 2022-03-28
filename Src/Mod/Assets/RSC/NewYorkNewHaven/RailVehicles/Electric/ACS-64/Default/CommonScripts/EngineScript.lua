@@ -23,10 +23,11 @@ local spark
 
 local lasthorntime_s = nil
 
+local function isenhancedpack() return RailWorks.ControlExists("TAPRBYL", 0) end
+
 local function issuppression()
-  local isenhancedpack = RailWorks.ControlExists("TAPRBYL", 0)
   return RailWorks.GetControlValue("VirtualBrake", 0) >=
-           (isenhancedpack and 0.4 or 0.6)
+           (isenhancedpack() and 0.4 or 0.6)
 end
 
 Initialise = Misc.wraperrors(function()
@@ -77,7 +78,10 @@ Initialise = Misc.wraperrors(function()
 end)
 
 local function readcontrols()
-  if RailWorks.GetControlValue("Horn", 0) > 0 then
+  -- For Fan Railer and CTSL Railfan's mods, the quill should also turn on the
+  -- ditch lights.
+  local quill = RailWorks.GetControlValue("HornSequencer", 0)
+  if RailWorks.GetControlValue("Horn", 0) > 0 or (quill ~= nil and quill > 0) then
     lasthorntime_s = RailWorks.GetSimulationTime()
   end
 end
@@ -121,10 +125,16 @@ local function setplayercontrols()
   RailWorks.SetControlValue("TrainBrakeControl", 0, brake)
 
   local alarm = adu:isalarm()
-  alarmonoff:setflashstate(alarm)
   RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alarm))
-  RailWorks.SetControlValue("SpeedReductionAlert", 0,
-                            Misc.intbool(alarmonoff:ison()))
+  local sralert
+  if isenhancedpack() then
+    -- There's no need to modulate CTSL's improved sound.
+    sralert = alarm
+  else
+    alarmonoff:setflashstate(alarm)
+    sralert = alarmonoff:ison()
+  end
+  RailWorks.SetControlValue("SpeedReductionAlert", 0, Misc.intbool(sralert))
   RailWorks.SetControlValue("SpeedIncreaseAlert", 0,
                             Misc.intbool(adu:isalertplaying()))
 end
@@ -375,7 +385,8 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
   -- Shift+' suppression hotkey
   if name == "AutoSuppression" and value > 0 then
     RailWorks.SetControlValue("AutoSuppression", 0, 0)
-    RailWorks.SetControlValue("VirtualBrake", 0, 0.75)
+    RailWorks.SetControlValue("VirtualBrake", 0,
+                              isenhancedpack() and 0.5 or 0.75)
   end
 
   if name == "ThrottleAndBrake" or name == "VirtualBrake" then
