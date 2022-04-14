@@ -85,7 +85,7 @@ local function setplayercontrols()
   if not power:haspower() then
     throttle, dynbrake = 0, 0
   elseif penalty then
-    throttle, dynbrake = 0, 0
+    throttle, dynbrake = 0, 1
   else
     local value = RailWorks.GetControlValue("ThrottleAndBrake", 0)
     local min = RailWorks.GetControlMinimum("ThrottleAndBrake", 0)
