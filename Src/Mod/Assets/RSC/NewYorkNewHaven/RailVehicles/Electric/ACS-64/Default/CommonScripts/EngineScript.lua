@@ -69,7 +69,7 @@ Initialise = Misc.wraperrors(function()
   -- Modulate the speed reduction alert sound, which normally plays just once.
   alarmonoff = Flash:new{off_s = 0.1, on_s = 0.5}
 
-  local ditchflash_s = 0.65
+  local ditchflash_s = 0.5
   ditchflasher = Flash:new{off_s = ditchflash_s, on_s = ditchflash_s}
 
   spark = PantoSpark:new{}
