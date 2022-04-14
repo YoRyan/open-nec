@@ -116,7 +116,7 @@ local function setplayercontrols()
   end
   RailWorks.SetControlValue("TrainBrakeControl", 0, brake)
 
-  local alarm = adu:isalarm()
+  local alarm = adu:isalarm() or alerter:isalarm()
   RailWorks.SetControlValue("AWSWarnCount", 0, Misc.intbool(alarm))
   local sralert
   if isenhancedpack() then
