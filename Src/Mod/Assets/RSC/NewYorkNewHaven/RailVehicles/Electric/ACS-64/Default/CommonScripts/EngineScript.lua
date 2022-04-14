@@ -22,6 +22,7 @@ local ditchflasher
 local spark
 
 local lasthorntime_s = nil
+local lasthornsequence_s = nil
 
 local function isenhancedpack() return RailWorks.ControlExists("TAPRBYL", 0) end
 
@@ -77,15 +78,6 @@ Initialise = Misc.wraperrors(function()
   RailWorks.BeginUpdate()
 end)
 
-local function readcontrols()
-  -- For Fan Railer and CTSL Railfan's mods, the quill should also turn on the
-  -- ditch lights.
-  local quill = RailWorks.GetControlValue("HornSequencer", 0)
-  if RailWorks.GetControlValue("Horn", 0) > 0 or (quill ~= nil and quill > 0) then
-    lasthorntime_s = RailWorks.GetSimulationTime()
-  end
-end
-
 local function setplayercontrols()
   local penalty = alerter:ispenalty() or adu:ispenalty()
 
@@ -137,6 +129,31 @@ local function setplayercontrols()
   RailWorks.SetControlValue("SpeedReductionAlert", 0, Misc.intbool(sralert))
   RailWorks.SetControlValue("SpeedIncreaseAlert", 0,
                             Misc.intbool(adu:isalertplaying()))
+end
+
+local function setbellandditch()
+  -- For Fan Railer and CTSL Railfan's mods, the quill should also turn on the
+  -- ditch lights and bell.
+  local quill = RailWorks.GetControlValue("HornHB", 0)
+  if RailWorks.GetControlValue("Horn", 0) > 0 or (quill ~= nil and quill > 0) then
+    lasthorntime_s = RailWorks.GetSimulationTime()
+    RailWorks.SetControlValue("Bell", 0, 1)
+  end
+
+  -- For CTSL Railfan's mod, the horn sequencer should play the bell while it is
+  -- sounding. When the sequence has completed, it should also turn off the bell
+  -- (and extend the ditch light flash).
+  local ctslsequence_s = 14
+  if lasthornsequence_s ~= nil then
+    local clock_s = RailWorks.GetSimulationTime()
+    if clock_s - lasthornsequence_s <= ctslsequence_s then
+      RailWorks.SetControlValue("Bell", 0, 1)
+    else
+      RailWorks.SetControlValue("Bell", 0, 0)
+      lasthornsequence_s = nil
+    end
+    lasthorntime_s = clock_s
+  end
 end
 
 local function setpantosparks()
@@ -323,15 +340,15 @@ local function setditchlights()
   local headlights = RailWorks.GetControlValue("Headlights", 0)
   local ditchlights = RailWorks.GetControlValue("DitchLight", 0)
   local fixed = headlights == 1 and ditchlights == 1
-  local flash = (headlights == 1 and ditchlights == 2) or horn
+  local flash = headlights == 1 and (ditchlights == 2 or horn)
   ditchflasher:setflashstate(flash)
   local flashleft = ditchflasher:ison()
 
-  local showleft = fixed or (flash and flashleft)
+  local showleft = (fixed and not flash) or (flash and flashleft)
   RailWorks.ActivateNode("ditch_fwd_l", showleft)
   Call("FrontDitchLightL:Activate", Misc.intbool(showleft))
 
-  local showright = fixed or (flash and not flashleft)
+  local showright = (fixed and not flash) or (flash and not flashleft)
   RailWorks.ActivateNode("ditch_fwd_r", showright)
   Call("FrontDitchLightR:Activate", Misc.intbool(showright))
 
@@ -342,14 +359,13 @@ local function setditchlights()
 end
 
 local function updateplayer(dt)
-  readcontrols()
-
   adu:update(dt)
   alerter:update(dt)
   power:update(dt)
   blight:playerupdate(dt)
 
   setplayercontrols()
+  setbellandditch()
   setpantosparks()
   setscreen()
   setcutin()
@@ -391,6 +407,23 @@ OnControlValueChange = Misc.wraperrors(function(name, index, value)
 
   if name == "ThrottleAndBrake" or name == "VirtualBrake" then
     alerter:acknowledge()
+  end
+
+  -- Ditch lights should stop flashing if the switch is moved.
+  if name == "DitchLight" then lasthorntime_s = nil end
+
+  -- Adjusts for the B key being out of sync with the Bell control when the
+  -- horn rings the bell.
+  if value == RailWorks.GetControlValue("Bell", 0) and name == "Bell" and
+    (value == 0 or value == 1) and Misc.isinitialized() then
+    RailWorks.SetControlValue("Bell", 0, 1 - value)
+    return
+  end
+
+  -- For CTSL Railfan's mod, the horn sequencer should turn on the bell for 14
+  -- seconds when used.
+  if name == "HornSequencer" and value == 1 then
+    lasthornsequence_s = RailWorks.GetSimulationTime()
   end
 
   RailWorks.SetControlValue(name, index, value)
