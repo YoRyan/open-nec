@@ -79,37 +79,43 @@ Initialise = Misc.wraperrors(function()
 end)
 
 local function setplayercontrols()
-  local penalty = alerter:ispenalty() or adu:ispenalty()
+  local tvalue = RailWorks.GetControlValue("ThrottleAndBrake", 0)
+  local tmin = RailWorks.GetControlMinimum("ThrottleAndBrake", 0)
+  local tmax = RailWorks.GetControlMaximum("ThrottleAndBrake", 0)
+  local tmid = (tmax + tmin) / 2
+  local cmdpower = math.max(tvalue - tmid, 0) / (tmax - tmid)
+  local cmddynbrake = math.max(tmid - tvalue, 0) / (tmid - tmin)
+  local cmdairbrake = RailWorks.GetControlValue("VirtualBrake", 0)
 
-  local throttle, dynbrake
+  local fservicebrake = 0.85
+  local throttle, dynbrake, airbrake
   if not power:haspower() then
     throttle, dynbrake = 0, 0
-  elseif penalty then
+    airbrake = cmdairbrake
+  elseif adu:ispenalty() or alerter:ispenalty() then
     throttle, dynbrake = 0, 1
+    airbrake = fservicebrake
   else
-    local value = RailWorks.GetControlValue("ThrottleAndBrake", 0)
-    local min = RailWorks.GetControlMinimum("ThrottleAndBrake", 0)
-    local max = RailWorks.GetControlMaximum("ThrottleAndBrake", 0)
-    local mid = (max + min) / 2
-    throttle = math.max(value - mid, 0) / (max - mid)
-    dynbrake = math.max(mid - value, 0) / (mid - min)
+    throttle = cmdpower
+    dynbrake = math.max(cmddynbrake, math.min(cmdairbrake / fservicebrake, 1))
+    airbrake = cmdairbrake
   end
   RailWorks.SetControlValue("Regulator", 0, throttle)
-  RailWorks.SetControlValue("DynamicBrake", 0, dynbrake)
-
-  local cmdbrake = penalty and 0.85 or
-                     RailWorks.GetControlValue("VirtualBrake", 0)
+  -- Dynamic braking ceases below 2 mph.
+  local aspeed_mps = math.abs(RailWorks.GetSpeed())
+  RailWorks.SetControlValue("DynamicBrake", 0, dynbrake *
+                              math.min(aspeed_mps / (2 * Units.mph.tomps), 1))
   -- DTG's nonlinear braking algorithm
   local brake
-  if cmdbrake < 0.1 then
+  if airbrake < 0.1 then
     brake = 0
-  elseif cmdbrake < 0.35 then
+  elseif airbrake < 0.35 then
     brake = 0.07
-  elseif cmdbrake < 0.75 then
-    brake = 0.07 + (cmdbrake - 0.35) / (0.6 - 0.35) * 0.1
-  elseif cmdbrake < 0.85 then
+  elseif airbrake < 0.75 then
+    brake = 0.07 + (airbrake - 0.35) / (0.6 - 0.35) * 0.1
+  elseif airbrake < 0.85 then
     brake = 0.17
-  elseif cmdbrake < 1 then
+  elseif airbrake < 1 then
     brake = 0.24
   else
     brake = 1
