@@ -280,11 +280,11 @@ function P:isalarm() return self._overspeed_s ~= nil end
 function P:isalertplaying() return self._alert:isplaying() end
 
 -- Determine whether or not the current ATC aspect is a clear one.
-function P:isclearsignal() return getisclear(self) end
+function P:isclearsignal() return getisclear(self) and not self:acsescutin() end
 
 local function getgreenspeed_mph(self)
   local enforcing = getenforcingsubsystem(self)
-  if self:isclearsignal() and not self:acsescutin() then
+  if self:isclearsignal() then
     return nil
   elseif enforcing == subsystem.atc then
     local targetspeed_mps = gettargetspeed_mps(self)
