@@ -78,7 +78,9 @@ local function gettargetspeed_mps(self)
     local atcspeed_mps = getatcspeed_mps(self)
     local acsesspeed_mps = getacsesspeed_mps(self)
     if atcspeed_mps ~= nil and acsesspeed_mps ~= nil then
-      return acsesspeed_mps < atcspeed_mps and acsesspeed_mps or atcspeed_mps
+      local curvespeed_mps = self._acses:getcurvespeed_mps()
+      return (acsesspeed_mps < atcspeed_mps and curvespeed_mps ~= nil and
+               curvespeed_mps < atcspeed_mps) and acsesspeed_mps or atcspeed_mps
     elseif atcspeed_mps ~= nil then
       return atcspeed_mps
     else
@@ -101,7 +103,10 @@ local function getenforcingsubsystem(self)
     local atcspeed_mps = getatcspeed_mps(self)
     local acsesspeed_mps = getacsesspeed_mps(self)
     if atcspeed_mps ~= nil and acsesspeed_mps ~= nil then
-      return acsesspeed_mps < atcspeed_mps and subsystem.acses or subsystem.atc
+      local curvespeed_mps = self._acses:getcurvespeed_mps()
+      return (acsesspeed_mps < atcspeed_mps and curvespeed_mps ~= nil and
+               curvespeed_mps < atcspeed_mps) and subsystem.acses or
+               subsystem.atc
     elseif atcspeed_mps ~= nil then
       return subsystem.atc
     elseif acsesspeed_mps ~= nil then
