@@ -3,6 +3,7 @@
 -- @include SafetySystems/Alerter.lua
 -- @include SafetySystems/AspectDisplay/AmtrakTwoSpeed.lua
 -- @include YoRyan/LibRailWorks/Animation.lua
+-- @include YoRyan/LibRailWorks/FadeableLight.lua
 -- @include YoRyan/LibRailWorks/Flash.lua
 -- @include YoRyan/LibRailWorks/Iterator.lua
 -- @include YoRyan/LibRailWorks/Misc.lua
@@ -24,6 +25,7 @@ local frontpantoanim, rearpantoanim
 local coneanim
 local tracteffort
 local groundflasher
+local groundleft, groundright
 local spark
 local destscroller
 
@@ -114,6 +116,16 @@ Initialise = Misc.wraperrors(function()
 
   local groundflash_s = 0.65
   groundflasher = Flash:new{off_s = groundflash_s, on_s = groundflash_s}
+
+  local groundfade_s = 0.3
+  groundleft = FadeableLight:new{
+    light = "DitchLightLeft",
+    fade_s = groundfade_s
+  }
+  groundright = FadeableLight:new{
+    light = "DitchLightRight",
+    fade_s = groundfade_s
+  }
 
   spark = PantoSpark:new{}
 
@@ -373,14 +385,16 @@ local function setgroundlights()
   local flashleft = groundflasher:ison()
 
   local showleft = fixed or (flash and flashleft)
-  RailWorks.ActivateNode("LeftOn", showleft)
-  RailWorks.ActivateNode("DitchLightsL", showleft)
-  Call("DitchLightLeft:Activate", Misc.intbool(showleft))
+  groundleft:setonoff(showleft)
+  local showingleft = groundleft:ison()
+  RailWorks.ActivateNode("LeftOn", showingleft)
+  RailWorks.ActivateNode("DitchLightsL", showingleft)
 
   local showright = fixed or (flash and not flashleft)
-  RailWorks.ActivateNode("RightOn", showright)
-  RailWorks.ActivateNode("DitchLightsR", showright)
-  Call("DitchLightRight:Activate", Misc.intbool(showright))
+  groundright:setonoff(showright)
+  local showingright = groundright:ison()
+  RailWorks.ActivateNode("RightOn", showingright)
+  RailWorks.ActivateNode("DitchLightsR", showingright)
 end
 
 local function updateplayer(dt)
@@ -392,6 +406,8 @@ local function updateplayer(dt)
   frontpantoanim:update(dt)
   rearpantoanim:update(dt)
   coneanim:update(dt)
+  groundleft:update(dt)
+  groundright:update(dt)
   destscroller:update(dt)
 
   setplayercontrols()
@@ -411,6 +427,8 @@ end
 local function updatehelper(dt)
   frontpantoanim:update(dt)
   rearpantoanim:update(dt)
+  groundleft:update(dt)
+  groundright:update(dt)
 
   setslavepantos()
   setpantosparks()
@@ -421,6 +439,8 @@ end
 local function updateai(dt)
   frontpantoanim:update(dt)
   rearpantoanim:update(dt)
+  groundleft:update(dt)
+  groundright:update(dt)
 
   setaipantos()
   setaidest()
