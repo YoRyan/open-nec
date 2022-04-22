@@ -345,8 +345,8 @@ local function setditchlights()
                  lasthorntime_s + horntime_s
   local headlights = RailWorks.GetControlValue("Headlights", 0)
   local ditchlights = RailWorks.GetControlValue("DitchLight", 0)
-  local fixed = headlights == 1 and ditchlights == 1
-  local flash = headlights == 1 and (ditchlights == 2 or horn)
+  local fixed = headlights == 1 and ditchlights >= 0.5 and ditchlights < 1.5
+  local flash = headlights == 1 and (ditchlights >= 1.5 or horn)
   ditchflasher:setflashstate(flash)
   local flashleft = ditchflasher:ison()
 

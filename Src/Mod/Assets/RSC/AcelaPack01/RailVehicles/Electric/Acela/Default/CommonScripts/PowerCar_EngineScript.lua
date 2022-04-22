@@ -383,8 +383,8 @@ end
 local function setgroundlights()
   local headlights = RailWorks.GetControlValue("Headlights", 0)
   local groundlights = RailWorks.GetControlValue("GroundLights", 0)
-  local fixed = headlights == 1 and groundlights == 1
-  local flash = headlights == 1 and groundlights == 2
+  local fixed = headlights == 1 and groundlights >= 0.5 and groundlights < 1.5
+  local flash = headlights == 1 and groundlights >= 1.5
   groundflasher:setflashstate(flash)
   local flashleft = groundflasher:ison()
 
