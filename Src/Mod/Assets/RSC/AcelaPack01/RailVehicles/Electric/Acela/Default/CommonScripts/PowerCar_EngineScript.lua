@@ -184,6 +184,10 @@ local function setplayercontrols()
                                   0))
   end
   adualertplaying = adualert
+
+  if RailWorks.GetControlValue("Horn", 0) > 0 then
+    RailWorks.SetControlValue("Bell", 0, 1)
+  end
 end
 
 local function setplayerpantos()
@@ -464,6 +468,14 @@ end)
 OnControlValueChange = Misc.wraperrors(function(name, index, value)
   if name == "VirtualThrottle" or name == "VirtualBrake" then
     alerter:acknowledge()
+  end
+
+  -- Adjusts for the B key being out of sync with the Bell control when the
+  -- horn rings the bell.
+  if value == RailWorks.GetControlValue("Bell", 0) and name == "Bell" and
+    (value == 0 or value == 1) and Misc.isinitialized() then
+    RailWorks.SetControlValue("Bell", 0, 1 - value)
+    return
   end
 
   RailWorks.SetControlValue(name, index, value)
