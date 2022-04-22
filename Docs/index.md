@@ -73,6 +73,30 @@ Open NEC enables all safety systems by default, which must be responded to, even
 
 The current stable release is Open NEC version **1.0.0**.
 
+#### v1.1.0 (April 22, 2022)
+
+- Fixed ZIP download failing to extract in Windows Explorer.
+- By popular demand, support for the Metro-North M7 EMU and Shoreliner cab car.
+- Metro-North locomotives:
+    - ATC now correctly enforces 15 mph for Restricting and 80 mph for Clear/Normal.
+- Siemens ACS-64:
+    - Fixed alerter not triggering the safety systems warning icon on the HUD.
+    - Fixed desk and console light controls to behave prototypically.
+    - Horn now correctly plays the bell and flashes the ditch lights.
+    - Reinstated blended braking.
+    - Enhanced compatibility with CTSL Railfan's enhancement pack:
+        - The Suppression threshold is now set correctly for the automatic brake lever.
+        - Pressing Shift+' moves the brake lever to the correct Suppression setting.
+        - The safety systems alarm sound now plays continuously and correctly.
+- Acela Express:
+    - Added fading effect for ditch lights.
+    - Horn now correctly plays the bell.
+- NJ Transit locomotives:
+    - Fixed ACSES braking curve overriding the ATC-enforced speed when approaching a speed limit drop.
+- All locomotives:
+    - Added popup alerts that trigger when encountering a change in electrification.
+    - Added popup alerts that trigger when starting and stopping a power change in a dual-mode locomotive.
+
 #### v1.0.0 (January 27, 2022)
 
 - Support for the Metro-North M8.
