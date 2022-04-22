@@ -80,6 +80,10 @@ Initialise = Misc.wraperrors(function()
         return pantoup and elec:isavailable(Electrification.type.overhead)
       end
     },
+    modenames = {
+      [powermode.diesel] = "diesel",
+      [powermode.overhead] = "electric"
+    },
     getautomode = function(cp)
       if cp == Electrification.autochangepoint.ai_to_overhead then
         return powermode.electric

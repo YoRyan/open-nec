@@ -48,6 +48,10 @@ Initialise = Misc.wraperrors(function()
       [powermode.diesel] = function(elec) return true end,
       [powermode.thirdrail] = function(elec) return true end
     },
+    modenames = {
+      [powermode.diesel] = "diesel",
+      [powermode.thirdrail] = "electric"
+    },
     getautomode = function(cp)
       if cp == Electrification.autochangepoint.ai_to_thirdrail then
         return powermode.thirdrail

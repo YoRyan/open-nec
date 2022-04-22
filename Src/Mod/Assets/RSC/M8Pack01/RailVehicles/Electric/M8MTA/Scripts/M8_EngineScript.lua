@@ -75,6 +75,10 @@ Initialise = Misc.wraperrors(function()
         return energyon and elec:isavailable(Electrification.type.thirdrail)
       end
     },
+    modenames = {
+      [powermode.overhead] = "catenary",
+      [powermode.thirdrail] = "third rail"
+    },
     getautomode = function(cp)
       if cp == Electrification.autochangepoint.ai_to_overhead then
         return powermode.overhead

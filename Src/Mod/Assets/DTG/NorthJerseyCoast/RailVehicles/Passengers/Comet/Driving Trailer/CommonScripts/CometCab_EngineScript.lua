@@ -71,6 +71,10 @@ Initialise = Misc.wraperrors(function()
       [powermode.diesel] = function(elec) return true end,
       [powermode.overhead] = function(elec) return true end
     },
+    modenames = {
+      [powermode.diesel] = "diesel",
+      [powermode.overhead] = "electric"
+    },
     getautomode = function(cp)
       if cp == Electrification.autochangepoint.ai_to_overhead then
         return powermode.electric
