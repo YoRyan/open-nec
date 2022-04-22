@@ -328,15 +328,17 @@ local function setcablights()
 
   local control = RailWorks.GetControlValue("DeskConsoleLight", 0)
   local desk = Misc.intbool(control >= 1 and control < 3)
-  Call("Front_DeskLight_01:Activate", desk)
-  Call("Rear_DeskLight_01:Activate", desk)
+  Call("Front_ConsoleLight_01:Activate", desk)
+  Call("Rear_ConsoleLight_01:Activate", desk)
+  Call("Front_ConsoleLight_03:Activate", desk)
+  Call("Rear_ConsoleLight_03:Activate", desk)
   local console = Misc.intbool(control >= 2)
-  Call("Front_ConsoleLight_01:Activate", console)
   Call("Front_ConsoleLight_02:Activate", console)
-  Call("Front_ConsoleLight_03:Activate", console)
-  Call("Rear_ConsoleLight_01:Activate", console)
   Call("Rear_ConsoleLight_02:Activate", console)
-  Call("Rear_ConsoleLight_03:Activate", console)
+  -- This is actually the secondman's desk light, which has its own switch IRL.
+  local secondman = console
+  Call("Front_DeskLight_01:Activate", secondman)
+  Call("Rear_DeskLight_01:Activate", secondman)
 end
 
 local function setditchlights()
