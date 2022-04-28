@@ -3,7 +3,6 @@
 	"build": {
 		"dockerfile": "Dockerfile"
 	},
-	"remoteUser": "vscode",
 	"forwardPorts": [8000],
 	"extensions": [
 		"yzhang.markdown-all-in-one"
