@@ -73,6 +73,11 @@ Open NEC enables all safety systems by default, which must be responded to, even
 
 The current stable release is Open NEC version **1.0.0**.
 
+#### v1.1.1 (May 11, 2022)
+
+- All locomotives:
+    - Fixed certain cab signal aspects for diverging routes on MTA territory getting interpreted as Restricting.
+
 #### v1.1.0 (April 22, 2022)
 
 - Fixed ZIP download failing to extract in Windows Explorer.
