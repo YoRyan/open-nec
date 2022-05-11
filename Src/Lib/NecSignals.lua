@@ -93,7 +93,7 @@ function P.parsesigmessage(message)
   end
   -- Metro-North signals
   do
-    local _, _, code = string.find(message, "^[MN](%d%d)$")
+    local _, _, code = string.find(message, "^[MN](%d%d)")
     if code ~= nil then
       territory = P.territory.mnrr
       if code == "10" then
