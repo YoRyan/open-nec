@@ -1,0 +1,13 @@
+// Note that this file is only used for editing in your IDE. The Gulpfile
+// generates its own tsconfig.
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "lib": ["esnext"],
+        "moduleResolution": "node",
+        "baseUrl": "./src/",
+        "strict": true,
+        "types": ["lua-types/5.0", "jest"]
+    },
+    "include": ["src"]
+}

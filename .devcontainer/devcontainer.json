@@ -1,10 +1,14 @@
 {
-	"name": "MkDocs",
-	"build": {
-		"dockerfile": "Dockerfile"
-	},
-	"forwardPorts": [8000],
-	"extensions": [
-		"yzhang.markdown-all-in-one"
-	]
+    "name": "TypeScriptToLua",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "extensions": [
+        "typescript-to-lua.vscode-typescript-to-lua",
+        "dbaeumer.vscode-eslint",
+        "editorconfig.editorconfig",
+        "esbenp.prettier-vscode"
+    ],
+    "postCreateCommand": "npm ci",
+    "remoteUser": "node"
 }

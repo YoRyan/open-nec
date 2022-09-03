@@ -1,1 +1,0 @@
-../../../../../../../RSC/AcelaPack01/RailVehicles/Electric/Acela/Default/CommonScripts/PowerCar_EngineScript.lua

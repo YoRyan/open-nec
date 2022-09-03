@@ -1,6 +1,3 @@
-[submodule "Src/Lib/YoRyan/LibRailWorks"]
-	path = Src/Lib/YoRyan/LibRailWorks
-	url = https://github.com/YoRyan/LibRailWorks.git
 [submodule ".rbs"]
 	path = .rbs
 	url = https://github.com/YoRyan/RailWorks-Build-System
