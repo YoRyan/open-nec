@@ -6,12 +6,12 @@ This template includes type declarations and wrappers for Train Simulator's Lua 
 
 ## Scripts
 
-| Command | Description |
-| --- | --- |
-| `npm run lint` | Check for linting issues with Prettier. |
-| `npm run fix:prettier` | Fix linting issues identified by Prettier. |
-| `npm run watch` | Watch TypeScript files for changes and rebuild them as needed. |
-| `npm run build` | Transpile TypeScript source files to Lua bytecode suitable for Train Simulator. |
+| Command                | Description                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| `npm run lint`         | Check for linting issues with Prettier.                                         |
+| `npm run fix:prettier` | Fix linting issues identified by Prettier.                                      |
+| `npm run watch`        | Watch TypeScript files for changes and rebuild them as needed.                  |
+| `npm run build`        | Transpile TypeScript source files to Lua bytecode suitable for Train Simulator. |
 
 To install your newly built files, copy the contents of the dist/ folder to your Steam RailWorks folder.
 
