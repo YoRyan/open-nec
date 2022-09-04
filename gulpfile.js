@@ -26,7 +26,12 @@ export async function scripts() {
                     return stream
                         .pipe(src(["src/@types/**/*", "src/lib/**/*.ts"], { base: "src" }))
                         .pipe(
-                            src(["node_modules/lua-types/**/*", "node_modules/typescript-to-lua/**/*"], { base: "." })
+                            src(
+                                ["@typescript-to-lua", "lua-types", "typescript-to-lua"].map(
+                                    p => `node_modules/${p}/**/*`
+                                ),
+                                { base: "." }
+                            )
                         )
                         .pipe(
                             intermediate({}, async function (tempDir, cb) {
