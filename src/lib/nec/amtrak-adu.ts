@@ -249,6 +249,7 @@ export function create(
         frp.map((pu): AduInputEvent => [AduInputEventType.Update, pu.dt]),
         frp.merge(inputDowngrade$),
         frp.fold((accum: AduAccum, input): AduAccum => {
+            const theInputState = frp.snapshot(inputState);
             const theSpeedMps = frp.snapshot(speedMps);
             const theAck = frp.snapshot(acknowledge);
 
@@ -262,7 +263,7 @@ export function create(
                 }
 
                 // Move to the penalty or overspeed state if speeding.
-                const envelope = frp.snapshot(inputState).envelope;
+                const envelope = theInputState.envelope;
                 if (envelope !== undefined && theSpeedMps > envelope.penaltyCurveMps) {
                     return [envelope.system === SafetySystem.Atc ? AduMode.AtcPenalty : AduMode.AcsesPenalty, false];
                 }
@@ -288,7 +289,7 @@ export function create(
             if (mode === AduMode.AcsesPenalty) {
                 // Allow a running release for ACSES.
                 const [, acked] = accum;
-                const envelope = frp.snapshot(inputState).envelope;
+                const envelope = theInputState.envelope;
                 return acked && (envelope === undefined || theSpeedMps <= envelope.visibleSpeedMps)
                     ? AduMode.Normal
                     : [AduMode.AcsesPenalty, acked || theAck];
@@ -308,7 +309,7 @@ export function create(
                 }
 
                 // Clock update; check if below safe speed.
-                const envelope = frp.snapshot(inputState).envelope;
+                const envelope = theInputState.envelope;
                 if (acked && (envelope === undefined || theSpeedMps < envelope.alertCurveMps)) {
                     return AduMode.Normal;
                 }
