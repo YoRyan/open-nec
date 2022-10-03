@@ -120,7 +120,7 @@ enum AduMode {
     AcsesPenalty,
 }
 
-const cabSpeedFlashS = 1;
+const cabSpeedFlashS = 0.5;
 const enforcingFlashS = 0.5;
 
 /**
