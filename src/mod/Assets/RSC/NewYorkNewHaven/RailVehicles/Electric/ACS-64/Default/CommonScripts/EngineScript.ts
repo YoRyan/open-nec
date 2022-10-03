@@ -502,6 +502,8 @@ const me = new FrpEngine(() => {
     );
     const ditchLightHornOrBell$ = frp.compose(
         me.createOnCvChangeStreamFor("Horn", 0),
+        // The quill, for Fan Railer and CTSL Railfan's mods
+        frp.merge(me.createOnCvChangeStreamFor("HornHB", 0)),
         frp.filter(v => v === 1),
         frp.merge(ditchLightBell$),
         frp.map(_ => DitchLightEvent.HornOrBell)
