@@ -631,7 +631,8 @@ const me = new FrpEngine(() => {
             const outOfSync = (v === 0 || v === 1) && v === me.rv.GetControlValue("Bell", 0);
             return outOfSync ? 1 - v : v;
         }),
-        frp.merge(bellOn$)
+        frp.merge(bellOn$),
+        frp.filter(_ => me.eng.GetIsEngineWithKey())
     );
     bellControl$(v => {
         me.rv.SetControlValue("Bell", 0, v);
