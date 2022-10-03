@@ -6,7 +6,6 @@
 import * as c from "./constants";
 import * as frp from "./frp";
 import { FrpEngine } from "./frp-engine";
-import { FrpEntity } from "./frp-entity";
 import { fsm, mapBehavior } from "./frp-extra";
 import { AiUpdate, FrpVehicle, PlayerUpdate } from "./frp-vehicle";
 import * as ps from "./power-supply";
