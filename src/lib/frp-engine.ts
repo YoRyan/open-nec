@@ -2,7 +2,7 @@
 
 import * as frp from "./frp";
 import { FrpSource } from "./frp-entity";
-import { FrpVehicle, PlayerUpdate } from "./frp-vehicle";
+import { FrpVehicle, PlayerUpdate, VehicleCamera } from "./frp-vehicle";
 import * as rw from "./railworks";
 
 export class FrpEngine extends FrpVehicle {
@@ -54,6 +54,21 @@ export class FrpEngine extends FrpVehicle {
      */
     createOnSignalMessageStream() {
         return this.signalMessageSource.createStream();
+    }
+
+    /**
+     * Create a behavior for the safety systems acknowledge (Q) control.
+     */
+    createAcknowledgeBehavior() {
+        const cameraView = frp.stepper(this.createOnCameraStream(), VehicleCamera.FrontCab);
+        return frp.liftN(
+            (awsReset, cameraView) => {
+                const isOutside = cameraView === VehicleCamera.Outside || cameraView === VehicleCamera.Carriage;
+                return awsReset || isOutside;
+            },
+            () => (this.rv.GetControlValue("AWSReset", 0) as number) > 0.5,
+            cameraView
+        );
     }
 
     setup() {

@@ -44,3 +44,29 @@ export function rejectUndefined<T>(): (eventStream: frp.Stream<T | undefined>) =
 export function mapBehavior<T>(behavior: frp.Behavior<T>): (eventStream: frp.Stream<any>) => frp.Stream<T> {
     return frp.map(_ => frp.snapshot(behavior));
 }
+
+/**
+ * Creates a moving average computer with the specified capacity.
+ */
+export function movingAverage(capacity: number): (eventStream: frp.Stream<number>) => frp.Stream<number> {
+    type AverageAccum = [number[], number];
+
+    return eventStream =>
+        frp.compose(
+            eventStream,
+            frp.fold(
+                ([data, ptr], v): AverageAccum => {
+                    data[ptr] = v;
+                    return [data, (ptr + 1) % capacity];
+                },
+                [[], 0] as AverageAccum
+            ),
+            frp.map(([data]) => {
+                let sum = 0;
+                for (const n of data) {
+                    sum += n;
+                }
+                return sum / data.length;
+            })
+        );
+}
