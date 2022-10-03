@@ -446,6 +446,26 @@ const me = new FrpEngine(() => {
         }
     });
 
+    // Horn rings the bell.
+    const bellOn$ = frp.compose(
+        me.createOnCvChangeStreamFor("Horn", 0),
+        frp.filter(v => v > 0),
+        frp.map(_ => 1)
+    );
+    const bellControl$ = frp.compose(
+        me.createOnCvChangeStreamFor("Bell", 0),
+        frp.map(v => {
+            const outOfSync = (v === 0 || v === 1) && v === me.rv.GetControlValue("Bell", 0);
+            return outOfSync ? 1 - v : v;
+        }),
+        frp.merge(bellOn$),
+        frp.filter(_ => me.eng.GetIsEngineWithKey()),
+        frp.hub()
+    );
+    bellControl$(v => {
+        me.rv.SetControlValue("Bell", 0, v);
+    });
+
     // Camera state for ditch lights
     const isPlayerUsingFrontCab$ = frp.compose(
         me.createOnCameraStream(),
@@ -457,27 +477,33 @@ const me = new FrpEngine(() => {
     // Ditch lights, front and rear
     const ditchLightsFront = [new rw.Light("FrontDitchLightL"), new rw.Light("FrontDitchLightR")];
     const ditchLightsRear = [new rw.Light("RearDitchLightL"), new rw.Light("RearDitchLightR")];
-    const ditchLightControl = () => {
-        const cv = me.rv.GetControlValue("DitchLight", 0) as number;
-        if (cv > 1.5) {
-            return DitchLight.Flash;
-        } else if (cv > 0.5) {
-            return DitchLight.On;
-        } else {
-            return DitchLight.Off;
-        }
+    const areHeadLightsOn = () => {
+        const cv = me.rv.GetControlValue("Headlights", 0) as number;
+        return cv > 0.5 && cv < 1.5;
     };
-    const ditchLightHornOrBell$ = frp.compose(
-        me.createOnCvChangeStream(),
-        frp.filter(([name, , value]) => {
-            if (name === "Horn" && value === 1) {
-                return true;
-            } else if (name === "Bell" && value === 1 && frp.snapshot(ditchLightControl) !== DitchLight.Off) {
-                return true;
+    const ditchLightControl = frp.liftN(headLights => {
+        if (!headLights) {
+            return DitchLight.Off;
+        } else {
+            const cv = me.rv.GetControlValue("DitchLight", 0) as number;
+            if (cv > 1.5) {
+                return DitchLight.Flash;
+            } else if (cv > 0.5) {
+                return DitchLight.On;
             } else {
-                return false;
+                return DitchLight.Off;
             }
-        }),
+        }
+    }, areHeadLightsOn);
+    const ditchLightBell$ = frp.compose(
+        bellControl$,
+        frp.filter(_ => frp.snapshot(ditchLightControl) !== DitchLight.Off),
+        frp.filter(v => v === 1)
+    );
+    const ditchLightHornOrBell$ = frp.compose(
+        me.createOnCvChangeStreamFor("Horn", 0),
+        frp.filter(v => v === 1),
+        frp.merge(ditchLightBell$),
         frp.map(_ => DitchLightEvent.HornOrBell)
     );
     const ditchLightMovedHeadlight$ = frp.compose(
@@ -489,43 +515,49 @@ const me = new FrpEngine(() => {
         frp.merge(ditchLightHornOrBell$),
         frp.merge(ditchLightMovedHeadlight$),
         frp.fold((accum: DitchLightAccum, e): DitchLightAccum => {
+            const control = frp.snapshot(ditchLightControl);
             const nowS = me.e.GetSimulationTime();
 
-            // When in horn or bell mode, we should stay put until the timer
-            // elapses, or the engineer cancels the sequence.
-            if (accum !== DitchLightState.Off && accum !== DitchLightState.On) {
-                const [state, clockS] = accum;
-                if (
-                    state === DitchLightState.HornOrBellFlashing &&
-                    nowS - clockS < ditchLightHornFlashS &&
-                    e !== DitchLightEvent.MovedHeadlight
-                ) {
-                    return accum;
-                }
-            }
-
-            // A horn or bell event is top priority.
-            if (e === DitchLightEvent.HornOrBell) {
-                return [DitchLightState.HornOrBellFlashing, nowS];
-            }
-
-            // If we're already in flash, we want to preserve the start time.
-            const control = frp.snapshot(ditchLightControl);
-            if (accum !== DitchLightState.Off && accum !== DitchLightState.On) {
-                const [state] = accum;
-                if (state === DitchLightState.SelectedFlashing && control === DitchLight.Flash) {
-                    return accum;
-                }
-            }
-
-            // Otherwise, fall back to the current control state.
-            switch (control) {
-                case DitchLight.Off:
+            if (accum === DitchLightState.Off || accum === DitchLightState.On) {
+                if (e === DitchLightEvent.HornOrBell) {
+                    return [DitchLightState.HornOrBellFlashing, nowS];
+                } else if (control === DitchLight.Off) {
                     return DitchLightState.Off;
-                case DitchLight.On:
+                } else if (control === DitchLight.On) {
                     return DitchLightState.On;
-                case DitchLight.Flash:
+                } else {
                     return [DitchLightState.SelectedFlashing, nowS];
+                }
+            }
+
+            const [state, clockS] = accum;
+            if (state === DitchLightState.SelectedFlashing) {
+                if (e === DitchLightEvent.HornOrBell) {
+                    // Preserve the progress through the cycle so that the
+                    // transition is seamless.
+                    const cycleS = (nowS - clockS) % (ditchLightFlashS * 2);
+                    return [DitchLightState.HornOrBellFlashing, nowS - cycleS];
+                } else if (control === DitchLight.Off) {
+                    return DitchLightState.Off;
+                } else if (control === DitchLight.On) {
+                    return DitchLightState.On;
+                } else {
+                    return accum;
+                }
+            } else {
+                // When in horn or bell mode, we should stay put until the timer
+                // elapses, or the engineer cancels the sequence.
+                if (e === DitchLightEvent.MovedHeadlight || nowS - clockS > ditchLightHornFlashS) {
+                    if (control === DitchLight.Off) {
+                        return DitchLightState.Off;
+                    } else if (control === DitchLight.On) {
+                        return DitchLightState.On;
+                    } else {
+                        return [DitchLightState.SelectedFlashing, clockS];
+                    }
+                } else {
+                    return accum;
+                }
             }
         }, DitchLightState.Off),
         frp.map((accum): [boolean, boolean] => {
@@ -533,13 +565,9 @@ const me = new FrpEngine(() => {
                 return [false, false];
             } else if (accum === DitchLightState.On) {
                 return [true, true];
-            }
-
-            const [state, clockS] = accum;
-            const nowS = me.e.GetSimulationTime();
-            if (state === DitchLightState.HornOrBellFlashing && nowS - clockS < ditchLightFlashS) {
-                return [false, false];
             } else {
+                const [, clockS] = accum;
+                const nowS = me.e.GetSimulationTime();
                 const showLeft = (nowS - clockS) % (ditchLightFlashS * 2) < ditchLightFlashS;
                 return [showLeft, !showLeft];
             }
@@ -619,25 +647,6 @@ const me = new FrpEngine(() => {
     );
     autoSuppression$(_ => {
         me.rv.SetControlValue("VirtualBrake", 0, 0.75);
-    });
-
-    // Horn rings the bell.
-    const bellOn$ = frp.compose(
-        me.createOnCvChangeStreamFor("Horn", 0),
-        frp.filter(v => v > 0),
-        frp.map(_ => 1)
-    );
-    const bellControl$ = frp.compose(
-        me.createOnCvChangeStreamFor("Bell", 0),
-        frp.map(v => {
-            const outOfSync = (v === 0 || v === 1) && v === me.rv.GetControlValue("Bell", 0);
-            return outOfSync ? 1 - v : v;
-        }),
-        frp.merge(bellOn$),
-        frp.filter(_ => me.eng.GetIsEngineWithKey())
-    );
-    bellControl$(v => {
-        me.rv.SetControlValue("Bell", 0, v);
     });
 
     // Set consist brake lights.
