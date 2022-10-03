@@ -204,7 +204,7 @@ export function create(
                     };
                     break;
                 case SafetySystem.Acses:
-                    const isPositiveStop = acsesState.visibleSpeedMps < c.stopSpeed;
+                    const isPositiveStop = acsesState.targetSpeedMps === 0;
                     envelope = {
                         system: SafetySystem.Acses,
                         visibleSpeedMps: acsesState.visibleSpeedMps,
@@ -231,7 +231,9 @@ export function create(
         inputState$,
         fsm(aduInputInitState),
         frp.map(([from, to]) => {
-            if (
+            if (frp.snapshot(atcCutIn) && from.aspect > to.aspect) {
+                return AduInputEventType.AtcDowngrade;
+            } else if (
                 from.envelope !== undefined &&
                 to.envelope !== undefined &&
                 from.envelope.visibleSpeedMps > to.envelope.visibleSpeedMps
@@ -444,7 +446,7 @@ export function create(
         inputState$,
         fsm(aduInputInitState),
         frp.map(([from, to]) => {
-            if (from.aspect < to.aspect) {
+            if (frp.snapshot(atcCutIn) && from.aspect < to.aspect) {
                 return AduEvent.Upgrade;
             } else if (
                 from.envelope !== undefined &&
