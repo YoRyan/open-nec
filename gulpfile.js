@@ -1,4 +1,5 @@
 import { writeFile } from "fs/promises";
+import intersect from "glob-intersection";
 import gulp from "gulp";
 const { dest, src, watch } = gulp;
 import { stream } from "gulp-execa";
@@ -6,12 +7,24 @@ import filter from "gulp-filter";
 import flatmap from "gulp-flatmap";
 import intermediate from "gulp-intermediate";
 import rename from "gulp-rename";
+import minimist from "minimist";
 import path from "path";
 import ts from "typescript";
 import tstl from "typescript-to-lua";
 
+const options = minimist(process.argv.slice(2), { string: "src", default: { src: "src/mod/**/*" } });
+
+function filterGlob(glob) {
+    const selected = Array.isArray(options.src) ? options.src : [options.src];
+    const filtered = selected.map(s => intersect(s, glob)).filter(g => g);
+    if (filtered.length === 0) {
+        throw "No source files matched the provided glob filter";
+    }
+    return filtered;
+}
+
 export default async function () {
-    watch(["src/mod/**/*.ts", "src/lib/**/*.ts"], scripts);
+    watch([...filterGlob("src/mod/**/*.ts"), "src/lib/**/*.ts"], scripts);
 }
 
 export async function all() {
@@ -20,7 +33,7 @@ export async function all() {
 
 export async function scripts() {
     return awaitStream(
-        src("src/mod/**/*.ts", { base: "src" })
+        src(filterGlob("src/mod/**/*.ts"), { base: "src" })
             .pipe(
                 flatmap(function (stream, file) {
                     return stream
