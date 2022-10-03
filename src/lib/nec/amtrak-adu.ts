@@ -204,10 +204,13 @@ export function create(
                     };
                     break;
                 case SafetySystem.Acses:
+                    const isPositiveStop = acsesState.visibleSpeedMps < c.stopSpeed;
                     envelope = {
                         system: SafetySystem.Acses,
                         visibleSpeedMps: acsesState.visibleSpeedMps,
-                        alertCurveMps: acsesState.alertCurveMps,
+                        alertCurveMps: isPositiveStop
+                            ? acsesState.alertCurveMps
+                            : acsesState.visibleSpeedMps + cs.alertMarginMps,
                         penaltyCurveMps: acsesState.penaltyCurveMps,
                         timeToPenaltyS: acsesState.timeToPenaltyS,
                     };
@@ -314,15 +317,13 @@ export function create(
                     return AduMode.Normal;
                 }
 
-                // Clock update; set the timer to infinity if in ATC mode and
-                // suppression has been achieved. If no longer in suppression,
-                // restart the countdown.
-                if (mode === AduMode.AtcOverspeed) {
-                    if (frp.snapshot(suppression) && acked) {
-                        return [AduMode.AtcOverspeed, Infinity, true];
-                    } else if (countdownS === Infinity) {
-                        return [AduMode.AtcOverspeed, cs.alertCountdownS, false];
-                    }
+                // Clock update; set the timer to infinity if suppression has
+                // been achieved. If no longer in suppression, restart the
+                // countdown.
+                if (acked && frp.snapshot(suppression)) {
+                    return [mode, Infinity, true];
+                } else if (countdownS === Infinity) {
+                    return [mode, cs.alertCountdownS, false];
                 }
 
                 // Clock update; decrement the timer.
