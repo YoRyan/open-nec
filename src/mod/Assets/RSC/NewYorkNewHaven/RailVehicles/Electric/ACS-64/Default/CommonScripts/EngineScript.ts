@@ -49,6 +49,7 @@ enum DitchLightEvent {
 }
 
 const nDisplaySamples = 30;
+const displayRefreshMs = 100;
 
 const me = new FrpEngine(() => {
     // Electric power supply
@@ -315,8 +316,9 @@ const me = new FrpEngine(() => {
     });
 
     // Driving screen
+    const displayUpdate$ = frp.compose(me.createPlayerWithKeyUpdateStream(), frp.throttle(displayRefreshMs));
     const tractiveEffortKlbs$ = frp.compose(
-        me.createPlayerWithKeyUpdateStream(),
+        displayUpdate$,
         frp.map(_ => (me.eng.GetTractiveEffort() * 71 * 71) / 80.5),
         movingAverage(nDisplaySamples)
     );
@@ -328,9 +330,10 @@ const me = new FrpEngine(() => {
         me.rv.SetControlValue("AbsTractiveEffort", 0, (effortKlbs * 365) / 80);
     });
     const accelerationMphMin$ = frp.compose(
-        me.createPlayerWithKeyUpdateStream(),
+        displayUpdate$,
         frp.map(_ => Math.abs(me.rv.GetAcceleration() * 134.2162)),
-        movingAverage(nDisplaySamples)
+        movingAverage(nDisplaySamples),
+        frp.throttle(displayRefreshMs)
     );
     accelerationMphMin$(accelMphMin => {
         const [[h, t, u], guide] = m.digits(Math.round(accelMphMin), 3);
@@ -340,8 +343,7 @@ const me = new FrpEngine(() => {
         me.rv.SetControlValue("accel_guide", 0, guide);
         me.rv.SetControlValue("AccelerationMPHPM", 0, accelMphMin);
     });
-    const drivingIndicators$ = me.createPlayerWithKeyUpdateStream();
-    drivingIndicators$(_ => {
+    displayUpdate$(_ => {
         const speedoMph = me.rv.GetControlValue("SpeedometerMPH", 0) as number;
         const [[h, t, u], guide] = m.digits(Math.round(speedoMph), 3);
         me.rv.SetControlValue("SpeedDigit_hundreds", 0, h);
