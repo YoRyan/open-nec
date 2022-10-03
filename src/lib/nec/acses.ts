@@ -140,12 +140,14 @@ export function create(e: FrpEngine, isActive: frp.Behavior<boolean>): frp.Strea
  * @returns The new event stream of speed post readings.
  */
 function mapSpeedPostsStream(e: FrpEngine): (eventStream: frp.Stream<PlayerUpdate>) => frp.Stream<Reading<SpeedPost>> {
+    type FilterAccum = [hasTypeTwoLimits: boolean, reading: Reading<SpeedPost>];
+
     const nLimits = 3;
     const hugeSpeed = 999;
     return eventStream => {
         return frp.compose(
             eventStream,
-            frp.map(pu => {
+            frp.map((pu): Reading<SpeedPost> => {
                 const speedMpS = e.rv.GetSpeed(); // Must be as precise as possible.
                 const traveledM = speedMpS * pu.dt;
                 let posts: Sensed<SpeedPost>[] = [];
@@ -160,7 +162,35 @@ function mapSpeedPostsStream(e: FrpEngine): (eventStream: frp.Stream<PlayerUpdat
                     }
                 }
                 return [traveledM, posts];
-            })
+            }),
+            // Pick out type 1 limits *unless* we encounter a type 2 (used for
+            // Philadelphia - New York), at which point we'll filter for type 2
+            // limits instead.
+            frp.fold(
+                ([hasTypeTwoLimits], [traveledM, posts]): FilterAccum => {
+                    if (!hasTypeTwoLimits) {
+                        for (const [, post] of posts) {
+                            if (post.type === rw.SpeedLimitType.SignedTrack) {
+                                hasTypeTwoLimits = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    const filtered: Sensed<SpeedPost>[] = [];
+                    for (const [distanceM, post] of posts) {
+                        if (
+                            (hasTypeTwoLimits && post.type === rw.SpeedLimitType.SignedTrack) ||
+                            (!hasTypeTwoLimits && post.type === rw.SpeedLimitType.UnsignedTrack)
+                        ) {
+                            filtered.push([distanceM, post]);
+                        }
+                    }
+                    return [hasTypeTwoLimits, [traveledM, filtered]];
+                },
+                [false, [0, []]] as FilterAccum
+            ),
+            frp.map(([, reading]) => reading)
         );
     };
 }
