@@ -460,7 +460,9 @@ const me = new FrpEngine(() => {
     // Horn rings the bell.
     const bellOn$ = frp.compose(
         me.createOnCvChangeStreamFor("Horn", 0),
-        frp.filter(v => v > 0),
+        // The quill, for Fan Railer and CTSL Railfan's mods
+        frp.merge(me.createOnCvChangeStreamFor("HornNB", 0)),
+        frp.filter(v => v === 1),
         frp.map(_ => 1)
     );
     const bellControl$ = frp.compose(
