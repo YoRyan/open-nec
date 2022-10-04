@@ -6,7 +6,7 @@ import * as ale from "lib/alerter";
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { mapBehavior, movingAverage } from "lib/frp-extra";
+import { fsm, mapBehavior, movingAverage, rejectUndefined } from "lib/frp-extra";
 import { SensedDirection, VehicleCamera } from "lib/frp-vehicle";
 import * as adu from "lib/nec/amtrak-adu";
 import * as m from "lib/math";
@@ -45,6 +45,7 @@ enum DitchLightState {
 
 enum DitchLightEvent {
     HornOrBell,
+    HornOrBellWithRestart,
     MovedHeadlight,
 }
 
@@ -52,6 +53,8 @@ const nDisplaySamples = 30;
 const displayRefreshMs = 100;
 
 const me = new FrpEngine(() => {
+    const isCtslEnhancedPack = me.rv.ControlExists("TAPRBYL", 0);
+
     // Electric power supply
     const electrification = ps.createElectrificationBehaviorWithLua(me, ps.Electrification.Overhead);
     const frontSparkLight = new rw.Light("Spark1");
@@ -103,7 +106,7 @@ const me = new FrpEngine(() => {
 
     // Safety systems and ADU
     const acknowledge = me.createAcknowledgeBehavior();
-    const suppression = () => (me.rv.GetControlValue("VirtualBrake", 0) as number) > 0.66;
+    const suppression = () => (me.rv.GetControlValue("VirtualBrake", 0) as number) > (isCtslEnhancedPack ? 0.4 : 0.66);
     const [aduState$, aduEvents$] = adu.create(me, acknowledge, suppression, atcCutIn, acsesCutIn);
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
@@ -222,14 +225,22 @@ const me = new FrpEngine(() => {
         aduState,
         alerterState
     );
-    const alarmHud$ = frp.compose(me.createPlayerWithKeyUpdateStream(), mapBehavior(isAlarm));
-    alarmHud$(on => {
-        me.rv.SetControlValue("AWSWarnCount", 0, on ? 1 : 0);
-    });
-    const alarmSound$ = frp.compose(me.createPlayerWithKeyUpdateStream(), fx.loopSound(0.5, isAlarm));
-    alarmSound$(play => {
-        me.rv.SetControlValue("SpeedReductionAlert", 0, play ? 1 : 0);
-    });
+    const alarmOn$ = frp.compose(me.createPlayerWithKeyUpdateStream(), mapBehavior(isAlarm));
+    if (isCtslEnhancedPack) {
+        // There's no need to modulate CTSL's improved sound.
+        alarmOn$(on => {
+            me.rv.SetControlValue("AWSWarnCount", 0, on ? 1 : 0);
+            me.rv.SetControlValue("SpeedReductionAlert", 0, on ? 1 : 0);
+        });
+    } else {
+        alarmOn$(on => {
+            me.rv.SetControlValue("AWSWarnCount", 0, on ? 1 : 0);
+        });
+        const alarmLoop$ = frp.compose(me.createPlayerWithKeyUpdateStream(), fx.loopSound(0.5, isAlarm));
+        alarmLoop$(play => {
+            me.rv.SetControlValue("SpeedReductionAlert", 0, play ? 1 : 0);
+        });
+    }
     const upgradeEvents$ = frp.compose(
         aduEvents$,
         frp.filter(evt => evt === adu.AduEvent.Upgrade)
@@ -466,6 +477,46 @@ const me = new FrpEngine(() => {
         me.rv.SetControlValue("Bell", 0, v);
     });
 
+    // Horn sequencer for CTSL Railfan's enhanced pack
+    let ctslDitchLightEvents$: frp.Stream<DitchLightEvent>;
+    if (isCtslEnhancedPack) {
+        const ctslHornSequenceS = 13;
+        const ctslHornSequenceSpeedMph = 3;
+        const ctslHornSequenceBellOnOff$ = frp.compose(
+            me.createPlayerWithKeyUpdateStream(),
+            frp.filter(_ => isCtslEnhancedPack),
+            frp.fold((remainingS, pu) => {
+                const keyPressed = (me.rv.GetControlValue("HornSequencer", 0) as number) > 0.5;
+                const speedOk =
+                    Math.abs(me.rv.GetControlValue("SpeedometerMPH", 0) as number) >= ctslHornSequenceSpeedMph;
+                return keyPressed && speedOk && remainingS <= 0 ? ctslHornSequenceS : Math.max(remainingS - pu.dt, 0);
+            }, 0),
+            fsm(0),
+            frp.map(([from, to]) => {
+                if (to > 0) {
+                    // Force the bell on for the duration of the sequence.
+                    return true;
+                } else if (from > 0 && to <= 0) {
+                    // Turn the bell off at the end of the sequence.
+                    return false;
+                } else {
+                    return undefined;
+                }
+            }),
+            rejectUndefined(),
+            frp.hub()
+        );
+        ctslDitchLightEvents$ = frp.compose(
+            ctslHornSequenceBellOnOff$,
+            frp.map(_ => DitchLightEvent.HornOrBellWithRestart)
+        );
+        ctslHornSequenceBellOnOff$(onOff => {
+            me.rv.SetControlValue("Bell", 0, onOff ? 1 : 0);
+        });
+    } else {
+        ctslDitchLightEvents$ = _ => {};
+    }
+
     // Camera state for ditch lights
     const isPlayerUsingFrontCab$ = frp.compose(
         me.createOnCameraStream(),
@@ -516,12 +567,13 @@ const me = new FrpEngine(() => {
         me.createPlayerWithKeyUpdateStream(),
         frp.merge(ditchLightHornOrBell$),
         frp.merge(ditchLightMovedHeadlight$),
+        frp.merge(ctslDitchLightEvents$),
         frp.fold((accum: DitchLightAccum, e): DitchLightAccum => {
             const control = frp.snapshot(ditchLightControl);
             const nowS = me.e.GetSimulationTime();
 
             if (accum === DitchLightState.Off || accum === DitchLightState.On) {
-                if (e === DitchLightEvent.HornOrBell) {
+                if (e === DitchLightEvent.HornOrBell || e === DitchLightEvent.HornOrBellWithRestart) {
                     return [DitchLightState.HornOrBellFlashing, nowS];
                 } else if (control === DitchLight.Off) {
                     return DitchLightState.Off;
@@ -534,7 +586,7 @@ const me = new FrpEngine(() => {
 
             const [state, clockS] = accum;
             if (state === DitchLightState.SelectedFlashing) {
-                if (e === DitchLightEvent.HornOrBell) {
+                if (e === DitchLightEvent.HornOrBell || e === DitchLightEvent.HornOrBellWithRestart) {
                     // Preserve the progress through the cycle so that the
                     // transition is seamless.
                     const cycleS = (nowS - clockS) % (ditchLightFlashS * 2);
@@ -557,6 +609,11 @@ const me = new FrpEngine(() => {
                     } else {
                         return [DitchLightState.SelectedFlashing, clockS];
                     }
+                } else if (e === DitchLightEvent.HornOrBellWithRestart) {
+                    // Preserve the progress through the cycle so that the
+                    // transition is seamless.
+                    const cycleS = (nowS - clockS) % (ditchLightFlashS * 2);
+                    return [DitchLightState.HornOrBellFlashing, nowS - cycleS];
                 } else {
                     return accum;
                 }
@@ -648,7 +705,7 @@ const me = new FrpEngine(() => {
         frp.filter(v => v > 0)
     );
     autoSuppression$(_ => {
-        me.rv.SetControlValue("VirtualBrake", 0, 0.75);
+        me.rv.SetControlValue("VirtualBrake", 0, isCtslEnhancedPack ? 0.5 : 0.75);
     });
 
     // Set consist brake lights.

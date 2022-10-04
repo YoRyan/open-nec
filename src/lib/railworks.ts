@@ -511,7 +511,7 @@ export class RailVehicle extends RenderedEntity {
      */
     ControlExists(name: string, index: number) {
         const [r] = Call(this.fn("ControlExists"), name, index);
-        return r as boolean;
+        return (r as number) === 1;
     }
 
     /**
