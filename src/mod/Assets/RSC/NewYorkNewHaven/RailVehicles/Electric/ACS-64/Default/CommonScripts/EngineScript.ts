@@ -532,7 +532,7 @@ const me = new FrpEngine(() => {
     const ditchLightsRear = [new rw.Light("RearDitchLightL"), new rw.Light("RearDitchLightR")];
     const areHeadLightsOn = () => {
         const cv = me.rv.GetControlValue("Headlights", 0) as number;
-        return cv > 0.5 && cv < 1.5;
+        return cv > 0.8 && cv < 1.2;
     };
     const ditchLightControl = frp.liftN(headLights => {
         if (!headLights) {
@@ -557,12 +557,13 @@ const me = new FrpEngine(() => {
         me.createOnCvChangeStreamFor("Horn", 0),
         // The quill, for Fan Railer and CTSL Railfan's mods
         frp.merge(me.createOnCvChangeStreamFor("HornHB", 0)),
-        frp.filter(v => v === 1),
+        frp.filter(v => v > 0.5),
         frp.merge(ditchLightBell$),
         frp.map(_ => DitchLightEvent.HornOrBell)
     );
     const ditchLightMovedHeadlight$ = frp.compose(
         me.createOnCvChangeStreamFor("Headlights", 0),
+        frp.merge(me.createOnCvChangeStreamFor("DitchLight", 0)),
         frp.map(_ => DitchLightEvent.MovedHeadlight)
     );
     const ditchLightsPlayer$ = frp.compose(
