@@ -87,7 +87,9 @@ export enum AduMode {
  * control.
  * @param acsesCutIn A behavior that indicates the state of the ACSES cut in
  * control.
- * @returns The new instance.
+ * @param pulseCodeControlValue The name and index of the control value to use
+ * to persist the cab signal pulse code between save states.
+ * @returns A stream that communicates the ADU's state.
  */
 export function create<A>(
     atc: cs.AtcSystem<A>,
@@ -97,16 +99,33 @@ export function create<A>(
     acknowledge: frp.Behavior<boolean>,
     suppression: frp.Behavior<boolean>,
     atcCutIn: frp.Behavior<boolean>,
-    acsesCutIn: frp.Behavior<boolean>
+    acsesCutIn: frp.Behavior<boolean>,
+    pulseCodeControlValue?: [name: string, index: number]
 ): frp.Stream<AduOutput<A>> {
     // Cab signaling system
-    const atcAspect$ = frp.compose(
+    const pulseCodeFromResume$: frp.Stream<cs.PulseCode> =
+        pulseCodeControlValue !== undefined
+            ? frp.compose(
+                  e.createOnResumeStream(),
+                  frp.map(() => e.rv.GetControlValue(...pulseCodeControlValue) as number),
+                  frp.map(cs.pulseCodeFromResumeValue)
+              )
+            : _ => {};
+    const pulseCodeFromMessage$ = frp.compose(
         e.createOnSignalMessageStream(),
         frp.map(cs.toPulseCode),
-        rejectUndefined(),
-        frp.map(atc.fromPulseCode)
+        rejectUndefined()
     );
+    const atcAspect$ = frp.compose(pulseCodeFromResume$, frp.merge(pulseCodeFromMessage$), frp.map(atc.fromPulseCode));
     const atcAspect = frp.stepper(atcAspect$, atc.initialAspect);
+
+    // Persist the current pulse code between save states.
+    if (pulseCodeControlValue !== undefined) {
+        const pulseCodeSave$ = frp.compose(pulseCodeFromMessage$, frp.map(cs.pulseCodeToSaveValue));
+        pulseCodeSave$(cv => {
+            e.rv.SetControlValue(...pulseCodeControlValue, cv);
+        });
+    }
 
     // ATC speed limits
     const atcSystem = frp.liftN(

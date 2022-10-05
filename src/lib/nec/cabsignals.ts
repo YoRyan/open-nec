@@ -256,3 +256,53 @@ export function isMnrrAspect(signalMessage: string): boolean | undefined {
 
     return undefined;
 }
+
+/**
+ * Converts a pulse code into a numeric value suitable for saving into a
+ * control value.
+ * @param pc The pulse code.
+ * @returns The numeric value, between 0 an 1.
+ */
+export function pulseCodeToSaveValue(pc: PulseCode) {
+    return {
+        [PulseCode.C_0_0]: 0.1,
+        [PulseCode.C_75_0]: 0.2,
+        [PulseCode.C_75_75]: 0.3,
+        [PulseCode.C_120_0]: 0.4,
+        [PulseCode.C_120_120]: 0.5,
+        [PulseCode.C_180_0]: 0.6,
+        [PulseCode.C_180_180]: 0.7,
+        [PulseCode.C_270_0]: 0.8,
+        [PulseCode.C_270_270]: 0.9,
+        [PulseCode.C_420_0]: 1,
+    }[pc];
+}
+
+/**
+ * Converts a saved control value into a pulse code.
+ * @param cv The value of the control value.
+ * @returns The pulse code.
+ */
+export function pulseCodeFromResumeValue(cv: number) {
+    if (cv < 0.15) {
+        return PulseCode.C_0_0;
+    } else if (cv < 0.25) {
+        return PulseCode.C_75_0;
+    } else if (cv < 0.35) {
+        return PulseCode.C_75_75;
+    } else if (cv < 0.45) {
+        return PulseCode.C_120_0;
+    } else if (cv < 0.55) {
+        return PulseCode.C_120_120;
+    } else if (cv < 0.65) {
+        return PulseCode.C_180_0;
+    } else if (cv < 0.75) {
+        return PulseCode.C_180_180;
+    } else if (cv < 0.85) {
+        return PulseCode.C_270_0;
+    } else if (cv < 0.95) {
+        return PulseCode.C_270_270;
+    } else {
+        return PulseCode.C_420_0;
+    }
+}
