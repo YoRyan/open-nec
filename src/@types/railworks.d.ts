@@ -88,6 +88,17 @@ declare global {
     var OnCameraLeave: () => void;
 
     /**
+     * A function that is called when the player saves the game.
+     */
+    var OnSave: () => void;
+
+    /**
+     * A function that is called after Initialise() when the player is resuming
+     * from a save.
+     */
+    var OnResume: () => void;
+
+    /**
      * Called by the game when a control is manipulated by some means other
      * than SetControlValue() method in lieu of actually changing the control
      * value.
