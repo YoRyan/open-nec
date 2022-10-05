@@ -42,13 +42,18 @@ const iterateStepM = 0.01;
  * Create a new ACSES instance.
  * @param e The player's engine.
  * @param isActive A behavior that indicates the unit is making computations.
+ * @param violationForcesAlarm If true, exceeding the visible speed limit at
+ * any time violates the alert curve.
  * @returns An event stream that communicates all state for this system.
  */
-export function create(e: FrpEngine, isActive: frp.Behavior<boolean>): frp.Stream<AcsesState> {
+export function create(
+    e: FrpEngine,
+    isActive: frp.Behavior<boolean>,
+    violationForcesAlarm: boolean
+): frp.Stream<AcsesState> {
     type HazardsAccum = { advanceLimits: Map<number, AdvanceLimitHazard>; hazards: Hazard[] };
 
     const isInactive = frp.liftN(isActive => !isActive, isActive);
-    const speedMps = () => (e.rv.GetControlValue("SpeedometerMPH", 0) as number) * c.mph.toMps;
 
     const pts$ = frp.compose(
         e.createOnSignalMessageStream(),
@@ -82,7 +87,7 @@ export function create(e: FrpEngine, isActive: frp.Behavior<boolean>): frp.Strea
         ),
         frp.fold<HazardsAccum, number>(
             (accum, trackSpeedMps) => {
-                const theSpeedMps = frp.snapshot(speedMps);
+                const speedoMps = (e.rv.GetControlValue("SpeedometerMPH", 0) as number) * c.mph.toMps;
                 const thePts = frp.snapshot(pts);
 
                 let hazards: Hazard[] = [];
@@ -90,9 +95,9 @@ export function create(e: FrpEngine, isActive: frp.Behavior<boolean>): frp.Strea
                 // Add advance speed limits.
                 let advanceLimits = new Map<number, AdvanceLimitHazard>();
                 for (const [id, sensed] of frp.snapshot(speedPostIndex)) {
-                    const hazard = accum.advanceLimits.get(id) || new AdvanceLimitHazard();
+                    const hazard = accum.advanceLimits.get(id) || new AdvanceLimitHazard(violationForcesAlarm);
                     advanceLimits.set(id, hazard);
-                    hazard.update(brakingCurveMps2, theSpeedMps, sensed);
+                    hazard.update(brakingCurveMps2, speedoMps, sensed);
                     hazards.push(hazard);
                 }
                 // Add stop signals if a positive stop is imminent.
@@ -102,7 +107,7 @@ export function create(e: FrpEngine, isActive: frp.Behavior<boolean>): frp.Strea
                             const cushionM = 40 * c.ft.toM;
                             const hazard = new StopSignalHazard(
                                 brakingCurveMps2,
-                                theSpeedMps,
+                                speedoMps,
                                 thePts + cushionM,
                                 distanceM
                             );
@@ -605,14 +610,19 @@ class AdvanceLimitHazard implements Hazard {
     visibleSpeedMps?: number = undefined;
     timeToPenaltyS = undefined;
 
+    private violationForcesAlarm: boolean;
     private violatedAtM: number | undefined = undefined;
+
+    constructor(vfa: boolean) {
+        this.violationForcesAlarm = vfa;
+    }
 
     update(curveMps2: number, playerSpeedMps: number, sensed: Sensed<SpeedPost>) {
         const [distanceM, post] = sensed;
         const aDistanceM = Math.abs(distanceM);
 
         // Reveal this limit if the advance braking curve has been violated.
-        let revealTrackSpeed;
+        let revealTrackSpeed: boolean;
         if (this.violatedAtM !== undefined) {
             if (distanceM > 0 && playerSpeedMps > 0) {
                 revealTrackSpeed = distanceM > 0 && distanceM < this.violatedAtM;
@@ -626,15 +636,21 @@ class AdvanceLimitHazard implements Hazard {
         }
 
         const rightWay = (distanceM > 0 && playerSpeedMps >= 0) || (distanceM < 0 && playerSpeedMps <= 0);
-        this.alertCurveMps = rightWay
-            ? Math.max(
-                  getBrakingCurve(curveMps2, post.speedMps, aDistanceM, cs.alertCountdownS),
-                  post.speedMps + cs.alertMarginMps
-              )
-            : Infinity;
-        this.penaltyCurveMps = rightWay
-            ? Math.max(getBrakingCurve(curveMps2, post.speedMps, aDistanceM, 0), post.speedMps + cs.penaltyMarginMps)
-            : Infinity;
+        if (rightWay) {
+            this.alertCurveMps =
+                this.violationForcesAlarm && revealTrackSpeed
+                    ? post.speedMps + cs.alertMarginMps
+                    : Math.max(
+                          getBrakingCurve(curveMps2, post.speedMps, aDistanceM, cs.alertCountdownS),
+                          post.speedMps + cs.alertMarginMps
+                      );
+            this.penaltyCurveMps = Math.max(
+                getBrakingCurve(curveMps2, post.speedMps, aDistanceM, 0),
+                post.speedMps + cs.penaltyMarginMps
+            );
+        } else {
+            this.alertCurveMps = this.penaltyCurveMps = Infinity;
+        }
         this.targetSpeedMps = post.speedMps;
         this.visibleSpeedMps = revealTrackSpeed ? post.speedMps : undefined;
         if (this.violatedAtM === undefined && Math.abs(playerSpeedMps) > this.alertCurveMps) {

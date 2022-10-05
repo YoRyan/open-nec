@@ -27,31 +27,99 @@ export enum PulseCode {
 }
 
 /**
- * A cab signal aspect for Amtrak and NJ Transit trains.
+ * Defines the behavior for an ATC system.
+ * @template A The enum that represents the signal aspects used by the system.
  */
-export enum AmtrakAspect {
-    Restricting = 0,
-    Approach = 1,
-    ApproachMedium30 = 2,
-    ApproachMedium45 = 3,
-    CabSpeed60 = 4,
-    CabSpeed80 = 5,
-    Clear100 = 6,
-    Clear125 = 7,
-    Clear150 = 8,
+export interface AtcSystem<A> {
+    /**
+     * The initial aspect to display before any signal message has been
+     * received.
+     */
+    initialAspect: A;
+
+    /**
+     * Maps a pulse code to a signal aspect.
+     * @param pc The pulse code.
+     */
+    fromPulseCode(this: void, pc: PulseCode): A;
+
+    /**
+     * Orders signal aspects, informing ATC of the relationship (superior or
+     * inferior to) between a pair of aspects.
+     * @param aspect The cab signal aspect.
+     */
+    getSuperiority(this: void, aspect: A): number;
+
+    /**
+     * Maps an aspect to a speed limit.
+     * @param aspect The cab signal aspect.
+     */
+    getSpeedMps(this: void, aspect: A): number;
 }
 
 /**
- * A cab signal aspect for Long Island Rail Road trains.
+ * A cab signal aspect for Amtrak trains.
  */
-export enum LirrAspect {
-    Speed15 = 0,
-    Speed30 = 1,
-    Speed40 = 2,
-    Speed60 = 3,
-    Speed70 = 4,
-    Speed80 = 5,
+export enum AmtrakAspect {
+    Restricting,
+    Approach,
+    ApproachMedium30,
+    ApproachMedium45,
+    CabSpeed60,
+    CabSpeed80,
+    Clear100,
+    Clear125,
+    Clear150,
 }
+
+/**
+ * The Amtrak ATC system.
+ */
+export const amtrakAtc: AtcSystem<AmtrakAspect> = {
+    initialAspect: AmtrakAspect.Restricting,
+    fromPulseCode(pc: PulseCode) {
+        return {
+            [PulseCode.C_0_0]: AmtrakAspect.Restricting,
+            [PulseCode.C_75_0]: AmtrakAspect.Approach,
+            [PulseCode.C_75_75]: AmtrakAspect.ApproachMedium30,
+            [PulseCode.C_120_0]: AmtrakAspect.ApproachMedium45,
+            [PulseCode.C_120_120]: AmtrakAspect.CabSpeed80,
+            [PulseCode.C_180_0]: AmtrakAspect.Clear125,
+            [PulseCode.C_180_180]: AmtrakAspect.Clear150,
+            [PulseCode.C_270_0]: AmtrakAspect.CabSpeed60,
+            [PulseCode.C_270_270]: AmtrakAspect.Clear100,
+            [PulseCode.C_420_0]: AmtrakAspect.Restricting,
+        }[pc];
+    },
+    getSuperiority(aspect: AmtrakAspect) {
+        return {
+            [AmtrakAspect.Restricting]: 0,
+            [AmtrakAspect.Approach]: 1,
+            [AmtrakAspect.ApproachMedium30]: 2,
+            [AmtrakAspect.ApproachMedium45]: 3,
+            [AmtrakAspect.CabSpeed60]: 4,
+            [AmtrakAspect.CabSpeed80]: 5,
+            [AmtrakAspect.Clear100]: 6,
+            [AmtrakAspect.Clear125]: 7,
+            [AmtrakAspect.Clear150]: 8,
+        }[aspect];
+    },
+    getSpeedMps(aspect: AmtrakAspect) {
+        return (
+            {
+                [AmtrakAspect.Restricting]: 20,
+                [AmtrakAspect.Approach]: 30,
+                [AmtrakAspect.ApproachMedium30]: 30,
+                [AmtrakAspect.ApproachMedium45]: 45,
+                [AmtrakAspect.CabSpeed60]: 60,
+                [AmtrakAspect.CabSpeed80]: 80,
+                [AmtrakAspect.Clear100]: 100,
+                [AmtrakAspect.Clear125]: 125,
+                [AmtrakAspect.Clear150]: 150,
+            }[aspect] * c.mph.toMps
+        );
+    },
+};
 
 /**
  * Attempt to convert a signal message to a pulse code.
@@ -187,46 +255,4 @@ export function isMnrrAspect(signalMessage: string): boolean | undefined {
     }
 
     return undefined;
-}
-
-/**
- * Convert a pulse code to a cab signal aspect for Amtrak and NJ Transit
- * equipment.
- * @param pulseCode The pulse code.
- * @returns The cab signal aspect.
- */
-export function toAmtrakAspect(pulseCode: PulseCode) {
-    return {
-        [PulseCode.C_0_0]: AmtrakAspect.Restricting,
-        [PulseCode.C_75_0]: AmtrakAspect.Approach,
-        [PulseCode.C_75_75]: AmtrakAspect.ApproachMedium30,
-        [PulseCode.C_120_0]: AmtrakAspect.ApproachMedium45,
-        [PulseCode.C_120_120]: AmtrakAspect.CabSpeed80,
-        [PulseCode.C_180_0]: AmtrakAspect.Clear125,
-        [PulseCode.C_180_180]: AmtrakAspect.Clear150,
-        [PulseCode.C_270_0]: AmtrakAspect.CabSpeed60,
-        [PulseCode.C_270_270]: AmtrakAspect.Clear100,
-        [PulseCode.C_420_0]: AmtrakAspect.Restricting,
-    }[pulseCode];
-}
-
-/**
- * Convert a pulse code to a cab signal aspect for Long Island Rail Road
- * equipment.
- * @param pulseCode The pulse code.
- * @returns The cab signal aspect.
- */
-export function toLirrAspect(pulseCode: PulseCode) {
-    return {
-        [PulseCode.C_0_0]: LirrAspect.Speed15,
-        [PulseCode.C_75_0]: LirrAspect.Speed30,
-        [PulseCode.C_75_75]: LirrAspect.Speed30,
-        [PulseCode.C_120_0]: LirrAspect.Speed40,
-        [PulseCode.C_120_120]: LirrAspect.Speed40,
-        [PulseCode.C_180_0]: LirrAspect.Speed80,
-        [PulseCode.C_180_180]: LirrAspect.Speed80,
-        [PulseCode.C_270_0]: LirrAspect.Speed70,
-        [PulseCode.C_270_270]: LirrAspect.Speed70,
-        [PulseCode.C_420_0]: LirrAspect.Speed60,
-    }[pulseCode];
 }
