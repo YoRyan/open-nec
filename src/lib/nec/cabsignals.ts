@@ -55,6 +55,13 @@ export interface AtcSystem<A> {
      * @param aspect The cab signal aspect.
      */
     getSpeedMps(this: void, aspect: A): number;
+
+    /**
+     * Returns true if the aspect is a cab signal aspect, which means it must
+     * flash.
+     * @param aspect The cab signal aspect.
+     */
+    isCabSpeed(this: void, aspect: A): boolean;
 }
 
 /**
@@ -118,6 +125,9 @@ export const amtrakAtc: AtcSystem<AmtrakAspect> = {
                 [AmtrakAspect.Clear150]: 150,
             }[aspect] * c.mph.toMps
         );
+    },
+    isCabSpeed(aspect: AmtrakAspect) {
+        return aspect === AmtrakAspect.CabSpeed60 || aspect === AmtrakAspect.CabSpeed80;
     },
 };
 
