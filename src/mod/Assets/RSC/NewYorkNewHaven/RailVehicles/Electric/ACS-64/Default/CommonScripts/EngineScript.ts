@@ -89,7 +89,7 @@ const me = new FrpEngine(() => {
         me.rv.ActivateNode("PantoBsparkF", spark);
     });
 
-    // ATC cut in/out
+    // ATC/ACSES cut in/out
     const atcCutIn = () => (me.rv.GetControlValue("ATCCutIn", 0) as number) > 0.5;
     const acsesCutIn = () => (me.rv.GetControlValue("ACSESCutIn", 0) as number) > 0.5;
     const updateCutIns$ = me.createPlayerWithKeyUpdateStream();
