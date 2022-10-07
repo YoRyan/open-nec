@@ -207,8 +207,7 @@ const me = new FrpEngine(() => {
                 name === (isFanRailer ? "NewVirtualThrottle" : "VirtualThrottle") || name === "TrainBrakeControl"
         )
     );
-    const alerter$ = frp.compose(ale.create(me, acknowledge, alerterReset$, alerterCutIn), frp.hub());
-    const alerterState = frp.stepper(alerter$, undefined);
+    const alerterState = frp.stepper(ale.create(me, acknowledge, alerterReset$, alerterCutIn), undefined);
     // Safety system sounds
     const isAlarm = frp.liftN(
         (aduState, alerterState) => (aduState?.alarm || alerterState?.alarm) ?? false,
