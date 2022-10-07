@@ -73,6 +73,7 @@ export function create(
     suppression: frp.Behavior<boolean>,
     atcCutIn: frp.Behavior<boolean>,
     acsesCutIn: frp.Behavior<boolean>,
+    equipmentSpeedMps: number,
     pulseCodeControlValue?: [name: string, index: number]
 ): [frp.Stream<AduState>, frp.Stream<AduEvent>] {
     type AduInput = adu.AduInput<cs.AmtrakAspect>;
@@ -105,6 +106,7 @@ export function create(
             cs.amtrakAtc,
             getDowngrades,
             true,
+            equipmentSpeedMps,
             e,
             acknowledge,
             suppression,

@@ -44,12 +44,14 @@ const iterateStepM = 0.01;
  * @param isActive A behavior that indicates the unit is making computations.
  * @param violationForcesAlarm If true, exceeding the visible speed limit at
  * any time violates the alert curve.
+ * @param equipmentSpeedMps The maximum consist speed limit.
  * @returns An event stream that communicates all state for this system.
  */
 export function create(
     e: FrpEngine,
     isActive: frp.Behavior<boolean>,
-    violationForcesAlarm: boolean
+    violationForcesAlarm: boolean,
+    equipmentSpeedMps: number
 ): frp.Stream<AcsesState> {
     type HazardsAccum = { advanceLimits: Map<number, AdvanceLimitHazard>; hazards: Hazard[] };
 
@@ -116,7 +118,7 @@ export function create(
                     }
                 }
                 // Add current track speed limit.
-                hazards.push(new TrackSpeedHazard(trackSpeedMps));
+                hazards.push(new TrackSpeedHazard(Math.min(trackSpeedMps, equipmentSpeedMps)));
                 // Sort by penalty curve speed.
                 hazards.sort((a, b) => a.penaltyCurveMps - b.penaltyCurveMps);
                 return { advanceLimits, hazards };

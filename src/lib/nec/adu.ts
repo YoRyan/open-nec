@@ -78,6 +78,7 @@ export enum AduMode {
  * to ADU input events.
  * @param violationForcesAlarm If true, exceeding the visible speed limit at
  * any time violates the alert curve.
+ * @param equipmentSpeedMps The maximum consist speed limit.
  * @param e The player's engine.
  * @param acknowledge A behavior that indicates the state of the safety systems
  * acknowledge control.
@@ -95,6 +96,7 @@ export function create<A>(
     atc: cs.AtcSystem<A>,
     getEvents: (eventStream: frp.Stream<[from: AduInput<A>, to: AduInput<A>]>) => frp.Stream<AduEvent>,
     violationForcesAlarm: boolean,
+    equipmentSpeedMps: number,
     e: FrpEngine,
     acknowledge: frp.Behavior<boolean>,
     suppression: frp.Behavior<boolean>,
@@ -149,7 +151,7 @@ export function create<A>(
     // Phase 1, input state.
     // We can count on the ACSES stream to update continuously.
     const input$ = frp.compose(
-        acses.create(e, acsesCutIn, violationForcesAlarm),
+        acses.create(e, acsesCutIn, violationForcesAlarm, equipmentSpeedMps),
         frp.map((acsesState): AduInput<A> => {
             const isPositiveStop = frp.snapshot(acsesCutIn) && acsesState.targetSpeedMps <= 0;
             const aspect = isPositiveStop ? AduAspect.Stop : frp.snapshot(atcAspect);

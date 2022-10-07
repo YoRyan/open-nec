@@ -114,10 +114,16 @@ const me = new FrpEngine(() => {
     // Safety systems and ADU
     const acknowledge = me.createAcknowledgeBehavior();
     const suppression = () => (me.rv.GetControlValue("TrainBrakeControl", 0) as number) > 0.3;
-    const [aduState$, aduEvents$] = adu.create(cs.amtrakAtc, me, acknowledge, suppression, atcCutIn, acsesCutIn, [
-        "CurrentAmtrakSignal",
-        0,
-    ]);
+    const [aduState$, aduEvents$] = adu.create(
+        cs.amtrakAtc,
+        me,
+        acknowledge,
+        suppression,
+        atcCutIn,
+        acsesCutIn,
+        125 * c.mph.toMps,
+        ["CurrentAmtrakSignal", 0]
+    );
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
         me.rv.SetControlValue(

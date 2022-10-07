@@ -53,6 +53,7 @@ export function create<A>(
     suppression: frp.Behavior<boolean>,
     atcCutIn: frp.Behavior<boolean>,
     acsesCutIn: frp.Behavior<boolean>,
+    equipmentSpeedMps: number,
     pulseCodeControlValue?: [name: string, index: number]
 ): [frp.Stream<AduState<A>>, frp.Stream<AduEvent>] {
     type AduInput = adu.AduInput<A>;
@@ -82,7 +83,18 @@ export function create<A>(
             rejectUndefined()
         );
     const output$ = frp.compose(
-        adu.create(atc, getDowngrades, true, e, acknowledge, suppression, atcCutIn, acsesCutIn, pulseCodeControlValue),
+        adu.create(
+            atc,
+            getDowngrades,
+            true,
+            equipmentSpeedMps,
+            e,
+            acknowledge,
+            suppression,
+            atcCutIn,
+            acsesCutIn,
+            pulseCodeControlValue
+        ),
         frp.hub()
     );
     const initialOutput: adu.AduOutput<A> = {

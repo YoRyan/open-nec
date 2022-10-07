@@ -108,7 +108,10 @@ const me = new FrpEngine(() => {
     // Safety systems and ADU
     const acknowledge = me.createAcknowledgeBehavior();
     const suppression = () => (me.rv.GetControlValue("VirtualBrake", 0) as number) > (isCtslEnhancedPack ? 0.4 : 0.66);
-    const [aduState$, aduEvents$] = adu.create(me, acknowledge, suppression, atcCutIn, acsesCutIn, ["CabSignal", 0]);
+    const [aduState$, aduEvents$] = adu.create(me, acknowledge, suppression, atcCutIn, acsesCutIn, 125 * c.mph.toMps, [
+        "CabSignal",
+        0,
+    ]);
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
         me.rv.SetControlValue(
