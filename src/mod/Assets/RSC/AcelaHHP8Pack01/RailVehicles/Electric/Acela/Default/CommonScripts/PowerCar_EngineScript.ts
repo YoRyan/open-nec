@@ -6,7 +6,7 @@ import * as ale from "lib/alerter";
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { fsm, mapBehavior, movingAverage, rejectUndefined } from "lib/frp-extra";
+import { mapBehavior, movingAverage } from "lib/frp-extra";
 import { SensedDirection, VehicleCamera } from "lib/frp-vehicle";
 import { AduAspect } from "lib/nec/adu";
 import * as cs from "lib/nec/cabsignals";
