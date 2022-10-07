@@ -104,11 +104,12 @@ const me = new FrpEngine(() => {
         me.rv.AddTime("rearPanto", rear * dt);
     });
 
-    // ATC/ACSES cut in/out
+    // Safety systems cut in/out
     const atcCutIn = () => (me.rv.GetControlValue("ATCCutIn", 0) as number) > 0.5;
     const acsesCutIn = () => (me.rv.GetControlValue("ACSESCutIn", 0) as number) > 0.5;
     ui.createAtcStatusPopup(me, atcCutIn);
     ui.createAcsesStatusPopup(me, acsesCutIn);
+    const alerterCutIn = frp.liftN((atcCutIn, acsesCutIn) => atcCutIn || acsesCutIn, atcCutIn, acsesCutIn);
 
     // Safety systems and ADU
     const acknowledge = me.createAcknowledgeBehavior();
@@ -201,7 +202,6 @@ const me = new FrpEngine(() => {
                 name === (isFanRailer ? "NewVirtualThrottle" : "VirtualThrottle") || name === "TrainBrakeControl"
         )
     );
-    const alerterCutIn = frp.liftN((atcCutIn, acsesCutIn) => atcCutIn || acsesCutIn, atcCutIn, acsesCutIn);
     const alerter$ = frp.compose(ale.create(me, acknowledge, alerterReset$, alerterCutIn), frp.hub());
     const alerterState = frp.stepper(alerter$, undefined);
     // Safety system sounds
