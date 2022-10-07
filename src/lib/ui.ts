@@ -67,3 +67,20 @@ export function createAcsesStatusPopup(e: FrpEngine, behavior: frp.Behavior<bool
         ])
     );
 }
+
+/**
+ * Create popups for an alerter cut in/out control.
+ * @param e The player's engine.
+ * @param behavior The cut in/out behavior.
+ */
+export function createAlerterStatusPopup(e: FrpEngine, behavior: frp.Behavior<boolean>) {
+    createStatusPopup(
+        e,
+        behavior,
+        "Alerter Vigilance System",
+        new Map([
+            [true, "Cut In"],
+            [false, "Cut Out"],
+        ])
+    );
+}
