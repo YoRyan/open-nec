@@ -23,8 +23,8 @@ const brakeLightMessageId = 10101;
 export function behaviorStopwatchS(
     condition: frp.Behavior<boolean>
 ): (eventStream: frp.Stream<AiUpdate | PlayerUpdate>) => frp.Stream<number | undefined> {
-    return eventStream => {
-        return frp.compose(
+    return eventStream =>
+        frp.compose(
             eventStream,
             frp.fold((stopwatchS: number | undefined, update) => {
                 if (!frp.snapshot(condition)) {
@@ -36,7 +36,6 @@ export function behaviorStopwatchS(
                 }
             }, undefined)
         );
-    };
 }
 
 /**
@@ -77,8 +76,8 @@ export function loopSound(
 ): (eventStream: frp.Stream<AiUpdate | PlayerUpdate>) => frp.Stream<boolean> {
     type LoopAccum = number | undefined;
 
-    return eventStream => {
-        return frp.compose(
+    return eventStream =>
+        frp.compose(
             eventStream,
             frp.fold((accum: LoopAccum, update) => {
                 if (accum !== undefined && accum > loopS) {
@@ -92,7 +91,6 @@ export function loopSound(
             }, undefined),
             frp.map(accum => accum !== undefined)
         );
-    };
 }
 
 /**
@@ -106,8 +104,8 @@ export function triggerSound(
     trigger: frp.Stream<any>
 ): (eventStream: frp.Stream<AiUpdate | PlayerUpdate>) => frp.Stream<boolean> {
     const trigger$ = frp.map(_ => undefined)(trigger);
-    return eventStream => {
-        return frp.compose(
+    return eventStream =>
+        frp.compose(
             eventStream,
             frp.merge(trigger$),
             frp.fold((remainingS, input) => {
@@ -121,7 +119,6 @@ export function triggerSound(
             // repeated triggers.
             frp.map(remainingS => remainingS > 0 && remainingS !== playS)
         );
-    };
 }
 
 /**

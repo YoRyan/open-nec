@@ -288,19 +288,17 @@ export class FrpVehicle extends FrpEntity {
         step: (accumulated: TAccum, value: TValue) => TAccum,
         initial: frp.Behavior<TAccum>
     ): (eventStream: frp.Stream<TValue>) => frp.Stream<TAccum> {
-        return eventStream => {
-            return next => {
-                let accumulated = frp.snapshot(initial);
-                let firstRead = false;
-                eventStream(value => {
-                    if (frp.snapshot(this.areControlsSettled) && firstRead) {
-                        next((accumulated = step(accumulated, value)));
-                    } else {
-                        accumulated = frp.snapshot(initial);
-                        firstRead = true;
-                    }
-                });
-            };
+        return eventStream => next => {
+            let accumulated = frp.snapshot(initial);
+            let firstRead = false;
+            eventStream(value => {
+                if (frp.snapshot(this.areControlsSettled) && firstRead) {
+                    next((accumulated = step(accumulated, value)));
+                } else {
+                    accumulated = frp.snapshot(initial);
+                    firstRead = true;
+                }
+            });
         };
     }
 
@@ -313,8 +311,8 @@ export class FrpVehicle extends FrpEntity {
      * @returns A curried function that will produce the new event stream.
      */
     mapEventStreamTimer(durationS: number = 1): (eventStream: frp.Stream<any>) => frp.Stream<boolean> {
-        return eventStream => {
-            return frp.compose(
+        return eventStream =>
+            frp.compose(
                 eventStream,
                 frp.map(_ => undefined),
                 frp.merge(this.createPlayerUpdateStream()),
@@ -327,7 +325,6 @@ export class FrpVehicle extends FrpEntity {
                 }, 0),
                 frp.map(t => t > 0)
             );
-        };
     }
 
     setup() {
