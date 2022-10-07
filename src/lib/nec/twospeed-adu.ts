@@ -16,7 +16,7 @@ import * as fx from "lib/special-fx";
  */
 export type AduState<A> = {
     aspect: adu.AduAspect | A;
-    cabSignalFlashOn: boolean;
+    aspectFlashOn: boolean;
     masEnforcing: MasEnforcing;
     trackSpeedMph?: number;
     alarm: boolean;
@@ -40,7 +40,7 @@ export enum AduEvent {
     Upgrade,
 }
 
-const cabSpeedFlashS = 0.5;
+const aspectFlashS = 0.5;
 const enforcingFlashS = 0.5;
 
 /**
@@ -106,20 +106,26 @@ export function create<A>(
         }
     }, output);
 
-    // Cab speed flash
-    const cabSpeedFlash$ = frp.compose(
-        e.createPlayerWithKeyUpdateStream(),
-        fx.stopwatchS(
-            frp.liftN(output => output.aspect !== adu.AduAspect.Stop && atc.isCabSpeed(output.aspect), output)
-        ),
-        frp.map(stopwatchS => stopwatchS !== undefined && stopwatchS % (cabSpeedFlashS * 2) < cabSpeedFlashS)
+    // Cab aspect flash
+    const aspectFlashStart$ = frp.compose(
+        output$,
+        frp.map(output => (output.aspect !== adu.AduAspect.Stop ? output.aspect : undefined)),
+        rejectUndefined(),
+        fsm(atc.initialAspect),
+        frp.filter(([from, to]) => from !== to),
+        frp.filter(([from, to]) => atc.restartFlash(from, to))
     );
-    const cabSpeedFlashOn = frp.stepper(cabSpeedFlash$, false);
+    const aspectFlash$ = frp.compose(
+        e.createPlayerWithKeyUpdateStream(),
+        fx.eventStopwatchS(aspectFlashStart$),
+        frp.map(stopwatchS => stopwatchS !== undefined && stopwatchS % (aspectFlashS * 2) < aspectFlashS)
+    );
+    const aspectFlashOn = frp.stepper(aspectFlash$, false);
 
     // Enforcing light flash
     const enforcingFlash$ = frp.compose(
         e.createPlayerWithKeyUpdateStream(),
-        fx.stopwatchS(isAlarm),
+        fx.behaviorStopwatchS(isAlarm),
         frp.map(stopwatchS => stopwatchS !== undefined && stopwatchS % (enforcingFlashS * 2) > enforcingFlashS)
     );
     const enforcingFlashOn = frp.stepper(enforcingFlash$, false);
@@ -162,7 +168,7 @@ export function create<A>(
 
             return {
                 aspect: output.aspect,
-                cabSignalFlashOn: frp.snapshot(cabSpeedFlashOn),
+                aspectFlashOn: frp.snapshot(aspectFlashOn),
                 masEnforcing,
                 trackSpeedMph,
                 alarm,

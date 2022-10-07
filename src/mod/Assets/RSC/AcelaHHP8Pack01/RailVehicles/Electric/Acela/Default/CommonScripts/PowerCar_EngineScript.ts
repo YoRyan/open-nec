@@ -120,13 +120,11 @@ const me = new FrpEngine(() => {
     ]);
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
-        const isCabSpeed =
-            state.cabSignalFlashOn &&
-            (state.aspect === cs.AmtrakAspect.CabSpeed60 || state.aspect === cs.AmtrakAspect.CabSpeed80);
         me.rv.SetControlValue(
             "SigGreen",
             0,
-            isCabSpeed ||
+            ((state.aspect === cs.AmtrakAspect.CabSpeed60 || state.aspect === cs.AmtrakAspect.CabSpeed80) &&
+                state.aspectFlashOn) ||
                 state.aspect === cs.AmtrakAspect.Clear100 ||
                 state.aspect === cs.AmtrakAspect.Clear125 ||
                 state.aspect === cs.AmtrakAspect.Clear150
@@ -150,7 +148,8 @@ const me = new FrpEngine(() => {
         me.rv.SetControlValue(
             "SigLowerGreen",
             0,
-            state.aspect === cs.AmtrakAspect.ApproachMedium30 || state.aspect === cs.AmtrakAspect.ApproachMedium45
+            state.aspect === cs.AmtrakAspect.ApproachMedium30 ||
+                (state.aspect === cs.AmtrakAspect.ApproachMedium45 && state.aspectFlashOn)
                 ? 1
                 : 0
         );
@@ -350,7 +349,7 @@ const me = new FrpEngine(() => {
     );
     const ditchLightsPlayer$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        fx.stopwatchS(frp.liftN(state => state === DitchLights.Flash, ditchLightsState)),
+        fx.behaviorStopwatchS(frp.liftN(state => state === DitchLights.Flash, ditchLightsState)),
         frp.map((flashS): [boolean, boolean] => {
             if (flashS === undefined) {
                 const ditchOn = frp.snapshot(ditchLightsState) === DitchLights.Fixed;

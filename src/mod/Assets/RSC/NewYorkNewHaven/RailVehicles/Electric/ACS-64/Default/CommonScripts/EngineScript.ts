@@ -127,7 +127,8 @@ const me = new FrpEngine(() => {
             0,
             state.aspect === adu.AduAspect.Approach ||
                 state.aspect === adu.AduAspect.ApproachMedium30 ||
-                state.aspect === adu.AduAspect.ApproachMedium45
+                state.aspect === adu.AduAspect.ApproachMedium45 ||
+                state.aspect === adu.AduAspect.ApproachMedium45Off
                 ? 1
                 : 0
         );
@@ -154,6 +155,7 @@ const me = new FrpEngine(() => {
                 [adu.AduAspect.Approach]: 8,
                 [adu.AduAspect.ApproachMedium30]: 13,
                 [adu.AduAspect.ApproachMedium45]: 13,
+                [adu.AduAspect.ApproachMedium45Off]: 13,
                 [adu.AduAspect.CabSpeed60]: 2,
                 [adu.AduAspect.CabSpeed60Off]: 2,
                 [adu.AduAspect.CabSpeed80]: 2,
@@ -168,7 +170,13 @@ const me = new FrpEngine(() => {
             me.rv.SetControlValue("SigS", 0, state.aspect === adu.AduAspect.Stop ? 1 : 0);
             me.rv.SetControlValue("SigR", 0, state.aspect === adu.AduAspect.Restrict ? 1 : 0);
             me.rv.SetControlValue("SigM", 0, state.aspect === adu.AduAspect.Approach ? 1 : 0);
-            me.rv.SetControlValue("SigL", 0, state.aspect === adu.AduAspect.ApproachMedium45 ? 1 : 0);
+            me.rv.SetControlValue(
+                "SigL",
+                0,
+                state.aspect === adu.AduAspect.ApproachMedium45 || state.aspect === adu.AduAspect.ApproachMedium45Off
+                    ? 1
+                    : 0
+            );
             me.rv.SetControlValue(
                 "Sig60",
                 0,

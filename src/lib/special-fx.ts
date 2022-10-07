@@ -20,7 +20,7 @@ const brakeLightMessageId = 10101;
  * @returns A transformer that emits the time, in seconds, since the condition
  * was true, or undefined if the condition is false.
  */
-export function stopwatchS(
+export function behaviorStopwatchS(
     condition: frp.Behavior<boolean>
 ): (eventStream: frp.Stream<AiUpdate | PlayerUpdate>) => frp.Stream<number | undefined> {
     return eventStream => {
@@ -37,6 +37,32 @@ export function stopwatchS(
             }, undefined)
         );
     };
+}
+
+/**
+ * Track the time that has elapsed since an event stream has emitted an event.
+ * @param stream The input event stream.
+ * @returns A transformer that emits the time, in seconds, since the last event
+ * was emitted, or undefined if no event has been emitted.
+ */
+export function eventStopwatchS(
+    stream: frp.Stream<any>
+): (eventStream: frp.Stream<AiUpdate | PlayerUpdate>) => frp.Stream<number | undefined> {
+    return eventStream =>
+        frp.compose(
+            stream,
+            frp.map(_ => undefined),
+            frp.merge(eventStream),
+            frp.fold((stopwatchS: number | undefined, update) => {
+                if (update === undefined) {
+                    return 0;
+                } else if (stopwatchS !== undefined) {
+                    return stopwatchS + update.dt;
+                } else {
+                    return undefined;
+                }
+            }, undefined)
+        );
 }
 
 /**

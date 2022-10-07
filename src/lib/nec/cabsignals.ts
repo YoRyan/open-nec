@@ -57,11 +57,12 @@ export interface AtcSystem<A> {
     getSpeedMps(this: void, aspect: A): number;
 
     /**
-     * Returns true if the aspect is a cab signal aspect, which means it must
-     * flash.
-     * @param aspect The cab signal aspect.
+     * Returns true if a transition between two cab signal aspects should
+     * restart the flash cycle.
+     * @param from The aspect being transitioned from.
+     * @param to The aspect being transitioned to.
      */
-    isCabSpeed(this: void, aspect: A): boolean;
+    restartFlash(this: void, from: A, to: A): boolean;
 }
 
 /**
@@ -126,8 +127,10 @@ export const amtrakAtc: AtcSystem<AmtrakAspect> = {
             }[aspect] * c.mph.toMps
         );
     },
-    isCabSpeed(aspect: AmtrakAspect) {
-        return aspect === AmtrakAspect.CabSpeed60 || aspect === AmtrakAspect.CabSpeed80;
+    restartFlash(from: AmtrakAspect, to: AmtrakAspect) {
+        const isCabSignal = (aspect: AmtrakAspect) =>
+            aspect === AmtrakAspect.CabSpeed60 || aspect === AmtrakAspect.CabSpeed80;
+        return to === AmtrakAspect.ApproachMedium45 || (!isCabSignal(from) && isCabSignal(to));
     },
 };
 

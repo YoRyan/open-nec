@@ -21,6 +21,7 @@ export enum AduAspect {
     Approach,
     ApproachMedium30,
     ApproachMedium45,
+    ApproachMedium45Off,
     CabSpeed60,
     CabSpeed60Off,
     CabSpeed80,
@@ -60,7 +61,7 @@ export enum AduEvent {
     Upgrade,
 }
 
-const cabSpeedFlashS = 0.5;
+const aspectFlashS = 0.5;
 const enforcingFlashS = 0.5;
 
 /**
@@ -134,23 +135,25 @@ export function create(
         }
     }, output);
 
-    // Cab speed flash
-    const cabSpeedFlash$ = frp.compose(
-        e.createPlayerWithKeyUpdateStream(),
-        fx.stopwatchS(
-            frp.liftN(
-                output => output.aspect === cs.AmtrakAspect.CabSpeed60 || output.aspect === cs.AmtrakAspect.CabSpeed80,
-                output
-            )
-        ),
-        frp.map(stopwatchS => stopwatchS !== undefined && stopwatchS % (cabSpeedFlashS * 2) < cabSpeedFlashS)
+    // Cab aspect flash
+    const aspectFlashStart$ = frp.compose(
+        output$,
+        frp.map(output => output.aspect),
+        fsm<cs.AmtrakAspect | adu.AduAspect>(cs.amtrakAtc.initialAspect),
+        frp.filter(([from, to]) => from !== to),
+        frp.filter(([from, to]) => to === cs.AmtrakAspect.ApproachMedium45 || (!isCabSignal(from) && isCabSignal(to)))
     );
-    const cabSpeedFlashOn = frp.stepper(cabSpeedFlash$, false);
+    const aspectFlash$ = frp.compose(
+        e.createPlayerWithKeyUpdateStream(),
+        fx.eventStopwatchS(aspectFlashStart$),
+        frp.map(stopwatchS => stopwatchS !== undefined && stopwatchS % (aspectFlashS * 2) < aspectFlashS)
+    );
+    const aspectFlashOn = frp.stepper(aspectFlash$, false);
 
     // Enforcing light flash
     const enforcingFlash$ = frp.compose(
         e.createPlayerWithKeyUpdateStream(),
-        fx.stopwatchS(isAlarm),
+        fx.behaviorStopwatchS(isAlarm),
         frp.map(stopwatchS => stopwatchS !== undefined && stopwatchS % (enforcingFlashS * 2) > enforcingFlashS)
     );
     const enforcingFlashOn = frp.stepper(enforcingFlash$, false);
@@ -160,15 +163,17 @@ export function create(
         frp.map((output): AduState => {
             const alarm = frp.snapshot(isAlarm);
 
-            const cabSpeedOn = frp.snapshot(cabSpeedFlashOn);
+            const flashOn = frp.snapshot(aspectFlashOn);
             const aspect = {
                 [adu.AduAspect.Stop]: AduAspect.Stop,
                 [cs.AmtrakAspect.Restricting]: AduAspect.Restrict,
                 [cs.AmtrakAspect.Approach]: AduAspect.Approach,
                 [cs.AmtrakAspect.ApproachMedium30]: AduAspect.ApproachMedium30,
-                [cs.AmtrakAspect.ApproachMedium45]: AduAspect.ApproachMedium45,
-                [cs.AmtrakAspect.CabSpeed60]: cabSpeedOn ? AduAspect.CabSpeed60 : AduAspect.CabSpeed60Off,
-                [cs.AmtrakAspect.CabSpeed80]: cabSpeedOn ? AduAspect.CabSpeed80 : AduAspect.CabSpeed80Off,
+                [cs.AmtrakAspect.ApproachMedium45]: flashOn
+                    ? AduAspect.ApproachMedium45
+                    : AduAspect.ApproachMedium45Off,
+                [cs.AmtrakAspect.CabSpeed60]: flashOn ? AduAspect.CabSpeed60 : AduAspect.CabSpeed60Off,
+                [cs.AmtrakAspect.CabSpeed80]: flashOn ? AduAspect.CabSpeed80 : AduAspect.CabSpeed80Off,
                 [cs.AmtrakAspect.Clear100]: AduAspect.Clear100,
                 [cs.AmtrakAspect.Clear125]: AduAspect.Clear125,
                 [cs.AmtrakAspect.Clear150]: AduAspect.Clear150,
@@ -240,4 +245,8 @@ export function create(
 function aspectSuperiority(input: adu.AduInput<cs.AmtrakAspect>) {
     const aspect = input.aspect;
     return aspect === adu.AduAspect.Stop ? -1 : cs.amtrakAtc.getSuperiority(aspect);
+}
+
+function isCabSignal(aspect: cs.AmtrakAspect | adu.AduAspect) {
+    return aspect === cs.AmtrakAspect.CabSpeed60 || aspect === cs.AmtrakAspect.CabSpeed80;
 }
