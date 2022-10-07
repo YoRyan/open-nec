@@ -209,12 +209,16 @@ const me = new FrpEngine(() => {
     );
     const alerterState = frp.stepper(ale.create(me, acknowledge, alerterReset$, alerterCutIn), undefined);
     // Safety system sounds
-    const isAlarm = frp.liftN(
-        (aduState, alerterState) => (aduState?.alarm || alerterState?.alarm) ?? false,
-        aduState,
-        alerterState
+    const alarmOn$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        mapBehavior(
+            frp.liftN(
+                (aduState, alerterState) => (aduState?.alarm || alerterState?.alarm) ?? false,
+                aduState,
+                alerterState
+            )
+        )
     );
-    const alarmOn$ = frp.compose(me.createPlayerWithKeyUpdateStream(), mapBehavior(isAlarm));
     alarmOn$(on => {
         me.rv.SetControlValue("AWSWarnCount", 0, on ? 1 : 0);
     });
