@@ -3,8 +3,27 @@
 import * as c from "lib/constants";
 import * as frp from "./frp";
 import { FrpSource } from "./frp-entity";
+import { rejectUndefined } from "./frp-extra";
 import { FrpVehicle, PlayerUpdate, VehicleCamera } from "./frp-vehicle";
 import * as rw from "./railworks";
+
+/**
+ * Represents the in-game "location" of the player.
+ */
+export enum PlayerLocation {
+    /**
+     * The player is not inside this engine.
+     */
+    Away,
+    /**
+     * The player is seated in the front cab.
+     */
+    InFrontCab,
+    /**
+     * The player is seated in the rear cab.
+     */
+    InRearCab,
+}
 
 export class FrpEngine extends FrpVehicle {
     /**
@@ -55,6 +74,34 @@ export class FrpEngine extends FrpVehicle {
      */
     createOnSignalMessageStream() {
         return this.signalMessageSource.createStream();
+    }
+
+    /**
+     * Create a behavior for the player's current "location" relative to the
+     * engine.
+     */
+    createPlayerLocationBehavior() {
+        const isAway$ = frp.compose(
+            this.createAiUpdateStream(),
+            frp.merge(this.createPlayerWithoutKeyUpdateStream()),
+            frp.map(_ => PlayerLocation.Away)
+        );
+        const location$ = frp.compose(
+            this.createOnCameraStream(),
+            frp.map(vc => {
+                switch (vc) {
+                    case VehicleCamera.FrontCab:
+                        return PlayerLocation.InFrontCab;
+                    case VehicleCamera.RearCab:
+                        return PlayerLocation.InRearCab;
+                    default:
+                        return undefined;
+                }
+            }),
+            rejectUndefined(),
+            frp.merge(isAway$)
+        );
+        return frp.stepper(location$, PlayerLocation.InFrontCab);
     }
 
     /**

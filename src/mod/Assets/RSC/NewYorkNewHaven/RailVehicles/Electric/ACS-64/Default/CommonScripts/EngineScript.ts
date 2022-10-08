@@ -5,7 +5,7 @@
 import * as ale from "lib/alerter";
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
-import { FrpEngine } from "lib/frp-engine";
+import { FrpEngine, PlayerLocation } from "lib/frp-engine";
 import { fsm, mapBehavior, movingAverage, rejectUndefined } from "lib/frp-extra";
 import { SensedDirection, VehicleCamera } from "lib/frp-vehicle";
 import * as adu from "lib/nec/amtrak-adu";
@@ -383,44 +383,28 @@ const me = new FrpEngine(() => {
         me.rv.SetControlValue("ScreenAlerter", 0, state.alarm ? 1 : 0);
     });
 
-    // Camera state for interior lights
-    const vehicleCamera = frp.stepper(me.createOnCameraStream(), VehicleCamera.Outside);
-    const isPlayerInside$ = frp.compose(
-        me.createPlayerWithoutKeyUpdateStream(),
-        frp.merge(me.createAiUpdateStream()),
-        frp.map(_ => false)
-    );
-    const isPlayerInFrontCab$ = frp.compose(
-        me.createPlayerWithKeyUpdateStream(),
-        frp.map(_ => frp.snapshot(vehicleCamera) === VehicleCamera.FrontCab),
-        frp.merge(isPlayerInside$),
-        frp.hub()
-    );
-    const isPlayerInRearCab$ = frp.compose(
-        me.createPlayerWithKeyUpdateStream(),
-        frp.map(_ => frp.snapshot(vehicleCamera) === VehicleCamera.RearCab),
-        frp.merge(isPlayerInside$),
-        frp.hub()
-    );
+    // Player location for interior lights
+    const playerLocation = me.createPlayerLocationBehavior();
 
     // Cab dome lights, front and rear
     // (Yes, these lights are reversed!)
     const cabLightFront = new rw.Light("RearCabLight");
     const cabLightRear = new rw.Light("FrontCabLight");
     const cabLightControl = () => (me.rv.GetControlValue("CabLight", 0) as number) > 0.5;
-    const cabLightFront$ = frp.compose(
-        isPlayerInFrontCab$,
-        frp.map(player => player && frp.snapshot(cabLightControl))
+    const cabLightFrontOn = frp.liftN(
+        (player, control) => player === PlayerLocation.InFrontCab && control,
+        playerLocation,
+        cabLightControl
     );
-    const cabLightRear$ = frp.compose(
-        isPlayerInRearCab$,
-        frp.map(player => player && frp.snapshot(cabLightControl))
+    const cabLightRearOn = frp.liftN(
+        (player, control) => player === PlayerLocation.InRearCab && control,
+        playerLocation,
+        cabLightControl
     );
-    cabLightFront$(on => {
-        cabLightFront.Activate(on);
-    });
-    cabLightRear$(on => {
-        cabLightRear.Activate(on);
+    const cabLightUpdate$ = me.createUpdateStream();
+    cabLightUpdate$(_ => {
+        cabLightFront.Activate(frp.snapshot(cabLightFrontOn));
+        cabLightRear.Activate(frp.snapshot(cabLightRearOn));
     });
 
     // Desk and console lights, front and rear
@@ -443,28 +427,32 @@ const me = new FrpEngine(() => {
             return DeskConsoleLight.Off;
         }
     };
-    const deskLightsFront$ = frp.compose(
-        isPlayerInFrontCab$,
-        frp.map(player => (player ? frp.snapshot(deskConsoleLightControl) : DeskConsoleLight.Off))
+    const deskLightsFrontState = frp.liftN(
+        (player, control) => (player === PlayerLocation.InFrontCab ? control : DeskConsoleLight.Off),
+        playerLocation,
+        deskConsoleLightControl
     );
-    const deskLightsRear$ = frp.compose(
-        isPlayerInRearCab$,
-        frp.map(player => (player ? frp.snapshot(deskConsoleLightControl) : DeskConsoleLight.Off))
+    const deskLightsRearState = frp.liftN(
+        (player, control) => (player === PlayerLocation.InRearCab ? control : DeskConsoleLight.Off),
+        playerLocation,
+        deskConsoleLightControl
     );
-    deskLightsFront$(state => {
+    const deskLightsUpdate$ = me.createUpdateStream();
+    deskLightsUpdate$(_ => {
+        const front = frp.snapshot(deskLightsFrontState);
         for (const light of deskLightsFront) {
-            light.Activate(state === DeskConsoleLight.DeskOnly || state === DeskConsoleLight.DeskAndConsole);
+            light.Activate(front === DeskConsoleLight.DeskOnly || front === DeskConsoleLight.DeskAndConsole);
         }
         for (const light of [...consoleLightsFront, ...secondmanLightsFront]) {
-            light.Activate(state === DeskConsoleLight.DeskAndConsole || state === DeskConsoleLight.ConsoleOnly);
+            light.Activate(front === DeskConsoleLight.DeskAndConsole || front === DeskConsoleLight.ConsoleOnly);
         }
-    });
-    deskLightsRear$(state => {
+
+        const rear = frp.snapshot(deskLightsRearState);
         for (const light of deskLightsRear) {
-            light.Activate(state === DeskConsoleLight.DeskOnly || state === DeskConsoleLight.DeskAndConsole);
+            light.Activate(rear === DeskConsoleLight.DeskOnly || rear === DeskConsoleLight.DeskAndConsole);
         }
         for (const light of [...consoleLightsRear, ...secondmanLightsRear]) {
-            light.Activate(state === DeskConsoleLight.DeskAndConsole || state === DeskConsoleLight.ConsoleOnly);
+            light.Activate(rear === DeskConsoleLight.DeskAndConsole || rear === DeskConsoleLight.ConsoleOnly);
         }
     });
 
@@ -520,14 +508,6 @@ const me = new FrpEngine(() => {
     } else {
         ctslDitchLightEvents$ = _ => {};
     }
-
-    // Camera state for ditch lights
-    const isPlayerUsingFrontCab$ = frp.compose(
-        me.createOnCameraStream(),
-        frp.filter(cam => cam === VehicleCamera.FrontCab || cam === VehicleCamera.RearCab),
-        frp.map(cam => cam === VehicleCamera.FrontCab)
-    );
-    const isPlayerUsingFrontCab = frp.stepper(isPlayerUsingFrontCab$, true);
 
     // Ditch lights, front and rear
     const ditchLightsFront = [new rw.Light("FrontDitchLightL"), new rw.Light("FrontDitchLightR")];
@@ -651,7 +631,9 @@ const me = new FrpEngine(() => {
     );
     const ditchLightsFront$ = frp.compose(
         ditchLightsPlayer$,
-        frp.map(([l, r]): [boolean, boolean] => (frp.snapshot(isPlayerUsingFrontCab) ? [l, r] : [false, false])),
+        frp.map(([l, r]): [boolean, boolean] =>
+            frp.snapshot(playerLocation) === PlayerLocation.InFrontCab ? [l, r] : [false, false]
+        ),
         frp.merge(ditchLightsFrontAi$),
         frp.merge(ditchLightsFrontHelper$)
     );
@@ -662,7 +644,9 @@ const me = new FrpEngine(() => {
     );
     const ditchLightsRear$ = frp.compose(
         ditchLightsPlayer$,
-        frp.map(([l, r]): [boolean, boolean] => (frp.snapshot(isPlayerUsingFrontCab) ? [false, false] : [l, r])),
+        frp.map(([l, r]): [boolean, boolean] =>
+            frp.snapshot(playerLocation) === PlayerLocation.InRearCab ? [l, r] : [false, false]
+        ),
         frp.merge(ditchLightsRearNonPlayer$)
     );
     ditchLightsFront$(([l, r]) => {

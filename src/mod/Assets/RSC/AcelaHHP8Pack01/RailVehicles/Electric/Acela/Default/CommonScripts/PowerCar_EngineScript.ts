@@ -5,9 +5,9 @@
 import * as ale from "lib/alerter";
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
-import { FrpEngine } from "lib/frp-engine";
+import { FrpEngine, PlayerLocation } from "lib/frp-engine";
 import { mapBehavior, movingAverage } from "lib/frp-extra";
-import { SensedDirection, VehicleCamera } from "lib/frp-vehicle";
+import { SensedDirection } from "lib/frp-vehicle";
 import { AduAspect } from "lib/nec/adu";
 import * as cs from "lib/nec/cabsignals";
 import * as adu from "lib/nec/twospeed-adu";
@@ -319,14 +319,6 @@ const me = new FrpEngine(() => {
         me.rv.SetControlValue("Bell", 0, v);
     });
 
-    // Camera state for ditch lights
-    const isPlayerUsingFrontCab$ = frp.compose(
-        me.createOnCameraStream(),
-        frp.filter(cam => cam === VehicleCamera.FrontCab || cam === VehicleCamera.RearCab),
-        frp.map(cam => cam === VehicleCamera.FrontCab)
-    );
-    const isPlayerUsingFrontCab = frp.stepper(isPlayerUsingFrontCab$, true);
-
     // Ditch lights, front and rear
     const ditchLightsFront = [new rw.Light("Fwd_DitchLightLeft"), new rw.Light("Fwd_DitchLightRight")];
     const ditchLightsRear = [new rw.Light("Bwd_DitchLightLeft"), new rw.Light("Bwd_DitchLightRight")];
@@ -356,6 +348,7 @@ const me = new FrpEngine(() => {
         ditchLightControl,
         () => (me.rv.GetControlValue("Bell", 0) as number) > 0.5
     );
+    const playerLocation = me.createPlayerLocationBehavior();
     const ditchLightsPlayer$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
         fx.behaviorStopwatchS(frp.liftN(state => state === DitchLights.Flash, ditchLightsState)),
@@ -383,7 +376,9 @@ const me = new FrpEngine(() => {
     );
     const ditchLightsFront$ = frp.compose(
         ditchLightsPlayer$,
-        frp.map(([l, r]): [boolean, boolean] => (frp.snapshot(isPlayerUsingFrontCab) ? [l, r] : [false, false])),
+        frp.map(([l, r]): [boolean, boolean] =>
+            frp.snapshot(playerLocation) === PlayerLocation.InFrontCab ? [l, r] : [false, false]
+        ),
         frp.merge(ditchLightsFrontAi$),
         frp.merge(ditchLightsFrontHelper$)
     );
@@ -394,7 +389,9 @@ const me = new FrpEngine(() => {
     );
     const ditchLightsRear$ = frp.compose(
         ditchLightsPlayer$,
-        frp.map(([l, r]): [boolean, boolean] => (frp.snapshot(isPlayerUsingFrontCab) ? [false, false] : [l, r])),
+        frp.map(([l, r]): [boolean, boolean] =>
+            frp.snapshot(playerLocation) === PlayerLocation.InRearCab ? [l, r] : [false, false]
+        ),
         frp.merge(ditchLightsRearNonPlayer$)
     );
     ditchLightsFront$(([l, r]) => {
