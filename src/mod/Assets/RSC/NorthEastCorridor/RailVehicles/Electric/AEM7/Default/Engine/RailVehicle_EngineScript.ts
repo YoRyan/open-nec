@@ -5,12 +5,13 @@
 import * as ale from "lib/alerter";
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
-import { FrpEngine } from "lib/frp-engine";
+import { FrpEngine, PlayerLocation } from "lib/frp-engine";
 import { mapBehavior } from "lib/frp-extra";
 import { AduAspect } from "lib/nec/adu";
 import * as cs from "lib/nec/cabsignals";
 import * as adu from "lib/nec/twospeed-adu";
 import * as ps from "lib/power-supply";
+import * as rw from "lib/railworks";
 import * as fx from "lib/special-fx";
 import * as ui from "lib/ui";
 
@@ -170,6 +171,27 @@ const me = new FrpEngine(() => {
         me.rv.SetControlValue("Regulator", 0, frp.snapshot(throttle));
         me.rv.SetControlValue("TrainBrakeControl", 0, frp.snapshot(airBrake));
         me.rv.SetControlValue("DynamicBrake", 0, frp.snapshot(dynamicBrake));
+    });
+
+    // Cab dome lights, front and rear
+    const cabLightFront = new rw.Light("FrontCabLight");
+    const cabLightRear = new rw.Light("RearCabLight");
+    const playerLocation = me.createPlayerLocationBehavior();
+    const cabLightControl = () => (me.rv.GetControlValue("CabLightControl", 0) as number) > 0.5;
+    const cabLightFrontOn = frp.liftN(
+        (player, control) => player === PlayerLocation.InFrontCab && control,
+        playerLocation,
+        cabLightControl
+    );
+    const cabLightRearOn = frp.liftN(
+        (player, control) => player === PlayerLocation.InRearCab && control,
+        playerLocation,
+        cabLightControl
+    );
+    const cabLightUpdate$ = me.createUpdateStream();
+    cabLightUpdate$(_ => {
+        cabLightFront.Activate(frp.snapshot(cabLightFrontOn));
+        cabLightRear.Activate(frp.snapshot(cabLightRearOn));
     });
 
     // Possibly used for a sound effect?
