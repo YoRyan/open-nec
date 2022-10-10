@@ -38,7 +38,7 @@ const me = new FrpEngine(() => {
         speedControlCutIn,
         speedControlCutIn,
         125 * c.mph.toMps,
-        ["CurrentAmtrakSignal", 0]
+        ["OverSpeed", 0]
     );
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
