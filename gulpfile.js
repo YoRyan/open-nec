@@ -14,7 +14,7 @@ import tstl from "typescript-to-lua";
 
 const options = minimist(process.argv.slice(2), { string: "src", default: { src: "src/mod/**/*" } });
 
-function filterGlob(glob) {
+function filterSource(glob) {
     const selected = Array.isArray(options.src) ? options.src : [options.src];
     const filtered = selected.map(s => intersect(s, glob)).filter(g => g);
     if (filtered.length === 0) {
@@ -23,20 +23,16 @@ function filterGlob(glob) {
     return filtered;
 }
 
-export default async function () {
-    watch([...filterGlob("src/mod/**/*.ts"), "src/lib/**/*.ts"], scripts);
+export default function () {
+    watch([...filterSource("src/mod/**/*.ts"), "src/lib/**/*.ts"], tstl);
 }
 
-export async function all() {
-    await scripts();
-}
-
-export async function scripts() {
+export async function typescript() {
     return awaitStream(
-        src(filterGlob("src/mod/**/*.ts"), { base: "src" })
+        src(filterSource("src/mod/**/*.ts"), { base: "src" })
             .pipe(
-                flatmap(function (stream, file) {
-                    return stream
+                flatmap((stream, file) =>
+                    stream
                         .pipe(src(["src/@types/**/*", "src/lib/**/*.ts"], { base: "src" }))
                         .pipe(
                             src(
@@ -47,13 +43,13 @@ export async function scripts() {
                             )
                         )
                         .pipe(
-                            intermediate({}, async function (tempDir, cb) {
+                            intermediate({}, async (tempDir, cb) => {
                                 await transpileTypeScriptToLua(tempDir, file.relative);
                                 cb();
                             })
                         )
-                        .pipe(filter(["mod/**/*.lua"]));
-                })
+                        .pipe(filter("mod/**/*.lua"))
+                )
             )
             // Need to pipe through cat because node pipes can't be referenced with
             // named file descriptors; see https://stackoverflow.com/a/72906798

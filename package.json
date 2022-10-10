@@ -4,7 +4,7 @@
     "lint": "prettier --check .",
     "fix:prettier": "prettier --write .",
     "watch": "gulp",
-    "build": "gulp all"
+    "build": "gulp typescript"
   },
   "dependencies": {
     "glob-intersection": "^0.1.3",
