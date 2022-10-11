@@ -24,7 +24,7 @@ function filterSource(glob) {
 }
 
 export default function () {
-    watch([...filterSource("src/mod/**/*.ts"), "src/lib/**/*.ts"], tstl);
+    watch([...filterSource("src/mod/**/*.ts"), "src/lib/**/*.ts"], typescript);
 }
 
 export async function typescript() {
