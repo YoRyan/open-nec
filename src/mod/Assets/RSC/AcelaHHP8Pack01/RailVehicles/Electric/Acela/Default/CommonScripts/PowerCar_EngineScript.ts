@@ -29,6 +29,7 @@ enum DitchLights {
     Flash,
 }
 
+const ditchLightsFadeS = 0.3;
 const ditchLightFlashS = 0.5;
 const nDisplaySamples = 30;
 
@@ -320,8 +321,14 @@ const me = new FrpEngine(() => {
     });
 
     // Ditch lights, front and rear
-    const ditchLightsFront = [new rw.Light("Fwd_DitchLightLeft"), new rw.Light("Fwd_DitchLightRight")];
-    const ditchLightsRear = [new rw.Light("Bwd_DitchLightLeft"), new rw.Light("Bwd_DitchLightRight")];
+    const ditchLightsFront = [
+        new fx.FadeableLight(me, ditchLightsFadeS, "Fwd_DitchLightLeft"),
+        new fx.FadeableLight(me, ditchLightsFadeS, "Fwd_DitchLightRight"),
+    ];
+    const ditchLightsRear = [
+        new fx.FadeableLight(me, ditchLightsFadeS, "Bwd_DitchLightLeft"),
+        new fx.FadeableLight(me, ditchLightsFadeS, "Bwd_DitchLightRight"),
+    ];
     const areHeadLightsOn = () => {
         const cv = me.rv.GetControlValue("Headlights", 0) as number;
         return cv > 0.5 && cv < 1.5;
@@ -408,17 +415,23 @@ const me = new FrpEngine(() => {
     );
     ditchLightsFront$(([l, r]) => {
         const [lightL, lightR] = ditchLightsFront;
-        lightL.Activate(l);
-        lightR.Activate(r);
-        me.rv.ActivateNode("ditch_fwd_l", l);
-        me.rv.ActivateNode("ditch_fwd_r", r);
+        lightL.setOnOff(l);
+        lightR.setOnOff(r);
     });
     ditchLightsRear$(([l, r]) => {
         const [lightL, lightR] = ditchLightsRear;
-        lightL.Activate(l);
-        lightR.Activate(r);
-        me.rv.ActivateNode("ditch_bwd_l", l);
-        me.rv.ActivateNode("ditch_bwd_r", r);
+        lightL.setOnOff(l);
+        lightR.setOnOff(r);
+    });
+    const ditchNodesUpdate$ = me.createUpdateStream();
+    ditchNodesUpdate$(_ => {
+        const [frontL, frontR] = ditchLightsFront;
+        me.rv.ActivateNode("ditch_fwd_l", frontL.getIntensity() > 0.5);
+        me.rv.ActivateNode("ditch_fwd_r", frontR.getIntensity() > 0.5);
+
+        const [rearL, rearR] = ditchLightsRear;
+        me.rv.ActivateNode("ditch_bwd_l", rearL.getIntensity() > 0.5);
+        me.rv.ActivateNode("ditch_bwd_r", rearR.getIntensity() > 0.5);
     });
 
     // Driving displays

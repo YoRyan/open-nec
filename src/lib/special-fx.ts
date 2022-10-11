@@ -6,6 +6,7 @@
 import * as c from "./constants";
 import * as frp from "./frp";
 import { FrpEngine } from "./frp-engine";
+import { FrpEntity } from "./frp-entity";
 import { fsm, mapBehavior } from "./frp-extra";
 import { AiUpdate, FrpVehicle, PlayerUpdate } from "./frp-vehicle";
 import * as ps from "./power-supply";
@@ -224,4 +225,56 @@ export function createBrakeLightStreamForWagon(v: FrpVehicle): frp.Stream<boolea
         // transmitted by the player engine, but that's acceptable.
         frp.merge(fromConsist$)
     );
+}
+
+/**
+ * A light with a fade effect processed in the Update() callback.
+ */
+export class FadeableLight {
+    private target?: number = undefined;
+    private current: frp.Behavior<number>;
+
+    constructor(e: FrpEntity, fadeTimeS: number, id: string) {
+        const light = new rw.Light(id);
+        const [r, g, b] = light.GetColour();
+
+        const intensity$ = frp.compose(
+            e.createUpdateStream(),
+            frp.fold((current: number | undefined, dt) => {
+                const target = this.target;
+                if (current === undefined) {
+                    // Jump instantaneously to the first value.
+                    return target;
+                } else if (target === undefined) {
+                    return undefined;
+                } else if (current > target) {
+                    return Math.max(target, current - dt / fadeTimeS);
+                } else if (current < target) {
+                    return Math.min(target, current + dt / fadeTimeS);
+                } else {
+                    return current;
+                }
+            }, undefined),
+            frp.map(current => current ?? 0),
+            frp.hub()
+        );
+        this.current = frp.stepper(intensity$, 0);
+        intensity$(i => {
+            light.SetColour(i * r, i * g, i * b);
+        });
+    }
+
+    /**
+     * Set the target on/off state for this light.
+     */
+    setOnOff(onOff: boolean) {
+        this.target = onOff ? 1 : 0;
+    }
+
+    /**
+     * Get the current rendered intensity of this light, scaled from 0 to 1.
+     */
+    getIntensity() {
+        return frp.snapshot(this.current);
+    }
 }
