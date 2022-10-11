@@ -336,17 +336,29 @@ const me = new FrpEngine(() => {
             return DitchLights.Flash;
         }
     };
+    const ditchLightsHorn$ = frp.compose(
+        me.createOnCvChangeStreamFor("Horn", 0),
+        frp.filter(v => v === 1),
+        frp.map(_ => true)
+    );
+    const ditchLightsAutoFlash$ = frp.compose(
+        me.createPlayerUpdateStream(),
+        me.mapGetCvStream("Bell", 0),
+        frp.filter(v => v === 0),
+        frp.map(_ => false),
+        frp.merge(ditchLightsHorn$)
+    );
     const ditchLightsState = frp.liftN(
-        (headLights, ditchLights, bell) => {
+        (headLights, ditchLights, autoFlash) => {
             if (headLights) {
-                return bell && ditchLights === DitchLights.Fixed ? DitchLights.Flash : ditchLights;
+                return autoFlash && ditchLights === DitchLights.Fixed ? DitchLights.Flash : ditchLights;
             } else {
                 return DitchLights.Off;
             }
         },
         areHeadLightsOn,
         ditchLightControl,
-        () => (me.rv.GetControlValue("Bell", 0) as number) > 0.5
+        frp.stepper(ditchLightsAutoFlash$, false)
     );
     const playerLocation = me.createPlayerLocationBehavior();
     const ditchLightsPlayer$ = frp.compose(
