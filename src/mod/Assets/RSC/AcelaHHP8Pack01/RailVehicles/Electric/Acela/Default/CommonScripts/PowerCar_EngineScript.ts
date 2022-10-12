@@ -41,7 +41,6 @@ const me = new FrpEngine(() => {
     const frontSparkLight = new rw.Light("Spark");
     const rearSparkLight = new rw.Light("Spark2");
     const pantographsUp = () => (me.rv.GetControlValue("PantographControl", 0) as number) > 0.5;
-    const pantographsUpAllStates = frp.liftN(playerUp => !me.eng.GetIsEngineWithKey() || playerUp, pantographsUp);
     const pantographSelect = () => {
         const cv = me.rv.GetControlValue("SelPanto", 0) as number;
         if (cv < 0.5) {
@@ -52,9 +51,9 @@ const me = new FrpEngine(() => {
             return PantographSelect.Rear;
         }
     };
-    const pantoSpark$ = fx.createUniModePantographSparkStream(me, electrification, pantographsUpAllStates);
+    const pantoSpark$ = fx.createUniModePantographSparkStream(me, electrification, pantographsUp);
     pantoSpark$(spark => {
-        const pantosUp = frp.snapshot(pantographsUpAllStates);
+        const pantosUp = frp.snapshot(pantographsUp);
         const selected = frp.snapshot(pantographSelect);
         const frontSpark = spark && pantosUp && selected !== PantographSelect.Rear;
         const rearSpark = spark && pantosUp && selected !== PantographSelect.Front;
@@ -69,24 +68,13 @@ const me = new FrpEngine(() => {
     });
 
     // Pantograph control
-    // PantographControl is not transmitted to the rest of the consist, but
-    // SelPanto is.
-    const pantographStateNonPlayer$ = frp.compose(
-        me.createAiUpdateStream(),
-        frp.merge(me.createPlayerWithoutKeyUpdateStream()),
-        frp.map(_ => true)
-    );
-    const pantographState$ = frp.compose(
-        me.createPlayerWithKeyUpdateStream(),
-        mapBehavior(pantographsUp),
-        frp.merge(pantographStateNonPlayer$)
-    );
-    const pantographState = frp.stepper(pantographState$, false);
+    // Note: PantographControl is not transmitted to the rest of the consist,
+    // but SelPanto is.
     const pantographUpdate$ = me.createUpdateStream();
     pantographUpdate$(dt => {
         let front: number;
         let rear: number;
-        const raise = frp.snapshot(pantographState);
+        const raise = frp.snapshot(pantographsUp);
         switch (frp.snapshot(pantographSelect)) {
             case PantographSelect.Both:
                 front = rear = raise ? 1 : -1;
