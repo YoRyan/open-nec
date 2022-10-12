@@ -123,45 +123,27 @@ export function triggerSound(
 }
 
 /**
- * Create a stream of pantograph spark effects for a pure electric engine. For
- * player engines, a behavior tells us the status of the pantograph. For AI
- * engines, we assume that if the train is moving, we should show sparks.
+ * Create a stream of pantograph spark effects.
  * @param v The engine or wagon with a pantograph.
  * @param electrification A behavior that returns the current electrification
  * state.
- * @param isPlayerContact A behavior that is true when the pantograph is
- * connected to the electrification system and drawing power.
  * @returns The boolean stream, which is true when the spark should be drawn.
  */
-export function createUniModePantographSparkStream(
+export function createPantographSparkStream(
     v: FrpVehicle,
-    electrification: frp.Behavior<Set<ps.Electrification>>,
-    isPlayerContact: frp.Behavior<boolean>
+    electrification: frp.Behavior<Set<ps.Electrification>>
 ): frp.Stream<boolean> {
-    const playerSparks = () =>
-        ps.uniModeEngineHasPower(ps.EngineMode.Overhead, electrification) && frp.snapshot(isPlayerContact);
-    return createPantographSparkStream(v, playerSparks, () => true);
-}
-
-function createPantographSparkStream(
-    v: FrpVehicle,
-    showPlayerSparks: frp.Behavior<boolean>,
-    showAiSparks: frp.Behavior<boolean>
-): frp.Stream<boolean> {
-    const playerSparkSpeed$ = frp.compose(
-        v.createPlayerUpdateStream(),
-        frp.map(pu => (frp.snapshot(showPlayerSparks) ? Math.abs(pu.speedMps) : 0))
-    );
     return frp.compose(
-        v.createAiUpdateStream(),
-        frp.map(au => (frp.snapshot(showAiSparks) ? Math.abs(au.speedMps) : 0)),
-        frp.merge(playerSparkSpeed$),
+        v.createPlayerUpdateStream(),
+        frp.merge(v.createAiUpdateStream()),
+        frp.map(u => Math.abs(u.speedMps)),
         frp.throttle(sparkTickS * 1000),
         frp.map(contactMps => {
             // Calibrated for 100 mph = 30 s, with a rapid falloff for lower speeds.
             const meanTimeBetweenS = 1341 / contactMps;
             return contactMps > c.stopSpeed && Math.random() < sparkTickS / meanTimeBetweenS;
-        })
+        }),
+        frp.map(spark => spark && ps.uniModeEngineHasPower(ps.EngineMode.Overhead, electrification))
     );
 }
 

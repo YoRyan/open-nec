@@ -51,7 +51,7 @@ const me = new FrpEngine(() => {
             return PantographSelect.Rear;
         }
     };
-    const pantoSpark$ = fx.createUniModePantographSparkStream(me, electrification, pantographsUp);
+    const pantoSpark$ = fx.createPantographSparkStream(me, electrification);
     pantoSpark$(spark => {
         const pantosUp = frp.snapshot(pantographsUp);
         const selected = frp.snapshot(pantographSelect);

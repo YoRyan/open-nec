@@ -59,10 +59,9 @@ const me = new FrpEngine(() => {
     const electrification = ps.createElectrificationBehaviorWithLua(me, ps.Electrification.Overhead);
     const frontSparkLight = new rw.Light("Spark1");
     const rearSparkLight = new rw.Light("Spark2");
-    const frontPantoSpark$ = fx.createUniModePantographSparkStream(
-        me,
-        electrification,
-        () => me.rv.GetControlValue("PantographControl", 0) === 1
+    const frontPantoSpark$ = frp.compose(
+        fx.createPantographSparkStream(me, electrification),
+        frp.map(spark => spark && me.rv.GetControlValue("PantographControl", 0) === 1)
     );
     const rearPantoSpark$ = frp.compose(
         me.createUpdateStream(),
