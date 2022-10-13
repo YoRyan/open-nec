@@ -223,6 +223,14 @@ export function create<A>(
             }
 
             const [mode] = accum;
+            // Release penalty or overspeed state if the player toggles the cut in control.
+            if ((mode === AduMode.AtcOverspeed || mode === AduMode.AtcPenalty) && !frp.snapshot(atcCutIn)) {
+                return AduMode.Normal;
+            }
+            if ((mode === AduMode.AcsesOverspeed || mode === AduMode.AcsesPenalty) && !frp.snapshot(acsesCutIn)) {
+                return AduMode.Normal;
+            }
+
             if (mode === AduMode.AtcPenalty) {
                 // Only release an ATC penalty brake when stopped.
                 const [, acked] = accum;
