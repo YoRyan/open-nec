@@ -226,8 +226,9 @@ const me = new FrpEngine(() => {
         return targetMph * c.mph.toMps;
     };
     const cruiseOn = frp.liftN(
-        targetMps => targetMps > 0 && (me.rv.GetControlValue("CruiseControl", 0) as number) > 0.5,
-        cruiseTargetMps
+        (targetMps, cruiseOn) => targetMps > 0 && cruiseOn,
+        cruiseTargetMps,
+        () => (me.rv.GetControlValue("CruiseControl", 0) as number) > 0.5
     );
     const cruiseOutput = frp.stepper(me.createCruiseControlStream(cruiseOn, cruiseTargetMps), 0);
 
@@ -238,26 +239,7 @@ const me = new FrpEngine(() => {
         aduState,
         alerterState
     );
-    const throttle = frp.liftN(
-        (isPowerAvailable, isPenaltyBrake, cruiseOn, cruiseOutput, input) => {
-            if (isPenaltyBrake || !isPowerAvailable) {
-                return 0;
-            } else if (cruiseOn) {
-                return Math.min(cruiseOutput, input);
-            } else {
-                return input;
-            }
-        },
-        isPowerAvailable,
-        isPenaltyBrake,
-        cruiseOn,
-        cruiseOutput,
-        () => me.rv.GetControlValue(isFanRailer ? "NewVirtualThrottle" : "VirtualThrottle", 0) as number
-    );
-    const throttle$ = frp.compose(me.createPlayerWithKeyUpdateStream(), mapBehavior(throttle));
-    throttle$(v => {
-        me.rv.SetControlValue("Regulator", 0, v);
-    });
+    const airBrake = () => me.rv.GetControlValue("TrainBrakeControl", 0) as number;
     // There's no virtual train brake, so just move the braking handle.
     const fullService = 0.6;
     const setPenaltyBrake$ = frp.compose(
@@ -271,15 +253,31 @@ const me = new FrpEngine(() => {
     // DTG's "blended braking" algorithm
     const dynamicBrake$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        frp.map(pu => {
-            const airBrake = frp.snapshot(isPenaltyBrake)
-                ? fullService
-                : (me.rv.GetControlValue("TrainBrakeControl", 0) as number);
-            return pu.speedMps >= 10 ? airBrake * 0.3 : 0;
-        })
+        frp.map(pu => (pu.speedMps >= 10 ? frp.snapshot(airBrake) * 0.3 : 0))
     );
     dynamicBrake$(v => {
         me.rv.SetControlValue("DynamicBrake", 0, v);
+    });
+    const throttle = frp.liftN(
+        (isPowerAvailable, isPenaltyBrake, airBrake, cruiseOn, cruiseOutput, input) => {
+            if (!isPowerAvailable || isPenaltyBrake || airBrake > 0) {
+                return 0;
+            } else if (cruiseOn) {
+                return Math.min(cruiseOutput, input);
+            } else {
+                return input;
+            }
+        },
+        isPowerAvailable,
+        isPenaltyBrake,
+        airBrake,
+        cruiseOn,
+        cruiseOutput,
+        () => me.rv.GetControlValue(isFanRailer ? "NewVirtualThrottle" : "VirtualThrottle", 0) as number
+    );
+    const throttle$ = frp.compose(me.createPlayerWithKeyUpdateStream(), mapBehavior(throttle));
+    throttle$(v => {
+        me.rv.SetControlValue("Regulator", 0, v);
     });
 
     // Cab dome light

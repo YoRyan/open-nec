@@ -134,22 +134,6 @@ const me = new FrpEngine(() => {
         aduState,
         alerterState
     );
-    const throttle = frp.liftN(
-        (isPowerAvailable, isPenaltyBrake, cruiseOn, cruiseOutput, input) => {
-            if (isPenaltyBrake || !isPowerAvailable) {
-                return 0;
-            } else if (cruiseOn) {
-                return Math.min(cruiseOutput, input);
-            } else {
-                return input;
-            }
-        },
-        isPowerAvailable,
-        isPenaltyBrake,
-        cruiseOn,
-        cruiseOutput,
-        () => me.rv.GetControlValue("VirtualThrottle", 0) as number
-    );
     const airBrake = frp.liftN(
         (isPenaltyBrake, cutIn, input) => {
             if (!cutIn) {
@@ -172,6 +156,23 @@ const me = new FrpEngine(() => {
         me.rv.SetControlValue("TrainBrakeControl", 0, frp.snapshot(airBrake));
         me.rv.SetControlValue("DynamicBrake", 0, frp.snapshot(dynamicBrake));
     });
+    const throttle = frp.liftN(
+        (isPowerAvailable, isPenaltyBrake, airBrake, cruiseOn, cruiseOutput, input) => {
+            if (!isPowerAvailable || isPenaltyBrake || airBrake > 0) {
+                return 0;
+            } else if (cruiseOn) {
+                return Math.min(cruiseOutput, input);
+            } else {
+                return input;
+            }
+        },
+        isPowerAvailable,
+        isPenaltyBrake,
+        airBrake,
+        cruiseOn,
+        cruiseOutput,
+        () => me.rv.GetControlValue("VirtualThrottle", 0) as number
+    );
 
     // Cab dome lights, front and rear
     const cabLightFront = new rw.Light("FrontCabLight");

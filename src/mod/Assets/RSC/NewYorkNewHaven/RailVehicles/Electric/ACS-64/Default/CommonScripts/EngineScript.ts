@@ -267,51 +267,8 @@ const me = new FrpEngine(() => {
         aduState,
         alerterState
     );
-    // It's necessary to probe the minimum and maximum limits for Fan Railer's mod.
-    const throttleRange = [
-        me.rv.GetControlMinimum("ThrottleAndBrake", 0) as number,
-        me.rv.GetControlMaximum("ThrottleAndBrake", 0) as number,
-    ];
-    // Scaled from -1 (full dynamic braking) to 1 (full power).
-    const throttleAndDynBrakeInput = () => {
-        const input = me.rv.GetControlValue("ThrottleAndBrake", 0) as number;
-        const [min, max] = throttleRange;
-        return ((input - min) / (max - min)) * 2 - 1;
-    };
-    const throttleAndDynBrake = frp.liftN(
-        (isPowerAvailable, isPenaltyBrake, input) => {
-            if (isPenaltyBrake) {
-                return 0;
-            } else if (!isPowerAvailable) {
-                return Math.min(input, 0);
-            } else {
-                return input;
-            }
-        },
-        isPowerAvailable,
-        isPenaltyBrake,
-        throttleAndDynBrakeInput
-    );
-    const throttleAndDynBrakeOutput$ = frp.compose(
-        me.createPlayerWithKeyUpdateStream(),
-        frp.map(pu => {
-            const throttleAndBrake = frp.snapshot(throttleAndDynBrake);
-            if (throttleAndBrake < 0) {
-                // Cease dynamic braking below 2 mph.
-                return throttleAndBrake * Math.min(Math.abs(pu.speedMps) / (2 * c.mph.toMps), 1);
-            } else {
-                return throttleAndBrake;
-            }
-        })
-    );
-    throttleAndDynBrakeOutput$(throttleAndBrake => {
-        me.rv.SetControlValue("Regulator", 0, throttleAndBrake);
-        me.rv.SetControlValue("DynamicBrake", 0, -throttleAndBrake);
-    });
-    const airBrakeInput = () => me.rv.GetControlValue("VirtualBrake", 0) as number;
     const airBrake = frp.liftN(
-        (isPenaltyBrake, input) => {
-            const fullService = 0.85;
+        (isPenaltyBrake, input, fullService) => {
             const cmd = isPenaltyBrake ? fullService : input;
             // DTG's nonlinear air brake algorithm
             if (cmd < 0.1) {
@@ -329,11 +286,54 @@ const me = new FrpEngine(() => {
             }
         },
         isPenaltyBrake,
-        airBrakeInput
+        () => me.rv.GetControlValue("VirtualBrake", 0) as number,
+        0.85
     );
     const airBrakeOutput$ = frp.compose(me.createPlayerWithKeyUpdateStream(), mapBehavior(airBrake));
     airBrakeOutput$(brake => {
         me.rv.SetControlValue("TrainBrakeControl", 0, brake);
+    });
+    // It's necessary to probe the minimum and maximum limits for Fan Railer's mod.
+    const throttleRange = [
+        me.rv.GetControlMinimum("ThrottleAndBrake", 0) as number,
+        me.rv.GetControlMaximum("ThrottleAndBrake", 0) as number,
+    ];
+    // Scaled from -1 (full dynamic braking) to 1 (full power).
+    const throttleAndDynBrakeInput = () => {
+        const input = me.rv.GetControlValue("ThrottleAndBrake", 0) as number;
+        const [min, max] = throttleRange;
+        return ((input - min) / (max - min)) * 2 - 1;
+    };
+    const throttleAndDynBrake = frp.liftN(
+        (isPowerAvailable, isPenaltyBrake, airBrake, input) => {
+            if (isPenaltyBrake) {
+                return 0;
+            } else if (!isPowerAvailable || airBrake > 0) {
+                return Math.min(input, 0);
+            } else {
+                return input;
+            }
+        },
+        isPowerAvailable,
+        isPenaltyBrake,
+        airBrake,
+        throttleAndDynBrakeInput
+    );
+    const throttleAndDynBrakeOutput$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        frp.map(pu => {
+            const throttleAndBrake = frp.snapshot(throttleAndDynBrake);
+            if (throttleAndBrake < 0) {
+                // Cease dynamic braking below 2 mph.
+                return throttleAndBrake * Math.min(Math.abs(pu.speedMps) / (2 * c.mph.toMps), 1);
+            } else {
+                return throttleAndBrake;
+            }
+        })
+    );
+    throttleAndDynBrakeOutput$(throttleAndBrake => {
+        me.rv.SetControlValue("Regulator", 0, throttleAndBrake);
+        me.rv.SetControlValue("DynamicBrake", 0, -throttleAndBrake);
     });
 
     // Driving screen
