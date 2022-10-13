@@ -60,7 +60,8 @@ export type AduOutput<A> = AduInput<A> & {
 export type AduState =
     | AduMode.Normal
     | [mode: AduMode.AtcOverspeed | AduMode.AcsesOverspeed, startS: number, acknowledged: boolean]
-    | [mode: AduMode.AtcPenalty | AduMode.AcsesPenalty, acknowledged: boolean];
+    | [mode: AduMode.AtcPenalty | AduMode.AcsesPenalty, acknowledged: boolean]
+    | [mode: AduMode.AcsesPositiveStop, acknowledged: boolean, stopped: boolean];
 
 export enum AduMode {
     Normal,
@@ -68,6 +69,7 @@ export enum AduMode {
     AcsesOverspeed,
     AtcPenalty,
     AcsesPenalty,
+    AcsesPositiveStop,
 }
 
 /**
@@ -196,7 +198,7 @@ export function create<A>(
         input$,
         frp.merge(events$),
         frp.fold((accum: AduState, input): AduState => {
-            const speedoMps = (e.rv.GetControlValue("SpeedometerMPH", 0) as number) * c.mph.toMps;
+            const aSpeedoMps = Math.abs(e.rv.GetControlValue("SpeedometerMPH", 0) as number) * c.mph.toMps;
             const nowS = e.e.GetSimulationTime();
             const ack = frp.snapshot(acknowledge);
 
@@ -211,10 +213,17 @@ export function create<A>(
 
                 // Move to the penalty or overspeed state if speeding.
                 const enforcing = input.enforcing;
-                if (enforcing !== undefined && speedoMps > enforcing.penaltyCurveMps) {
-                    return [enforcing === input.atc ? AduMode.AtcPenalty : AduMode.AcsesPenalty, false];
+                if (enforcing !== undefined && aSpeedoMps > enforcing.penaltyCurveMps) {
+                    if (enforcing === input.atc) {
+                        return [AduMode.AtcPenalty, false];
+                    } else {
+                        const isPositiveStop = enforcing.visibleSpeedMps <= 0;
+                        return isPositiveStop
+                            ? [AduMode.AcsesPositiveStop, false, false]
+                            : [AduMode.AcsesPenalty, false];
+                    }
                 }
-                if (enforcing !== undefined && speedoMps > enforcing.alertCurveMps) {
+                if (enforcing !== undefined && aSpeedoMps > enforcing.alertCurveMps) {
                     return [enforcing === input.atc ? AduMode.AtcOverspeed : AduMode.AcsesOverspeed, nowS, false];
                 }
 
@@ -227,14 +236,19 @@ export function create<A>(
             if ((mode === AduMode.AtcOverspeed || mode === AduMode.AtcPenalty) && !frp.snapshot(atcCutIn)) {
                 return AduMode.Normal;
             }
-            if ((mode === AduMode.AcsesOverspeed || mode === AduMode.AcsesPenalty) && !frp.snapshot(acsesCutIn)) {
+            if (
+                (mode === AduMode.AcsesOverspeed ||
+                    mode === AduMode.AcsesPenalty ||
+                    mode === AduMode.AcsesPositiveStop) &&
+                !frp.snapshot(acsesCutIn)
+            ) {
                 return AduMode.Normal;
             }
 
             if (mode === AduMode.AtcPenalty) {
                 // Only release an ATC penalty brake when stopped.
                 const [, acked] = accum;
-                return speedoMps < c.stopSpeed && acked ? AduMode.Normal : [AduMode.AtcPenalty, acked || ack];
+                return aSpeedoMps < c.stopSpeed && acked ? AduMode.Normal : [AduMode.AtcPenalty, acked || ack];
             }
 
             if (mode === AduMode.AcsesPenalty) {
@@ -248,9 +262,27 @@ export function create<A>(
 
                 // Allow a running release for ACSES.
                 const enforcing = input.enforcing;
-                return acked && (enforcing === undefined || speedoMps <= enforcing.visibleSpeedMps)
+                return acked && (enforcing === undefined || aSpeedoMps <= enforcing.visibleSpeedMps)
                     ? AduMode.Normal
                     : [AduMode.AcsesPenalty, acked || ack];
+            }
+
+            if (mode === AduMode.AcsesPositiveStop) {
+                const [, acked] = accum;
+                if (input === AduEvent.AtcDowngrade) {
+                    return [AduMode.AcsesPositiveStop, acked || ack, aSpeedoMps < c.stopSpeed];
+                }
+                if (input === AduEvent.AcsesDowngrade) {
+                    return [AduMode.AcsesPositiveStop, acked || ack, aSpeedoMps < c.stopSpeed];
+                }
+
+                // There isn't a proper stop release; the player can just cut
+                // out.
+                const enforcing = input.enforcing;
+                const isStillPositiveStop = enforcing !== undefined && enforcing.visibleSpeedMps <= 0;
+                return isStillPositiveStop
+                    ? [AduMode.AcsesPositiveStop, acked || ack, aSpeedoMps < c.stopSpeed]
+                    : AduMode.Normal;
             }
 
             if (mode === AduMode.AtcOverspeed || mode === AduMode.AcsesOverspeed) {
@@ -268,8 +300,15 @@ export function create<A>(
 
                 // State update; check if below safe speed.
                 const enforcing = input.enforcing;
-                if (acked && (enforcing === undefined || speedoMps < enforcing.alertCurveMps)) {
+                if (acked && (enforcing === undefined || aSpeedoMps < enforcing.alertCurveMps)) {
                     return AduMode.Normal;
+                }
+
+                // State update; move to the positive stop state if warranted.
+                const isPositiveStop =
+                    mode === AduMode.AcsesOverspeed && enforcing !== undefined && enforcing.visibleSpeedMps <= 0;
+                if (isPositiveStop && aSpeedoMps > enforcing.penaltyCurveMps) {
+                    return [AduMode.AcsesPositiveStop, acked || ack, false];
                 }
 
                 // State update; set the timer to infinity if suppression has
@@ -282,7 +321,7 @@ export function create<A>(
                 }
 
                 // State update; decrement the timer.
-                if (nowS - clockS > cs.alertCountdownS) {
+                if (!isPositiveStop && nowS - clockS > cs.alertCountdownS) {
                     return [mode === AduMode.AtcOverspeed ? AduMode.AtcPenalty : AduMode.AcsesPenalty, acked || ack];
                 } else {
                     return [mode, clockS, acked || ack];

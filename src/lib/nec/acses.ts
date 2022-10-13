@@ -53,7 +53,11 @@ export function create(
     violationForcesAlarm: boolean,
     equipmentSpeedMps: number
 ): frp.Stream<AcsesState> {
-    type HazardsAccum = { advanceLimits: Map<number, AdvanceLimitHazard>; hazards: Hazard[] };
+    type HazardsAccum = {
+        advanceLimits: Map<number, AdvanceLimitHazard>;
+        stopSignals: Map<number, StopSignalHazard>;
+        hazards: Hazard[];
+    };
 
     const isInactive = frp.liftN(isActive => !isActive, isActive);
 
@@ -103,16 +107,14 @@ export function create(
                     hazards.push(hazard);
                 }
                 // Add stop signals if a positive stop is imminent.
+                let stopSignals = new Map<number, StopSignalHazard>();
                 if (typeof thePts === "number") {
                     for (const [id, [distanceM, signal]] of frp.snapshot(signalIndex)) {
                         if (signal.proState === rw.ProSignalState.Red) {
-                            const cushionM = 40 * c.ft.toM;
-                            const hazard = new StopSignalHazard(
-                                brakingCurveMps2,
-                                speedoMps,
-                                thePts + cushionM,
-                                distanceM
-                            );
+                            const cushionM = 85 * c.ft.toM;
+                            const hazard = accum.stopSignals.get(id) || new StopSignalHazard(thePts + cushionM);
+                            stopSignals.set(id, hazard);
+                            hazard.update(brakingCurveMps2, speedoMps, distanceM);
                             hazards.push(hazard);
                         }
                     }
@@ -121,9 +123,9 @@ export function create(
                 hazards.push(new TrackSpeedHazard(Math.min(trackSpeedMps, equipmentSpeedMps)));
                 // Sort by penalty curve speed.
                 hazards.sort((a, b) => a.penaltyCurveMps - b.penaltyCurveMps);
-                return { advanceLimits, hazards };
+                return { advanceLimits, stopSignals, hazards };
             },
-            { advanceLimits: new Map(), hazards: [] }
+            { advanceLimits: new Map(), stopSignals: new Map(), hazards: [] }
         ),
         frp.map((accum): AcsesState => {
             const inForce = accum.hazards[0];
@@ -613,7 +615,7 @@ class AdvanceLimitHazard implements Hazard {
     timeToPenaltyS = undefined;
 
     private violationForcesAlarm: boolean;
-    private violatedAtM: number | undefined = undefined;
+    private violatedAtM?: number = undefined;
 
     constructor(vfa: boolean) {
         this.violationForcesAlarm = vfa;
@@ -662,27 +664,52 @@ class AdvanceLimitHazard implements Hazard {
 }
 
 /**
- * A stateless hazard that represents a signal at Danger.
+ * A positive stop hazard only reveals itself when it is violated.
  */
 class StopSignalHazard implements Hazard {
-    alertCurveMps: number;
-    penaltyCurveMps: number;
+    alertCurveMps: number = Infinity;
+    penaltyCurveMps: number = Infinity;
     targetSpeedMps = 0;
-    visibleSpeedMps = undefined;
+    visibleSpeedMps?: number;
     timeToPenaltyS?: number;
 
-    constructor(curveMps2: number, playerSpeedMps: number, targetM: number, distanceM: number) {
+    private targetDistanceM: number;
+    private violatedAtM?: number = undefined;
+
+    constructor(targetM: number) {
+        this.targetDistanceM = targetM;
+    }
+
+    update(curveMps2: number, playerSpeedMps: number, distanceM: number) {
+        // Only reveal a positive stop if the advance braking curve has been violated.
+        let reveal: boolean;
+        if (this.violatedAtM !== undefined) {
+            if (distanceM > 0 && playerSpeedMps > 0) {
+                reveal = distanceM > 0 && distanceM < this.violatedAtM;
+            } else if (distanceM < 0 && playerSpeedMps < 0) {
+                reveal = distanceM < 0 && distanceM > this.violatedAtM;
+            } else {
+                reveal = false;
+            }
+        } else {
+            reveal = false;
+        }
+
+        const curveDistanceM = Math.max(Math.abs(distanceM) - this.targetDistanceM, 0);
+        const alertCurveMps = getBrakingCurve(curveMps2, 0, curveDistanceM, cs.alertCountdownS);
         const rightWay = (distanceM > 0 && playerSpeedMps >= 0) || (distanceM < 0 && playerSpeedMps <= 0);
-        if (rightWay) {
-            const curveDistanceM = Math.max(Math.abs(distanceM) - targetM, 0);
-            this.alertCurveMps = getBrakingCurve(curveMps2, 0, curveDistanceM, cs.alertCountdownS);
+        if (reveal && rightWay) {
+            this.alertCurveMps = alertCurveMps;
             this.penaltyCurveMps = getBrakingCurve(curveMps2, 0, curveDistanceM, 0);
             const ttpS = getTimeToPenaltyS(curveMps2, 0, playerSpeedMps, curveDistanceM);
+            this.visibleSpeedMps = 0;
             this.timeToPenaltyS = ttpS < 0 || ttpS > 60 ? undefined : ttpS;
         } else {
-            this.alertCurveMps = Infinity;
-            this.penaltyCurveMps = Infinity;
-            this.timeToPenaltyS = undefined;
+            this.alertCurveMps = this.penaltyCurveMps = Infinity;
+            this.visibleSpeedMps = this.timeToPenaltyS = undefined;
+        }
+        if (this.violatedAtM === undefined && Math.abs(playerSpeedMps) > alertCurveMps) {
+            this.violatedAtM = distanceM;
         }
     }
 }
@@ -692,7 +719,11 @@ function getBrakingCurve(a: number, vf: number, d: number, t: number) {
 }
 
 function getTimeToPenaltyS(a: number, vf: number, vi: number, d: number) {
-    return (d - (Math.pow(vf, 2) - Math.pow(vi, 2)) / (2 * a)) / vi;
+    if (Math.abs(vf - vi) < c.stopSpeed) {
+        return Infinity;
+    } else {
+        return (d - (Math.pow(vf, 2) - Math.pow(vi, 2)) / (2 * a)) / vi;
+    }
 }
 
 function brakingCurveGradientFactor(gradientPct: number): number {

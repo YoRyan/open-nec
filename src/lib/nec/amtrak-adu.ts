@@ -131,6 +131,9 @@ export function create(
                 const [, startS] = output.state;
                 // Check for suppression.
                 return startS !== Infinity;
+            } else if (mode === adu.AduMode.AcsesPositiveStop) {
+                const [, ack, stopped] = output.state;
+                return !(ack && stopped);
             } else {
                 return true;
             }
@@ -207,7 +210,10 @@ export function create(
                 penaltyBrake = false;
             } else {
                 const [mode] = output.state;
-                penaltyBrake = mode === adu.AduMode.AtcPenalty || mode === adu.AduMode.AcsesPenalty;
+                penaltyBrake =
+                    mode === adu.AduMode.AtcPenalty ||
+                    mode === adu.AduMode.AcsesPenalty ||
+                    mode === adu.AduMode.AcsesPositiveStop;
             }
 
             return {
