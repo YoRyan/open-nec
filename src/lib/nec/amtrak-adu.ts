@@ -19,9 +19,9 @@ export enum AduAspect {
     Stop,
     Restrict,
     Approach,
-    ApproachMedium30,
-    ApproachMedium45,
-    ApproachMedium45Off,
+    ApproachMedium,
+    ApproachLimited,
+    ApproachLimitedOff,
     CabSpeed60,
     CabSpeed60Off,
     CabSpeed80,
@@ -143,7 +143,7 @@ export function create(
         frp.map(output => output.aspect),
         fsm<cs.AmtrakAspect | adu.AduAspect>(cs.amtrakAtc.initialAspect),
         frp.filter(([from, to]) => from !== to),
-        frp.filter(([from, to]) => to === cs.AmtrakAspect.ApproachMedium45 || (!isCabSignal(from) && isCabSignal(to)))
+        frp.filter(([from, to]) => to === cs.AmtrakAspect.ApproachLimited || (!isCabSignal(from) && isCabSignal(to)))
     );
     const aspectFlash$ = frp.compose(
         e.createPlayerWithKeyUpdateStream(),
@@ -170,10 +170,8 @@ export function create(
                 [adu.AduAspect.Stop]: AduAspect.Stop,
                 [cs.AmtrakAspect.Restricting]: AduAspect.Restrict,
                 [cs.AmtrakAspect.Approach]: AduAspect.Approach,
-                [cs.AmtrakAspect.ApproachMedium30]: AduAspect.ApproachMedium30,
-                [cs.AmtrakAspect.ApproachMedium45]: flashOn
-                    ? AduAspect.ApproachMedium45
-                    : AduAspect.ApproachMedium45Off,
+                [cs.AmtrakAspect.ApproachMedium]: AduAspect.ApproachMedium,
+                [cs.AmtrakAspect.ApproachLimited]: flashOn ? AduAspect.ApproachLimited : AduAspect.ApproachLimitedOff,
                 [cs.AmtrakAspect.CabSpeed60]: flashOn ? AduAspect.CabSpeed60 : AduAspect.CabSpeed60Off,
                 [cs.AmtrakAspect.CabSpeed80]: flashOn ? AduAspect.CabSpeed80 : AduAspect.CabSpeed80Off,
                 [cs.AmtrakAspect.Clear100]: AduAspect.Clear100,

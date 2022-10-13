@@ -130,8 +130,8 @@ const me = new FrpEngine(() => {
             "SigYellow",
             0,
             state.aspect === cs.AmtrakAspect.Approach ||
-                state.aspect === cs.AmtrakAspect.ApproachMedium30 ||
-                state.aspect === cs.AmtrakAspect.ApproachMedium45
+                state.aspect === cs.AmtrakAspect.ApproachMedium ||
+                state.aspect === cs.AmtrakAspect.ApproachLimited
                 ? 1
                 : 0
         );
@@ -143,8 +143,8 @@ const me = new FrpEngine(() => {
         me.rv.SetControlValue(
             "SigLowerGreen",
             0,
-            state.aspect === cs.AmtrakAspect.ApproachMedium30 ||
-                (state.aspect === cs.AmtrakAspect.ApproachMedium45 && state.aspectFlashOn)
+            state.aspect === cs.AmtrakAspect.ApproachMedium ||
+                (state.aspect === cs.AmtrakAspect.ApproachLimited && state.aspectFlashOn)
                 ? 1
                 : 0
         );
@@ -156,8 +156,8 @@ const me = new FrpEngine(() => {
                 [AduAspect.Stop]: 0,
                 [cs.AmtrakAspect.Restricting]: 20,
                 [cs.AmtrakAspect.Approach]: 30,
-                [cs.AmtrakAspect.ApproachMedium30]: 30,
-                [cs.AmtrakAspect.ApproachMedium45]: 45,
+                [cs.AmtrakAspect.ApproachMedium]: 30,
+                [cs.AmtrakAspect.ApproachLimited]: 45,
                 [cs.AmtrakAspect.CabSpeed60]: 60,
                 [cs.AmtrakAspect.CabSpeed80]: 80,
                 [cs.AmtrakAspect.Clear100]: 0,

@@ -128,9 +128,9 @@ const me = new FrpEngine(() => {
             "SigAspectTopYellow",
             0,
             state.aspect === adu.AduAspect.Approach ||
-                state.aspect === adu.AduAspect.ApproachMedium30 ||
-                state.aspect === adu.AduAspect.ApproachMedium45 ||
-                state.aspect === adu.AduAspect.ApproachMedium45Off
+                state.aspect === adu.AduAspect.ApproachMedium ||
+                state.aspect === adu.AduAspect.ApproachLimited ||
+                state.aspect === adu.AduAspect.ApproachLimitedOff
                 ? 1
                 : 0
         );
@@ -143,7 +143,7 @@ const me = new FrpEngine(() => {
         me.rv.SetControlValue(
             "SigAspectBottomGreen",
             0,
-            state.aspect === adu.AduAspect.ApproachMedium30 || state.aspect === adu.AduAspect.ApproachMedium45 ? 1 : 0
+            state.aspect === adu.AduAspect.ApproachMedium || state.aspect === adu.AduAspect.ApproachLimited ? 1 : 0
         );
         me.rv.SetControlValue("SigAspectBottomYellow", 0, 0);
         me.rv.SetControlValue("SigAspectBottomWhite", 0, state.aspect === adu.AduAspect.Restrict ? 1 : 0);
@@ -155,9 +155,9 @@ const me = new FrpEngine(() => {
                 [adu.AduAspect.Stop]: 12,
                 [adu.AduAspect.Restrict]: 11,
                 [adu.AduAspect.Approach]: 8,
-                [adu.AduAspect.ApproachMedium30]: 13,
-                [adu.AduAspect.ApproachMedium45]: 13,
-                [adu.AduAspect.ApproachMedium45Off]: 13,
+                [adu.AduAspect.ApproachMedium]: 13,
+                [adu.AduAspect.ApproachLimited]: 3,
+                [adu.AduAspect.ApproachLimitedOff]: 3,
                 [adu.AduAspect.CabSpeed60]: 2,
                 [adu.AduAspect.CabSpeed60Off]: 2,
                 [adu.AduAspect.CabSpeed80]: 2,
@@ -175,7 +175,7 @@ const me = new FrpEngine(() => {
             me.rv.SetControlValue(
                 "SigL",
                 0,
-                state.aspect === adu.AduAspect.ApproachMedium45 || state.aspect === adu.AduAspect.ApproachMedium45Off
+                state.aspect === adu.AduAspect.ApproachLimited || state.aspect === adu.AduAspect.ApproachLimitedOff
                     ? 1
                     : 0
             );

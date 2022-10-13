@@ -71,8 +71,8 @@ export interface AtcSystem<A> {
 export enum AmtrakAspect {
     Restricting,
     Approach,
-    ApproachMedium30,
-    ApproachMedium45,
+    ApproachMedium,
+    ApproachLimited,
     CabSpeed60,
     CabSpeed80,
     Clear100,
@@ -89,8 +89,8 @@ export const amtrakAtc: AtcSystem<AmtrakAspect> = {
         return {
             [PulseCode.C_0_0]: AmtrakAspect.Restricting,
             [PulseCode.C_75_0]: AmtrakAspect.Approach,
-            [PulseCode.C_75_75]: AmtrakAspect.ApproachMedium30,
-            [PulseCode.C_120_0]: AmtrakAspect.ApproachMedium45,
+            [PulseCode.C_75_75]: AmtrakAspect.ApproachMedium,
+            [PulseCode.C_120_0]: AmtrakAspect.ApproachLimited,
             [PulseCode.C_120_120]: AmtrakAspect.CabSpeed80,
             [PulseCode.C_180_0]: AmtrakAspect.Clear125,
             [PulseCode.C_180_180]: AmtrakAspect.Clear150,
@@ -103,8 +103,8 @@ export const amtrakAtc: AtcSystem<AmtrakAspect> = {
         return {
             [AmtrakAspect.Restricting]: 0,
             [AmtrakAspect.Approach]: 1,
-            [AmtrakAspect.ApproachMedium30]: 2,
-            [AmtrakAspect.ApproachMedium45]: 3,
+            [AmtrakAspect.ApproachMedium]: 2,
+            [AmtrakAspect.ApproachLimited]: 3,
             [AmtrakAspect.CabSpeed60]: 4,
             [AmtrakAspect.CabSpeed80]: 5,
             [AmtrakAspect.Clear100]: 6,
@@ -117,8 +117,8 @@ export const amtrakAtc: AtcSystem<AmtrakAspect> = {
             {
                 [AmtrakAspect.Restricting]: 20,
                 [AmtrakAspect.Approach]: 30,
-                [AmtrakAspect.ApproachMedium30]: 30,
-                [AmtrakAspect.ApproachMedium45]: 45,
+                [AmtrakAspect.ApproachMedium]: 30,
+                [AmtrakAspect.ApproachLimited]: 45,
                 [AmtrakAspect.CabSpeed60]: 60,
                 [AmtrakAspect.CabSpeed80]: 80,
                 [AmtrakAspect.Clear100]: 100,
@@ -130,7 +130,7 @@ export const amtrakAtc: AtcSystem<AmtrakAspect> = {
     restartFlash(from: AmtrakAspect, to: AmtrakAspect) {
         const isCabSignal = (aspect: AmtrakAspect) =>
             aspect === AmtrakAspect.CabSpeed60 || aspect === AmtrakAspect.CabSpeed80;
-        return to === AmtrakAspect.ApproachMedium45 || (!isCabSignal(from) && isCabSignal(to));
+        return to === AmtrakAspect.ApproachLimited || (!isCabSignal(from) && isCabSignal(to));
     },
 };
 

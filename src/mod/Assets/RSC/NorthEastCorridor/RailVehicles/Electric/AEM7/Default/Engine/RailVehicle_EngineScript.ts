@@ -49,8 +49,8 @@ const me = new FrpEngine(() => {
                 [AduAspect.Stop]: 7, // The AEM-7 does not have a proper Stop aspect.
                 [cs.AmtrakAspect.Restricting]: 7,
                 [cs.AmtrakAspect.Approach]: 6,
-                [cs.AmtrakAspect.ApproachMedium30]: 6,
-                [cs.AmtrakAspect.ApproachMedium45]: 4,
+                [cs.AmtrakAspect.ApproachMedium]: 6,
+                [cs.AmtrakAspect.ApproachLimited]: 4,
                 [cs.AmtrakAspect.CabSpeed60]: 3,
                 [cs.AmtrakAspect.CabSpeed80]: 2,
                 [cs.AmtrakAspect.Clear100]: 0,
@@ -74,8 +74,8 @@ const me = new FrpEngine(() => {
         me.rv.SetControlValue(
             "CabSignal2",
             0,
-            state.aspect === cs.AmtrakAspect.ApproachMedium30 ||
-                (state.aspect === cs.AmtrakAspect.ApproachMedium45 && state.aspectFlashOn)
+            state.aspect === cs.AmtrakAspect.ApproachMedium ||
+                (state.aspect === cs.AmtrakAspect.ApproachLimited && state.aspectFlashOn)
                 ? 1
                 : 0
         );
