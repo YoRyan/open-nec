@@ -284,7 +284,8 @@ const me = new FrpEngine(() => {
     const cabLight = new rw.Light("CabLight");
     const cabLightPlayer$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        frp.map(_ => (me.rv.GetControlValue("CabLight", 0) as number) > 0.5)
+        me.mapGetCvStream("CabLight", 0),
+        frp.map(v => v > 0.5)
     );
     const cabLight$ = frp.compose(
         me.createPlayerWithoutKeyUpdateStream(),

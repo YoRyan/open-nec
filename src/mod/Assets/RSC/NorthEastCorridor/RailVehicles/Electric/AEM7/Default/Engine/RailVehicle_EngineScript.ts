@@ -198,7 +198,7 @@ const me = new FrpEngine(() => {
     // Possibly used for a sound effect?
     const dynamicCurrent$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        frp.map(_ => me.rv.GetControlValue("Ammeter", 0) as number),
+        me.mapGetCvStream("Ammeter", 0),
         frp.map(v => Math.abs(v))
     );
     dynamicCurrent$(v => {
