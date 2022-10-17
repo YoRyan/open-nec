@@ -36,6 +36,7 @@ type TwoSidedSpeedPost = { before: SpeedPost | undefined; after: SpeedPost | und
 type Signal = { proState: rw.ProSignalState };
 
 const penaltyCurveMps2 = -1 * c.mph.toMps;
+const stopReleaseMps = 15 * c.mph.toMps;
 const iterateStepM = 0.01;
 
 /**
@@ -108,21 +109,18 @@ export function create(
                 }
                 // Add stop signals if a positive stop is imminent.
                 let stopSignals = new Map<number, StopSignalHazard>();
-                if (typeof thePts === "number") {
-                    for (const [id, [distanceM, signal]] of frp.snapshot(signalIndex)) {
-                        if (signal.proState === rw.ProSignalState.Red) {
-                            const cushionM = 85 * c.ft.toM;
-                            const hazard = accum.stopSignals.get(id) || new StopSignalHazard(thePts + cushionM);
-                            stopSignals.set(id, hazard);
-                            hazard.update(brakingCurveMps2, speedoMps, distanceM);
-                            hazards.push(hazard);
-                        }
+                for (const [id, [distanceM, signal]] of frp.snapshot(signalIndex)) {
+                    if (signal.proState === rw.ProSignalState.Red) {
+                        const hazard = accum.stopSignals.get(id) || new StopSignalHazard();
+                        stopSignals.set(id, hazard);
+                        hazard.update(brakingCurveMps2, speedoMps, thePts, distanceM);
+                        hazards.push(hazard);
                     }
                 }
                 // Add current track speed limit.
                 hazards.push(new TrackSpeedHazard(Math.min(trackSpeedMps, equipmentSpeedMps)));
-                // Sort by penalty curve speed.
-                hazards.sort((a, b) => a.penaltyCurveMps - b.penaltyCurveMps);
+                // Sort by alert curve speed.
+                hazards.sort((a, b) => a.alertCurveMps - b.alertCurveMps);
                 return { advanceLimits, stopSignals, hazards };
             },
             { advanceLimits: new Map(), stopSignals: new Map(), hazards: [] }
@@ -673,14 +671,9 @@ class StopSignalHazard implements Hazard {
     visibleSpeedMps?: number;
     timeToPenaltyS?: number;
 
-    private targetDistanceM: number;
     private violatedAtM?: number = undefined;
 
-    constructor(targetM: number) {
-        this.targetDistanceM = targetM;
-    }
-
-    update(curveMps2: number, playerSpeedMps: number, distanceM: number) {
+    update(curveMps2: number, playerSpeedMps: number, ptsDistanceM: number | false, distanceM: number) {
         // Only reveal a positive stop if the advance braking curve has been violated.
         let reveal: boolean;
         if (this.violatedAtM !== undefined) {
@@ -695,18 +688,34 @@ class StopSignalHazard implements Hazard {
             reveal = false;
         }
 
-        const curveDistanceM = Math.max(Math.abs(distanceM) - this.targetDistanceM, 0);
+        const cushionM = 85 * c.ft.toM;
+        const targetDistanceM = (ptsDistanceM === false ? 0 : ptsDistanceM) + cushionM;
+        const curveDistanceM = Math.max(Math.abs(distanceM) - targetDistanceM, 0);
         const alertCurveMps = getBrakingCurve(curveMps2, 0, curveDistanceM, cs.alertCountdownS);
+
         const rightWay = (distanceM > 0 && playerSpeedMps >= 0) || (distanceM < 0 && playerSpeedMps <= 0);
-        if (reveal && rightWay) {
+        const enforceStop = ptsDistanceM !== false;
+        if (reveal && rightWay && enforceStop) {
+            // Positive stop enforcement for LIRR
             this.alertCurveMps = alertCurveMps;
             this.penaltyCurveMps = getBrakingCurve(curveMps2, 0, curveDistanceM, 0);
-            const ttpS = getTimeToPenaltyS(curveMps2, 0, playerSpeedMps, curveDistanceM);
             this.visibleSpeedMps = 0;
+            const ttpS = getTimeToPenaltyS(curveMps2, 0, playerSpeedMps, curveDistanceM);
             this.timeToPenaltyS = ttpS < 0 || ttpS > 60 ? undefined : ttpS;
+        } else if (reveal && rightWay) {
+            // For all other routes, use a "soft" positive stop that only
+            // enforces the 15 mph interlocking speed.
+            // (As a side effect, this mode only activates if the track speed
+            // limit is above 15 mph.)
+            this.alertCurveMps = Math.max(alertCurveMps, stopReleaseMps);
+            this.penaltyCurveMps = Infinity;
+            this.visibleSpeedMps = 0;
+            this.timeToPenaltyS = undefined;
         } else {
-            this.alertCurveMps = this.penaltyCurveMps = Infinity;
-            this.visibleSpeedMps = this.timeToPenaltyS = undefined;
+            this.alertCurveMps = Infinity;
+            this.penaltyCurveMps = Infinity;
+            this.visibleSpeedMps = undefined;
+            this.timeToPenaltyS = undefined;
         }
         if (this.violatedAtM === undefined && Math.abs(playerSpeedMps) > alertCurveMps) {
             this.violatedAtM = distanceM;
