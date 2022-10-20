@@ -18,6 +18,7 @@ import * as ui from "lib/ui";
 const me = new FrpEngine(() => {
     // Electric power supply
     const electrification = ps.createElectrificationBehaviorWithLua(me, ps.Electrification.Overhead);
+    const isPowerAvailable = () => ps.uniModeEngineHasPower(ps.EngineMode.Overhead, electrification);
 
     // Safety systems cut in/out
     // (Reverse the polarity so they are on by default.)
@@ -128,7 +129,6 @@ const me = new FrpEngine(() => {
     const cruiseOutput = frp.stepper(me.createCruiseControlStream(cruiseOn, cruiseTargetMps), 0);
 
     // Throttle, air brake, and dynamic brake controls
-    const isPowerAvailable = () => ps.uniModeEngineHasPower(ps.EngineMode.Overhead, electrification);
     const isPenaltyBrake = frp.liftN(
         (aduState, alerterState) => (aduState?.penaltyBrake || alerterState?.penaltyBrake) ?? false,
         aduState,

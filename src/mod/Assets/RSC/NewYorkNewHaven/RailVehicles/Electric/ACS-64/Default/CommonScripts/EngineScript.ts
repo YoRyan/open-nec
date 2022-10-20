@@ -57,6 +57,7 @@ const me = new FrpEngine(() => {
 
     // Electric power supply
     const electrification = ps.createElectrificationBehaviorWithLua(me, ps.Electrification.Overhead);
+    const isPowerAvailable = () => ps.uniModeEngineHasPower(ps.EngineMode.Overhead, electrification);
     const frontSparkLight = new rw.Light("Spark1");
     const rearSparkLight = new rw.Light("Spark2");
     const frontPantoSpark$ = frp.compose(
@@ -261,7 +262,6 @@ const me = new FrpEngine(() => {
     });
 
     // Throttle, dynamic brake, and air brake controls
-    const isPowerAvailable = () => ps.uniModeEngineHasPower(ps.EngineMode.Overhead, electrification);
     const isPenaltyBrake = frp.liftN(
         (aduState, alerterState) => (aduState?.penaltyBrake || alerterState?.penaltyBrake) ?? false,
         aduState,
