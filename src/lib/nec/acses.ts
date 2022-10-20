@@ -588,11 +588,11 @@ interface Hazard {
  * A stateless hazard that represents the current track speed limit.
  */
 class TrackSpeedHazard implements Hazard {
-    alertCurveMps: number;
-    penaltyCurveMps: number;
-    targetSpeedMps: number;
-    visibleSpeedMps: number;
-    timeToPenaltyS = undefined;
+    readonly alertCurveMps: number;
+    readonly penaltyCurveMps: number;
+    readonly targetSpeedMps: number;
+    readonly visibleSpeedMps: number;
+    readonly timeToPenaltyS = undefined;
 
     constructor(speedMps: number) {
         this.alertCurveMps = speedMps + cs.alertMarginMps;
@@ -610,7 +610,7 @@ class AdvanceLimitHazard implements Hazard {
     penaltyCurveMps: number = Infinity;
     targetSpeedMps: number = Infinity;
     visibleSpeedMps?: number = undefined;
-    timeToPenaltyS = undefined;
+    readonly timeToPenaltyS = undefined;
 
     private violationForcesAlarm: boolean;
     private violatedAtM?: number = undefined;
@@ -667,7 +667,7 @@ class AdvanceLimitHazard implements Hazard {
 class StopSignalHazard implements Hazard {
     alertCurveMps: number = Infinity;
     penaltyCurveMps: number = Infinity;
-    targetSpeedMps = 0;
+    readonly targetSpeedMps = 0;
     visibleSpeedMps?: number;
     timeToPenaltyS?: number;
 

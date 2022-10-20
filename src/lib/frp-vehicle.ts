@@ -78,19 +78,19 @@ export class FrpVehicle extends FrpEntity {
     /**
      * Convenient access to the methods for a rail vehicle.
      */
-    public rv = new rw.RailVehicle("");
+    public readonly rv = new rw.RailVehicle("");
     /**
      * A behavior that returns true if the controls have settled after initial
      * startup.
      */
-    public areControlsSettled: frp.Behavior<boolean> = () =>
+    public readonly areControlsSettled: frp.Behavior<boolean> = () =>
         this.initTimeS === undefined ? false : this.e.GetSimulationTime() > this.initTimeS + 0.5;
 
-    private playerUpdateSource = new FrpSource<PlayerUpdate>();
-    private aiUpdateSource = new FrpSource<AiUpdate>();
-    private cvChangeSource = new FrpSource<ControlValueChange>();
-    private consistMessageSource = new FrpSource<ConsistMessage>();
-    private vehicleCameraSource = new FrpSource<VehicleCamera>();
+    private readonly playerUpdateSource = new FrpSource<PlayerUpdate>();
+    private readonly aiUpdateSource = new FrpSource<AiUpdate>();
+    private readonly cvChangeSource = new FrpSource<ControlValueChange>();
+    private readonly consistMessageSource = new FrpSource<ConsistMessage>();
+    private readonly vehicleCameraSource = new FrpSource<VehicleCamera>();
 
     private initTimeS: number | undefined = undefined;
     private direction = SensedDirection.None;

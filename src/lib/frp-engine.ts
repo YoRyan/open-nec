@@ -29,11 +29,11 @@ export class FrpEngine extends FrpVehicle {
     /**
      * Convenient acces to the methods for an engine.
      */
-    public eng = new rw.Engine("");
+    public readonly eng = new rw.Engine("");
 
-    private playerWithKeyUpdateSource = new FrpSource<PlayerUpdate>();
-    private playerWithoutKeyUpdateSource = new FrpSource<PlayerUpdate>();
-    private signalMessageSource = new FrpSource<string>();
+    private readonly playerWithKeyUpdateSource = new FrpSource<PlayerUpdate>();
+    private readonly playerWithoutKeyUpdateSource = new FrpSource<PlayerUpdate>();
+    private readonly signalMessageSource = new FrpSource<string>();
 
     constructor(onInit: () => void) {
         super(onInit);

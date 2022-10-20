@@ -174,13 +174,15 @@ export type JunctionAgainstOrEndOfTrack = -1;
  * can be invoked.
  */
 export class Entity {
-    private id: string = "";
+    private readonly id: string = "";
 
     constructor(id: string) {
         this.id = id;
     }
 
-    protected fn = (name: string) => (this.id === "" ? name : `${this.id}:${name}`);
+    protected fn(name: string) {
+        return this.id === "" ? name : `${this.id}:${name}`;
+    }
 }
 
 /**

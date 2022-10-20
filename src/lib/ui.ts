@@ -90,9 +90,9 @@ export function createAlerterStatusPopup(e: FrpEngine, behavior: frp.Behavior<bo
  * A popup that allows the player to scroll through a long list of selections.
  */
 export class ScrollingMenu {
-    private title: string;
-    private items: string[];
-    private nItems: number;
+    private readonly title: string;
+    private readonly items: string[];
+    private readonly nItems: number;
 
     private selection: number;
     private offset: number;

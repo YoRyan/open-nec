@@ -11,13 +11,13 @@ export class FrpEntity {
     /**
      * Convenient access to the methods for a scripted entity.
      */
-    public e = new rw.ScriptedEntity("");
+    public readonly e = new rw.ScriptedEntity("");
 
-    private updateSource = new FrpSource<number>();
-    private saveSource = new FrpSource<void>();
-    private resumeSource = new FrpSource<void>();
+    private readonly updateSource = new FrpSource<number>();
+    private readonly saveSource = new FrpSource<void>();
+    private readonly resumeSource = new FrpSource<void>();
 
-    private onInit: (this: void) => void;
+    private readonly onInit: (this: void) => void;
     private updatingEveryFrame = false;
 
     /**
@@ -85,7 +85,7 @@ export class FrpEntity {
  * A list of callbacks that proxies access to a single event stream source.
  */
 export class FrpSource<T> {
-    private nexts: ((arg0: T) => void)[] = [];
+    private readonly nexts: ((arg0: T) => void)[] = [];
 
     /**
      * Create a new event stream and register its callback to this list.

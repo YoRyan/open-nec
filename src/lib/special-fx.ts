@@ -214,7 +214,7 @@ export function createBrakeLightStreamForWagon(v: FrpVehicle): frp.Stream<boolea
  */
 export class FadeableLight {
     private target?: number = undefined;
-    private current: frp.Behavior<number>;
+    private readonly current: frp.Behavior<number>;
 
     constructor(e: FrpEntity, fadeTimeS: number, id: string) {
         const light = new rw.Light(id);
