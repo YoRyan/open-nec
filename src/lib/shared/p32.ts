@@ -19,7 +19,7 @@ import { SensedDirection } from "lib/frp-vehicle";
 
 const dualModeSwitchS = 20;
 const ditchLightsFadeS = 0.3;
-const ditchLightFlashS = 0.5;
+const ditchLightFlashS = 0.65;
 const taskLightFadeS = 0.8 / 2;
 
 export function onInit(me: FrpEngine, isAmtrak: boolean) {
