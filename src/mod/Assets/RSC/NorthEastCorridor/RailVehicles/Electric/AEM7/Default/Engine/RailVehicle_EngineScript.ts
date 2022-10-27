@@ -174,6 +174,16 @@ const me = new FrpEngine(() => {
         () => me.rv.GetControlValue("VirtualThrottle", 0) as number
     );
 
+    // Horn rings the bell.
+    const bellControl$ = frp.compose(
+        me.createOnCvChangeStreamFor("Horn", 0),
+        frp.filter(v => v > 0),
+        me.mapAutoBellStream()
+    );
+    bellControl$(v => {
+        me.rv.SetControlValue("Bell", 0, v);
+    });
+
     // Cab dome lights, front and rear
     const cabLightFront = new rw.Light("FrontCabLight");
     const cabLightRear = new rw.Light("RearCabLight");
@@ -206,7 +216,10 @@ const me = new FrpEngine(() => {
     });
 
     // Process OnControlValueChange events.
-    const onCvChange$ = me.createOnCvChangeStream();
+    const onCvChange$ = frp.compose(
+        me.createOnCvChangeStream(),
+        frp.reject(([name]) => name === "Bell")
+    );
     onCvChange$(([name, index, value]) => {
         me.rv.SetControlValue(name, index, value);
     });
