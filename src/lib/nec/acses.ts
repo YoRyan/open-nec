@@ -61,14 +61,14 @@ export function create(
     };
 
     const isInactive = frp.liftN(isActive => !isActive, isActive);
-
-    const pts$ = frp.compose(
-        e.createOnSignalMessageStream(),
-        frp.map(msg => cs.toPositiveStopDistanceM(msg)),
-        rejectUndefined()
+    const ptsDistanceM = frp.stepper(
+        frp.compose(
+            e.createOnSignalMessageStream(),
+            frp.map(msg => cs.toPositiveStopDistanceM(msg)),
+            rejectUndefined()
+        ),
+        false
     );
-    const pts = frp.stepper(pts$, false);
-
     const enablePts = frp.stepper(
         frp.compose(
             e.createOnSignalMessageStream(),
@@ -87,13 +87,10 @@ export function create(
         frp.hub()
     );
     const speedPostIndex = frp.stepper(speedPostIndex$, new Map<number, Sensed<SpeedPost>>());
-
-    const signalIndex$ = frp.compose(
-        e.createPlayerWithKeyUpdateStream(),
-        mapSignalStream(e),
-        indexObjectsSensedByDistance(isInactive)
+    const signalIndex = frp.stepper(
+        frp.compose(e.createPlayerWithKeyUpdateStream(), mapSignalStream(e), indexObjectsSensedByDistance(isInactive)),
+        new Map<number, Sensed<Signal>>()
     );
-    const signalIndex = frp.stepper(signalIndex$, new Map<number, Sensed<Signal>>());
 
     return frp.compose(
         speedPostIndex$,
@@ -106,7 +103,7 @@ export function create(
         frp.fold<HazardsAccum, number>(
             (accum, trackSpeedMps) => {
                 const speedoMps = (e.rv.GetControlValue("SpeedometerMPH", 0) as number) * c.mph.toMps;
-                const thePts = frp.snapshot(pts);
+                const ptsM = frp.snapshot(ptsDistanceM);
 
                 let hazards: Hazard[] = [];
                 const brakingCurveMps2 = penaltyCurveMps2 * brakingCurveGradientFactor(e.rv.GetGradient());
@@ -125,7 +122,7 @@ export function create(
                         if (signal.proState === rw.ProSignalState.Red) {
                             const hazard = accum.stopSignals.get(id) || new StopSignalHazard();
                             stopSignals.set(id, hazard);
-                            hazard.update(brakingCurveMps2, speedoMps, thePts, distanceM);
+                            hazard.update(brakingCurveMps2, speedoMps, ptsM, distanceM);
                             hazards.push(hazard);
                         }
                     }
