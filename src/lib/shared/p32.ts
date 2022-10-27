@@ -148,7 +148,7 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
         frp.filter(([name]) => name === "VirtualThrottle" || name === "TrainBrakeControl")
     );
     const alerter$ = frp.compose(ale.create(me, acknowledge, alerterReset$, alerterCutIn), frp.hub());
-    const alerterState = frp.stepper(ale.create(me, acknowledge, alerterReset$, alerterCutIn), undefined);
+    const alerterState = frp.stepper(alerter$, undefined);
     alerter$(state => {
         me.rv.SetControlValue("AlerterVisual", 0, state.alarm ? 1 : 0);
     });
