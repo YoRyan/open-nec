@@ -57,8 +57,6 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
         },
         dualModeSwitchS
     );
-    const modePositionHub$ = frp.compose(modePosition$, frp.hub());
-    const modePosition = frp.stepper(modePositionHub$, 0);
     modeSwitch$(mode => {
         if (mode === ps.EngineMode.ThirdRail) {
             me.rv.SetControlValue("PowerMode", 0, 0);
@@ -66,12 +64,13 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
             me.rv.SetControlValue("PowerMode", 0, 1);
         }
     });
-    const isPowerAvailable$ = frp.compose(
-        modePositionHub$,
-        ps.mapDualModeEngineHasPower(ps.EngineMode.ThirdRail, ps.EngineMode.Diesel, electrification)
+    const modePosition = frp.stepper(modePosition$, 0);
+    const isPowerAvailable = frp.liftN(
+        position => ps.dualModeEngineHasPower(position, ps.EngineMode.ThirdRail, ps.EngineMode.Diesel, electrification),
+        modePosition
     );
-    const isPowerAvailable = frp.stepper(isPowerAvailable$, false);
-    isPowerAvailable$(power => {
+    const setPlayerPower$ = frp.compose(me.createPlayerUpdateStream(), mapBehavior(isPowerAvailable));
+    setPlayerPower$(power => {
         // Unlike the virtual throttle, this works for helper engines.
         me.eng.SetPowerProportion(-1, power ? 1 : 0);
     });

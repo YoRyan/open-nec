@@ -161,24 +161,27 @@ export function createDualModeEngineStream<A extends EngineMode, B extends Engin
     return [position$, autoSwitch$];
 }
 
-export function mapDualModeEngineHasPower<A extends EngineMode, B extends EngineMode>(
+/**
+ * Determine whether a dual-mode locomotive is capable of providing power.
+ * @param position The switchable power state of the locomotive.
+ * @param modeA The first operating mode.
+ * @param modeB The second operating mode.
+ * @param electrification The current electrification state.
+ * @returns True if the locomotive has power available.
+ */
+export function dualModeEngineHasPower<A extends EngineMode, B extends EngineMode>(
+    position: number,
     modeA: A,
     modeB: B,
     electrification: frp.Behavior<Set<Electrification>>
-): (eventStream: frp.Stream<number>) => frp.Stream<boolean> {
-    return eventStream =>
-        frp.compose(
-            eventStream,
-            frp.map(position => {
-                if (position === 0) {
-                    return modeA === EngineMode.Diesel || uniModeEngineHasPower(modeA, electrification);
-                } else if (position === 1) {
-                    return modeB === EngineMode.Diesel || uniModeEngineHasPower(modeB, electrification);
-                } else {
-                    return false;
-                }
-            })
-        );
+) {
+    if (position === 0) {
+        return modeA === EngineMode.Diesel || uniModeEngineHasPower(modeA, electrification);
+    } else if (position === 1) {
+        return modeB === EngineMode.Diesel || uniModeEngineHasPower(modeB, electrification);
+    } else {
+        return false;
+    }
 }
 
 /**
