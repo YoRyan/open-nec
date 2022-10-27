@@ -387,7 +387,7 @@ const me = new FrpEngine(() => {
         me.rv.SetControlValue("Bell", 0, v);
     });
 
-    // Ditch lights, front and rear
+    // Ditch lights
     const ditchLights = [
         new fx.FadeableLight(me, ditchLightsFadeS, "DitchLightLeft"),
         new fx.FadeableLight(me, ditchLightsFadeS, "DitchLightRight"),
