@@ -135,6 +135,102 @@ export const amtrakAtc: AtcSystem<AmtrakAspect> = {
 };
 
 /**
+ * A cab signal aspect for trains that use basic 4-aspect cab signaling.
+ */
+export enum FourAspect {
+    Restricting,
+    Approach,
+    ApproachLimited,
+    Clear,
+}
+
+/**
+ * ATC for trains that can only communicate four aspects. (For newer,
+ * PRR-incompatible codes, we present Approach Limited rather than Restricting
+ * as would occur in real life.)
+ */
+export const fourAspectAtc: AtcSystem<FourAspect> = {
+    initialAspect: FourAspect.Restricting,
+    fromPulseCode(pc: PulseCode) {
+        return {
+            [PulseCode.C_0_0]: FourAspect.Restricting,
+            [PulseCode.C_75_0]: FourAspect.Approach,
+            [PulseCode.C_75_75]: FourAspect.Approach,
+            [PulseCode.C_120_0]: FourAspect.ApproachLimited,
+            [PulseCode.C_120_120]: FourAspect.ApproachLimited,
+            [PulseCode.C_180_0]: FourAspect.Clear,
+            [PulseCode.C_180_180]: FourAspect.Clear,
+            [PulseCode.C_270_0]: FourAspect.ApproachLimited,
+            [PulseCode.C_270_270]: FourAspect.ApproachLimited,
+            [PulseCode.C_420_0]: FourAspect.ApproachLimited,
+        }[pc];
+    },
+    getSuperiority(aspect: FourAspect) {
+        return {
+            [FourAspect.Restricting]: 0,
+            [FourAspect.Approach]: 1,
+            [FourAspect.ApproachLimited]: 2,
+            [FourAspect.Clear]: 3,
+        }[aspect];
+    },
+    getSpeedMps(aspect: FourAspect) {
+        return (
+            {
+                [FourAspect.Restricting]: 20,
+                [FourAspect.Approach]: 30,
+                [FourAspect.ApproachLimited]: 45,
+                [FourAspect.Clear]: 125,
+            }[aspect] * c.mph.toMps
+        );
+    },
+    restartFlash(_from: FourAspect, _to: FourAspect) {
+        return false;
+    },
+};
+
+/**
+ * ATC for Metro-North trains. (We assume we can only represent 4 aspects.)
+ */
+export const metroNorthAtc: AtcSystem<FourAspect> = {
+    initialAspect: FourAspect.Restricting,
+    fromPulseCode(pc: PulseCode) {
+        return {
+            [PulseCode.C_0_0]: FourAspect.Restricting,
+            [PulseCode.C_75_0]: FourAspect.Approach,
+            [PulseCode.C_75_75]: FourAspect.Approach,
+            [PulseCode.C_120_0]: FourAspect.ApproachLimited,
+            [PulseCode.C_120_120]: FourAspect.ApproachLimited,
+            [PulseCode.C_180_0]: FourAspect.Clear,
+            [PulseCode.C_180_180]: FourAspect.Clear,
+            [PulseCode.C_270_0]: FourAspect.ApproachLimited,
+            [PulseCode.C_270_270]: FourAspect.ApproachLimited,
+            [PulseCode.C_420_0]: FourAspect.Restricting,
+        }[pc];
+    },
+    getSuperiority(aspect: FourAspect) {
+        return {
+            [FourAspect.Restricting]: 0,
+            [FourAspect.Approach]: 1,
+            [FourAspect.ApproachLimited]: 2,
+            [FourAspect.Clear]: 3,
+        }[aspect];
+    },
+    getSpeedMps(aspect: FourAspect) {
+        return (
+            {
+                [FourAspect.Restricting]: 15,
+                [FourAspect.Approach]: 30,
+                [FourAspect.ApproachLimited]: 45,
+                [FourAspect.Clear]: 80,
+            }[aspect] * c.mph.toMps
+        );
+    },
+    restartFlash(_from: FourAspect, _to: FourAspect) {
+        return false;
+    },
+};
+
+/**
  * Attempt to convert a signal message to a pulse code.
  * @param signalMessage The custom signal message.
  * @returns The pulse code, if one matches.

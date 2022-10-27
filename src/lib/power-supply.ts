@@ -5,7 +5,7 @@
 
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { rejectUndefined } from "lib/frp-extra";
+import { fsm, rejectUndefined } from "lib/frp-extra";
 import * as rw from "lib/railworks";
 import * as ui from "lib/ui";
 
@@ -50,23 +50,140 @@ export function uniModeEngineHasPower(
 }
 
 /**
+ * Create a timed transition for a dual-mode locomotive, complete with popups
+ * that indicate the transition progress for the player.
+ * @param e The player engine.
+ * @param modeA The first operating mode.
+ * @param modeB The second operating mode.
+ * @param getMode A behavior that returns the player-selected operating mode.
+ * @param getCanTransition A behavior that, when true, allows the player to
+ * change modes.
+ * @param transitionS The time it takes to transition between the modes.
+ * @returns A stream that emits the current power state of the locomotive, as a
+ * number scaled from 0 (operating in mode #1) to 1 (operating in mode #2).
+ */
+export function createDualModeEngineStream<A extends EngineMode, B extends EngineMode>(
+    e: FrpEngine,
+    modeA: A,
+    modeB: B,
+    getMode: frp.Behavior<A | B>,
+    getCanTransition: frp.Behavior<boolean>,
+    transitionS: number
+): frp.Stream<number> {
+    const isEngineStarted = () => (e.rv.GetControlValue("Startup", 0) as number) > 0;
+    const playerPosition$ = frp.compose(
+        e.createPlayerUpdateStream(),
+        frp.fold((position, pu) => {
+            const selectedMode = frp.snapshot(getMode);
+            if (!frp.snapshot(e.areControlsSettled)) {
+                return selectedMode === modeA ? 0 : 1;
+            } else if (!frp.snapshot(isEngineStarted)) {
+                // Don't transition while shut down.
+                return position;
+            } else if ((position === 0 || position === 1) && !frp.snapshot(getCanTransition)) {
+                return position;
+            } else {
+                let direction: number;
+                switch (selectedMode) {
+                    case modeA:
+                        direction = -1;
+                        break;
+                    case modeB:
+                        direction = 1;
+                        break;
+                    default:
+                        direction = 0;
+                        break;
+                }
+                return Math.max(Math.min(position + (direction * pu.dt) / transitionS, 1), 0);
+            }
+        }, 0),
+        frp.hub()
+    );
+    const position$ = frp.compose(
+        e.createAiUpdateStream(),
+        frp.map(_ => (frp.snapshot(getMode) === modeA ? 0 : 1)),
+        frp.merge(playerPosition$)
+    );
+
+    const playerChange$ = frp.compose(
+        playerPosition$,
+        fsm(0),
+        frp.filter(_ => frp.snapshot(e.areControlsSettled)),
+        frp.filter(([from, to]) => from !== to),
+        frp.map(([, to]) => to),
+        frp.hub()
+    );
+    const playerProgress$ = frp.compose(
+        playerChange$,
+        frp.filter(position => position > 0 && position < 1)
+    );
+    const playerComplete$ = frp.compose(
+        playerChange$,
+        frp.filter(position => position === 0 || position === 1),
+        frp.map(position => (position === 0 ? modeA : modeB))
+    );
+    playerProgress$(position => {
+        ui.showProgressPopup(
+            "Dual-Mode Power Change",
+            "Switch in progress...",
+            engineModeName(modeA),
+            engineModeName(modeB),
+            position
+        );
+    });
+    playerComplete$(mode => {
+        rw.ScenarioManager.ShowInfoMessageExt(
+            "Dual-Mode Power Change",
+            `${engineModeName(mode)} switch complete.`,
+            ui.popupS,
+            rw.MessageBoxPosition.Bottom + rw.MessageBoxPosition.Left,
+            rw.MessageBoxSize.Small,
+            false
+        );
+    });
+
+    return position$;
+}
+
+export function mapDualModeEngineHasPower<A extends EngineMode, B extends EngineMode>(
+    modeA: A,
+    modeB: B,
+    electrification: frp.Behavior<Set<Electrification>>
+): (eventStream: frp.Stream<number>) => frp.Stream<boolean> {
+    return eventStream =>
+        frp.compose(
+            eventStream,
+            frp.map(position => {
+                if (position === 0) {
+                    return modeA === EngineMode.Diesel || uniModeEngineHasPower(modeA, electrification);
+                } else if (position === 1) {
+                    return modeB === EngineMode.Diesel || uniModeEngineHasPower(modeB, electrification);
+                } else {
+                    return false;
+                }
+            })
+        );
+}
+
+/**
  * Create a behavior that represents the current electrification state, backed
  * by control values, which are saved and resumed and can be transmitted across
  * the consist. Also creates status popups for the player.
  * @param e The player engine.
- * @param cvs A mapping of electrification types to control value names.
+ * @param cvs A mapping of electrification types to control values.
  * @returns The new behavior.
  */
 export function createElectrificationBehaviorWithControlValues(
     e: FrpEngine,
-    cvs: Record<Electrification, string | undefined>
+    cvs: Record<Electrification, [name: string, index: number] | undefined>
 ): frp.Behavior<Set<Electrification>> {
     const behavior = () => {
         const set = new Set<Electrification>();
         for (const p in cvs) {
             const el = p as Electrification;
             const cv = cvs[el];
-            if (cv !== undefined && (e.rv.GetControlValue(cv, 0) ?? 0) > 0.5) {
+            if (cv !== undefined && (e.rv.GetControlValue(...cv) ?? 0) > 0.5) {
                 set.add(el);
             }
         }
@@ -76,7 +193,7 @@ export function createElectrificationBehaviorWithControlValues(
     stream$(([el, state]) => {
         const cv = cvs[el];
         if (cv !== undefined) {
-            e.rv.SetControlValue(cv, 0, state ? 1 : 0);
+            e.rv.SetControlValue(...cv, state ? 1 : 0);
         }
 
         if (e.eng.GetIsEngineWithKey()) {
@@ -172,4 +289,15 @@ function showElectrificationAlert(set: Set<Electrification>) {
         message = "Electric power is not available.";
     }
     rw.ScenarioManager.ShowAlertMessageExt(`Electrification [${abbreviated}]`, message, ui.popupS, "");
+}
+
+function engineModeName(mode: EngineMode) {
+    switch (mode) {
+        case EngineMode.Diesel:
+            return "Diesel";
+        case EngineMode.Overhead:
+            return "Overhead";
+        case EngineMode.ThirdRail:
+            return "Third rail";
+    }
 }

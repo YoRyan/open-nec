@@ -38,3 +38,11 @@ function getDigitsRecursivelyB(n: number, width: number): number[] {
         return rest;
     }
 }
+
+/**
+ * Get the tenths decimal component of a number.
+ * @param n The number to decompose. Must be non-negative.
+ */
+export function tenths(n: number) {
+    return Math.round((n - Math.floor(n)) * 10);
+}

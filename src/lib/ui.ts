@@ -9,7 +9,9 @@ import { fsm, mapBehavior, rejectUndefined } from "./frp-extra";
 import * as rw from "./railworks";
 
 export const popupS = 5;
-export const scrollingMenuSize = 6;
+
+const scrollingMenuSize = 6;
+const progressBarWidth = 40;
 
 /**
  * Use popups to communicate the status of a behavior. Intended for invisible
@@ -176,4 +178,30 @@ export class ScrollingMenu {
         }
         [this.selection, this.offset] = [selection, offset];
     }
+}
+
+/**
+ * Show a popup that communicates the current status of a long-running task.
+ * @param title The popup title to use.
+ * @param message Show some text above the progress bar.
+ * @param from Show some text on the left side of the progress bar.
+ * @param to Show some text on the right side of the progress bar.
+ * @param progress The progress to show, scaled from 0 to 1.
+ */
+export function showProgressPopup(title: string, message: string, from: string, to: string, progress: number) {
+    const done = Math.floor(progress * progressBarWidth * 2) / 2;
+    const remaining = Math.ceil((1 - progress) * progressBarWidth * 2) / 2;
+    const isHalfDone = done % 1 > 0;
+    const bar = isHalfDone
+        ? string.rep(":", done - 0.5) + "." + string.rep(" ", remaining - 0.5)
+        : string.rep(":", done) + string.rep(" ", remaining);
+    const fromTo = from === "" && to === "" ? "" : from + string.rep(" ", progressBarWidth * 0.75) + to;
+    rw.ScenarioManager.ShowInfoMessageExt(
+        title,
+        `${message === "" ? "" : message + "\n\n"}[${bar}]${fromTo === "" ? "" : "\n\n" + fromTo}`,
+        popupS,
+        rw.MessageBoxPosition.Bottom + rw.MessageBoxPosition.Left,
+        rw.MessageBoxSize.Small,
+        false
+    );
 }
