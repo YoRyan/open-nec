@@ -32,6 +32,8 @@ export enum EngineMode {
  */
 export type ElectrificationDelta = [el: Electrification, state: boolean];
 
+const powerSwitchMessageId = 10002;
+
 /**
  * Determine whether a uni-mode electric locomotive has power available from
  * the electrification system.
@@ -76,13 +78,7 @@ export function createDualModeEngineStream<A extends EngineMode, B extends Engin
     transitionS: number
 ): [position: frp.Stream<number>, autoMode: frp.Stream<EngineMode>] {
     const isEngineStarted = () => (e.rv.GetControlValue("Startup", 0) as number) > 0;
-    const autoSwitch$ = frp.compose(
-        e.createOnSignalMessageStream(),
-        frp.filter(_ => frp.snapshot(getAutoSwitch)),
-        frp.map(msg => parseModeSwitchMessage(msg)),
-        frp.map(mode => (mode === modeA || mode === modeB ? (mode as A | B) : undefined)),
-        rejectUndefined()
-    );
+    const autoSwitch$ = createDualModeAutoSwitchStream(e, modeA, modeB, getAutoSwitch);
     const playerPosition$ = frp.compose(
         e.createPlayerUpdateStream(),
         frp.merge(autoSwitch$),
@@ -183,6 +179,55 @@ export function mapDualModeEngineHasPower<A extends EngineMode, B extends Engine
                 }
             })
         );
+}
+
+/**
+ * Process custom signal messages that communicate the automatically selected
+ * power mode, and transmit that information to the rest of the consist via
+ * consist messages.
+ * @param e The player engine.
+ * @param modeA The first operating mode.
+ * @param modeB The second operating mode.
+ * @param getAutoSwitch This behavior must be true to process power change
+ * messages.
+ * modes according to the power change signal messages.
+ * @returns A stream that emits the new selected operating mode if automatic
+ * switching is used.
+ */
+export function createDualModeAutoSwitchStream<A extends EngineMode, B extends EngineMode>(
+    e: FrpEngine,
+    modeA: A,
+    modeB: B,
+    getAutoSwitch: frp.Behavior<boolean>
+): frp.Stream<A | B> {
+    const forward$ = frp.compose(
+        e.createOnConsistMessageStream(),
+        frp.filter(([id]) => id === powerSwitchMessageId)
+    );
+    forward$(msg => {
+        e.eng.SendConsistMessage(...msg);
+    });
+
+    const signal$ = frp.compose(
+        e.createOnSignalMessageStream(),
+        frp.filter(_ => frp.snapshot(getAutoSwitch)),
+        frp.map(parseModeSwitchMessage),
+        frp.map(mode => (mode === modeA || mode === modeB ? (mode as A | B) : undefined)),
+        rejectUndefined(),
+        frp.hub()
+    );
+    signal$(mode => {
+        e.eng.SendConsistMessage(powerSwitchMessageId, mode, rw.ConsistDirection.Forward);
+        e.eng.SendConsistMessage(powerSwitchMessageId, mode, rw.ConsistDirection.Backward);
+    });
+    return frp.compose(
+        e.createOnConsistMessageStream(),
+        frp.filter(([id]) => id === powerSwitchMessageId),
+        frp.map(([, msg]) => msg),
+        frp.map(mode => (mode === modeA || mode === modeB ? (mode as A | B) : undefined)),
+        rejectUndefined(),
+        frp.merge(signal$)
+    );
 }
 
 /**
