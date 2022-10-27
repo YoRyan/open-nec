@@ -38,30 +38,37 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
             return cv === 0 ? ps.EngineMode.ThirdRail : ps.EngineMode.Diesel;
         }
     };
-    const modePosition$ = frp.compose(
-        ps.createDualModeEngineStream(
-            me,
-            ps.EngineMode.ThirdRail,
-            ps.EngineMode.Diesel,
-            modeSelect,
-            () => {
-                // VirtualThrottle is the more correct control here, but it's
-                // not applied within the consist.
-                const throttle = me.rv.GetControlValue(
-                    me.eng.GetIsEngineWithKey() ? "VirtualThrottle" : "Regulator",
-                    0
-                ) as number;
-                return throttle < 0.5;
-            },
-            dualModeSwitchS
-        ),
-        frp.hub()
+    const modeAuto = () => (me.rv.GetControlValue("ExpertPowerMode", 0) as number) > 0.5;
+    ui.createAutoPowerStatusPopup(me, modeAuto);
+    const [modePosition$, modeSwitch$] = ps.createDualModeEngineStream(
+        me,
+        ps.EngineMode.ThirdRail,
+        ps.EngineMode.Diesel,
+        modeSelect,
+        modeAuto,
+        () => {
+            // VirtualThrottle is the more correct control here, but it's
+            // not applied within the consist.
+            const throttle = me.rv.GetControlValue(
+                me.eng.GetIsEngineWithKey() ? "VirtualThrottle" : "Regulator",
+                0
+            ) as number;
+            return throttle < 0.5;
+        },
+        dualModeSwitchS
     );
-    const modePosition = frp.stepper(modePosition$, 0);
+    const modePositionHub$ = frp.compose(modePosition$, frp.hub());
+    const modePosition = frp.stepper(modePositionHub$, 0);
+    modeSwitch$(mode => {
+        if (mode === ps.EngineMode.ThirdRail) {
+            me.rv.SetControlValue("PowerMode", 0, 0);
+        } else if (mode === ps.EngineMode.Diesel) {
+            me.rv.SetControlValue("PowerMode", 0, 1);
+        }
+    });
     const isPowerAvailable$ = frp.compose(
-        modePosition$,
-        ps.mapDualModeEngineHasPower(ps.EngineMode.ThirdRail, ps.EngineMode.Diesel, electrification),
-        frp.hub()
+        modePositionHub$,
+        ps.mapDualModeEngineHasPower(ps.EngineMode.ThirdRail, ps.EngineMode.Diesel, electrification)
     );
     const isPowerAvailable = frp.stepper(isPowerAvailable$, false);
     isPowerAvailable$(power => {

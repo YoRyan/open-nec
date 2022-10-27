@@ -89,6 +89,23 @@ export function createAlerterStatusPopup(e: FrpEngine, behavior: frp.Behavior<bo
 }
 
 /**
+ * Create popups for an automatic power mode change control.
+ * @param e The player's engine.
+ * @param behavior The on/off behavior.
+ */
+export function createAutoPowerStatusPopup(e: FrpEngine, behavior: frp.Behavior<boolean>) {
+    createStatusPopup(
+        e,
+        behavior,
+        "Automatic Power Change",
+        new Map([
+            [true, "Enabled"],
+            [false, "Disabled"],
+        ])
+    );
+}
+
+/**
  * A popup that allows the player to scroll through a long list of selections.
  */
 export class ScrollingMenu {

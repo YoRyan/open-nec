@@ -56,24 +56,43 @@ export function uniModeEngineHasPower(
  * @param modeA The first operating mode.
  * @param modeB The second operating mode.
  * @param getMode A behavior that returns the player-selected operating mode.
+ * @param getAutoSwitch A behavior that, when true, allows the engine to switch
+ * modes according to the power change signal messages.
  * @param getCanTransition A behavior that, when true, allows the player to
  * change modes.
  * @param transitionS The time it takes to transition between the modes.
  * @returns A stream that emits the current power state of the locomotive, as a
- * number scaled from 0 (operating in mode #1) to 1 (operating in mode #2).
+ * number scaled from 0 (operating in mode #1) to 1 (operating in mode #2), and
+ * a stream that emits the new selected operating mode if automatic switching is
+ * used.
  */
 export function createDualModeEngineStream<A extends EngineMode, B extends EngineMode>(
     e: FrpEngine,
     modeA: A,
     modeB: B,
     getMode: frp.Behavior<A | B>,
+    getAutoSwitch: frp.Behavior<boolean>,
     getCanTransition: frp.Behavior<boolean>,
     transitionS: number
-): frp.Stream<number> {
+): [position: frp.Stream<number>, autoMode: frp.Stream<EngineMode>] {
     const isEngineStarted = () => (e.rv.GetControlValue("Startup", 0) as number) > 0;
+    const autoSwitch$ = frp.compose(
+        e.createOnSignalMessageStream(),
+        frp.filter(_ => frp.snapshot(getAutoSwitch)),
+        frp.map(msg => parseModeSwitchMessage(msg)),
+        frp.map(mode => (mode === modeA || mode === modeB ? (mode as A | B) : undefined)),
+        rejectUndefined()
+    );
     const playerPosition$ = frp.compose(
         e.createPlayerUpdateStream(),
-        frp.fold((position, pu) => {
+        frp.merge(autoSwitch$),
+        frp.fold((position, input) => {
+            // Automatic switch
+            if (typeof input === "string") {
+                return input === modeA ? 0 : 1;
+            }
+            // Clock update
+            const pu = input;
             const selectedMode = frp.snapshot(getMode);
             if (!frp.snapshot(e.areControlsSettled)) {
                 return selectedMode === modeA ? 0 : 1;
@@ -143,7 +162,7 @@ export function createDualModeEngineStream<A extends EngineMode, B extends Engin
         );
     });
 
-    return position$;
+    return [position$, autoSwitch$];
 }
 
 export function mapDualModeEngineHasPower<A extends EngineMode, B extends EngineMode>(
