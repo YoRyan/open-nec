@@ -69,6 +69,17 @@ export function create(
     );
     const pts = frp.stepper(pts$, false);
 
+    const enablePts = frp.stepper(
+        frp.compose(
+            e.createOnSignalMessageStream(),
+            frp.map(cs.toPulseCode),
+            rejectUndefined(),
+            frp.map(cs.fourAspectAtc.fromPulseCode),
+            frp.map(aspect => aspect === cs.FourAspect.Restricting)
+        ),
+        true
+    );
+
     const speedPostIndex$ = frp.compose(
         e.createPlayerWithKeyUpdateStream(),
         mapSpeedPostsStream(e),
@@ -109,12 +120,14 @@ export function create(
                 }
                 // Add stop signals if a positive stop is imminent.
                 let stopSignals = new Map<number, StopSignalHazard>();
-                for (const [id, [distanceM, signal]] of frp.snapshot(signalIndex)) {
-                    if (signal.proState === rw.ProSignalState.Red) {
-                        const hazard = accum.stopSignals.get(id) || new StopSignalHazard();
-                        stopSignals.set(id, hazard);
-                        hazard.update(brakingCurveMps2, speedoMps, thePts, distanceM);
-                        hazards.push(hazard);
+                if (frp.snapshot(enablePts)) {
+                    for (const [id, [distanceM, signal]] of frp.snapshot(signalIndex)) {
+                        if (signal.proState === rw.ProSignalState.Red) {
+                            const hazard = accum.stopSignals.get(id) || new StopSignalHazard();
+                            stopSignals.set(id, hazard);
+                            hazard.update(brakingCurveMps2, speedoMps, thePts, distanceM);
+                            hazards.push(hazard);
+                        }
                     }
                 }
                 // Add current track speed limit.
