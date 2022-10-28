@@ -1,12 +1,13 @@
 import { writeFile } from "fs/promises";
 import intersect from "glob-intersection";
 import gulp from "gulp";
-const { dest, src, watch } = gulp;
+const { dest, series, src, watch } = gulp;
 import { stream } from "gulp-execa";
 import filter from "gulp-filter";
 import flatmap from "gulp-flatmap";
 import intermediate from "gulp-intermediate";
 import rename from "gulp-rename";
+import mergeStream from "merge-stream";
 import minimist from "minimist";
 import path from "path";
 import ts from "typescript";
@@ -24,8 +25,10 @@ function filterSource(glob) {
 }
 
 export default function () {
-    watch([...filterSource("src/mod/**/*.ts"), "src/lib/**/*.ts"], typescript);
+    watch([...filterSource("src/mod/**/*.ts"), "src/lib/**/*.ts"], build);
 }
+
+export const build = series(typescript, copy);
 
 export async function typescript() {
     return awaitStream(
@@ -57,6 +60,28 @@ export async function typescript() {
             .pipe(rename(path => (path.extname = ".out")))
             .pipe(rename(path => (path.dirname = path.dirname.replace(/^mod\//, ""))))
             .pipe(dest("dist"))
+    );
+}
+
+export function copy() {
+    return mergeStream(
+        src(
+            "dist/Assets/RSC/NorthEastCorridor/RailVehicles/Electric/AEM7/Default/Engine/RailVehicle_EngineScript.out",
+            { base: "dist" }
+        )
+            .pipe(rename(path => (path.basename = "EngineScript")))
+            .pipe(dest("dist")),
+
+        src(
+            "dist/Assets/RSC/P32Pack01/RailVehicles/Passengers/Shoreliner/Driving Trailer/CommonScripts/CabCarEngineScript.out",
+            { base: "dist/Assets/RSC/P32Pack01" }
+        ).pipe(dest("dist/Assets/DTG/HudsonLine")),
+
+        src("dist/Assets/RSC/NewYorkNewHaven/RailVehicles/Electric/ACS-64/Default/CommonScripts/EngineScript.out", {
+            base: "dist/Assets/RSC/NewYorkNewHaven",
+        })
+            .pipe(src("dist/Assets/RSC/AcelaPack01/**/*"))
+            .pipe(dest("dist/Assets/DTG/WashingtonBaltimore"))
     );
 }
 
