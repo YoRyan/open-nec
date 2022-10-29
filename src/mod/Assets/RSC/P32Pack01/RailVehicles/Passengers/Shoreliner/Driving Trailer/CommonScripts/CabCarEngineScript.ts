@@ -198,10 +198,16 @@ const me = new FrpEngine(() => {
 
     // Cab dome light
     const cabLight = new rw.Light("CabLight");
-    const cabLight$ = frp.compose(
+    const cabLightPlayer$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
         me.mapGetCvStream("CabLight", 0),
         frp.map(v => v > 0.5)
+    );
+    const cabLight$ = frp.compose(
+        me.createPlayerWithoutKeyUpdateStream(),
+        frp.merge(me.createAiUpdateStream()),
+        frp.map(_ => false),
+        frp.merge(cabLightPlayer$)
     );
     cabLight$(on => {
         cabLight.Activate(on);
