@@ -38,8 +38,7 @@ const me = new FrpEngine(() => {
         suppression,
         atcCutIn,
         acsesCutIn,
-        110 * c.mph.toMps,
-        ["CompressorState", 0]
+        110 * c.mph.toMps
     );
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
