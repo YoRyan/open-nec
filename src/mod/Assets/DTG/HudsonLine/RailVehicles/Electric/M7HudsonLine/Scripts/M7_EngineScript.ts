@@ -291,10 +291,10 @@ const me = new FrpEngine(() => {
         me.mapGetCvStream("SpeedometerMPH", 0),
         threeDigitDisplay
     );
-    speedoMphDigits$(([digits, guide]) => {
-        me.rv.SetControlValue("SpeedoHundreds", 0, digits[0]);
-        me.rv.SetControlValue("SpeedoTens", 0, digits[1]);
-        me.rv.SetControlValue("SpeedoUnits", 0, digits[2]);
+    speedoMphDigits$(([[h, t, u], guide]) => {
+        me.rv.SetControlValue("SpeedoHundreds", 0, h);
+        me.rv.SetControlValue("SpeedoTens", 0, t);
+        me.rv.SetControlValue("SpeedoUnits", 0, u);
         me.rv.SetControlValue("SpeedoGuide", 0, guide);
     });
     const brakePipePsiDigits$ = frp.compose(
@@ -302,10 +302,10 @@ const me = new FrpEngine(() => {
         me.mapGetCvStream("AirBrakePipePressurePSI", 0),
         threeDigitDisplay
     );
-    brakePipePsiDigits$(([digits, guide]) => {
-        me.rv.SetControlValue("PipeHundreds", 0, digits[0]);
-        me.rv.SetControlValue("PipeTens", 0, digits[1]);
-        me.rv.SetControlValue("PipeUnits", 0, digits[2]);
+    brakePipePsiDigits$(([[h, t, u], guide]) => {
+        me.rv.SetControlValue("PipeHundreds", 0, h);
+        me.rv.SetControlValue("PipeTens", 0, t);
+        me.rv.SetControlValue("PipeUnits", 0, u);
         me.rv.SetControlValue("PipeGuide", 0, guide);
     });
     const brakeCylinderPsiDigits$ = frp.compose(
@@ -313,10 +313,10 @@ const me = new FrpEngine(() => {
         me.mapGetCvStream("TrainBrakeCylinderPressurePSI", 0),
         threeDigitDisplay
     );
-    brakeCylinderPsiDigits$(([digits, guide]) => {
-        me.rv.SetControlValue("CylinderHundreds", 0, digits[0]);
-        me.rv.SetControlValue("CylinderTens", 0, digits[1]);
-        me.rv.SetControlValue("CylinderUnits", 0, digits[2]);
+    brakeCylinderPsiDigits$(([[h, t, u], guide]) => {
+        me.rv.SetControlValue("CylinderHundreds", 0, h);
+        me.rv.SetControlValue("CylinderTens", 0, t);
+        me.rv.SetControlValue("CylinderUnits", 0, u);
         me.rv.SetControlValue("CylGuide", 0, guide);
     });
     const indicatorsUpdate$ = me.createPlayerWithKeyUpdateStream();
