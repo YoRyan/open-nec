@@ -33,9 +33,9 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
         // The power mode control is reversed in the Shoreliner cab car, so
         // compensate for this (while sacrificing P32-to-P32 MU capability).
         if (me.rv.GetIsPlayer() && !me.eng.GetIsEngineWithKey()) {
-            return cv === 0 ? ps.EngineMode.Diesel : ps.EngineMode.ThirdRail;
+            return cv < 0.5 ? ps.EngineMode.Diesel : ps.EngineMode.ThirdRail;
         } else {
-            return cv === 0 ? ps.EngineMode.ThirdRail : ps.EngineMode.Diesel;
+            return cv < 0.5 ? ps.EngineMode.ThirdRail : ps.EngineMode.Diesel;
         }
     };
     const modeAuto = () => (me.rv.GetControlValue("ExpertPowerMode", 0) as number) > 0.5;
