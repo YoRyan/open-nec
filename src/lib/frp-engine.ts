@@ -185,6 +185,49 @@ export class FrpEngine extends FrpVehicle {
         );
     }
 
+    /**
+     * Slew the value of a control value to a target to simulate virtual
+     * notches, but do so infrequently enough for the player to still be able to
+     * manipulate the control.
+     * @param name The name of the control value.
+     * @param index The index of the control value.
+     * @param getTarget A function that returns the target slew value given the
+     * current value of the control. To stop slewing, simply return the given
+     * value.
+     */
+    slewControlValue(name: string, index: number, getTarget: (current: number) => number) {
+        type Accum = {
+            frames: number;
+            update?: PlayerUpdate;
+        };
+        const setValue$ = frp.compose(
+            this.createPlayerWithKeyUpdateStream(),
+            frp.fold((accum: Accum | undefined, pu) => {
+                const frames = ((accum?.frames ?? -1) + 1) % 30;
+                const update = frames === 0 ? pu : undefined;
+                return { frames, update };
+            }, undefined),
+            frp.map(accum => accum?.update),
+            rejectUndefined(),
+            frp.map(pu => {
+                const maxDelta = 0.25 / pu.dt;
+                const current = this.rv.GetControlValue(name, index) ?? 0;
+                const target = getTarget(current);
+                if (target > current) {
+                    return Math.min(target, current + maxDelta);
+                } else if (target < current) {
+                    return Math.max(target, current - maxDelta);
+                } else {
+                    return undefined;
+                }
+            }),
+            rejectUndefined()
+        );
+        setValue$(v => {
+            this.rv.SetControlValue(name, index, v);
+        });
+    }
+
     setup() {
         super.setup();
 
