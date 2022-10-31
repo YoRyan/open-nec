@@ -38,6 +38,7 @@ const me = new FrpEngine(() => {
     });
     const isPowerAvailable = () => ps.uniModeEngineHasPower(ps.EngineMode.ThirdRail, electrification);
     // Power3rdRail defaults to 0.
+    // TODO: This breaks save/restore of electrification state.
     me.rv.SetControlValue("Power3rdRail", 0, 1);
 
     // Safety systems cut in/out

@@ -76,6 +76,7 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
     });
     // Power3rdRail is not set correctly in the third-rail engine blueprint, so
     // set it ourselves based on the value of PowerMode.
+    // TODO: This breaks save/restore of electrification state.
     const setInitElectrification$ = frp.compose(
         me.createUpdateStream(),
         frp.filter(_ => !frp.snapshot(me.areControlsSettled)),
