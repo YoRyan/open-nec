@@ -413,10 +413,7 @@ const me = new FrpEngine(() => {
     });
 
     // Process OnControlValueChange events.
-    const onCvChange$ = frp.compose(
-        me.createOnCvChangeStream(),
-        frp.reject(([name]) => name === "Bell")
-    );
+    const onCvChange$ = me.createOnCvChangeStream();
     onCvChange$(([name, index, value]) => {
         me.rv.SetControlValue(name, index, value);
     });
