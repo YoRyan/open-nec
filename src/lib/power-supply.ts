@@ -63,6 +63,8 @@ export function uniModeEngineHasPower(
  * @param getCanTransition A behavior that, when true, allows the player to
  * change modes.
  * @param transitionS The time it takes to transition between the modes.
+ * @param popupsRequireEngineWithKey If true, popups will only be shown by the
+ * lead player engine.
  * @returns A stream that emits the current power state of the locomotive, as a
  * number scaled from 0 (operating in mode #1) to 1 (operating in mode #2), and
  * a stream that emits the new selected operating mode if automatic switching is
@@ -75,7 +77,8 @@ export function createDualModeEngineStream<A extends EngineMode, B extends Engin
     getMode: frp.Behavior<A | B>,
     getAutoSwitch: frp.Behavior<boolean>,
     getCanTransition: frp.Behavior<boolean>,
-    transitionS: number
+    transitionS: number,
+    popupsRequireEngineWithKey?: boolean
 ): [position: frp.Stream<number>, autoMode: frp.Stream<EngineMode>] {
     const isEngineStarted = () => (e.rv.GetControlValue("Startup", 0) as number) > 0;
     const autoSwitch$ = createDualModeAutoSwitchStream(e, modeA, modeB, getAutoSwitch);
@@ -125,6 +128,7 @@ export function createDualModeEngineStream<A extends EngineMode, B extends Engin
         playerPosition$,
         fsm(0),
         frp.filter(_ => frp.snapshot(e.areControlsSettled)),
+        frp.filter(_ => (popupsRequireEngineWithKey ?? false ? e.eng.GetIsEngineWithKey() : true)),
         frp.filter(([from, to]) => from !== to),
         frp.map(([, to]) => to),
         frp.hub()
