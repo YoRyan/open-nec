@@ -6,7 +6,7 @@ import * as ale from "lib/alerter";
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { mapBehavior } from "lib/frp-extra";
+import { mapBehavior, once } from "lib/frp-extra";
 import { AduAspect } from "lib/nec/adu";
 import * as cs from "lib/nec/cabsignals";
 import * as adu from "lib/nec/twospeed-adu";
@@ -79,9 +79,10 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
     // TODO: This breaks save/restore of electrification state.
     const setInitElectrification$ = frp.compose(
         me.createUpdateStream(),
-        frp.filter(_ => !frp.snapshot(me.areControlsSettled)),
+        frp.filter(_ => frp.snapshot(me.areControlsSettled)),
         mapBehavior(modeSelect),
-        frp.map(mode => (mode === ps.EngineMode.ThirdRail ? 1 : 0))
+        frp.map(mode => (mode === ps.EngineMode.ThirdRail ? 1 : 0)),
+        once()
     );
     setInitElectrification$(thirdRail => {
         me.rv.SetControlValue("Power3rdRail", 0, thirdRail);

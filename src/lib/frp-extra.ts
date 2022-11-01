@@ -39,6 +39,28 @@ export function rejectUndefined<T>(): (eventStream: frp.Stream<T | undefined>) =
 }
 
 /**
+ * Discards an event stream once it has emitted one event.
+ */
+export function once<T>(): (eventStream: frp.Stream<T>) => frp.Stream<T> {
+    enum State {
+        Wait,
+        Emit,
+        Discard,
+    }
+    type Accum = State.Wait | [state: State.Emit, event: T] | State.Discard;
+    return eventStream =>
+        frp.compose(
+            eventStream,
+            frp.fold<Accum, T>((accum, evt) => (accum === State.Wait ? [State.Emit, evt] : State.Discard), State.Wait),
+            frp.filter(accum => accum !== State.Wait && accum !== State.Discard),
+            frp.map(accum => {
+                const [, evt] = accum as [State.Emit, T];
+                return evt;
+            })
+        );
+}
+
+/**
  * Maps a behavior onto all events of a stream.
  */
 export function mapBehavior<T>(behavior: frp.Behavior<T>): (eventStream: frp.Stream<any>) => frp.Stream<T> {
