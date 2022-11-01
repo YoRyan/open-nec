@@ -92,6 +92,7 @@ const me = new FrpEngine(() => {
     );
     alerterAlarm$(play => {
         me.rv.SetControlValue("AWS", 0, play ? 1 : 0);
+        me.rv.SetControlValue("AWSWarnCount", 0, play ? 1 : 0);
     });
     const upgradeEvents$ = frp.compose(
         aduEvents$,
