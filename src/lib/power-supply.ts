@@ -312,6 +312,38 @@ export function createElectrificationDeltaStream(e: FrpEngine): frp.Stream<Elect
     return frp.compose(e.createOnSignalMessageStream(), frp.map(parseElectrificationMessage), rejectUndefined());
 }
 
+/**
+ * Simulate head-end power with a flickering effect during startup/shutdown. To
+ * avoid rendering unnecessary amounts of lights, AI trains will always run
+ * without HEP.
+ * @param e The player engine.
+ * @param hepOn A behavior that, when true, indicates the player has activated
+ * HEP.
+ * @returns A stream that indicates HEP is available.
+ */
+export function createHepStream(e: FrpEngine, hepOn?: frp.Behavior<boolean>): frp.Stream<boolean> {
+    hepOn ??= () => (e.rv.GetControlValue("Startup", 0) as number) > 0;
+
+    const startupS = 10;
+    const player$ = frp.compose(
+        e.createPlayerWithKeyUpdateStream(),
+        frp.fold((position, pu) => {
+            if (!frp.snapshot(e.areControlsSettled)) {
+                return frp.snapshot(hepOn) ? 1 : 0;
+            } else {
+                const dt = (frp.snapshot(hepOn) ? 1 : -1) * pu.dt;
+                return Math.max(Math.min(position + dt / startupS, 1), 0);
+            }
+        }, 0),
+        frp.map(position => (position > 0.85 && position < 0.9) || position === 1)
+    );
+    return frp.compose(
+        e.createAiUpdateStream(),
+        frp.map(_ => false),
+        frp.merge(player$)
+    );
+}
+
 function parseElectrificationMessage(msg: string): ElectrificationDelta | undefined {
     const [, , p] = string.find(msg, "^P%-(%a+)");
     switch (p) {
