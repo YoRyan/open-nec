@@ -515,8 +515,29 @@ const me = new FrpEngine(() => {
         }
     });
 
-    // Door status lights
+    // Door hallway lights
     const hallLights = [new rw.Light("HallLight_001"), new rw.Light("HallLight_002")];
+    const hallLightsPlayer$ = frp.compose(
+        me.createPlayerUpdateStream(),
+        frp.map(pu => {
+            const [l, r] = pu.doorsOpen;
+            return l || r;
+        })
+    );
+    const hallLights$ = frp.compose(
+        me.createAiUpdateStream(),
+        frp.map(_ => false),
+        frp.merge(hallLightsPlayer$)
+    );
+    hallLights$(on => {
+        for (const light of hallLights) {
+            light.Activate(on);
+        }
+        me.rv.ActivateNode("round_lights_off", !on);
+        me.rv.ActivateNode("round_lights_on", on);
+    });
+
+    // Door status lights
     const doorLightsPlayer$ = frp.compose(
         me.createPlayerUpdateStream(),
         frp.map((pu): [boolean, boolean] => pu.doorsOpen)
@@ -529,11 +550,6 @@ const me = new FrpEngine(() => {
     doorLights$(([l, r]) => {
         me.rv.ActivateNode("SL_doors_L", l);
         me.rv.ActivateNode("SL_doors_R", r);
-        for (const light of hallLights) {
-            light.Activate(l || r);
-        }
-        me.rv.ActivateNode("round_lights_off", !(l || r));
-        me.rv.ActivateNode("round_lights_on", l || r);
     });
 
     // Brake status lights
