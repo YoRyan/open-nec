@@ -6,8 +6,8 @@ import * as ale from "lib/alerter";
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine, PlayerLocation } from "lib/frp-engine";
-import { fsm, mapBehavior, movingAverage, rejectUndefined } from "lib/frp-extra";
-import { SensedDirection, VehicleCamera } from "lib/frp-vehicle";
+import { fsm, mapBehavior, movingAverage, rejectRepeats, rejectUndefined } from "lib/frp-extra";
+import { SensedDirection } from "lib/frp-vehicle";
 import * as adu from "lib/nec/amtrak-adu";
 import * as m from "lib/math";
 import * as ps from "lib/power-supply";
@@ -58,20 +58,22 @@ const me = new FrpEngine(() => {
     // Electric power supply
     const electrification = ps.createElectrificationBehaviorWithLua(me, ps.Electrification.Overhead);
     const isPowerAvailable = () => ps.uniModeEngineHasPower(ps.EngineMode.Overhead, electrification);
-    const frontSparkLight = new rw.Light("Spark1");
-    const rearSparkLight = new rw.Light("Spark2");
+    const sparkLights = [new rw.Light("Spark1"), new rw.Light("Spark2")];
     const frontPantoSpark$ = frp.compose(
         fx.createPantographSparkStream(me, electrification),
-        frp.map(spark => spark && me.rv.GetControlValue("PantographControl", 0) === 1)
+        frp.map(spark => spark && me.rv.GetControlValue("PantographControl", 0) === 1),
+        rejectRepeats()
     );
     const rearPantoSpark$ = frp.compose(
         me.createUpdateStream(),
-        frp.map(_ => false)
+        frp.map(_ => false),
+        rejectRepeats()
     );
     frontPantoSpark$(spark => {
         me.rv.SetControlValue("Spark", 0, spark ? 1 : 0);
 
-        frontSparkLight.Activate(spark);
+        const [light] = sparkLights;
+        light.Activate(spark);
         me.rv.ActivateNode("PantoAsparkA", spark);
         me.rv.ActivateNode("PantoAsparkB", spark);
         me.rv.ActivateNode("PantoAsparkC", spark);
@@ -80,7 +82,8 @@ const me = new FrpEngine(() => {
         me.rv.ActivateNode("PantoAsparkF", spark);
     });
     rearPantoSpark$(spark => {
-        rearSparkLight.Activate(spark);
+        const [, light] = sparkLights;
+        light.Activate(spark);
         me.rv.ActivateNode("PantoBsparkA", spark);
         me.rv.ActivateNode("PantoBsparkB", spark);
         me.rv.ActivateNode("PantoBsparkC", spark);
@@ -386,34 +389,30 @@ const me = new FrpEngine(() => {
     const playerLocation = me.createPlayerLocationBehavior();
 
     // Cab dome lights, front and rear
-    // (Yes, these lights are reversed!)
-    const cabLightFront = new rw.Light("RearCabLight");
-    const cabLightRear = new rw.Light("FrontCabLight");
     const cabLightControl = () => (me.rv.GetControlValue("CabLight", 0) as number) > 0.5;
-    const cabLightFrontOn = frp.liftN(
-        (player, control) => player === PlayerLocation.InFrontCab && control,
-        playerLocation,
-        cabLightControl
+    const allCabLights: [location: PlayerLocation, light: rw.Light][] = [
+        // (Yes, these lights are reversed!)
+        [PlayerLocation.InFrontCab, new rw.Light("RearCabLight")],
+        [PlayerLocation.InRearCab, new rw.Light("FrontCabLight")],
+    ];
+    const cabLightNonPlayer$ = frp.compose(
+        me.createAiUpdateStream(),
+        frp.merge(me.createPlayerWithoutKeyUpdateStream()),
+        frp.map(_ => false)
     );
-    const cabLightRearOn = frp.liftN(
-        (player, control) => player === PlayerLocation.InRearCab && control,
-        playerLocation,
-        cabLightControl
-    );
-    const cabLightUpdate$ = me.createUpdateStream();
-    cabLightUpdate$(_ => {
-        cabLightFront.Activate(frp.snapshot(cabLightFrontOn));
-        cabLightRear.Activate(frp.snapshot(cabLightRearOn));
+    allCabLights.forEach(([location, light]) => {
+        const setOnOff$ = frp.compose(
+            me.createPlayerWithKeyUpdateStream(),
+            frp.map(_ => (frp.snapshot(playerLocation) === location ? frp.snapshot(cabLightControl) : false)),
+            frp.merge(cabLightNonPlayer$),
+            rejectRepeats()
+        );
+        setOnOff$(on => {
+            light.Activate(on);
+        });
     });
 
     // Desk and console lights, front and rear
-    const deskLightsFront = [new rw.Light("Front_ConsoleLight_01"), new rw.Light("Front_ConsoleLight_03")];
-    const deskLightsRear = [new rw.Light("Rear_ConsoleLight_01"), new rw.Light("Rear_ConsoleLight_03")];
-    const consoleLightsFront = [new rw.Light("Front_ConsoleLight_02")];
-    const consoleLightsRear = [new rw.Light("Rear_ConsoleLight_02")];
-    // Secondman's desk light, front and rear (has an independent switch IRL)
-    const secondmanLightsFront = [new rw.Light("Front_DeskLight_01")];
-    const secondmanLightsRear = [new rw.Light("Rear_DeskLight_01")];
     const deskConsoleLightControl = () => {
         const cv = me.rv.GetControlValue("DeskConsoleLight", 0) as number;
         if (cv > 2.5) {
@@ -426,33 +425,43 @@ const me = new FrpEngine(() => {
             return DeskConsoleLight.Off;
         }
     };
-    const deskLightsFrontState = frp.liftN(
-        (player, control) => (player === PlayerLocation.InFrontCab ? control : DeskConsoleLight.Off),
-        playerLocation,
-        deskConsoleLightControl
+    const allDeskLights: [location: PlayerLocation, desk: rw.Light[], console: rw.Light[], secondman: rw.Light[]][] = [
+        [
+            PlayerLocation.InFrontCab,
+            [new rw.Light("Front_ConsoleLight_01"), new rw.Light("Front_ConsoleLight_03")],
+            [new rw.Light("Front_ConsoleLight_02")],
+            [new rw.Light("Front_DeskLight_01")],
+        ],
+        [
+            PlayerLocation.InRearCab,
+            [new rw.Light("Rear_ConsoleLight_01"), new rw.Light("Rear_ConsoleLight_03")],
+            [new rw.Light("Rear_ConsoleLight_02")],
+            [new rw.Light("Rear_DeskLight_01")],
+        ],
+    ];
+    const deskLightsNonPlayer$ = frp.compose(
+        me.createAiUpdateStream(),
+        frp.merge(me.createPlayerWithoutKeyUpdateStream()),
+        frp.map(_ => DeskConsoleLight.Off)
     );
-    const deskLightsRearState = frp.liftN(
-        (player, control) => (player === PlayerLocation.InRearCab ? control : DeskConsoleLight.Off),
-        playerLocation,
-        deskConsoleLightControl
-    );
-    const deskLightsUpdate$ = me.createUpdateStream();
-    deskLightsUpdate$(_ => {
-        const front = frp.snapshot(deskLightsFrontState);
-        for (const light of deskLightsFront) {
-            light.Activate(front === DeskConsoleLight.DeskOnly || front === DeskConsoleLight.DeskAndConsole);
-        }
-        for (const light of [...consoleLightsFront, ...secondmanLightsFront]) {
-            light.Activate(front === DeskConsoleLight.DeskAndConsole || front === DeskConsoleLight.ConsoleOnly);
-        }
-
-        const rear = frp.snapshot(deskLightsRearState);
-        for (const light of deskLightsRear) {
-            light.Activate(rear === DeskConsoleLight.DeskOnly || rear === DeskConsoleLight.DeskAndConsole);
-        }
-        for (const light of [...consoleLightsRear, ...secondmanLightsRear]) {
-            light.Activate(rear === DeskConsoleLight.DeskAndConsole || rear === DeskConsoleLight.ConsoleOnly);
-        }
+    allDeskLights.forEach(([location, desk, console, secondman]) => {
+        const setLights$ = frp.compose(
+            me.createPlayerWithKeyUpdateStream(),
+            frp.map(_ =>
+                frp.snapshot(playerLocation) === location ? frp.snapshot(deskConsoleLightControl) : DeskConsoleLight.Off
+            ),
+            frp.merge(deskLightsNonPlayer$),
+            rejectRepeats()
+        );
+        setLights$(setting => {
+            for (const light of desk) {
+                light.Activate(setting === DeskConsoleLight.DeskOnly || setting === DeskConsoleLight.DeskAndConsole);
+            }
+            // Secondman's desk light has an independent switch IRL.
+            for (const light of [...console, ...secondman]) {
+                light.Activate(setting === DeskConsoleLight.DeskAndConsole || setting === DeskConsoleLight.ConsoleOnly);
+            }
+        });
     });
 
     // Horn rings the bell.
@@ -509,8 +518,6 @@ const me = new FrpEngine(() => {
     }
 
     // Ditch lights, front and rear
-    const ditchLightsFront = [new rw.Light("FrontDitchLightL"), new rw.Light("FrontDitchLightR")];
-    const ditchLightsRear = [new rw.Light("RearDitchLightL"), new rw.Light("RearDitchLightR")];
     const areHeadLightsOn = () => {
         const cv = me.rv.GetControlValue("Headlights", 0) as number;
         return cv > 0.8 && cv < 1.2;
@@ -648,19 +655,41 @@ const me = new FrpEngine(() => {
         ),
         frp.merge(ditchLightsRearNonPlayer$)
     );
-    ditchLightsFront$(([l, r]) => {
-        const [lightL, lightR] = ditchLightsFront;
-        lightL.Activate(l);
-        lightR.Activate(r);
-        me.rv.ActivateNode("ditch_fwd_l", l);
-        me.rv.ActivateNode("ditch_fwd_r", r);
-    });
-    ditchLightsRear$(([l, r]) => {
-        const [lightL, lightR] = ditchLightsRear;
-        lightL.Activate(l);
-        lightR.Activate(r);
-        me.rv.ActivateNode("ditch_rev_l", l);
-        me.rv.ActivateNode("ditch_rev_r", r);
+    const allDitchLights: [
+        onOff$: frp.Stream<[boolean, boolean]>,
+        lights: [rw.Light, rw.Light],
+        nodes: [string, string]
+    ][] = [
+        [
+            ditchLightsFront$,
+            [new rw.Light("FrontDitchLightL"), new rw.Light("FrontDitchLightR")],
+            ["ditch_fwd_l", "ditch_fwd_r"],
+        ],
+        [
+            ditchLightsRear$,
+            [new rw.Light("RearDitchLightL"), new rw.Light("RearDitchLightR")],
+            ["ditch_rev_l", "ditch_rev_r"],
+        ],
+    ];
+    allDitchLights.forEach(([onOff$, [lightL, lightR], [nodeL, nodeR]]) => {
+        const setLeft$ = frp.compose(
+            onOff$,
+            frp.map(([l]) => l),
+            rejectRepeats()
+        );
+        const setRight$ = frp.compose(
+            onOff$,
+            frp.map(([, r]) => r),
+            rejectRepeats()
+        );
+        setLeft$(on => {
+            lightL.Activate(on);
+            me.rv.ActivateNode(nodeL, on);
+        });
+        setRight$(on => {
+            lightR.Activate(on);
+            me.rv.ActivateNode(nodeR, on);
+        });
     });
 
     // Process OnControlValueChange events.

@@ -6,7 +6,7 @@ import * as ale from "lib/alerter";
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { mapBehavior } from "lib/frp-extra";
+import { mapBehavior, rejectRepeats } from "lib/frp-extra";
 import { AduAspect } from "lib/nec/adu";
 import * as cs from "lib/nec/cabsignals";
 import * as adu from "lib/nec/twospeed-adu";
@@ -167,7 +167,8 @@ const me = new FrpEngine(() => {
         me.createPlayerWithoutKeyUpdateStream(),
         frp.map(_ => false),
         frp.merge(ditchLightsPlayer$),
-        frp.merge(ditchLightsAi$)
+        frp.merge(ditchLightsAi$),
+        rejectRepeats()
     );
     ditchLights$(on => {
         me.rv.ActivateNode("ditch_left", on);
@@ -208,7 +209,8 @@ const me = new FrpEngine(() => {
         me.createPlayerWithoutKeyUpdateStream(),
         frp.merge(me.createAiUpdateStream()),
         frp.map(_ => false),
-        frp.merge(cabLightPlayer$)
+        frp.merge(cabLightPlayer$),
+        rejectRepeats()
     );
     cabLight$(on => {
         cabLight.Activate(on);

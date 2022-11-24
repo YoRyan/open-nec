@@ -6,7 +6,7 @@ import * as ale from "lib/alerter";
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine, PlayerLocation } from "lib/frp-engine";
-import { mapBehavior, movingAverage } from "lib/frp-extra";
+import { mapBehavior, movingAverage, rejectRepeats } from "lib/frp-extra";
 import { SensedDirection } from "lib/frp-vehicle";
 import { AduAspect } from "lib/nec/adu";
 import * as cs from "lib/nec/cabsignals";
@@ -39,8 +39,9 @@ const me = new FrpEngine(() => {
     // Electric power supply
     const electrification = ps.createElectrificationBehaviorWithLua(me, ps.Electrification.Overhead);
     const isPowerAvailable = () => ps.uniModeEngineHasPower(ps.EngineMode.Overhead, electrification);
-    const frontSparkLight = new rw.Light("Spark");
-    const rearSparkLight = new rw.Light("Spark2");
+    // Pantograph control
+    // Note: PantographControl is not transmitted to the rest of the consist,
+    // but SelPanto is.
     const pantographsUp = () => (me.rv.GetControlValue("PantographControl", 0) as number) > 0.5;
     const pantographSelect = () => {
         const cv = me.rv.GetControlValue("SelPanto", 0) as number;
@@ -52,46 +53,48 @@ const me = new FrpEngine(() => {
             return PantographSelect.Rear;
         }
     };
-    const pantoSpark$ = fx.createPantographSparkStream(me, electrification);
-    pantoSpark$(spark => {
-        const pantosUp = frp.snapshot(pantographsUp);
-        const selected = frp.snapshot(pantographSelect);
-        const frontSpark = spark && pantosUp && selected !== PantographSelect.Rear;
-        const rearSpark = spark && pantosUp && selected !== PantographSelect.Front;
-
-        frontSparkLight.Activate(frontSpark);
-        me.rv.ActivateNode("front_spark01", frontSpark);
-        me.rv.ActivateNode("front_spark02", frontSpark);
-
-        rearSparkLight.Activate(rearSpark);
-        me.rv.ActivateNode("rear_spark01", rearSpark);
-        me.rv.ActivateNode("rear_spark02", rearSpark);
-    });
-
-    // Pantograph control
-    // Note: PantographControl is not transmitted to the rest of the consist,
-    // but SelPanto is.
+    const pantographAnims = [new fx.Animation(me, "frontPanto", 2), new fx.Animation(me, "rearPanto", 2)];
     const pantographUpdate$ = me.createUpdateStream();
-    pantographUpdate$(dt => {
-        let front: number;
-        let rear: number;
+    pantographUpdate$(_ => {
+        let frontUp: boolean;
+        let rearUp: boolean;
         const raise = frp.snapshot(pantographsUp);
         switch (frp.snapshot(pantographSelect)) {
             case PantographSelect.Both:
-                front = rear = raise ? 1 : -1;
+                frontUp = rearUp = raise;
                 break;
             case PantographSelect.Front:
-            default:
-                front = raise ? 1 : -1;
-                rear = -1;
+                frontUp = raise;
+                rearUp = false;
                 break;
             case PantographSelect.Rear:
-                front = -1;
-                rear = raise ? 1 : -1;
+                frontUp = false;
+                rearUp = raise;
                 break;
         }
-        me.rv.AddTime("frontPanto", front * dt);
-        me.rv.AddTime("rearPanto", rear * dt);
+
+        const [frontAnim, rearAnim] = pantographAnims;
+        frontAnim.setTargetPosition(frontUp ? 1 : 0);
+        rearAnim.setTargetPosition(rearUp ? 1 : 0);
+    });
+    // Pantograph sparks
+    const pantographAnimsAndSparks: [animation: fx.Animation, light: rw.Light, nodes: string[]][] = [
+        [pantographAnims[0], new rw.Light("Spark"), ["front_spark01", "front_spark02"]],
+        [pantographAnims[1], new rw.Light("Spark2"), ["rear_spark01", "rear_spark02"]],
+    ];
+    const pantographSpark$ = frp.compose(fx.createPantographSparkStream(me, electrification), frp.hub());
+    pantographAnimsAndSparks.forEach(([anim, light, nodes]) => {
+        const sparkOnOff$ = frp.compose(
+            pantographSpark$,
+            frp.map(on => on && anim.getPosition() >= 1),
+            rejectRepeats()
+        );
+        sparkOnOff$(on => {
+            light.Activate(on);
+            for (const node of nodes) {
+                me.rv.ActivateNode(node, on);
+            }
+        });
     });
 
     // Safety systems cut in/out
@@ -291,7 +294,8 @@ const me = new FrpEngine(() => {
         me.createPlayerWithoutKeyUpdateStream(),
         frp.merge(me.createAiUpdateStream()),
         frp.map(_ => false),
-        frp.merge(cabLightPlayer$)
+        frp.merge(cabLightPlayer$),
+        rejectRepeats()
     );
     cabLight$(on => {
         cabLight.Activate(on);
@@ -410,15 +414,21 @@ const me = new FrpEngine(() => {
         lightL.setOnOff(l);
         lightR.setOnOff(r);
     });
-    const ditchNodesUpdate$ = me.createUpdateStream();
-    ditchNodesUpdate$(_ => {
-        const [frontL, frontR] = ditchLightsFront;
-        me.rv.ActivateNode("ditch_fwd_l", frontL.getIntensity() > 0.5);
-        me.rv.ActivateNode("ditch_fwd_r", frontR.getIntensity() > 0.5);
-
-        const [rearL, rearR] = ditchLightsRear;
-        me.rv.ActivateNode("ditch_bwd_l", rearL.getIntensity() > 0.5);
-        me.rv.ActivateNode("ditch_bwd_r", rearR.getIntensity() > 0.5);
+    const ditchNodes: [fx.FadeableLight, string][] = [
+        [ditchLightsFront[0], "ditch_fwd_l"],
+        [ditchLightsFront[1], "ditch_fwd_r"],
+        [ditchLightsRear[0], "ditch_bwd_l"],
+        [ditchLightsRear[1], "ditch_bwd_r"],
+    ];
+    ditchNodes.forEach(([light, node]) => {
+        const setOnOff$ = frp.compose(
+            me.createUpdateStream(),
+            frp.map(_ => light.getIntensity() > 0.5),
+            rejectRepeats()
+        );
+        setOnOff$(on => {
+            me.rv.ActivateNode(node, on);
+        });
     });
 
     // Driving displays

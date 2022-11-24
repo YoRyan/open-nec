@@ -7,7 +7,7 @@ import * as ale from "lib/alerter";
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { mapBehavior, once } from "lib/frp-extra";
+import { mapBehavior, once, rejectRepeats, rejectUndefined } from "lib/frp-extra";
 import { PlayerUpdate, SensedDirection, VehicleCamera } from "lib/frp-vehicle";
 import { AduAspect } from "lib/nec/adu";
 import * as cs from "lib/nec/cabsignals";
@@ -86,12 +86,8 @@ const me = new FrpEngine(() => {
     const modePosition = frp.stepper(modePosition$, 0);
     const energyOn = () => (me.rv.GetControlValue("PantographControl", 0) as number) > 0.5;
     const pantoUp = () => {
-        if (me.rv.GetIsPlayer()) {
-            const cv = me.rv.GetControlValue("Panto", 0) as number;
-            return cv > 0.5 && cv < 1.5;
-        } else {
-            return frp.snapshot(modeSelect) === ps.EngineMode.Overhead;
-        }
+        const cv = me.rv.GetControlValue("Panto", 0) as number;
+        return cv > 0.5 && cv < 1.5;
     };
     const isPowerAvailable = frp.liftN(
         (position, energyOn, pantoUp) => {
@@ -109,18 +105,20 @@ const me = new FrpEngine(() => {
     );
 
     // Pantograph animation and spark
-    const pantoAnim$ = frp.compose(
-        me.createUpdateStream(),
-        frp.map(dt => dt * (frp.snapshot(pantoUp) ? 1 : -1))
+    const pantoAnim = new fx.Animation(me, "panto", 2);
+    const pantoUp$ = frp.compose(
+        me.createAiUpdateStream(),
+        mapBehavior(frp.liftN(modeSelect => modeSelect === ps.EngineMode.Overhead, modeSelect)),
+        frp.merge(frp.compose(me.createPlayerUpdateStream(), mapBehavior(pantoUp)))
     );
-    pantoAnim$(dt => {
-        me.rv.AddTime("panto", dt);
+    pantoUp$(up => {
+        pantoAnim.setTargetPosition(up ? 1 : 0);
     });
     const sparkLight = new rw.Light("Spark");
     const pantoSpark$ = frp.compose(
         fx.createPantographSparkStream(me, electrification),
         frp.map(spark => spark && frp.snapshot(energyOn)),
-        frp.map(spark => spark && frp.snapshot(pantoUp))
+        frp.map(spark => spark && pantoAnim.getPosition() >= 1)
     );
     pantoSpark$(spark => {
         me.rv.ActivateNode("panto_spark", spark);
@@ -349,14 +347,38 @@ const me = new FrpEngine(() => {
         frp.merge(motorSoundsPlayer$),
         frp.merge(motorSoundsHelper$)
     );
-    motorSounds$(sound => {
-        const [lowPitch, highPitch, volume, compressor] = sound;
-        me.rv.SetControlValue("MotorLowPitch", 0, lowPitch);
-        me.rv.SetControlValue("MotorHighPitch", 0, highPitch);
-        me.rv.SetControlValue("MotorVolume", 0, volume);
-        if (compressor !== undefined) {
-            me.rv.SetControlValue("CompressorState", 0, compressor);
-        }
+    const motorLowPitch$ = frp.compose(
+        motorSounds$,
+        frp.map(([lowPitch]) => lowPitch),
+        rejectRepeats()
+    );
+    const motorHighPitch$ = frp.compose(
+        motorSounds$,
+        frp.map(([, highPitch]) => highPitch),
+        rejectRepeats()
+    );
+    const motorVolume$ = frp.compose(
+        motorSounds$,
+        frp.map(([, , volume]) => volume),
+        rejectRepeats()
+    );
+    const motorCompressor$ = frp.compose(
+        motorSounds$,
+        frp.map(([, , , compressor]) => compressor),
+        rejectRepeats(),
+        rejectUndefined()
+    );
+    motorLowPitch$(v => {
+        me.rv.SetControlValue("MotorLowPitch", 0, v);
+    });
+    motorHighPitch$(v => {
+        me.rv.SetControlValue("MotorHighPitch", 0, v);
+    });
+    motorVolume$(v => {
+        me.rv.SetControlValue("MotorVolume", 0, v);
+    });
+    motorCompressor$(v => {
+        me.rv.SetControlValue("CompressorState", 0, v);
     });
     me.rv.SetControlValue("FanSound", 0, 1);
 
@@ -469,7 +491,8 @@ const me = new FrpEngine(() => {
         me.createPlayerWithoutKeyUpdateStream(),
         frp.map(_ => false),
         frp.merge(ditchLightsPlayer$),
-        frp.merge(ditchLightsAi$)
+        frp.merge(ditchLightsAi$),
+        rejectRepeats()
     );
     ditchLights$(on => {
         me.rv.ActivateNode("left_ditch_light", on);
@@ -490,7 +513,8 @@ const me = new FrpEngine(() => {
         me.createPlayerWithoutKeyUpdateStream(),
         frp.merge(me.createAiUpdateStream()),
         frp.map(_ => false),
-        frp.merge(cabLightPlayer$)
+        frp.merge(cabLightPlayer$),
+        rejectRepeats()
     );
     cabLight$(on => {
         cabLight.Activate(on);
@@ -508,7 +532,7 @@ const me = new FrpEngine(() => {
         ),
         false
     );
-    const passLight$ = frp.compose(me.createUpdateStream(), mapBehavior(isPassengerView));
+    const passLight$ = frp.compose(me.createUpdateStream(), mapBehavior(isPassengerView), rejectRepeats());
     passLight$(on => {
         for (const light of passLights) {
             light.Activate(on);
@@ -527,7 +551,8 @@ const me = new FrpEngine(() => {
     const hallLights$ = frp.compose(
         me.createAiUpdateStream(),
         frp.map(_ => false),
-        frp.merge(hallLightsPlayer$)
+        frp.merge(hallLightsPlayer$),
+        rejectRepeats()
     );
     hallLights$(on => {
         for (const light of hallLights) {
@@ -547,9 +572,21 @@ const me = new FrpEngine(() => {
         frp.map((au): [boolean, boolean] => [au.isStopped, au.isStopped]),
         frp.merge(doorLightsPlayer$)
     );
-    doorLights$(([l, r]) => {
-        me.rv.ActivateNode("SL_doors_L", l);
-        me.rv.ActivateNode("SL_doors_R", r);
+    const doorLightLeft$ = frp.compose(
+        doorLights$,
+        frp.map(([l]) => l),
+        rejectRepeats()
+    );
+    const doorLightRight$ = frp.compose(
+        doorLights$,
+        frp.map(([, r]) => r),
+        rejectRepeats()
+    );
+    doorLightLeft$(on => {
+        me.rv.ActivateNode("SL_doors_L", on);
+    });
+    doorLightRight$(on => {
+        me.rv.ActivateNode("SL_doors_R", on);
     });
 
     // Brake status lights
@@ -569,23 +606,25 @@ const me = new FrpEngine(() => {
     const handBrakeLight$ = frp.compose(
         me.createAiUpdateStream(),
         frp.map(_ => false),
-        frp.merge(handBrakeLightPlayer$)
+        frp.merge(handBrakeLightPlayer$),
+        rejectRepeats()
     );
     handBrakeLight$(on => {
         me.rv.ActivateNode("SL_blue", on);
     });
 
     // Pantograph gate
+    const pantoGateAnim = new fx.Animation(me, "ribbons", 1);
     const pantoGate$ = frp.compose(
         me.createPlayerUpdateStream(),
         frp.merge(me.createAiUpdateStream()),
         frp.map(u => {
             const [frontCoupled] = u.couplings;
-            return frontCoupled ? u.dt : -u.dt;
+            return frontCoupled;
         })
     );
-    pantoGate$(dt => {
-        me.rv.AddTime("ribbons", dt);
+    pantoGate$(coupled => {
+        pantoGateAnim.setTargetPosition(coupled ? 1 : 0);
     });
 
     // Process OnControlValueChange events.

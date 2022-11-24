@@ -7,7 +7,7 @@ import * as ale from "lib/alerter";
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { mapBehavior } from "lib/frp-extra";
+import { mapBehavior, rejectRepeats } from "lib/frp-extra";
 import { SensedDirection } from "lib/frp-vehicle";
 import { AduAspect } from "lib/nec/adu";
 import * as cs from "lib/nec/cabsignals";
@@ -229,7 +229,8 @@ const me = new FrpEngine(() => {
         me.createPlayerWithoutKeyUpdateStream(),
         frp.merge(me.createAiUpdateStream()),
         frp.map(_ => false),
-        frp.merge(cabLightPlayer$)
+        frp.merge(cabLightPlayer$),
+        rejectRepeats()
     );
     cabLight$(on => {
         cabLight.Activate(on);
@@ -365,13 +366,38 @@ const me = new FrpEngine(() => {
         lightL.setOnOff(l);
         lightR.setOnOff(r);
     });
-    const ditchNodesUpdate$ = me.createUpdateStream();
-    ditchNodesUpdate$(_ => {
-        const [lightL, lightR] = ditchLights;
-        const [onL, onR] = [lightL.getIntensity() > 0.5, lightR.getIntensity() > 0.5];
-        me.rv.ActivateNode("ditch_left", onL);
-        me.rv.ActivateNode("ditch_right", onR);
-        me.rv.ActivateNode("lights_dim", onL || onR);
+    const ditchNodeLeft$ = frp.compose(
+        me.createUpdateStream(),
+        frp.map(_ => {
+            const [light] = ditchLights;
+            return light.getIntensity() > 0.5;
+        }),
+        rejectRepeats()
+    );
+    const ditchNodeRight$ = frp.compose(
+        me.createUpdateStream(),
+        frp.map(_ => {
+            const [, light] = ditchLights;
+            return light.getIntensity() > 0.5;
+        }),
+        rejectRepeats()
+    );
+    const ditchNodeAny$ = frp.compose(
+        me.createUpdateStream(),
+        frp.map(_ => {
+            const [left, right] = ditchLights;
+            return left.getIntensity() > 0.5 || right.getIntensity() > 0.5;
+        }),
+        rejectRepeats()
+    );
+    ditchNodeLeft$(on => {
+        me.rv.ActivateNode("ditch_left", on);
+    });
+    ditchNodeRight$(on => {
+        me.rv.ActivateNode("ditch_right", on);
+    });
+    ditchNodeAny$(on => {
+        me.rv.ActivateNode("lights_dim", on);
     });
 
     // Rear lights
@@ -407,8 +433,7 @@ const me = new FrpEngine(() => {
         me.createPlayerWithoutKeyUpdateStream(),
         frp.map(_ => RearLights.Off),
         frp.merge(rearLightsPlayer$),
-        frp.merge(rearLightsAi$),
-        frp.hub()
+        frp.merge(rearLightsAi$)
     );
     rearLights$(rl => {
         for (const light of rearLightsDim) {

@@ -3,6 +3,8 @@
 import * as frp from "./frp";
 import * as rw from "./railworks";
 
+type PrimitiveTypes = number | boolean | string | undefined | null;
+
 /**
  * Continously display the value of an event stream to aid in FRP debugging.
  */
@@ -27,6 +29,23 @@ export function debug(eventStream: frp.Stream<any>) {
  */
 export function fsm<T>(initState: T): (eventStream: frp.Stream<T>) => frp.Stream<[from: T, to: T]> {
     return frp.fold<[T, T], T>((accum, value) => [accum[1], value], [initState, initState]);
+}
+
+/**
+ * Filters out successive values in an event stream.
+ */
+export function rejectRepeats<T extends PrimitiveTypes>(): (eventStream: frp.Stream<T>) => frp.Stream<T> {
+    return eventStream => next => {
+        let started = false;
+        let last: T | undefined = undefined;
+        eventStream(value => {
+            if (!started || last !== value) {
+                started = true;
+                last = value;
+                next(value);
+            }
+        });
+    };
 }
 
 /**

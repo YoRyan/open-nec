@@ -6,7 +6,7 @@ import * as ale from "lib/alerter";
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { mapBehavior } from "lib/frp-extra";
+import { mapBehavior, rejectRepeats } from "lib/frp-extra";
 import { AduAspect } from "lib/nec/adu";
 import * as cs from "lib/nec/cabsignals";
 import * as adu from "lib/nec/twospeed-adu";
@@ -195,11 +195,27 @@ const me = new FrpEngine(() => {
         left.setOnOff(l);
         right.setOnOff(r);
     });
-    const ditchNodesUpdate$ = me.createUpdateStream();
-    ditchNodesUpdate$(_ => {
-        const [left, right] = ditchLights;
-        me.rv.ActivateNode("ditch_left", left.getIntensity() > 0.5);
-        me.rv.ActivateNode("ditch_right", right.getIntensity() > 0.5);
+    const ditchNodeLeft$ = frp.compose(
+        me.createUpdateStream(),
+        frp.map(_ => {
+            const [light] = ditchLights;
+            return light.getIntensity() > 0.5;
+        }),
+        rejectRepeats()
+    );
+    const ditchNodeRight$ = frp.compose(
+        me.createUpdateStream(),
+        frp.map(_ => {
+            const [, light] = ditchLights;
+            return light.getIntensity() > 0.5;
+        }),
+        rejectRepeats()
+    );
+    ditchNodeLeft$(on => {
+        me.rv.ActivateNode("ditch_left", on);
+    });
+    ditchNodeRight$(on => {
+        me.rv.ActivateNode("ditch_right", on);
     });
 
     // Horn rings the bell.
@@ -231,10 +247,31 @@ const me = new FrpEngine(() => {
         () => me.rv.GetControlValue("RPM", 0) as number,
         () => me.eng.GetTractiveEffort()
     );
-    const exhaustState$ = frp.compose(me.createUpdateStream(), mapBehavior(exhaustState));
-    exhaustState$(([color, rate]) => {
-        exhaust.SetEmitterActive(rate > 0);
+    const exhaustActive$ = frp.compose(
+        me.createUpdateStream(),
+        mapBehavior(exhaustState),
+        frp.map(([, rate]) => rate > 0),
+        rejectRepeats()
+    );
+    const exhaustColor$ = frp.compose(
+        me.createUpdateStream(),
+        mapBehavior(exhaustState),
+        frp.map(([color]) => color),
+        rejectRepeats()
+    );
+    const exhaustRate$ = frp.compose(
+        me.createUpdateStream(),
+        mapBehavior(exhaustState),
+        frp.map(([, rate]) => rate),
+        rejectRepeats()
+    );
+    exhaustActive$(active => {
+        exhaust.SetEmitterActive(active);
+    });
+    exhaustColor$(color => {
         exhaust.SetEmitterColour(color, color, color);
+    });
+    exhaustRate$(rate => {
         exhaust.SetEmitterRate(rate);
     });
 

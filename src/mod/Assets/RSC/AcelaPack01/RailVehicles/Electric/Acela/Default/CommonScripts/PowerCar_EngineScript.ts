@@ -6,7 +6,7 @@ import * as ale from "lib/alerter";
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { fsm, mapBehavior, movingAverage } from "lib/frp-extra";
+import { fsm, mapBehavior, movingAverage, rejectRepeats } from "lib/frp-extra";
 import { ConsistMessage, SensedDirection } from "lib/frp-vehicle";
 import { AduAspect } from "lib/nec/adu";
 import * as cs from "lib/nec/cabsignals";
@@ -16,6 +16,8 @@ import * as ps from "lib/power-supply";
 import * as rw from "lib/railworks";
 import * as fx from "lib/special-fx";
 import * as ui from "lib/ui";
+
+type PantographState = [raise: boolean, select: PantographSelect];
 
 enum PantographSelect {
     Front = "f",
@@ -72,9 +74,6 @@ const me = new FrpEngine(() => {
     // Electric power supply
     const electrification = ps.createElectrificationBehaviorWithLua(me, ps.Electrification.Overhead);
     const isPowerAvailable = () => ps.uniModeEngineHasPower(ps.EngineMode.Overhead, electrification);
-    const frontSparkLight = new rw.Light("Spark");
-    const rearSparkLight = new rw.Light("Spark2");
-    const pantoSpark = frp.stepper(fx.createPantographSparkStream(me, electrification), false);
     // Player pantograph control
     const pantographsUpPlayer = () => (me.rv.GetControlValue("PantographControl", 0) as number) > 0.5;
     const pantographSelectPlayer = () => {
@@ -87,96 +86,114 @@ const me = new FrpEngine(() => {
             return PantographSelect.Rear;
         }
     };
-    const pantographPlayerUpdate$ = me.createPlayerWithKeyUpdateStream();
-    pantographPlayerUpdate$(_ => {
-        const pantosUp = frp.snapshot(pantographsUpPlayer);
-        me.rv.SendConsistMessage(MessageId.RaisePantographs, `${pantosUp}`, rw.ConsistDirection.Forward);
-        me.rv.SendConsistMessage(MessageId.RaisePantographs, `${pantosUp}`, rw.ConsistDirection.Backward);
-
-        // Assume all helper engines are flipped.
-        const pantoSelect = reversePantoSelect(frp.snapshot(pantographSelectPlayer));
-        me.rv.SendConsistMessage(MessageId.PantographSelect, pantoSelect, rw.ConsistDirection.Forward);
-        me.rv.SendConsistMessage(MessageId.PantographSelect, pantoSelect, rw.ConsistDirection.Backward);
+    const pantographMessagePlayer$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        mapBehavior(pantographsUpPlayer),
+        frp.map(bool => `${bool}`),
+        frp.map((msg): [number, string] => [MessageId.RaisePantographs, msg]),
+        frp.merge(
+            frp.compose(
+                me.createPlayerWithKeyUpdateStream(),
+                mapBehavior(pantographSelectPlayer),
+                frp.map(reversePantoSelect), // Assume all helper engines are flipped.
+                frp.map((msg): [number, string] => [MessageId.PantographSelect, msg])
+            )
+        )
+    );
+    pantographMessagePlayer$(([id, msg]) => {
+        me.rv.SendConsistMessage(id, msg, rw.ConsistDirection.Forward);
+        me.rv.SendConsistMessage(id, msg, rw.ConsistDirection.Backward);
     });
-    // We need to use consist messages to transmit control values to helper
-    // engine(s).
-    const pantographsUpHelper$ = frp.compose(
+    // Helper pantograph control (via consist message)
+    const pantographsUpHelper = frp.stepper(
+        frp.compose(
+            me.createOnConsistMessageStream(),
+            frp.filter(([id]) => id === MessageId.RaisePantographs),
+            frp.map(([, msg]) => msg === "true")
+        ),
+        false
+    );
+    const pantographSelectHelper = frp.stepper(
+        frp.compose(
+            me.createOnConsistMessageStream(),
+            frp.filter(([id]) => id === MessageId.PantographSelect),
+            frp.map(([, msg]) => msg as PantographSelect)
+        ),
+        PantographSelect.Rear
+    );
+    const pantographMessageHelper$ = frp.compose(
         me.createOnConsistMessageStream(),
         frp.filter(([id]) => id === MessageId.RaisePantographs),
-        frp.map(([, msg]) => msg === "true")
-    );
-    const pantographSelectHelper$ = frp.compose(
-        me.createOnConsistMessageStream(),
-        frp.filter(([id]) => id === MessageId.PantographSelect),
-        frp.map(([, msg]) => msg as PantographSelect)
-    );
-    const pantographsUpHelper = frp.stepper(pantographsUpHelper$, false);
-    const pantographSelectHelper = frp.stepper(pantographSelectHelper$, PantographSelect.Rear);
-    const pantographsUpHelperMessage$ = frp.compose(
-        me.createOnConsistMessageStream(),
-        frp.filter(([id]) => id === MessageId.RaisePantographs)
-    );
-    const pantographHelperMessage$ = frp.compose(
-        me.createOnConsistMessageStream(),
-        frp.filter(([id]) => id === MessageId.PantographSelect),
-        frp.map(
-            ([, msg, direction]): ConsistMessage => [
-                MessageId.PantographSelect,
+        frp.merge(
+            frp.compose(
+                me.createOnConsistMessageStream(),
+                frp.filter(([id]) => id === MessageId.PantographSelect),
                 // Assume all helper engines are flipped.
-                reversePantoSelect(msg as PantographSelect),
-                direction,
-            ]
-        ),
-        frp.merge(pantographsUpHelperMessage$)
+                frp.map(([id, msg, dir]): ConsistMessage => [id, reversePantoSelect(msg as PantographSelect), dir])
+            )
+        )
     );
-    pantographHelperMessage$(message => {
+    pantographMessageHelper$(message => {
         me.rv.SendConsistMessage(...message);
     });
-    // Drive the pantograph animations.
-    const pantographUpdate$ = frp.compose(me.createPlayerUpdateStream(), frp.merge(me.createAiUpdateStream()));
-    pantographUpdate$(u => {
-        let raise: boolean;
-        let select: PantographSelect;
-        if ("direction" in u) {
-            // For AI trains.
-            raise = true;
-            select = u.direction === SensedDirection.Backward ? PantographSelect.Rear : PantographSelect.Front;
-        } else if (me.eng.GetIsEngineWithKey()) {
-            raise = frp.snapshot(pantographsUpPlayer);
-            select = frp.snapshot(pantographSelectPlayer);
-        } else {
-            raise = frp.snapshot(pantographsUpHelper);
-            select = frp.snapshot(pantographSelectHelper);
-        }
-
-        let front: number;
-        let rear: number;
-        switch (select) {
-            case PantographSelect.Both:
-                front = rear = raise ? 1 : -1;
-                break;
-            case PantographSelect.Front:
-            default:
-                front = raise ? 1 : -1;
-                rear = -1;
-                break;
-            case PantographSelect.Rear:
-                front = -1;
-                rear = raise ? 1 : -1;
-                break;
-        }
-        me.rv.AddTime("frontPanto", front * u.dt);
-        me.rv.AddTime("rearPanto", rear * u.dt);
-
-        const spark = frp.snapshot(pantoSpark);
-        const frontSpark = spark && raise && select !== PantographSelect.Rear;
-        frontSparkLight.Activate(frontSpark);
-        me.rv.ActivateNode("Front_spark01", frontSpark);
-        me.rv.ActivateNode("Front_spark02", frontSpark);
-        const rearSpark = spark && raise && select !== PantographSelect.Front;
-        rearSparkLight.Activate(rearSpark);
-        me.rv.ActivateNode("Rear_spark01", rearSpark);
-        me.rv.ActivateNode("Rear_spark02", rearSpark);
+    // Pantograph animations
+    const pantographAnims = [new fx.Animation(me, "frontPanto", 2), new fx.Animation(me, "rearPanto", 2)];
+    const pantographState$ = frp.compose(
+        me.createAiUpdateStream(),
+        frp.map(
+            (au): PantographState => [
+                true,
+                au.direction === SensedDirection.Backward ? PantographSelect.Rear : PantographSelect.Front,
+            ]
+        ),
+        frp.merge(
+            frp.compose(
+                me.createPlayerWithKeyUpdateStream(),
+                mapBehavior(
+                    frp.liftN(
+                        (raise, select): PantographState => [raise, select],
+                        pantographsUpPlayer,
+                        pantographSelectPlayer
+                    )
+                )
+            )
+        ),
+        frp.merge(
+            frp.compose(
+                me.createPlayerWithoutKeyUpdateStream(),
+                mapBehavior(
+                    frp.liftN(
+                        (raise, select): PantographState => [raise, select],
+                        pantographsUpHelper,
+                        pantographSelectHelper
+                    )
+                )
+            )
+        )
+    );
+    pantographState$(([raise, select]) => {
+        const [front, rear] = pantographAnims;
+        front.setTargetPosition(raise && select !== PantographSelect.Rear ? 1 : 0);
+        rear.setTargetPosition(raise && select !== PantographSelect.Front ? 1 : 0);
+    });
+    // Pantograph sparks
+    const pantographAnimsAndSparks: [animation: fx.Animation, light: rw.Light, nodes: string[]][] = [
+        [pantographAnims[0], new rw.Light("Spark"), ["Front_spark01", "Front_spark02"]],
+        [pantographAnims[1], new rw.Light("Spark2"), ["Rear_spark01", "Rear_spark02"]],
+    ];
+    const pantographSpark$ = frp.compose(fx.createPantographSparkStream(me, electrification), frp.hub());
+    pantographAnimsAndSparks.forEach(([anim, light, nodes]) => {
+        const sparkOnOff$ = frp.compose(
+            pantographSpark$,
+            frp.map(on => on && anim.getPosition() >= 1),
+            rejectRepeats()
+        );
+        sparkOnOff$(on => {
+            light.Activate(on);
+            for (const node of nodes) {
+                me.rv.ActivateNode(node, on);
+            }
+        });
     });
 
     // Safety systems cut in/out
@@ -371,7 +388,8 @@ const me = new FrpEngine(() => {
         me.createPlayerWithoutKeyUpdateStream(),
         frp.merge(me.createAiUpdateStream()),
         frp.map(_ => false),
-        frp.merge(cabLightPlayer$)
+        frp.merge(cabLightPlayer$),
+        rejectRepeats()
     );
     cabLight$(on => {
         cabLight.Activate(on);
@@ -466,17 +484,29 @@ const me = new FrpEngine(() => {
         lightL.setOnOff(l);
         lightR.setOnOff(r);
     });
-    const ditchNodesUpdate$ = me.createUpdateStream();
-    ditchNodesUpdate$(_ => {
-        const [frontL, frontR] = ditchLights;
-
-        const frontLOn = frontL.getIntensity() > 0.5;
-        me.rv.ActivateNode("LeftOn", frontLOn);
-        me.rv.ActivateNode("DitchLightsL", frontLOn);
-
-        const frontROn = frontR.getIntensity() > 0.5;
-        me.rv.ActivateNode("RightOn", frontROn);
-        me.rv.ActivateNode("DitchLightsR", frontROn);
+    const ditchNodeLeft$ = frp.compose(
+        me.createUpdateStream(),
+        frp.map(_ => {
+            const [light] = ditchLights;
+            return light.getIntensity() > 0.5;
+        }),
+        rejectRepeats()
+    );
+    const ditchNodeRight$ = frp.compose(
+        me.createUpdateStream(),
+        frp.map(_ => {
+            const [, light] = ditchLights;
+            return light.getIntensity() > 0.5;
+        }),
+        rejectRepeats()
+    );
+    ditchNodeLeft$(on => {
+        me.rv.ActivateNode("LeftOn", on);
+        me.rv.ActivateNode("DitchLightsL", on);
+    });
+    ditchNodeRight$(on => {
+        me.rv.ActivateNode("RightOn", on);
+        me.rv.ActivateNode("DitchLightsR", on);
     });
 
     // Driving displays
@@ -539,25 +569,26 @@ const me = new FrpEngine(() => {
     });
 
     // Coupling hatch
-    const hatchForceOpen$ = frp.compose(
-        me.createPlayerUpdateStream(),
-        frp.merge(me.createAiUpdateStream()),
-        frp.filter(u => u.couplings[0])
-    );
-    hatchForceOpen$(_ => {
-        me.rv.SetTime("cone", 2);
-    });
-    const hatchControl$ = frp.compose(
-        me.createPlayerUpdateStream(),
-        frp.merge(me.createAiUpdateStream()),
-        frp.filter(u => !u.couplings[0]),
-        frp.map(u => {
-            const open = (me.rv.GetControlValue("FrontCone", 0) as number) > 0.5;
-            return open ? u.dt : -u.dt;
+    const hatchAnim = new fx.Animation(me, "cone", 2);
+    const hatchOpenControl = () => (me.rv.GetControlValue("FrontCone", 0) as number) > 0.5;
+    const hatchOpenPlayer$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        frp.map(pu => {
+            const [frontCoupled] = pu.couplings;
+            return frontCoupled || frp.snapshot(hatchOpenControl);
         })
     );
-    hatchControl$(dt => {
-        me.rv.AddTime("cone", dt);
+    const hatchOpen$ = frp.compose(
+        me.createAiUpdateStream(),
+        frp.merge(me.createPlayerWithoutKeyUpdateStream()),
+        frp.map(u => {
+            const [frontCoupled] = u.couplings;
+            return frontCoupled;
+        }),
+        frp.merge(hatchOpenPlayer$)
+    );
+    hatchOpen$(open => {
+        hatchAnim.setTargetPosition(open ? 1 : 0);
     });
 
     // Coach tilt isolate
@@ -606,9 +637,8 @@ const me = new FrpEngine(() => {
             return signsOn ? selected : 0;
         }),
         frp.merge(destinationMessageAi$),
-        fsm<number | undefined>(undefined),
-        frp.filter(([from, to]) => from !== to),
-        frp.map(([, to]) => (to as number).toString())
+        rejectRepeats(),
+        frp.map(dest => dest.toString())
     );
     destinationMessage$(msg => {
         me.rv.SendConsistMessage(MessageId.Destination, msg, rw.ConsistDirection.Forward);
@@ -639,7 +669,7 @@ const me = new FrpEngine(() => {
 });
 me.setup();
 
-function reversePantoSelect(select: PantographSelect) {
+function reversePantoSelect(this: void, select: PantographSelect) {
     switch (select) {
         case PantographSelect.Front:
         default:

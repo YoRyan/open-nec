@@ -6,7 +6,7 @@ import * as ale from "lib/alerter";
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine, PlayerLocation } from "lib/frp-engine";
-import { mapBehavior } from "lib/frp-extra";
+import { mapBehavior, rejectRepeats } from "lib/frp-extra";
 import { AduAspect } from "lib/nec/adu";
 import * as cs from "lib/nec/cabsignals";
 import * as adu from "lib/nec/twospeed-adu";
@@ -185,24 +185,27 @@ const me = new FrpEngine(() => {
     });
 
     // Cab dome lights, front and rear
-    const cabLightFront = new rw.Light("FrontCabLight");
-    const cabLightRear = new rw.Light("RearCabLight");
     const playerLocation = me.createPlayerLocationBehavior();
-    const cabLightControl = () => (me.rv.GetControlValue("CabLightControl", 0) as number) > 0.5;
-    const cabLightFrontOn = frp.liftN(
-        (player, control) => player === PlayerLocation.InFrontCab && control,
-        playerLocation,
-        cabLightControl
+    const cabLightControl = () => (me.rv.GetControlValue("CabLightControl", 0) ?? 0) > 0.5;
+    const allCabLights: [location: PlayerLocation, light: rw.Light][] = [
+        [PlayerLocation.InFrontCab, new rw.Light("FrontCabLight")],
+        [PlayerLocation.InRearCab, new rw.Light("RearCabLight")],
+    ];
+    const cabLightNonPlayer$ = frp.compose(
+        me.createAiUpdateStream(),
+        frp.merge(me.createPlayerWithoutKeyUpdateStream()),
+        frp.map(_ => false)
     );
-    const cabLightRearOn = frp.liftN(
-        (player, control) => player === PlayerLocation.InRearCab && control,
-        playerLocation,
-        cabLightControl
-    );
-    const cabLightUpdate$ = me.createUpdateStream();
-    cabLightUpdate$(_ => {
-        cabLightFront.Activate(frp.snapshot(cabLightFrontOn));
-        cabLightRear.Activate(frp.snapshot(cabLightRearOn));
+    allCabLights.forEach(([location, light]) => {
+        const setOnOff$ = frp.compose(
+            me.createPlayerWithKeyUpdateStream(),
+            frp.map(_ => (frp.snapshot(playerLocation) === location ? frp.snapshot(cabLightControl) : false)),
+            frp.merge(cabLightNonPlayer$),
+            rejectRepeats()
+        );
+        setOnOff$(on => {
+            light.Activate(on);
+        });
     });
 
     // Possibly used for a sound effect?

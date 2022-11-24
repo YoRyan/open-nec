@@ -7,7 +7,7 @@ import * as c from "./constants";
 import * as frp from "./frp";
 import { FrpEngine } from "./frp-engine";
 import { FrpEntity } from "./frp-entity";
-import { fsm, mapBehavior } from "./frp-extra";
+import { fsm, mapBehavior, rejectRepeats } from "./frp-extra";
 import { AiUpdate, FrpVehicle, PlayerUpdate } from "./frp-vehicle";
 import * as ps from "./power-supply";
 import * as rw from "./railworks";
@@ -164,18 +164,14 @@ export function createBrakeLightStreamForEngine(
     const playerStatus$ = frp.compose(eng.createPlayerWithKeyUpdateStream(), mapBehavior(isPlayerBraking), frp.hub());
 
     // When under player control, send consist messages.
-    const playerSend$ = frp.compose(
-        playerStatus$,
-        fsm(false),
-        frp.filter(([from, to]) => from !== to)
-    );
-    playerSend$(([, applied]) => {
+    const playerSend$ = frp.compose(playerStatus$, rejectRepeats());
+    playerSend$(applied => {
         const content = applied ? "1" : "0";
         eng.rv.SendConsistMessage(brakeLightMessageId, content, rw.ConsistDirection.Forward);
         eng.rv.SendConsistMessage(brakeLightMessageId, content, rw.ConsistDirection.Backward);
     });
 
-    return frp.compose(playerStatus$, frp.merge(createBrakeLightStreamForWagon(eng)));
+    return frp.compose(playerStatus$, frp.merge(createBrakeLightStreamForWagon(eng)), rejectRepeats());
 }
 
 /**
@@ -210,6 +206,61 @@ export function createBrakeLightStreamForWagon(v: FrpVehicle): frp.Stream<boolea
 }
 
 /**
+ * An animation wrapper that manages and tracks its current position.
+ */
+export class Animation {
+    private target?: number = undefined;
+    private readonly current: frp.Behavior<number>;
+
+    constructor(e: FrpEntity, name: string, durationS: number) {
+        const position$ = frp.compose(
+            e.createUpdateStream(),
+            frp.fold((current: number | undefined, dt) => {
+                const target = this.target;
+                if (current === undefined) {
+                    // Jump instantaneously to the first value.
+                    return target;
+                } else if (target === undefined) {
+                    return undefined;
+                } else if (current > target) {
+                    return Math.max(target, current - dt / durationS);
+                } else if (current < target) {
+                    return Math.min(target, current + dt / durationS);
+                } else {
+                    return current;
+                }
+            }, undefined),
+            frp.map(current => current ?? 0),
+            frp.hub()
+        );
+        this.current = frp.stepper(position$, 0);
+
+        const setTime$ = frp.compose(
+            position$,
+            rejectRepeats(),
+            frp.map(pos => pos * durationS)
+        );
+        setTime$(t => {
+            e.re.SetTime(name, t);
+        });
+    }
+
+    /**
+     * Set the target position for this animation, scaled from 0 to 1.
+     */
+    setTargetPosition(position: number) {
+        this.target = position;
+    }
+
+    /**
+     * Get the current position of this animation, scaled from 0 to 1.
+     */
+    getPosition() {
+        return frp.snapshot(this.current);
+    }
+}
+
+/**
  * A light with a fade effect processed in the Update() callback.
  */
 export class FadeableLight {
@@ -238,6 +289,7 @@ export class FadeableLight {
                 }
             }, undefined),
             frp.map(current => current ?? 0),
+            rejectRepeats(),
             frp.hub()
         );
         this.current = frp.stepper(intensity$, 0);
