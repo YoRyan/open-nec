@@ -15,7 +15,7 @@ export class FrpEntity {
     /**
      * Convenient access to the methods for a rendered entity.
      */
-    public re = new rw.RenderedEntity("");
+    public readonly re = new rw.RenderedEntity("");
 
     private readonly updateSource = new FrpSource<number>();
     private readonly saveSource = new FrpSource<void>();
