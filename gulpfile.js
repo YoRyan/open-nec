@@ -103,7 +103,6 @@ async function transpileTypeScriptToLua(tempDir, luaPath) {
         baseUrl: tempDir,
         typeRoots: [path.join(tempDir, "@types")],
         luaTarget: tstl.LuaTarget.Lua50,
-        luaLibImport: tstl.LuaLibImportKind.Inline,
         sourceMapTraceback: false,
         luaBundle: path.join(path.dirname(luaPath), path.basename(luaPath, ".ts") + ".lua"),
         // The entry path needs to be absolute so that TSTL sets the correct module name.
