@@ -314,7 +314,7 @@ const me = new FrpEngine(() => {
     fx.createBrakeLightStreamForEngine(me);
 
     // Enable updates.
-    me.activateUpdatesEveryFrame(true);
+    me.e.BeginUpdate();
 
     // Set engine number.
     const [[lh, lt, lu]] = m.digits(tonumber(me.rv.GetRVNumber()) ?? 0, 3);

@@ -402,7 +402,7 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
     fx.createBrakeLightStreamForEngine(me);
 
     // Enable updates.
-    me.activateUpdatesEveryFrame(true);
+    me.e.BeginUpdate();
 }
 
 function createTaskLight(e: FrpEngine, light: string, cv: [name: string, index: number]) {

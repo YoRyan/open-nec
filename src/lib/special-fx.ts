@@ -8,7 +8,7 @@ import * as frp from "./frp";
 import { FrpEngine } from "./frp-engine";
 import { FrpEntity } from "./frp-entity";
 import { fsm, mapBehavior, rejectRepeats } from "./frp-extra";
-import { AiUpdate, FrpVehicle, PlayerUpdate } from "./frp-vehicle";
+import { FrpVehicle, VehicleUpdate } from "./frp-vehicle";
 import * as ps from "./power-supply";
 import * as rw from "./railworks";
 
@@ -23,7 +23,7 @@ const brakeLightMessageId = 10101;
  */
 export function behaviorStopwatchS(
     condition: frp.Behavior<boolean>
-): (eventStream: frp.Stream<AiUpdate | PlayerUpdate>) => frp.Stream<number | undefined> {
+): (eventStream: frp.Stream<VehicleUpdate>) => frp.Stream<number | undefined> {
     return eventStream =>
         frp.compose(
             eventStream,
@@ -47,7 +47,7 @@ export function behaviorStopwatchS(
  */
 export function eventStopwatchS(
     stream: frp.Stream<any>
-): (eventStream: frp.Stream<AiUpdate | PlayerUpdate>) => frp.Stream<number | undefined> {
+): (eventStream: frp.Stream<VehicleUpdate>) => frp.Stream<number | undefined> {
     return eventStream =>
         frp.compose(
             stream,
@@ -74,7 +74,7 @@ export function eventStopwatchS(
 export function loopSound(
     loopS: number,
     isPlaying: frp.Behavior<boolean>
-): (eventStream: frp.Stream<AiUpdate | PlayerUpdate>) => frp.Stream<boolean> {
+): (eventStream: frp.Stream<VehicleUpdate>) => frp.Stream<boolean> {
     type LoopAccum = number | undefined;
 
     return eventStream =>
@@ -103,7 +103,7 @@ export function loopSound(
 export function triggerSound(
     playS: number,
     trigger: frp.Stream<any>
-): (eventStream: frp.Stream<AiUpdate | PlayerUpdate>) => frp.Stream<boolean> {
+): (eventStream: frp.Stream<VehicleUpdate>) => frp.Stream<boolean> {
     const trigger$ = frp.map(_ => undefined)(trigger);
     return eventStream =>
         frp.compose(

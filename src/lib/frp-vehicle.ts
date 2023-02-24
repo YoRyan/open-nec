@@ -13,20 +13,13 @@ export type VehicleCouplings = [front: boolean, rear: boolean];
 
 export type VehicleDoors = [left: boolean, right: boolean];
 
-export type PlayerUpdate = {
-    dt: number;
-    speedMps: number;
-    isStopped: boolean;
-    couplings: VehicleCouplings;
-    doorsOpen: VehicleDoors;
-};
-
-export type AiUpdate = {
+export type VehicleUpdate = {
     dt: number;
     speedMps: number;
     isStopped: boolean;
     direction: SensedDirection;
     couplings: VehicleCouplings;
+    doorsOpen: VehicleDoors;
 };
 
 export enum SensedDirection {
@@ -86,8 +79,8 @@ export class FrpVehicle extends FrpEntity {
     public readonly areControlsSettled: frp.Behavior<boolean> = () =>
         this.initTimeS === undefined ? false : this.e.GetSimulationTime() > this.initTimeS + 0.5;
 
-    private readonly playerUpdateSource = new FrpSource<PlayerUpdate>();
-    private readonly aiUpdateSource = new FrpSource<AiUpdate>();
+    private readonly playerUpdateSource = new FrpSource<VehicleUpdate>();
+    private readonly aiUpdateSource = new FrpSource<VehicleUpdate>();
     private readonly cvChangeSource = new FrpSource<ControlValueChange>();
     private readonly consistMessageSource = new FrpSource<ConsistMessage>();
     private readonly vehicleCameraSource = new FrpSource<VehicleCamera>();
@@ -145,17 +138,18 @@ export class FrpVehicle extends FrpEntity {
                 this.direction = SensedDirection.Backward;
             }
 
-            if (isPlayer) {
-                // Door status
-                const doorsOpen = [
-                    (this.rv.GetControlValue("DoorsOpenCloseLeft", 0) ?? 0) > 0.5,
-                    (this.rv.GetControlValue("DoorsOpenCloseRight", 0) ?? 0) > 0.5,
-                ] as VehicleDoors;
+            // Door status
+            const doorsOpen = [
+                (this.rv.GetControlValue("DoorsOpenCloseLeft", 0) ?? 0) > 0.5,
+                (this.rv.GetControlValue("DoorsOpenCloseRight", 0) ?? 0) > 0.5,
+            ] as VehicleDoors;
 
+            if (isPlayer) {
                 this.playerUpdateSource.call({
                     dt,
                     speedMps,
                     isStopped,
+                    direction: this.direction,
                     couplings,
                     doorsOpen,
                 });
@@ -172,10 +166,19 @@ export class FrpVehicle extends FrpEntity {
                         isStopped,
                         direction: this.direction,
                         couplings,
+                        doorsOpen,
                     });
                 }
             }
         });
+    }
+
+    /**
+     * Create an event stream of some useful vehicle state that fires each
+     * update.
+     */
+    createVehicleUpdateStream() {
+        return frp.compose(this.createPlayerUpdateStream(), frp.merge(this.createAiUpdateStream()));
     }
 
     /**
@@ -234,10 +237,7 @@ export class FrpVehicle extends FrpEntity {
      * @param index The index of the controlvalue, usually 0.
      * @returns The new stream of numbers.
      */
-    mapGetCvStream(
-        name: string,
-        index: number
-    ): (eventStream: frp.Stream<PlayerUpdate | AiUpdate>) => frp.Stream<number> {
+    mapGetCvStream(name: string, index: number): (eventStream: frp.Stream<VehicleUpdate>) => frp.Stream<number> {
         return eventStream =>
             frp.compose(
                 eventStream,

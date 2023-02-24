@@ -729,6 +729,6 @@ const me = new FrpEngine(() => {
     fx.createBrakeLightStreamForEngine(me);
 
     // Enable updates.
-    me.activateUpdatesEveryFrame(true);
+    me.e.BeginUpdate();
 });
 me.setup();

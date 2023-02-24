@@ -8,7 +8,7 @@ import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
 import { rejectUndefined } from "lib/frp-extra";
-import { PlayerUpdate } from "lib/frp-vehicle";
+import { VehicleUpdate } from "lib/frp-vehicle";
 import * as rw from "lib/railworks";
 
 export type AcsesState = {
@@ -156,7 +156,7 @@ export function create(
  * @param e The rail vehicle to sense objects with.
  * @returns The new event stream of speed post readings.
  */
-function mapSpeedPostsStream(e: FrpEngine): (eventStream: frp.Stream<PlayerUpdate>) => frp.Stream<Reading<SpeedPost>> {
+function mapSpeedPostsStream(e: FrpEngine): (eventStream: frp.Stream<VehicleUpdate>) => frp.Stream<Reading<SpeedPost>> {
     type FilterAccum = [hasTypeTwoLimits: boolean, reading: Reading<SpeedPost>];
 
     const nLimits = 3;
@@ -247,7 +247,7 @@ function iterateSpeedLimits(
  * @param e The rail vehicle to sense objects with.
  * @returns The new event stream of signal readings.
  */
-function mapSignalStream(e: FrpEngine): (eventStream: frp.Stream<PlayerUpdate>) => frp.Stream<Reading<Signal>> {
+function mapSignalStream(e: FrpEngine): (eventStream: frp.Stream<VehicleUpdate>) => frp.Stream<Reading<Signal>> {
     const nSignals = 3;
     return eventStream => {
         return frp.compose(
@@ -369,7 +369,7 @@ function createTrackSpeedStream(
             // crossovers, impose a distance-based delay before upgrading the
             // track speed.
             frp.merge(e.createPlayerWithKeyUpdateStream()),
-            frp.fold<TrackSpeedChangeAccum, number | PlayerUpdate>((accum, input) => {
+            frp.fold<TrackSpeedChangeAccum, number | VehicleUpdate>((accum, input) => {
                 if (frp.snapshot(reset)) {
                     return undefined;
                 }

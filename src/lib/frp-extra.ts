@@ -80,6 +80,29 @@ export function once<T>(): (eventStream: frp.Stream<T>) => frp.Stream<T> {
 }
 
 /**
+ * Merges event stream A into event stream B only if B has not yet produced any
+ * events.
+ */
+export function mergeBeforeStart<A, B>(
+    eventStreamA: frp.Stream<A>
+): (eventStreamB: frp.Stream<B>) => frp.Stream<A | B> {
+    return eventStreamB => {
+        return next => {
+            let started = false;
+            eventStreamA(value => {
+                if (!started) {
+                    next(value);
+                }
+            });
+            eventStreamB(value => {
+                started = true;
+                next(value);
+            });
+        };
+    };
+}
+
+/**
  * Maps a behavior onto all events of a stream.
  */
 export function mapBehavior<T>(behavior: frp.Behavior<T>): (eventStream: frp.Stream<any>) => frp.Stream<T> {

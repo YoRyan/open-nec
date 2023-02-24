@@ -8,7 +8,7 @@ import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
 import { mapBehavior, rejectRepeats, rejectUndefined } from "lib/frp-extra";
-import { PlayerUpdate, VehicleCamera } from "lib/frp-vehicle";
+import { VehicleCamera, VehicleUpdate } from "lib/frp-vehicle";
 import { AduAspect } from "lib/nec/adu";
 import * as cs from "lib/nec/cabsignals";
 import * as adu from "lib/nec/twospeed-adu";
@@ -476,7 +476,7 @@ const me = new FrpEngine(() => {
     });
 
     // Enable updates.
-    me.activateUpdatesEveryFrame(true);
+    me.e.BeginUpdate();
 });
 me.setup();
 
@@ -525,12 +525,12 @@ function consistMotorStatus() {
     }
 }
 
-function consistDoorStatus(pu?: PlayerUpdate) {
+function consistDoorStatus(vu?: VehicleUpdate) {
     const doorsOpen = () => [
         (me.rv.GetControlValue("DoorsOpenCloseLeft", 0) as number) === 1,
         (me.rv.GetControlValue("DoorsOpenCloseRight", 0) as number) === 1,
     ];
-    const [l, r] = pu === undefined ? frp.snapshot(doorsOpen) : pu.doorsOpen;
+    const [l, r] = vu === undefined ? frp.snapshot(doorsOpen) : vu.doorsOpen;
     if (l) {
         return -1;
     } else if (r) {

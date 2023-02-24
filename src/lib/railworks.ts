@@ -540,6 +540,17 @@ export class RailVehicle extends RenderedEntity {
     }
 
     /**
+     * Sets a target value for a control
+     * @param name name of the control
+     * @param index the index of the control (usually 0 unless there are
+     * multiple controls with the same name)
+     * @param value the value to set the control to
+     */
+    SetControlTargetValue(name: string, index: number, value: number) {
+        Call(this.fn("SetControlTargetValue"), name, index, value);
+    }
+
+    /**
      * Get the minimum value for a control
      * @param name name of the control
      * @param index the index of the control (usually 0 unless there are

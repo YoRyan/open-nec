@@ -239,6 +239,6 @@ const me = new FrpEngine(() => {
     });
 
     // Enable updates.
-    me.activateUpdatesEveryFrame(true);
+    me.e.BeginUpdate();
 });
 me.setup();
