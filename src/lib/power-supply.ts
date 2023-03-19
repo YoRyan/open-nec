@@ -1,4 +1,3 @@
-/** @noSelfInFile */
 /**
  * Power supply logic for electric and dual-mode locomotives.
  */

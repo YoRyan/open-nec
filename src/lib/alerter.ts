@@ -1,4 +1,3 @@
-/** @noSelfInFile */
 /**
  * A simple alerter safety system.
  */

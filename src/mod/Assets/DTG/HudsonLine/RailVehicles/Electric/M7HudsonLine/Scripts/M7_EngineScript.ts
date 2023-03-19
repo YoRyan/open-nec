@@ -1,4 +1,3 @@
-/** @noSelfInFile */
 /**
  * Metro-North Bombardier M7
  */

@@ -1,4 +1,3 @@
-/** @noSelfInFile */
 /**
  * A generic two-speed ADU with separate ATC and ACSES speeds.
  */

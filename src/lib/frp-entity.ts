@@ -1,5 +1,3 @@
-/** @noSelfInFile */
-
 import * as frp from "./frp";
 import * as rw from "./railworks";
 
@@ -21,7 +19,7 @@ export class FrpEntity {
     private readonly saveSource = new FrpSource<void>();
     private readonly resumeSource = new FrpSource<void>();
 
-    private readonly onInit: (this: void) => void;
+    private readonly onInit: () => void;
 
     /**
      * Construct a new entity.
@@ -59,10 +57,30 @@ export class FrpEntity {
      * Set the global callback functions to execute this entity.
      */
     setup() {
-        Initialise = this.onInit;
-        Update = dt => this.updateSource.call(dt);
-        OnSave = () => this.saveSource.call();
-        OnResume = () => this.resumeSource.call();
+        Initialise = this.chain(Initialise, () => this.onInit());
+        Update = this.chain(Update, dt => this.updateSource.call(dt));
+        OnSave = this.chain(OnSave, () => this.saveSource.call());
+        OnResume = this.chain(OnResume, () => this.resumeSource.call());
+    }
+
+    /**
+     * Append new code to a global callback that may or may not already exist.
+     * This is a common modding technique for grafting behavior onto other Lua
+     * scripts.
+     * @param old The existing callback, if any.
+     * @param ours The callback we want to call after the existing one.
+     * @returns A new callback that combines both.
+     */
+    protected chain<T extends any[]>(
+        old: (this: void, ...args: T) => void | undefined,
+        ours: (this: void, ...args: T) => void
+    ): (this: void, ...args: T) => void {
+        return (...args: T) => {
+            if (old !== undefined) {
+                old(...args);
+            }
+            ours(...args);
+        };
     }
 }
 

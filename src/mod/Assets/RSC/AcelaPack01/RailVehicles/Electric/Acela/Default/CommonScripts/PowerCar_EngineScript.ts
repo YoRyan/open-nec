@@ -669,7 +669,7 @@ const me = new FrpEngine(() => {
 });
 me.setup();
 
-function reversePantoSelect(this: void, select: PantographSelect) {
+function reversePantoSelect(select: PantographSelect) {
     switch (select) {
         case PantographSelect.Front:
         default:

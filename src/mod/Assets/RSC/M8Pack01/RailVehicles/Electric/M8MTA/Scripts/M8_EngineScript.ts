@@ -1,4 +1,3 @@
-/** @noSelfInFile */
 /**
  * Metro-North Kawasaki M8
  */

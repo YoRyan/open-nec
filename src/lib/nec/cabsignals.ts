@@ -1,4 +1,3 @@
-/** @noSelfInFile */
 /**
  * Constants, enums, and lookup tables for cab signalling on the Northeast
  * Corridor.

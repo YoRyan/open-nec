@@ -1,5 +1,3 @@
-/** @noSelfInFile */
-
 import * as frp from "./frp";
 import * as rw from "./railworks";
 

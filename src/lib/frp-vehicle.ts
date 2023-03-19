@@ -1,5 +1,3 @@
-/** @noSelfInFile */
-
 import * as c from "./constants";
 import * as frp from "./frp";
 import { FrpEntity, FrpSource } from "./frp-entity";

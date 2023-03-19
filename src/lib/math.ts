@@ -1,5 +1,3 @@
-/** @noSelfInFile */
-
 export type HiddenDigit = -1;
 
 /**

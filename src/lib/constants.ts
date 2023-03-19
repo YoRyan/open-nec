@@ -1,5 +1,3 @@
-/** @noSelfInFile */
-
 export const stopSpeed = 0.1;
 
 export const mph = {

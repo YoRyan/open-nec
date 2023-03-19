@@ -1,4 +1,3 @@
-/** @noSelfInFile */
 /**
  * MARC MPI MP36PH
  */

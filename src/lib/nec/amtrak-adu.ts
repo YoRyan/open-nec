@@ -1,4 +1,3 @@
-/** @noSelfInFile */
 /**
  * A contemporary, single-speed Amtrak ADU with ATC and ACSES-II.
  */

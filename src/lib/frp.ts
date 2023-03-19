@@ -1,4 +1,3 @@
-/** @noSelfInFile */
 /**
  * Functional reactive programming library.
  * Straight port of https://github.com/santoshrajan/frpjs to TypeScript.

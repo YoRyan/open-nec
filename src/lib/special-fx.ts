@@ -1,4 +1,3 @@
-/** @noSelfInFile */
 /**
  * "Junk drawer" of special effect stuff.
  */

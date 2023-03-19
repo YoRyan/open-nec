@@ -1,4 +1,3 @@
-/** @noSelfInFile */
 /**
  * Advanced Civil Speed Enforcement System for the Northeast Corridor.
  */
@@ -74,7 +73,7 @@ export function create(
             e.createOnSignalMessageStream(),
             frp.map(cs.toPulseCode),
             rejectUndefined(),
-            frp.map(cs.fourAspectAtc.fromPulseCode),
+            frp.map(pc => cs.fourAspectAtc.fromPulseCode(pc)),
             frp.map(aspect => aspect === cs.FourAspect.Restricting)
         ),
         true

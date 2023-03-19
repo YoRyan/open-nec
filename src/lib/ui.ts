@@ -1,4 +1,3 @@
-/** @noSelfInFile */
 /**
  * Helpers for UI popups and controls.
  */

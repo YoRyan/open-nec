@@ -1,5 +1,3 @@
-/** @noSelfInFile */
-
 /**
  * A direction used by signals to send consist and signal messages.
  */

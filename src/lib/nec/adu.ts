@@ -1,4 +1,3 @@
-/** @noSelfInFile */
 /**
  * Base logic for a safety systems controller with ATC and ACSES subsystems.
  */
@@ -120,7 +119,11 @@ export function create<A>(
         frp.map(cs.toPulseCode),
         rejectUndefined()
     );
-    const atcAspect$ = frp.compose(pulseCodeFromResume$, frp.merge(pulseCodeFromMessage$), frp.map(atc.fromPulseCode));
+    const atcAspect$ = frp.compose(
+        pulseCodeFromResume$,
+        frp.merge(pulseCodeFromMessage$),
+        frp.map(pc => atc.fromPulseCode(pc))
+    );
     const atcAspect = frp.stepper(atcAspect$, atc.initialAspect);
 
     // Persist the current pulse code between save states.
