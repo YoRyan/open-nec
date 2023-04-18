@@ -1,5 +1,5 @@
-// Note that this file is only used for editing in your IDE. The Gulpfile
-// generates its own tsconfig.
+// Note that this file is only used for editing in your IDE. It is not used by
+// the build script.
 {
     "compilerOptions": {
         "target": "esnext",
@@ -7,7 +7,10 @@
         "moduleResolution": "node",
         "baseUrl": "./src/",
         "strict": true,
-        "types": ["lua-types/5.0", "jest"]
+        "types": ["lua-types/5.0", "jest"],
+        // Needed for build.ts and ts-node.
+        "module": "ESNext",
+        "allowSyntheticDefaultImports": true
     },
     "include": ["src"]
 }
