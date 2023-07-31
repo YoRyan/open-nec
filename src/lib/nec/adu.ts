@@ -61,6 +61,7 @@ enum TimerMode {
     Expired,
 }
 
+const ignoreEventsOnLoadS = 5;
 const acknowledgeCountdownS = 6;
 
 // Taken from NJT documentation.
@@ -154,7 +155,13 @@ export function create<A>(
         frp.hub()
     );
     const initialInput: AduInput<A> = { atcAspect: atc.restricting, enforcing: AduEnforcing.None };
-    const events$ = frp.compose(input$, fsm(initialInput), getEvents, frp.hub());
+    const events$ = frp.compose(
+        input$,
+        fsm(initialInput),
+        getEvents,
+        frp.filter(_ => e.e.GetSimulationTime() > ignoreEventsOnLoadS),
+        frp.hub()
+    );
 
     // Phase 2, acknowledgement timer accumulators.
     const atcAcknowledgeAccum = createAcknowledgeAccum(
