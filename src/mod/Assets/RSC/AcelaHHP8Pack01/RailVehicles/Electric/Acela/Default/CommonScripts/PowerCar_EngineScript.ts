@@ -206,7 +206,8 @@ const me = new FrpEngine(() => {
         me.createPlayerWithKeyUpdateStream(),
         mapBehavior(
             frp.liftN(
-                (aduState, alerterState) => (aduState?.alarm || alerterState?.alarm) ?? false,
+                (aduState, alerterState) =>
+                    (aduState?.atcAlarm || aduState?.acsesAlarm || alerterState?.alarm) ?? false,
                 aduState,
                 alerterState
             )

@@ -165,8 +165,8 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
             frp.liftN(
                 (aduState, alerterState, upgradeSound) => {
                     return {
-                        aws: aduState?.alarm || alerterState?.alarm || upgradeSound,
-                        awsWarnCount: (aduState?.alarm || alerterState?.alarm) ?? false,
+                        aws: aduState?.atcAlarm || aduState?.acsesAlarm || alerterState?.alarm || upgradeSound,
+                        awsWarnCount: (aduState?.atcAlarm || aduState?.acsesAlarm || alerterState?.alarm) ?? false,
                     };
                 },
                 aduState,

@@ -187,7 +187,7 @@ const me = new FrpEngine(() => {
         me.createPlayerWithKeyUpdateStream(),
         fx.loopSound(
             0.5,
-            frp.liftN(aduState => aduState?.alarm ?? false, aduState)
+            frp.liftN(aduState => (aduState?.atcAlarm || aduState?.acsesAlarm) ?? false, aduState)
         )
     );
     safetyAlarm$(play => {

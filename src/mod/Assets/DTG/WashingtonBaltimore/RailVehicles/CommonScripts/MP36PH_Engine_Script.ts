@@ -154,8 +154,10 @@ const me = new FrpEngine(() => {
             frp.liftN(
                 (aduState, alerterState, upgradeSound) => {
                     return {
-                        tms: ((aduState?.alarm || alerterState?.alarm) ?? false) || upgradeSound,
-                        awsWarnCount: aduState?.alarm ?? false,
+                        tms:
+                            ((aduState?.atcAlarm || aduState?.acsesAlarm || alerterState?.alarm) ?? false) ||
+                            upgradeSound,
+                        awsWarnCount: (aduState?.atcAlarm || aduState?.acsesAlarm) ?? false,
                     };
                 },
                 aduState,

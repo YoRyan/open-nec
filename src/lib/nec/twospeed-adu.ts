@@ -14,11 +14,12 @@ import * as fx from "lib/special-fx";
  * Represents the state of the ADU and the safety systems it is attached to.
  */
 export type AduState<A> = {
-    aspect: adu.AduAspect | A;
+    aspect: A | adu.AduAspect;
     aspectFlashOn: boolean;
     masEnforcing: MasEnforcing;
     trackSpeedMph?: number;
-    alarm: boolean;
+    atcAlarm: boolean;
+    acsesAlarm: boolean;
     penaltyBrake: boolean;
 };
 
@@ -58,8 +59,7 @@ export function create<A>(
     type AduInput = adu.AduInput<A>;
 
     function aspectSuperiority(input: adu.AduInput<A>) {
-        const aspect = input.aspect;
-        return aspect === adu.AduAspect.Stop ? -1 : atc.getSuperiority(aspect);
+        return adu.getAspectSuperiority(atc, input);
     }
 
     // ADU computation
@@ -67,13 +67,13 @@ export function create<A>(
         frp.compose(
             eventStream,
             frp.map(([from, to]) => {
+                const acsesFromMps = from.acsesState?.stepSpeedMps;
+                const acsesToMps = to.acsesState?.stepSpeedMps;
+                const acsesValid = acsesFromMps !== undefined && acsesToMps !== undefined;
+
                 if (frp.snapshot(atcCutIn) && aspectSuperiority(from) > aspectSuperiority(to)) {
                     return adu.AduEvent.AtcDowngrade;
-                } else if (
-                    from.acses !== undefined &&
-                    to.acses !== undefined &&
-                    from.acses.visibleSpeedMps > to.acses.visibleSpeedMps
-                ) {
+                } else if (acsesValid && acsesFromMps > acsesToMps) {
                     return adu.AduEvent.AcsesDowngrade;
                 } else {
                     return undefined;
@@ -96,114 +96,88 @@ export function create<A>(
         ),
         frp.hub()
     );
-    const initialOutput: adu.AduOutput<A> = {
-        aspect: atc.initialAspect,
-        state: adu.AduMode.Normal,
-    };
-    const output = frp.stepper(output$, initialOutput);
+    const output = frp.stepper(output$, undefined);
+    const alarmPlaying = frp.liftN(output => (output?.atcAlarm || output?.acsesAlarm) ?? false, output);
 
-    const isAlarm = frp.liftN(output => {
-        if (output.state === adu.AduMode.Normal) {
-            return false;
-        } else {
-            const [mode] = output.state;
-            if (mode === adu.AduMode.AtcOverspeed) {
-                const [, startS] = output.state;
-                // Check for suppression.
-                return startS !== Infinity;
-            } else if (mode === adu.AduMode.AcsesPositiveStop) {
-                const [, ack, stopped] = output.state;
-                return !(ack && stopped);
-            } else {
-                return true;
-            }
-        }
-    }, output);
-
-    // Cab aspect flash
+    // Aspect display, including cab speed flash
     const aspectFlashStart$ = frp.compose(
         output$,
         frp.map(output => (output.aspect !== adu.AduAspect.Stop ? output.aspect : undefined)),
         rejectUndefined(),
-        fsm(atc.initialAspect),
+        fsm(atc.restricting),
         frp.filter(([from, to]) => from !== to),
         frp.filter(([from, to]) => atc.restartFlash(from, to))
     );
-    const aspectFlash$ = frp.compose(
-        e.createPlayerWithKeyUpdateStream(),
-        fx.eventStopwatchS(aspectFlashStart$),
-        frp.map(stopwatchS => stopwatchS !== undefined && stopwatchS % (aspectFlashS * 2) < aspectFlashS)
+    const aspectFlashOn = frp.stepper(
+        frp.compose(
+            e.createPlayerWithKeyUpdateStream(),
+            fx.eventStopwatchS(aspectFlashStart$),
+            frp.map(stopwatchS => stopwatchS !== undefined && stopwatchS % (aspectFlashS * 2) < aspectFlashS)
+        ),
+        false
     );
-    const aspectFlashOn = frp.stepper(aspectFlash$, false);
 
-    // Enforcing light flash
-    const enforcingFlash$ = frp.compose(
-        e.createPlayerWithKeyUpdateStream(),
-        fx.behaviorStopwatchS(isAlarm),
-        frp.map(stopwatchS => stopwatchS !== undefined && stopwatchS % (enforcingFlashS * 2) > enforcingFlashS)
+    // ATC & ACSES enforcing lights, including alarm flash
+    const enforcingFlashOn = frp.stepper(
+        frp.compose(
+            e.createPlayerWithKeyUpdateStream(),
+            fx.behaviorStopwatchS(alarmPlaying),
+            frp.map(stopwatchS => stopwatchS !== undefined && stopwatchS % (enforcingFlashS * 2) > enforcingFlashS)
+        ),
+        false
     );
-    const enforcingFlashOn = frp.stepper(enforcingFlash$, false);
+    const masEnforcing = frp.liftN(
+        (output, alarmPlaying, flashOn) => {
+            if (alarmPlaying && !flashOn) {
+                return MasEnforcing.Off;
+            } else {
+                const enforcing = output?.enforcing ?? adu.AduEnforcing.None;
+                return {
+                    [adu.AduEnforcing.Atc]: MasEnforcing.Atc,
+                    [adu.AduEnforcing.Acses]: MasEnforcing.Acses,
+                    [adu.AduEnforcing.None]: MasEnforcing.Off,
+                }[enforcing];
+            }
+        },
+        output,
+        alarmPlaying,
+        enforcingFlashOn
+    );
 
+    // ACSES track speed
+    const trackSpeedMph = frp.liftN(output => {
+        const mps = output?.acsesState?.stepSpeedMps;
+        return mps !== undefined ? mps * c.mps.toMph : undefined;
+    }, output);
+
+    // Output state and events
     const state$ = frp.compose(
         output$,
         frp.map((output): AduState<A> => {
-            const alarm = frp.snapshot(isAlarm);
-
-            const enforcingOn = frp.snapshot(enforcingFlashOn);
-            let masEnforcing: MasEnforcing;
-            if (output.state === adu.AduMode.Normal) {
-                if (output.enforcing === undefined) {
-                    masEnforcing = MasEnforcing.Off;
-                } else if (output.enforcing === output.atc) {
-                    masEnforcing = MasEnforcing.Atc;
-                } else {
-                    masEnforcing = MasEnforcing.Acses;
-                }
-            } else if (alarm && !enforcingOn) {
-                masEnforcing = MasEnforcing.Off;
-            } else {
-                const [mode] = output.state;
-                masEnforcing =
-                    mode === adu.AduMode.AtcOverspeed || mode === adu.AduMode.AtcPenalty
-                        ? MasEnforcing.Atc
-                        : MasEnforcing.Acses;
-            }
-
-            const trackSpeedMps = output.acses?.visibleSpeedMps;
-            const trackSpeedMph = trackSpeedMps === undefined ? undefined : trackSpeedMps * c.mps.toMph;
-
-            let penaltyBrake: boolean;
-            if (output.state === adu.AduMode.Normal) {
-                penaltyBrake = false;
-            } else {
-                const [mode] = output.state;
-                penaltyBrake =
-                    mode === adu.AduMode.AtcPenalty ||
-                    mode === adu.AduMode.AcsesPenalty ||
-                    mode === adu.AduMode.AcsesPositiveStop;
-            }
-
             return {
                 aspect: output.aspect,
                 aspectFlashOn: frp.snapshot(aspectFlashOn),
-                masEnforcing,
-                trackSpeedMph,
-                alarm,
-                penaltyBrake,
+                masEnforcing: frp.snapshot(masEnforcing),
+                trackSpeedMph: frp.snapshot(trackSpeedMph),
+                atcAlarm: output.atcAlarm,
+                acsesAlarm: output.acsesAlarm,
+                penaltyBrake: output.penaltyBrake,
             };
         })
     );
     const events$ = frp.compose(
         output$,
-        fsm(initialOutput),
+        fsm<adu.AduOutput<A> | undefined>(undefined),
         frp.map(([from, to]) => {
+            if (from === undefined || to === undefined) return undefined;
+
+            const acsesFromMps = from.acsesState?.currentLimitMps;
+            const acsesToMps = to.acsesState?.currentLimitMps;
+            const acsesValid = acsesFromMps !== undefined && acsesToMps !== undefined;
+
             if (frp.snapshot(atcCutIn) && aspectSuperiority(from) < aspectSuperiority(to)) {
                 return AduEvent.Upgrade;
-            } else if (
-                from.acses !== undefined &&
-                to.acses !== undefined &&
-                from.acses.visibleSpeedMps < to.acses.visibleSpeedMps
-            ) {
+            } else if (acsesValid && acsesFromMps < acsesToMps) {
                 return AduEvent.Upgrade;
             } else {
                 return undefined;

@@ -84,7 +84,8 @@ const me = new FrpEngine(() => {
         me.createPlayerWithKeyUpdateStream(),
         mapBehavior(
             frp.liftN(
-                (aduState, alerterState, upgradeSound) => aduState?.alarm || alerterState?.alarm || upgradeSound,
+                (aduState, alerterState, upgradeSound) =>
+                    aduState?.atcAlarm || aduState?.acsesAlarm || alerterState?.alarm || upgradeSound,
                 aduState,
                 alerterState,
                 frp.stepper(upgradeSound$, false)

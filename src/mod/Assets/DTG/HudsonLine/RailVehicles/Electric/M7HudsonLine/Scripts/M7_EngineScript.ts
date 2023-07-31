@@ -80,7 +80,7 @@ const me = new FrpEngine(() => {
     // fast beep-beep sound, which we use for the alerter.
     const safetyAlarm$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        mapBehavior(frp.liftN(aduState => aduState?.alarm ?? false, aduState))
+        mapBehavior(frp.liftN(aduState => (aduState?.atcAlarm || aduState?.acsesAlarm) ?? false, aduState))
     );
     safetyAlarm$(play => {
         me.rv.SetControlValue("SpeedReductionAlert", 0, play ? 1 : 0);

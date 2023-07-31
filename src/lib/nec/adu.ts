@@ -7,10 +7,27 @@ import * as c from "lib/constants";
 import * as cs from "./cabsignals";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { fsm, rejectUndefined } from "lib/frp-extra";
+import { fsm, mapBehavior } from "lib/frp-extra";
 
 /**
- * Represents events consumed by the ADU's enforcement logic.
+ * Combines information from the ATC and ACSES subsystems. Consumed by
+ * subclasses.
+ */
+export type AduInput<A> = {
+    atcAspect: A;
+    acsesState?: acses.AcsesState;
+    enforcing: AduEnforcing;
+};
+
+export enum AduEnforcing {
+    None,
+    Atc,
+    Acses,
+}
+
+/**
+ * Represents events consumed by the ADU enforcement logic. Produced by
+ * subclasses.
  */
 export enum AduEvent {
     AtcDowngrade,
@@ -18,28 +35,7 @@ export enum AduEvent {
 }
 
 /**
- * A safety system supplies a set of braking curves, plus informational state
- * for the engineer.
- */
-export interface SafetySystem {
-    alertCurveMps: number;
-    penaltyCurveMps: number;
-    visibleSpeedMps: number;
-    timeToPenaltyS?: number;
-}
-
-/**
- * Combines information from the ATC and ACSES subsystems.
- */
-export type AduInput<A> = {
-    aspect: AduAspect.Stop | A;
-    atc?: SafetySystem;
-    acses?: SafetySystem;
-    enforcing?: SafetySystem;
-};
-
-/**
- * Represents irregular, non-ATC aspects.
+ * Represents irregular, non-pulse code aspects.
  */
 export enum AduAspect {
     Stop = -1,
@@ -50,26 +46,27 @@ export enum AduAspect {
  * enforcing state.
  */
 export type AduOutput<A> = AduInput<A> & {
-    state: AduState;
+    aspect: A | AduAspect;
+    atcAlarm: boolean;
+    acsesAlarm: boolean;
+    penaltyBrake: boolean;
+    vZero: boolean;
 };
 
-/**
- * Represents the current enforcement action the ADU is taking.
- */
-export type AduState =
-    | AduMode.Normal
-    | [mode: AduMode.AtcOverspeed | AduMode.AcsesOverspeed, startS: number, acknowledged: boolean]
-    | [mode: AduMode.AtcPenalty | AduMode.AcsesPenalty, acknowledged: boolean]
-    | [mode: AduMode.AcsesPositiveStop, acknowledged: boolean, stopped: boolean];
+type TimerAccum = TimerMode.NotStarted | [mode: TimerMode.Running, leftS: number] | TimerMode.Expired;
 
-export enum AduMode {
-    Normal,
-    AtcOverspeed,
-    AcsesOverspeed,
-    AtcPenalty,
-    AcsesPenalty,
-    AcsesPositiveStop,
+enum TimerMode {
+    NotStarted,
+    Running,
+    Expired,
 }
+
+const acknowledgeCountdownS = 6;
+
+// Taken from NJT documentation.
+const atcSetPointMps = 1 * c.mph.toMps;
+const atcCountdownS = 5;
+const vZeroMps = 2.5 * c.mph.toMps;
 
 /**
  * Creates a new ADU instance.
@@ -77,8 +74,8 @@ export enum AduMode {
  * @param atc The description of the ATC system.
  * @param getEvents A transformer that maps transitions between ADU input states
  * to ADU input events.
- * @param violationForcesAlarm If true, exceeding the visible speed limit at
- * any time violates the alert curve.
+ * @param acsesStepsDown If true, exceeding the ACSES alert curve at any time
+ * reveals the advance speed limit and lowers the curve accordingly.
  * @param equipmentSpeedMps The maximum consist speed limit.
  * @param e The player's engine.
  * @param acknowledge A behavior that indicates the state of the safety systems
@@ -91,12 +88,12 @@ export enum AduMode {
  * control.
  * @param pulseCodeControlValue The name and index of the control value to use
  * to persist the cab signal pulse code between save states.
- * @returns A stream that communicates the ADU's state.
+ * @returns An event stream that communicates the ADU's state.
  */
 export function create<A>(
     atc: cs.AtcSystem<A>,
     getEvents: (eventStream: frp.Stream<[from: AduInput<A>, to: AduInput<A>]>) => frp.Stream<AduEvent>,
-    violationForcesAlarm: boolean,
+    acsesStepsDown: boolean,
     equipmentSpeedMps: number,
     e: FrpEngine,
     acknowledge: frp.Behavior<boolean>,
@@ -105,245 +102,248 @@ export function create<A>(
     acsesCutIn: frp.Behavior<boolean>,
     pulseCodeControlValue?: [name: string, index: number]
 ): frp.Stream<AduOutput<A>> {
-    // Cab signaling system
-    const pulseCodeFromResume$: frp.Stream<cs.PulseCode> =
-        pulseCodeControlValue !== undefined
-            ? frp.compose(
-                  e.createOnResumeStream(),
-                  frp.map(() => e.rv.GetControlValue(...pulseCodeControlValue) as number),
-                  frp.map(cs.pulseCodeFromResumeValue)
-              )
-            : _ => {};
-    const pulseCodeFromMessage$ = frp.compose(
-        e.createOnSignalMessageStream(),
-        frp.map(cs.toPulseCode),
-        rejectUndefined()
-    );
-    const atcAspect$ = frp.compose(
-        pulseCodeFromResume$,
-        frp.merge(pulseCodeFromMessage$),
-        frp.map(pc => atc.fromPulseCode(pc))
-    );
-    const atcAspect = frp.stepper(atcAspect$, atc.initialAspect);
+    const atcAspect = frp.stepper(cs.createCabSignalStream(atc, e, pulseCodeControlValue), atc.restricting);
+    const aSpeedoMps = () => Math.abs(e.rv.GetControlValue("SpeedometerMPH", 0) as number) * c.mph.toMps;
+    const vZero = frp.liftN(aSpeedoMps => aSpeedoMps < vZeroMps, aSpeedoMps);
 
-    // Persist the current pulse code between save states.
-    if (pulseCodeControlValue !== undefined) {
-        const pulseCodeSave$ = frp.compose(pulseCodeFromMessage$, frp.map(cs.pulseCodeToSaveValue));
-        pulseCodeSave$(cv => {
-            e.rv.SetControlValue(...pulseCodeControlValue, cv);
-        });
-    }
+    const acsesState = frp.stepper(acses.create(e, acsesCutIn, acsesStepsDown, equipmentSpeedMps, atcCutIn), undefined);
 
-    // ATC speed limits
-    const atcSystem = frp.liftN(
-        (cutIn, cabAspect): SafetySystem | undefined => {
-            if (!cutIn) {
-                return undefined;
+    // Phase 1, input state and events.
+    const enforcing = frp.liftN(
+        (atcCutIn, acsesCutIn, atcAspect, acsesState) => {
+            if (atcCutIn && acsesCutIn) {
+                const atcMps = atc.getSpeedMps(atcAspect);
+                const acsesMps = (acsesStepsDown ? acsesState?.stepSpeedMps : acsesState?.curveSpeedMps) ?? Infinity;
+                if (atcMps >= Math.floor(150 * c.mph.toMps)) {
+                    return AduEnforcing.Acses;
+                } else if (acsesMps <= 0) {
+                    return AduEnforcing.Atc;
+                } else {
+                    return atcMps <= acsesMps ? AduEnforcing.Atc : AduEnforcing.Acses;
+                }
+            } else if (atcCutIn) {
+                return AduEnforcing.Atc;
+            } else if (acsesCutIn) {
+                return AduEnforcing.Acses;
             } else {
-                const limitMps = atc.getSpeedMps(cabAspect);
-                return {
-                    visibleSpeedMps: limitMps,
-                    alertCurveMps: limitMps + cs.alertMarginMps,
-                    penaltyCurveMps: Infinity,
-                    timeToPenaltyS: undefined,
-                };
+                return AduEnforcing.None;
             }
         },
         atcCutIn,
-        atcAspect
+        acsesCutIn,
+        atcAspect,
+        acsesState
     );
-
-    // Phase 1, input state.
-    // We can count on the ACSES stream to update continuously.
     const input$ = frp.compose(
-        acses.create(e, acsesCutIn, violationForcesAlarm, equipmentSpeedMps),
-        frp.map((acsesState): AduInput<A> => {
-            const isPositiveStop = frp.snapshot(acsesCutIn) && acsesState.targetSpeedMps <= 0;
-            const aspect = isPositiveStop ? AduAspect.Stop : frp.snapshot(atcAspect);
-            const atc = frp.snapshot(atcSystem);
-
-            let acses: SafetySystem | undefined;
-            if (!frp.snapshot(acsesCutIn)) {
-                acses = undefined;
-            } else {
-                acses = acsesState;
-            }
-
-            let enforcing: SafetySystem | undefined;
-            if (atc !== undefined && acses !== undefined) {
-                const atcEnforcing =
-                    atc.visibleSpeedMps <= acsesState.visibleSpeedMps &&
-                    atc.visibleSpeedMps < Math.floor(150 * c.mph.toMps);
-                enforcing = atcEnforcing ? atc : acses;
-            } else if (atc === undefined && acses !== undefined) {
-                enforcing = acses;
-            } else if (atc !== undefined && acses === undefined) {
-                enforcing = atc;
-            } else {
-                enforcing = undefined;
-            }
-
-            return {
-                aspect,
-                atc,
-                acses,
-                enforcing,
-            };
-        }),
+        e.createPlayerWithKeyUpdateStream(),
+        mapBehavior(
+            frp.liftN(
+                (atcAspect, acsesCutIn, acsesState, enforcing): AduInput<A> => {
+                    return {
+                        atcAspect,
+                        acsesState: acsesCutIn ? acsesState : undefined,
+                        enforcing,
+                    };
+                },
+                atcAspect,
+                acsesCutIn,
+                acsesState,
+                enforcing
+            )
+        ),
         frp.hub()
     );
-    const initialInput: AduInput<A> = { aspect: atc.initialAspect };
-    const input = frp.stepper(input$, initialInput);
-    const events$ = frp.compose(input$, fsm(initialInput), getEvents);
+    const initialInput: AduInput<A> = { atcAspect: atc.restricting, enforcing: AduEnforcing.None };
+    const events$ = frp.compose(input$, fsm(initialInput), getEvents, frp.hub());
 
-    // Phase 2, accumulator and combined input + output state.
+    // Phase 2, acknowledgement timer accumulators.
+    const atcAcknowledgeAccum = createAcknowledgeAccum(
+        e,
+        frp.compose(
+            events$,
+            frp.filter(e => e === AduEvent.AtcDowngrade),
+            frp.map(_ => undefined)
+        ),
+        acknowledge,
+        atcCutIn
+    );
+    const acsesAcknowledgeAccum = createAcknowledgeAccum(
+        e,
+        frp.compose(
+            events$,
+            frp.filter(e => e === AduEvent.AcsesDowngrade),
+            frp.map(_ => undefined)
+        ),
+        acknowledge,
+        acsesCutIn
+    );
+
+    // Phase 3a, ATC overspeed accumulator.
+    const atcOverspeed = frp.liftN(
+        (aSpeedoMps, atcAspect, suppress) => {
+            const overspeed = aSpeedoMps >= atc.getSpeedMps(atcAspect) + atcSetPointMps;
+            return overspeed && !suppress;
+        },
+        aSpeedoMps,
+        atcAspect,
+        suppression
+    );
+    const atcPenaltyAccum = frp.stepper(
+        frp.compose(
+            e.createPlayerWithKeyUpdateStream(),
+            frp.fold((accum: TimerAccum, vu): TimerAccum => {
+                if (!frp.snapshot(atcCutIn)) return TimerMode.NotStarted;
+
+                const overspeed = frp.snapshot(atcOverspeed);
+                switch (accum) {
+                    case TimerMode.NotStarted:
+                        return overspeed ? [TimerMode.Running, atcCountdownS] : TimerMode.NotStarted;
+                    case TimerMode.Expired:
+                        return overspeed ? TimerMode.Expired : TimerMode.NotStarted;
+                    default:
+                        if (overspeed) {
+                            const [, leftS] = accum;
+                            const nextS = leftS - vu.dt;
+                            return nextS <= 0 ? TimerMode.Expired : [TimerMode.Running, nextS];
+                        } else {
+                            return TimerMode.NotStarted;
+                        }
+                }
+            }, TimerMode.NotStarted)
+        ),
+        TimerMode.NotStarted
+    );
+
+    // Phase 3b, ACSES overspeed accumulator.
+    const acsesAbovePenaltyCurve = frp.liftN(
+        (aSpeedoMps, acsesState) => aSpeedoMps >= (acsesState?.penaltyCurveMps ?? Infinity),
+        aSpeedoMps,
+        acsesState
+    );
+    const acsesBelowTargetSpeed = frp.liftN(
+        (aSpeedoMps, acsesState) => {
+            const targetSpeedMps = acsesState?.nextLimitMps ?? acsesState?.currentLimitMps;
+            return aSpeedoMps >= (targetSpeedMps ?? Infinity);
+        },
+        aSpeedoMps,
+        acsesState
+    );
+    const acsesPenaltyAccum = frp.stepper(
+        frp.compose(
+            e.createPlayerWithKeyUpdateStream(),
+            frp.fold((isPenalty: boolean, _): boolean => {
+                if (!frp.snapshot(acsesCutIn)) return false;
+
+                if (isPenalty) {
+                    const belowTarget = frp.snapshot(acsesBelowTargetSpeed);
+                    const suppress = frp.snapshot(suppression);
+                    return !(belowTarget && suppress);
+                } else {
+                    const aboveCurve = frp.snapshot(acsesAbovePenaltyCurve);
+                    return aboveCurve;
+                }
+            }, false)
+        ),
+        false
+    );
+
+    // Phase 4, combined input + output state.
+    const atcAlarm = frp.liftN(
+        (ackAccum, penaltyAccum) => ackAccum !== TimerMode.NotStarted || penaltyAccum !== TimerMode.NotStarted,
+        atcAcknowledgeAccum,
+        atcPenaltyAccum
+    );
+    const atcPenalty = frp.liftN(
+        (ackAccum, penaltyAccum) => ackAccum === TimerMode.Expired || penaltyAccum === TimerMode.Expired,
+        atcAcknowledgeAccum,
+        atcPenaltyAccum
+    );
+    const acsesAboveAlertCurve = frp.liftN(
+        (aSpeedoMps, acsesState) => aSpeedoMps >= (acsesState?.alertCurveMps ?? Infinity),
+        aSpeedoMps,
+        acsesState
+    );
+    const acsesAlarm = frp.liftN(
+        (aboveAlert, ackAccum, penalty) => aboveAlert || ackAccum !== TimerMode.NotStarted || penalty,
+        acsesAboveAlertCurve,
+        acsesAcknowledgeAccum,
+        acsesPenaltyAccum
+    );
+    const acsesPenalty = frp.liftN(
+        (ackAccum, penalty) => ackAccum === TimerMode.Expired || penalty,
+        acsesAcknowledgeAccum,
+        acsesPenaltyAccum
+    );
     return frp.compose(
         input$,
-        frp.merge(events$),
-        frp.fold((accum: AduState, input): AduState => {
-            const aSpeedoMps = Math.abs(e.rv.GetControlValue("SpeedometerMPH", 0) as number) * c.mph.toMps;
-            const nowS = e.e.GetSimulationTime();
-            const ack = frp.snapshot(acknowledge);
-
-            if (accum === AduMode.Normal) {
-                // Process downgrade events.
-                if (input === AduEvent.AtcDowngrade) {
-                    return [AduMode.AtcOverspeed, nowS, false];
-                }
-                if (input === AduEvent.AcsesDowngrade) {
-                    return [AduMode.AcsesOverspeed, nowS, false];
-                }
-
-                // Move to the penalty or overspeed state if speeding.
-                const enforcing = input.enforcing;
-                if (enforcing !== undefined && aSpeedoMps > enforcing.penaltyCurveMps) {
-                    if (enforcing === input.atc) {
-                        return [AduMode.AtcPenalty, false];
-                    } else {
-                        const isPositiveStop = enforcing.visibleSpeedMps <= 0;
-                        return isPositiveStop
-                            ? [AduMode.AcsesPositiveStop, false, false]
-                            : [AduMode.AcsesPenalty, false];
-                    }
-                }
-                if (enforcing !== undefined && aSpeedoMps > enforcing.alertCurveMps) {
-                    return [enforcing === input.atc ? AduMode.AtcOverspeed : AduMode.AcsesOverspeed, nowS, false];
-                }
-
-                // Nothing to do.
-                return AduMode.Normal;
-            }
-
-            const [mode] = accum;
-            // Release penalty or overspeed state if the player toggles the cut in control.
-            if ((mode === AduMode.AtcOverspeed || mode === AduMode.AtcPenalty) && !frp.snapshot(atcCutIn)) {
-                return AduMode.Normal;
-            }
-            if (
-                (mode === AduMode.AcsesOverspeed ||
-                    mode === AduMode.AcsesPenalty ||
-                    mode === AduMode.AcsesPositiveStop) &&
-                !frp.snapshot(acsesCutIn)
-            ) {
-                return AduMode.Normal;
-            }
-
-            if (mode === AduMode.AtcPenalty) {
-                // Only release an ATC penalty brake when stopped.
-                const [, acked] = accum;
-                return aSpeedoMps < c.stopSpeed && acked ? AduMode.Normal : [AduMode.AtcPenalty, acked || ack];
-            }
-
-            if (mode === AduMode.AcsesPenalty) {
-                const [, acked] = accum;
-                if (input === AduEvent.AtcDowngrade) {
-                    return [AduMode.AcsesPenalty, acked || ack];
-                }
-                if (input === AduEvent.AcsesDowngrade) {
-                    return [AduMode.AcsesPenalty, acked || ack];
-                }
-
-                // Allow a running release for ACSES.
-                const enforcing = input.enforcing;
-                return acked && (enforcing === undefined || aSpeedoMps <= enforcing.visibleSpeedMps)
-                    ? AduMode.Normal
-                    : [AduMode.AcsesPenalty, acked || ack];
-            }
-
-            if (mode === AduMode.AcsesPositiveStop) {
-                const [, acked] = accum;
-                if (input === AduEvent.AtcDowngrade) {
-                    return [AduMode.AcsesPositiveStop, acked || ack, aSpeedoMps < c.stopSpeed];
-                }
-                if (input === AduEvent.AcsesDowngrade) {
-                    return [AduMode.AcsesPositiveStop, acked || ack, aSpeedoMps < c.stopSpeed];
-                }
-
-                // There isn't a proper stop release; the player can just cut
-                // out.
-                const enforcing = input.enforcing;
-                const isStillPositiveStop = enforcing !== undefined && enforcing.visibleSpeedMps <= 0;
-                return isStillPositiveStop
-                    ? [AduMode.AcsesPositiveStop, acked || ack, aSpeedoMps < c.stopSpeed]
-                    : AduMode.Normal;
-            }
-
-            if (mode === AduMode.AtcOverspeed || mode === AduMode.AcsesOverspeed) {
-                const [, clockS, acked] = accum;
-
-                // Prioritize an ATC downgrade for the harsher penalty.
-                if (input === AduEvent.AtcDowngrade) {
-                    return [AduMode.AtcOverspeed, clockS, acked || ack];
-                }
-
-                // Ignore further ACSES downgrade events.
-                if (input === AduEvent.AcsesDowngrade) {
-                    return [mode, clockS, acked || ack];
-                }
-
-                // State update; check if below safe speed.
-                const enforcing = input.enforcing;
-                if (acked && (enforcing === undefined || aSpeedoMps < enforcing.alertCurveMps)) {
-                    return AduMode.Normal;
-                }
-
-                // State update; move to the positive stop state if warranted.
-                const isPositiveStop =
-                    mode === AduMode.AcsesOverspeed && enforcing !== undefined && enforcing.visibleSpeedMps <= 0;
-                if (isPositiveStop && aSpeedoMps > enforcing.penaltyCurveMps) {
-                    return [AduMode.AcsesPositiveStop, acked || ack, false];
-                }
-
-                // State update; set the timer to infinity if suppression has
-                // been achieved. If no longer in suppression, restart the
-                // countdown.
-                if (acked && frp.snapshot(suppression)) {
-                    return [mode, Infinity, true];
-                } else if (clockS === Infinity) {
-                    return [mode, nowS, false];
-                }
-
-                // State update; decrement the timer.
-                if (!isPositiveStop && nowS - clockS > cs.alertCountdownS) {
-                    return [mode === AduMode.AtcOverspeed ? AduMode.AtcPenalty : AduMode.AcsesPenalty, acked || ack];
-                } else {
-                    return [mode, clockS, acked || ack];
-                }
-            }
-
-            // We should never get here, but the type checker needs help
-            // recognizing that.
-            return AduMode.Normal;
-        }, AduMode.Normal),
-        frp.map((accum): AduOutput<A> => {
-            const theInput = frp.snapshot(input);
+        frp.map((input): AduOutput<A> => {
             return {
-                aspect: theInput.aspect,
-                atc: theInput.atc,
-                acses: theInput.acses,
-                enforcing: theInput.enforcing,
-                state: accum,
+                atcAspect: input.atcAspect,
+                acsesState: input.acsesState,
+                enforcing: input.enforcing,
+                aspect: isPositiveStop(atc, input) ? AduAspect.Stop : input.atcAspect,
+                atcAlarm: frp.snapshot(atcAlarm),
+                acsesAlarm: frp.snapshot(acsesAlarm),
+                penaltyBrake: frp.snapshot(atcPenalty) || frp.snapshot(acsesPenalty),
+                vZero: frp.snapshot(vZero),
             };
         })
     );
+}
+
+/**
+ * Convert the displayed ADU aspect into a numeric identifier suitable for
+ * comparison.
+ * @template A The set of signal aspects to use for the ATC system.
+ * @param atc The description of the ATC system.
+ * @param input The combined ATC/ACSES input state.
+ * @returns The numeric value.
+ */
+export function getAspectSuperiority<A>(atc: cs.AtcSystem<A>, input: AduInput<A>) {
+    return isPositiveStop(atc, input) ? -1 : atc.getSuperiority(input.atcAspect);
+}
+
+function createAcknowledgeAccum(
+    e: FrpEngine,
+    eventStream: frp.Stream<void>,
+    acknowledge: frp.Behavior<boolean>,
+    cutIn: frp.Behavior<boolean>
+): frp.Behavior<TimerAccum> {
+    const events$ = frp.compose(
+        eventStream,
+        frp.map(_ => undefined)
+    );
+    const accum$ = frp.compose(
+        e.createPlayerWithKeyUpdateStream(),
+        frp.merge(events$),
+        frp.fold((accum: TimerAccum, input): TimerAccum => {
+            if (!frp.snapshot(cutIn)) return TimerMode.NotStarted;
+
+            // Got a triggering event; start the timer if not already running.
+            if (input === undefined) {
+                return accum === TimerMode.NotStarted ? [TimerMode.Running, acknowledgeCountdownS] : accum;
+            }
+            // Otherwise, decrement the timer.
+            switch (accum) {
+                case TimerMode.NotStarted:
+                    return TimerMode.NotStarted;
+                case TimerMode.Expired:
+                    return frp.snapshot(acknowledge) ? TimerMode.NotStarted : TimerMode.Expired;
+                default:
+                    if (frp.snapshot(acknowledge)) {
+                        return TimerMode.NotStarted;
+                    } else {
+                        const [, leftS] = accum;
+                        const nextS = leftS - input.dt;
+                        return nextS <= 0 ? TimerMode.Expired : [TimerMode.Running, nextS];
+                    }
+            }
+        }, TimerMode.NotStarted)
+    );
+    return frp.stepper(accum$, TimerMode.NotStarted);
+}
+
+function isPositiveStop<A>(atc: cs.AtcSystem<A>, input: AduInput<A>) {
+    const nextLimitMps = input.acsesState?.nextLimitMps ?? Infinity;
+    return input.atcAspect === atc.restricting && nextLimitMps <= 0;
 }

@@ -4,10 +4,9 @@
  */
 
 import * as c from "lib/constants";
-
-export const alertMarginMps = 3 * c.mph.toMps;
-export const penaltyMarginMps = 6 * c.mph.toMps;
-export const alertCountdownS = 6;
+import * as frp from "lib/frp";
+import { FrpEngine } from "lib/frp-engine";
+import { rejectUndefined } from "lib/frp-extra";
 
 /**
  * A pulse code frequency combination in use on the Northeast Corridor.
@@ -27,14 +26,14 @@ export enum PulseCode {
 
 /**
  * Defines the behavior for an ATC system.
- * @template A The enum that represents the signal aspects used by the system.
+ * @template A The cab signal aspects enum.
  */
 export interface AtcSystem<A> {
     /**
      * The initial aspect to display before any signal message has been
      * received.
      */
-    initialAspect: A;
+    restricting: A;
 
     /**
      * Maps a pulse code to a signal aspect.
@@ -83,7 +82,7 @@ export enum AmtrakAspect {
  * The Amtrak ATC system.
  */
 export const amtrakAtc: AtcSystem<AmtrakAspect> = {
-    initialAspect: AmtrakAspect.Restricting,
+    restricting: AmtrakAspect.Restricting,
     fromPulseCode(pc: PulseCode) {
         return {
             [PulseCode.C_0_0]: AmtrakAspect.Restricting,
@@ -149,7 +148,7 @@ export enum FourAspect {
  * as would occur in real life.)
  */
 export const fourAspectAtc: AtcSystem<FourAspect> = {
-    initialAspect: FourAspect.Restricting,
+    restricting: FourAspect.Restricting,
     fromPulseCode(pc: PulseCode) {
         return {
             [PulseCode.C_0_0]: FourAspect.Restricting,
@@ -191,7 +190,7 @@ export const fourAspectAtc: AtcSystem<FourAspect> = {
  * ATC for Metro-North trains. (We assume we can only represent 4 aspects.)
  */
 export const metroNorthAtc: AtcSystem<FourAspect> = {
-    initialAspect: FourAspect.Restricting,
+    restricting: FourAspect.Restricting,
     fromPulseCode(pc: PulseCode) {
         return {
             [PulseCode.C_0_0]: FourAspect.Restricting,
@@ -366,12 +365,52 @@ export function isMnrrAspect(signalMessage: string): boolean | undefined {
 }
 
 /**
+ * Create a cab aspect stream with optional save and resume functionality.
+ * @template A The set of signal aspects to use for the ATC system.
+ * @param atc The description of the ATC system.
+ * @param e The player's engine.
+ * @param pulseCodeControlValue The name and index of the control value to use
+ * to persist the cab signal pulse code between save states.
+ * @returns The new stream.
+ */
+export function createCabSignalStream<A>(
+    atc: AtcSystem<A>,
+    e: FrpEngine,
+    pulseCodeControlValue?: [name: string, index: number]
+): frp.Stream<A> {
+    const pulseCodeFromResume$: frp.Stream<PulseCode> =
+        pulseCodeControlValue !== undefined
+            ? frp.compose(
+                  e.createOnResumeStream(),
+                  frp.map(() => e.rv.GetControlValue(...pulseCodeControlValue) as number),
+                  frp.map(pulseCodeFromResumeValue)
+              )
+            : _ => {};
+    const pulseCodeFromMessage$ = frp.compose(e.createOnSignalMessageStream(), frp.map(toPulseCode), rejectUndefined());
+    const aspect$ = frp.compose(
+        pulseCodeFromResume$,
+        frp.merge(pulseCodeFromMessage$),
+        frp.map(pc => atc.fromPulseCode(pc))
+    );
+
+    // Persist the current pulse code between save states.
+    if (pulseCodeControlValue !== undefined) {
+        const pulseCodeSave$ = frp.compose(pulseCodeFromMessage$, frp.map(pulseCodeToSaveValue));
+        pulseCodeSave$(cv => {
+            e.rv.SetControlValue(...pulseCodeControlValue, cv);
+        });
+    }
+
+    return aspect$;
+}
+
+/**
  * Converts a pulse code into a numeric value suitable for saving into a
  * control value.
  * @param pc The pulse code.
  * @returns The numeric value, between 0 an 1.
  */
-export function pulseCodeToSaveValue(pc: PulseCode) {
+function pulseCodeToSaveValue(pc: PulseCode) {
     return {
         [PulseCode.C_0_0]: 0.1,
         [PulseCode.C_75_0]: 0.2,
@@ -391,7 +430,7 @@ export function pulseCodeToSaveValue(pc: PulseCode) {
  * @param cv The value of the control value.
  * @returns The pulse code.
  */
-export function pulseCodeFromResumeValue(cv: number) {
+function pulseCodeFromResumeValue(cv: number) {
     if (cv < 0.15) {
         return PulseCode.C_0_0;
     } else if (cv < 0.25) {

@@ -11,15 +11,44 @@ import { VehicleUpdate } from "lib/frp-vehicle";
 import * as rw from "lib/railworks";
 
 export type AcsesState = {
+    /**
+     * The "true" braking curve speed, without any margin or miscellaneous speed
+     * enforcement applied.
+     */
+    curveSpeedMps: number;
+    /**
+     * The alert curve speed.
+     */
     alertCurveMps: number;
+    /**
+     * The penalty curve speed.
+     */
     penaltyCurveMps: number;
-    targetSpeedMps: number;
-    visibleSpeedMps: number;
+    /**
+     * The speed presented to the engineer for ACSES-I systems with no advance
+     * braking curve countdown.
+     */
+    stepSpeedMps: number;
+    /**
+     * The speed limit in effect for the current section of track.
+     */
+    currentLimitMps: number;
+    /**
+     * The speed limit that will go into effect after the current downward
+     * slope, if any.
+     */
+    nextLimitMps?: number;
+    /**
+     * The time to penalty displayed to the engineer.
+     */
     timeToPenaltyS?: number;
 };
 
-type TrackSpeedChangeAccum = undefined | [savedSpeedMps: number, upgradeAfterM: number];
 const minTrackSpeedUpgradeDistM = 350 * c.ft.toM; // about 4 car lengths
+// Taken from NJT documentation.
+const alertMarginMps = 3 * c.mph.toMps;
+const penaltyMarginMps = 6 * c.mph.toMps;
+const alertCountdownS = 8;
 
 /**
  * Distance traveled since the last search along with a collection of
@@ -41,25 +70,33 @@ const iterateStepM = 0.01;
 /**
  * Create a new ACSES instance.
  * @param e The player's engine.
- * @param isActive A behavior that indicates the unit is making computations.
- * @param violationForcesAlarm If true, exceeding the visible speed limit at
- * any time violates the alert curve.
+ * @param cutIn A behavior that indicates ACSES is cut in.
+ * @param stepsDown If true, exceeding the alert curve at any time reveals the
+ * advance speed limit and lowers the curve accordingly.
  * @param equipmentSpeedMps The maximum consist speed limit.
+ * @param atcCutIn A behavior that indicates the state of the ATC cut in
+ * control.
  * @returns An event stream that communicates all state for this system.
  */
 export function create(
     e: FrpEngine,
-    isActive: frp.Behavior<boolean>,
-    violationForcesAlarm: boolean,
-    equipmentSpeedMps: number
+    cutIn: frp.Behavior<boolean>,
+    stepsDown: boolean,
+    equipmentSpeedMps: number,
+    atcCutIn: frp.Behavior<boolean>
 ): frp.Stream<AcsesState> {
-    type HazardsAccum = {
-        advanceLimits: Map<number, AdvanceLimitHazard>;
-        stopSignals: Map<number, StopSignalHazard>;
-        hazards: Hazard[];
+    type PiecesAccum = {
+        speedPostViolated: Map<number, boolean>;
+        piecesByCurveSpeed: Piece[];
     };
 
-    const isInactive = frp.liftN(isActive => !isActive, isActive);
+    const authorizedMps = frp.liftN(
+        atcCutIn => (atcCutIn ? equipmentSpeedMps : Math.min(equipmentSpeedMps, 79 * c.mph.toMps)),
+        atcCutIn
+    );
+    const speedoMps = () => (e.rv.GetControlValue("SpeedometerMPH", 0) as number) * c.mph.toMps;
+
+    // Process positive stop signal messages.
     const ptsDistanceM = frp.stepper(
         frp.compose(
             e.createOnSignalMessageStream(),
@@ -79,15 +116,16 @@ export function create(
         true
     );
 
+    // Speed post and signal trackers
     const speedPostIndex$ = frp.compose(
         e.createPlayerWithKeyUpdateStream(),
         mapSpeedPostsStream(e),
-        indexObjectsSensedByDistance(isInactive),
+        indexObjectsSensedByDistance(cutIn),
         frp.hub()
     );
     const speedPostIndex = frp.stepper(speedPostIndex$, new Map<number, Sensed<SpeedPost>>());
     const signalIndex = frp.stepper(
-        frp.compose(e.createPlayerWithKeyUpdateStream(), mapSignalStream(e), indexObjectsSensedByDistance(isInactive)),
+        frp.compose(e.createPlayerWithKeyUpdateStream(), mapSignalStream(e), indexObjectsSensedByDistance(cutIn)),
         new Map<number, Sensed<Signal>>()
     );
 
@@ -97,55 +135,78 @@ export function create(
             e,
             () => e.rv.GetCurrentSpeedLimit()[0],
             () => e.rv.GetConsistLength(),
-            isInactive
+            cutIn
         ),
-        frp.fold<HazardsAccum, number>(
-            (accum, trackSpeedMps) => {
-                const speedoMps = (e.rv.GetControlValue("SpeedometerMPH", 0) as number) * c.mph.toMps;
-                const ptsM = frp.snapshot(ptsDistanceM);
+        frp.fold<PiecesAccum | undefined, number | undefined>((accum, trackSpeedMps) => {
+            if (trackSpeedMps === undefined) return undefined;
 
-                let hazards: Hazard[] = [];
-                const brakingCurveMps2 = penaltyCurveMps2 * brakingCurveGradientFactor(e.rv.GetGradient());
-                // Add advance speed limits.
-                let advanceLimits = new Map<number, AdvanceLimitHazard>();
-                for (const [id, sensed] of frp.snapshot(speedPostIndex)) {
-                    const hazard = accum.advanceLimits.get(id) || new AdvanceLimitHazard(violationForcesAlarm);
-                    advanceLimits.set(id, hazard);
-                    hazard.update(brakingCurveMps2, speedoMps, sensed);
-                    hazards.push(hazard);
+            const playerSpeedMps = frp.snapshot(speedoMps);
+            const curveMps2 = penaltyCurveMps2 * brakingCurveGradientFactor(e.rv.GetGradient());
+
+            let pieces: Piece[] = [];
+
+            // Add track and equipment speed limit.
+            const currentMps = Math.min(trackSpeedMps, frp.snapshot(authorizedMps));
+            pieces.push(constantSpeedPiece(currentMps));
+
+            // Add advance speed limits.
+            let speedPostViolated = new Map<number, boolean>();
+            for (const [id, [distanceM, post]] of frp.snapshot(speedPostIndex)) {
+                if (isHazardRightWay(distanceM, playerSpeedMps)) {
+                    const previouslyViolated = accum?.speedPostViolated.get(id) ?? false;
+                    const makePiece =
+                        stepsDown && previouslyViolated ? advanceLimitViolatedPiece : advanceLimitNotViolatedPiece;
+                    const slope = makePiece([distanceM, post], curveMps2);
+                    pieces.push(slope);
+
+                    const violated = Math.abs(playerSpeedMps) > slope.alertCurveMps;
+                    speedPostViolated.set(id, previouslyViolated || violated);
                 }
-                // Add stop signals if a positive stop is imminent.
-                let stopSignals = new Map<number, StopSignalHazard>();
-                if (frp.snapshot(enablePts)) {
-                    for (const [id, [distanceM, signal]] of frp.snapshot(signalIndex)) {
-                        if (signal.proState === rw.ProSignalState.Red) {
-                            const hazard = accum.stopSignals.get(id) || new StopSignalHazard();
-                            stopSignals.set(id, hazard);
-                            hazard.update(brakingCurveMps2, speedoMps, ptsM, distanceM);
-                            hazards.push(hazard);
-                        }
+            }
+
+            // Add stop signals if the cab signals are at Restricting.
+            if (frp.snapshot(enablePts)) {
+                for (const [, [distanceM, signal]] of frp.snapshot(signalIndex)) {
+                    const isStopSignal = signal.proState === rw.ProSignalState.Red;
+                    if (isStopSignal && isHazardRightWay(distanceM, playerSpeedMps)) {
+                        const slope = positiveStopPiece(
+                            [distanceM, signal],
+                            curveMps2,
+                            frp.snapshot(ptsDistanceM),
+                            playerSpeedMps
+                        );
+                        pieces.push(slope);
                     }
                 }
-                // Add current track speed limit.
-                hazards.push(new TrackSpeedHazard(Math.min(trackSpeedMps, equipmentSpeedMps)));
-                // Sort by alert curve speed.
-                hazards.sort((a, b) => a.alertCurveMps - b.alertCurveMps);
-                return { advanceLimits, stopSignals, hazards };
-            },
-            { advanceLimits: new Map(), stopSignals: new Map(), hazards: [] }
-        ),
+            }
+
+            // Sort by curve speed.
+            pieces.sort((a, b) => a.curveSpeedMps - b.curveSpeedMps);
+            return { speedPostViolated, piecesByCurveSpeed: pieces };
+        }, undefined),
         frp.map((accum): AcsesState => {
-            const inForce = accum.hazards[0];
-            const lowestVisible = accum.hazards.reduce((previous, current) =>
-                previous.visibleSpeedMps !== undefined ? previous : current
-            );
-            return {
-                alertCurveMps: inForce.alertCurveMps,
-                penaltyCurveMps: inForce.penaltyCurveMps,
-                targetSpeedMps: inForce.targetSpeedMps,
-                visibleSpeedMps: lowestVisible.visibleSpeedMps ?? inForce.targetSpeedMps,
-                timeToPenaltyS: inForce.timeToPenaltyS,
-            };
+            if (accum !== undefined) {
+                const pieces = accum.piecesByCurveSpeed;
+                const inForce = pieces[0];
+                return {
+                    curveSpeedMps: inForce.curveSpeedMps,
+                    alertCurveMps: inForce.alertCurveMps,
+                    penaltyCurveMps: inForce.penaltyCurveMps,
+                    stepSpeedMps: firstDefinedProperty(pieces, p => p.stepSpeedMps) ?? Infinity,
+                    currentLimitMps: firstDefinedProperty(pieces, p => p.currentLimitMps) ?? Infinity,
+                    nextLimitMps: firstDefinedProperty(pieces, p => p.nextLimitMps),
+                    timeToPenaltyS: firstDefinedProperty(pieces, p => p.timeToPenaltyS),
+                };
+            } else {
+                // Sane values for when ACSES is cut out
+                return {
+                    curveSpeedMps: 0,
+                    alertCurveMps: Infinity,
+                    penaltyCurveMps: Infinity,
+                    stepSpeedMps: 0,
+                    currentLimitMps: 0,
+                };
+            }
         })
     );
 }
@@ -304,74 +365,69 @@ function iterateRestrictiveSignals(
  * restriction.
  * @param consistLengthM A behavior to obtain the length of the player's
  * consist.
- * @param reset A behavior that can be used to reset this tracker.
+ * @param cutIn Reset the tracker's state if this behavior is false.
  * @returns The new event stream of track speed in m/s.
  */
 function createTrackSpeedStream(
     e: FrpEngine,
     gameTrackSpeedLimitMps: frp.Behavior<number>,
     consistLengthM: frp.Behavior<number>,
-    reset: frp.Behavior<boolean>
-): (eventStream: frp.Stream<Map<number, Sensed<SpeedPost>>>) => frp.Stream<number> {
+    cutIn: frp.Behavior<boolean>
+): (eventStream: frp.Stream<Map<number, Sensed<SpeedPost>>>) => frp.Stream<number | undefined> {
+    type TrackSpeedChangeAccum = undefined | [savedSpeedMps: number, upgradeAfterM: number];
+
     return indexStream => {
         const twoSidedPosts = frp.stepper(trackSpeedPostSpeeds(indexStream), new Map<number, TwoSidedSpeedPost>());
         return frp.compose(
             indexStream,
-            frp.fold<number, Map<number, Sensed<SpeedPost>>>(
-                (accum, index) => {
-                    if (frp.snapshot(reset)) {
-                        return 0;
-                    }
+            frp.fold<number | undefined, Map<number, Sensed<SpeedPost>>>((accum, index) => {
+                if (!frp.snapshot(cutIn)) return undefined;
 
-                    // Locate the adjacent speed posts.
-                    const justBefore = bestScoreOfMapEntries(index, (_, [distanceM]) =>
-                        distanceM < 0 ? distanceM : undefined
-                    );
-                    const justAfter = bestScoreOfMapEntries(index, (_, [distanceM]) =>
-                        distanceM > 0 ? -distanceM : undefined
-                    );
+                // Locate the adjacent speed posts.
+                const justBefore = bestScoreOfMapEntries(index, (_, [distanceM]) =>
+                    distanceM < 0 ? distanceM : undefined
+                );
+                const justAfter = bestScoreOfMapEntries(index, (_, [distanceM]) =>
+                    distanceM > 0 ? -distanceM : undefined
+                );
 
-                    // If we're on the other side of a recorded speed post, we can infer
-                    // the current speed limit.
-                    let inferredSpeedMps: number | undefined = undefined;
-                    if (justBefore !== undefined) {
-                        const twoPost = frp.snapshot(twoSidedPosts).get(justBefore) as TwoSidedSpeedPost;
-                        inferredSpeedMps = twoPost.after?.speedMps;
-                    }
-                    if (inferredSpeedMps === undefined && justAfter !== undefined) {
-                        const twoPost = frp.snapshot(twoSidedPosts).get(justAfter) as TwoSidedSpeedPost;
-                        inferredSpeedMps = twoPost.before?.speedMps;
-                    }
-                    // If inference fails, stick with the previous speed...
-                    if (inferredSpeedMps === undefined) {
-                        inferredSpeedMps = accum;
-                    }
+                // If we're on the other side of a recorded speed post, we can infer
+                // the current speed limit.
+                let inferredSpeedMps: number | undefined = undefined;
+                if (justBefore !== undefined) {
+                    const twoPost = frp.snapshot(twoSidedPosts).get(justBefore) as TwoSidedSpeedPost;
+                    inferredSpeedMps = twoPost.after?.speedMps;
+                }
+                if (inferredSpeedMps === undefined && justAfter !== undefined) {
+                    const twoPost = frp.snapshot(twoSidedPosts).get(justAfter) as TwoSidedSpeedPost;
+                    inferredSpeedMps = twoPost.before?.speedMps;
+                }
+                // If inference fails, stick with the previous speed...
+                if (inferredSpeedMps === undefined) {
+                    inferredSpeedMps = accum ?? Infinity;
+                }
 
-                    const gameSpeedMps = frp.snapshot(gameTrackSpeedLimitMps);
-                    if (gameSpeedMps > inferredSpeedMps) {
-                        // The game speed limit is strictly lower than the track speed
-                        // limit we're after, so if that is higher, then we should use it.
+                const gameSpeedMps = frp.snapshot(gameTrackSpeedLimitMps);
+                if (gameSpeedMps > inferredSpeedMps) {
+                    // The game speed limit is strictly lower than the track speed
+                    // limit we're after, so if that is higher, then we should use it.
+                    return gameSpeedMps;
+                } else if (justBefore !== undefined) {
+                    // If the previous speed post is behind the end of our train, then
+                    // we can also use the game speed limit.
+                    const [justBeforeDistanceM] = index.get(justBefore) as Sensed<SpeedPost>;
+                    if (-justBeforeDistanceM > frp.snapshot(consistLengthM)) {
                         return gameSpeedMps;
-                    } else if (justBefore !== undefined) {
-                        // If the previous speed post is behind the end of our train, then
-                        // we can also use the game speed limit.
-                        const [justBeforeDistanceM] = index.get(justBefore) as Sensed<SpeedPost>;
-                        if (-justBeforeDistanceM > frp.snapshot(consistLengthM)) {
-                            return gameSpeedMps;
-                        }
                     }
-                    return inferredSpeedMps;
-                },
-                0 // Should get instantly replaced by the game-calculated speed.
-            ),
+                }
+                return inferredSpeedMps;
+            }, undefined),
             // To smooth out frequent track speed changes, i.e. through
             // crossovers, impose a distance-based delay before upgrading the
             // track speed.
             frp.merge(e.createPlayerWithKeyUpdateStream()),
-            frp.fold<TrackSpeedChangeAccum, number | VehicleUpdate>((accum, input) => {
-                if (frp.snapshot(reset)) {
-                    return undefined;
-                }
+            frp.fold<TrackSpeedChangeAccum, number | undefined | VehicleUpdate>((accum, input) => {
+                if (!frp.snapshot(cutIn) || input === undefined) return undefined;
 
                 // New speed
                 if (typeof input === "number") {
@@ -399,8 +455,12 @@ function createTrackSpeedStream(
                 }
             }, undefined),
             frp.map(accum => {
-                const [savedSpeedMps] = accum ?? [0];
-                return savedSpeedMps;
+                if (accum !== undefined) {
+                    const [savedSpeedMps] = accum;
+                    return savedSpeedMps;
+                } else {
+                    return undefined;
+                }
             })
         );
     };
@@ -445,11 +505,11 @@ const trackSpeedPostSpeeds = frp.fold<Map<number, TwoSidedSpeedPost>, Map<number
  * d < 0|invisible|d > 0
  * ---->|_________|<----
  *
- * @param reset A behavior that can be used to reset this tracker.
+ * @param cutIn Reset the tracker's state if this behavior is false.
  * @returns An stream of mappings from unique identifier to sensed object.
  */
 function indexObjectsSensedByDistance<T>(
-    reset: frp.Behavior<boolean>
+    cutIn: frp.Behavior<boolean>
 ): (eventStream: frp.Stream<Reading<T>>) => frp.Stream<Map<number, Sensed<T>>> {
     type ObjectIndexAccum<T> = { counter: number; sensed: Map<number, Sensed<T>>; passing: Map<number, Sensed<T>> };
 
@@ -464,9 +524,7 @@ function indexObjectsSensedByDistance<T>(
         return frp.compose(
             eventStream,
             frp.fold<ObjectIndexAccum<T>, Reading<T>>((accum, reading) => {
-                if (frp.snapshot(reset)) {
-                    return accumStart;
-                }
+                if (!frp.snapshot(cutIn)) return accumStart;
 
                 const [traveledM, objects] = reading;
                 let counter = accum.counter;
@@ -566,169 +624,146 @@ function bestScoreOfMapEntries<K, V>(map: Map<K, V>, score: (key: K, value: V) =
     return best;
 }
 
+function isHazardRightWay(distanceM: number, playerSpeedMps: number) {
+    return (distanceM > 0 && playerSpeedMps >= 0) || (distanceM < 0 && playerSpeedMps <= 0);
+}
+
+function firstDefinedProperty<V, P>(arr: V[], callbackfn: (value: V) => P | undefined) {
+    for (const value of arr) {
+        const property = callbackfn(value);
+        switch (property) {
+            case undefined:
+            case null:
+            case {}:
+                break;
+            default:
+                return property;
+        }
+    }
+    return undefined;
+}
+
 /**
  * Describes any piece of the ACSES braking curve.
  */
-interface Hazard {
+type Piece = {
     /**
-     * The current alert curve speed.
+     * The "true" curve speed for this piece, without any margin or
+     * miscellaneous speed enforcement applied. Pieces are sorted by this speed.
+     */
+    curveSpeedMps: number;
+    /**
+     * The alert curve speed for this piece.
      */
     alertCurveMps: number;
     /**
-     * The current penalty curve speed.
+     * The penalty curve speed for this piece.
      */
     penaltyCurveMps: number;
     /**
-     * The track speed at the end of this piece of the braking curve.
+     * The speed presented to the engineer for ACSES-I systems with no advance
+     * braking curve countdown. This is defined only for constant speed pieces,
+     * advance speed limit slopes that have been violated, and stop signal
+     * slopes.
      */
-    targetSpeedMps: number;
+    stepSpeedMps?: number;
     /**
-     * The track speed to display to the engineer depending on the current state
-     * of the hazard.
+     * The speed limit in effect for the current section of track. This is
+     * defined only for constant speed pieces.
      */
-    visibleSpeedMps?: number;
+    currentLimitMps?: number;
     /**
-     * The time to penalty displayed to the engineer, if any.
+     * The speed limit that will go into effect after this downward slope.
+     * This is defined only for advance speed limit and stop signal slopes.
+     */
+    nextLimitMps?: number;
+    /**
+     * The time to penalty displayed to the engineer. This is defined only
+     * for stop signal slopes.
      */
     timeToPenaltyS?: number;
+};
+
+function constantSpeedPiece(limitMps: number): Piece {
+    return {
+        curveSpeedMps: limitMps,
+        alertCurveMps: limitMps + alertMarginMps,
+        penaltyCurveMps: limitMps + penaltyMarginMps,
+        stepSpeedMps: limitMps,
+        currentLimitMps: limitMps,
+    };
 }
 
-/**
- * A stateless hazard that represents the current track speed limit.
- */
-class TrackSpeedHazard implements Hazard {
-    readonly alertCurveMps: number;
-    readonly penaltyCurveMps: number;
-    readonly targetSpeedMps: number;
-    readonly visibleSpeedMps: number;
-    readonly timeToPenaltyS = undefined;
-
-    constructor(speedMps: number) {
-        this.alertCurveMps = speedMps + cs.alertMarginMps;
-        this.penaltyCurveMps = speedMps + cs.penaltyMarginMps;
-        this.targetSpeedMps = this.visibleSpeedMps = speedMps;
-    }
+function advanceLimitNotViolatedPiece(sensed: Sensed<SpeedPost>, curveMps2: number): Piece {
+    const [distanceM, post] = sensed;
+    const aDistanceM = Math.abs(distanceM);
+    const alertCurveMps = Math.min(
+        getBrakingCurve(curveMps2, post.speedMps + penaltyMarginMps, aDistanceM, alertCountdownS),
+        getBrakingCurve(curveMps2, post.speedMps + alertMarginMps, aDistanceM, 0)
+    );
+    return {
+        curveSpeedMps: alertCurveMps - alertMarginMps,
+        alertCurveMps,
+        penaltyCurveMps: getBrakingCurve(curveMps2, post.speedMps + penaltyMarginMps, aDistanceM, 0),
+        nextLimitMps: post.speedMps,
+    };
 }
 
-/**
- * An advance speed limit tracks the distance at which it is violated, and
- * reveals itself to the engineer.
- */
-class AdvanceLimitHazard implements Hazard {
-    alertCurveMps: number = Infinity;
-    penaltyCurveMps: number = Infinity;
-    targetSpeedMps: number = Infinity;
-    visibleSpeedMps?: number = undefined;
-    readonly timeToPenaltyS = undefined;
-
-    private violationForcesAlarm: boolean;
-    private violatedAtM?: number = undefined;
-
-    constructor(vfa: boolean) {
-        this.violationForcesAlarm = vfa;
-    }
-
-    update(curveMps2: number, playerSpeedMps: number, sensed: Sensed<SpeedPost>) {
-        const [distanceM, post] = sensed;
-        const aDistanceM = Math.abs(distanceM);
-
-        // Reveal this limit if the advance braking curve has been violated.
-        let revealTrackSpeed: boolean;
-        if (this.violatedAtM !== undefined) {
-            if (distanceM > 0 && playerSpeedMps > 0) {
-                revealTrackSpeed = distanceM > 0 && distanceM < this.violatedAtM;
-            } else if (distanceM < 0 && playerSpeedMps < 0) {
-                revealTrackSpeed = distanceM < 0 && distanceM > this.violatedAtM;
-            } else {
-                revealTrackSpeed = false;
-            }
-        } else {
-            revealTrackSpeed = false;
-        }
-
-        const rightWay = (distanceM > 0 && playerSpeedMps >= 0) || (distanceM < 0 && playerSpeedMps <= 0);
-        if (rightWay) {
-            this.alertCurveMps =
-                this.violationForcesAlarm && revealTrackSpeed
-                    ? post.speedMps + cs.alertMarginMps
-                    : Math.max(
-                          getBrakingCurve(curveMps2, post.speedMps, aDistanceM, cs.alertCountdownS),
-                          post.speedMps + cs.alertMarginMps
-                      );
-            this.penaltyCurveMps = Math.max(
-                getBrakingCurve(curveMps2, post.speedMps, aDistanceM, 0),
-                post.speedMps + cs.penaltyMarginMps
-            );
-        } else {
-            this.alertCurveMps = this.penaltyCurveMps = Infinity;
-        }
-        this.targetSpeedMps = post.speedMps;
-        this.visibleSpeedMps = revealTrackSpeed ? post.speedMps : undefined;
-        if (this.violatedAtM === undefined && Math.abs(playerSpeedMps) > this.alertCurveMps) {
-            this.violatedAtM = distanceM;
-        }
-    }
+function advanceLimitViolatedPiece(sensed: Sensed<SpeedPost>, curveMps2: number): Piece {
+    const [distanceM, post] = sensed;
+    const aDistanceM = Math.abs(distanceM);
+    const alertCurveMps = Math.min(
+        getBrakingCurve(curveMps2, post.speedMps + penaltyMarginMps, aDistanceM, alertCountdownS),
+        getBrakingCurve(curveMps2, post.speedMps + alertMarginMps, aDistanceM, 0)
+    );
+    return {
+        curveSpeedMps: alertCurveMps - alertMarginMps,
+        alertCurveMps: post.speedMps + alertMarginMps,
+        penaltyCurveMps: getBrakingCurve(curveMps2, post.speedMps + penaltyMarginMps, aDistanceM, 0),
+        stepSpeedMps: post.speedMps,
+        nextLimitMps: post.speedMps,
+    };
 }
 
-/**
- * A positive stop hazard only reveals itself when it is violated.
- */
-class StopSignalHazard implements Hazard {
-    alertCurveMps: number = Infinity;
-    penaltyCurveMps: number = Infinity;
-    readonly targetSpeedMps = 0;
-    visibleSpeedMps?: number;
-    timeToPenaltyS?: number;
+function positiveStopPiece(
+    sensed: Sensed<Signal>,
+    curveMps2: number,
+    ptsDistanceM: number | false,
+    playerSpeedMps: number
+): Piece {
+    const [distanceM] = sensed;
+    const enforceStop = ptsDistanceM !== false;
 
-    private violatedAtM?: number = undefined;
+    const cushionM = 85 * c.ft.toM;
+    const minAlarmSpeedMps = 0.5 * c.mph.toMps;
+    const targetDistanceM = (enforceStop ? ptsDistanceM : 0) + cushionM;
+    const curveDistanceM = Math.max(Math.abs(distanceM) - targetDistanceM, 0);
+    const alertCurveMps = Math.max(getBrakingCurve(curveMps2, 0, curveDistanceM, alertCountdownS), minAlarmSpeedMps);
+    const penaltyCurveMps = Math.max(getBrakingCurve(curveMps2, 0, curveDistanceM, 0), minAlarmSpeedMps);
+    const isImminent = alertCurveMps <= 20 * c.mph.toMps + alertMarginMps;
 
-    update(curveMps2: number, playerSpeedMps: number, ptsDistanceM: number | false, distanceM: number) {
-        // Only reveal a positive stop if the advance braking curve has been violated.
-        let reveal: boolean;
-        if (this.violatedAtM !== undefined) {
-            if (distanceM > 0 && playerSpeedMps > 0) {
-                reveal = distanceM > 0 && distanceM < this.violatedAtM;
-            } else if (distanceM < 0 && playerSpeedMps < 0) {
-                reveal = distanceM < 0 && distanceM > this.violatedAtM;
-            } else {
-                reveal = false;
-            }
-        } else {
-            reveal = false;
-        }
-
-        const cushionM = 85 * c.ft.toM;
-        const targetDistanceM = (ptsDistanceM === false ? 0 : ptsDistanceM) + cushionM;
-        const curveDistanceM = Math.max(Math.abs(distanceM) - targetDistanceM, 0);
-        const alertCurveMps = getBrakingCurve(curveMps2, 0, curveDistanceM, cs.alertCountdownS);
-
-        const rightWay = (distanceM > 0 && playerSpeedMps >= 0) || (distanceM < 0 && playerSpeedMps <= 0);
-        const enforceStop = ptsDistanceM !== false;
-        if (reveal && rightWay && enforceStop) {
-            // Positive stop enforcement for LIRR
-            this.alertCurveMps = alertCurveMps;
-            this.penaltyCurveMps = getBrakingCurve(curveMps2, 0, curveDistanceM, 0);
-            this.visibleSpeedMps = 0;
-            const ttpS = getTimeToPenaltyS(curveMps2, 0, playerSpeedMps, curveDistanceM);
-            this.timeToPenaltyS = ttpS < 0 || ttpS > 60 ? undefined : ttpS;
-        } else if (reveal && rightWay) {
-            // For all other routes, use a "soft" positive stop that only
-            // enforces the 15 mph interlocking speed.
-            // (As a side effect, this mode only activates if the track speed
-            // limit is above 15 mph.)
-            this.alertCurveMps = Math.max(alertCurveMps, stopReleaseMps);
-            this.penaltyCurveMps = Infinity;
-            this.visibleSpeedMps = 0;
-            this.timeToPenaltyS = undefined;
-        } else {
-            this.alertCurveMps = Infinity;
-            this.penaltyCurveMps = Infinity;
-            this.visibleSpeedMps = undefined;
-            this.timeToPenaltyS = undefined;
-        }
-        if (this.violatedAtM === undefined && Math.abs(playerSpeedMps) > alertCurveMps) {
-            this.violatedAtM = distanceM;
-        }
+    if (enforceStop || !isImminent) {
+        // For fully positive stop-aware routes like LIRR, let the curve take
+        // the player all the way down to a stop.
+        const timeToPenaltyS = getTimeToPenaltyS(curveMps2, 0, Math.abs(playerSpeedMps), curveDistanceM);
+        return {
+            curveSpeedMps: alertCurveMps,
+            alertCurveMps,
+            penaltyCurveMps,
+            stepSpeedMps: isImminent ? 0 : undefined,
+            nextLimitMps: isImminent ? 0 : undefined,
+            timeToPenaltyS: isImminent ? timeToPenaltyS : undefined,
+        };
+    } else {
+        // For all other routes, use a "soft" positive stop that only enforces
+        // the interlocking speed.
+        return {
+            curveSpeedMps: stopReleaseMps,
+            alertCurveMps: stopReleaseMps + alertMarginMps,
+            penaltyCurveMps: stopReleaseMps + penaltyMarginMps,
+            stepSpeedMps: stopReleaseMps,
+            nextLimitMps: 0,
+        };
     }
 }
 
@@ -738,9 +773,10 @@ function getBrakingCurve(a: number, vf: number, d: number, t: number) {
 
 function getTimeToPenaltyS(a: number, vf: number, vi: number, d: number) {
     if (Math.abs(vf - vi) < c.stopSpeed) {
-        return Infinity;
+        return undefined;
     } else {
-        return (d - (Math.pow(vf, 2) - Math.pow(vi, 2)) / (2 * a)) / vi;
+        const ttpS = (d - (Math.pow(vf, 2) - Math.pow(vi, 2)) / (2 * a)) / vi;
+        return ttpS >= 0 && ttpS <= 60 ? ttpS : undefined;
     }
 }
 

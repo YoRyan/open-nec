@@ -78,25 +78,35 @@ export function create(
     type AduInput = adu.AduInput<cs.AmtrakAspect>;
 
     // MNRR aspect indicators
-    const isMnrrAspect$ = frp.compose(e.createOnSignalMessageStream(), frp.map(cs.isMnrrAspect), rejectUndefined());
-    const isMnrrAspect = frp.stepper(isMnrrAspect$, false);
+    const isMnrrAspect = frp.stepper(
+        frp.compose(e.createOnSignalMessageStream(), frp.map(cs.isMnrrAspect), rejectUndefined()),
+        false
+    );
 
     // ADU computation
     const getDowngrades = (eventStream: frp.Stream<[AduInput, AduInput]>) =>
         frp.compose(
             eventStream,
             frp.map(([from, to]) => {
-                if (frp.snapshot(atcCutIn) && aspectSuperiority(from) > aspectSuperiority(to)) {
+                // Emit events for cab signal drops regardless of MAS.
+                const atcActive = frp.snapshot(atcCutIn);
+                if (atcActive && aspectSuperiority(from) > aspectSuperiority(to)) {
                     return adu.AduEvent.AtcDowngrade;
-                } else if (
-                    from.enforcing !== undefined &&
-                    to.enforcing !== undefined &&
-                    from.enforcing.visibleSpeedMps > to.enforcing.visibleSpeedMps
-                ) {
-                    return to.enforcing === to.atc ? adu.AduEvent.AtcDowngrade : adu.AduEvent.AcsesDowngrade;
-                } else {
-                    return undefined;
                 }
+
+                // For MAS drops, emit a downgrade event for the enforcing system.
+                const acsesActive = frp.snapshot(acsesCutIn);
+                const fromMps = authorizedSpeedMps(from, atcActive, acsesActive);
+                const toMps = authorizedSpeedMps(to, atcActive, acsesActive);
+                if (fromMps !== undefined && toMps !== undefined && fromMps > toMps) {
+                    return {
+                        [adu.AduEnforcing.Atc]: adu.AduEvent.AtcDowngrade,
+                        [adu.AduEnforcing.Acses]: adu.AduEvent.AcsesDowngrade,
+                        [adu.AduEnforcing.None]: undefined,
+                    }[to.enforcing];
+                }
+
+                return undefined;
             }),
             rejectUndefined()
         );
@@ -104,7 +114,7 @@ export function create(
         adu.create(
             cs.amtrakAtc,
             getDowngrades,
-            true,
+            false,
             equipmentSpeedMps,
             e,
             acknowledge,
@@ -115,60 +125,29 @@ export function create(
         ),
         frp.hub()
     );
-    const initialOutput: adu.AduOutput<cs.AmtrakAspect> = {
-        aspect: cs.amtrakAtc.initialAspect,
-        state: adu.AduMode.Normal,
-    };
-    const output = frp.stepper(output$, initialOutput);
+    const output = frp.stepper(output$, undefined);
+    const alarmPlaying = frp.liftN(output => (output?.atcAlarm || output?.acsesAlarm) ?? false, output);
 
-    const isAlarm = frp.liftN(output => {
-        if (output.state === adu.AduMode.Normal) {
-            return false;
-        } else {
-            const [mode] = output.state;
-            if (mode === adu.AduMode.AtcOverspeed) {
-                const [, startS] = output.state;
-                // Check for suppression.
-                return startS !== Infinity;
-            } else if (mode === adu.AduMode.AcsesPositiveStop) {
-                const [, ack, stopped] = output.state;
-                return !(ack && stopped);
-            } else {
-                return true;
-            }
-        }
-    }, output);
-
-    // Cab aspect flash
+    // Aspect display, including cab speed flash
     const aspectFlashStart$ = frp.compose(
         output$,
         frp.map(output => output.aspect),
-        fsm<cs.AmtrakAspect | adu.AduAspect>(cs.amtrakAtc.initialAspect),
+        fsm<cs.AmtrakAspect | adu.AduAspect>(cs.amtrakAtc.restricting),
         frp.filter(([from, to]) => from !== to),
-        frp.filter(([from, to]) => to === cs.AmtrakAspect.ApproachLimited || (!isCabSignal(from) && isCabSignal(to)))
+        frp.filter(([from, to]) => to === cs.AmtrakAspect.ApproachLimited || (!isCabSpeed(from) && isCabSpeed(to)))
     );
-    const aspectFlash$ = frp.compose(
-        e.createPlayerWithKeyUpdateStream(),
-        fx.eventStopwatchS(aspectFlashStart$),
-        frp.map(stopwatchS => stopwatchS !== undefined && stopwatchS % (aspectFlashS * 2) < aspectFlashS)
+    const aspectFlashOn = frp.stepper(
+        frp.compose(
+            e.createPlayerWithKeyUpdateStream(),
+            fx.eventStopwatchS(aspectFlashStart$),
+            frp.map(stopwatchS => stopwatchS !== undefined && stopwatchS % (aspectFlashS * 2) < aspectFlashS)
+        ),
+        false
     );
-    const aspectFlashOn = frp.stepper(aspectFlash$, false);
-
-    // Enforcing light flash
-    const enforcingFlash$ = frp.compose(
-        e.createPlayerWithKeyUpdateStream(),
-        fx.behaviorStopwatchS(isAlarm),
-        frp.map(stopwatchS => stopwatchS !== undefined && stopwatchS % (enforcingFlashS * 2) > enforcingFlashS)
-    );
-    const enforcingFlashOn = frp.stepper(enforcingFlash$, false);
-
-    const state$ = frp.compose(
-        output$,
-        frp.map((output): AduState => {
-            const alarm = frp.snapshot(isAlarm);
-
-            const flashOn = frp.snapshot(aspectFlashOn);
-            const aspect = {
+    const aspect = frp.liftN(
+        (output, flashOn) => {
+            const outputAspect = output?.aspect ?? cs.AmtrakAspect.Restricting;
+            return {
                 [adu.AduAspect.Stop]: AduAspect.Stop,
                 [cs.AmtrakAspect.Restricting]: AduAspect.Restrict,
                 [cs.AmtrakAspect.Approach]: AduAspect.Approach,
@@ -179,79 +158,119 @@ export function create(
                 [cs.AmtrakAspect.Clear100]: AduAspect.Clear100,
                 [cs.AmtrakAspect.Clear125]: AduAspect.Clear125,
                 [cs.AmtrakAspect.Clear150]: AduAspect.Clear150,
-            }[output.aspect];
+            }[outputAspect];
+        },
+        output,
+        aspectFlashOn
+    );
 
-            const enforcingOn = frp.snapshot(enforcingFlashOn);
-            let masEnforcing: MasEnforcing;
-            if (output.state === adu.AduMode.Normal) {
-                if (output.enforcing === undefined) {
-                    masEnforcing = MasEnforcing.Off;
-                } else if (output.enforcing === output.atc) {
-                    masEnforcing = MasEnforcing.Atc;
-                } else {
-                    masEnforcing = MasEnforcing.Acses;
-                }
-            } else if (alarm && !enforcingOn) {
-                masEnforcing = MasEnforcing.Off;
+    // ATC & ACSES enforcing lights, including alarm flash
+    const enforcingFlashOn = frp.stepper(
+        frp.compose(
+            e.createPlayerWithKeyUpdateStream(),
+            fx.behaviorStopwatchS(alarmPlaying),
+            frp.map(stopwatchS => stopwatchS !== undefined && stopwatchS % (enforcingFlashS * 2) > enforcingFlashS)
+        ),
+        false
+    );
+    const masEnforcing = frp.liftN(
+        (output, alarmPlaying, flashOn) => {
+            if (alarmPlaying && !flashOn) {
+                return MasEnforcing.Off;
             } else {
-                const [mode] = output.state;
-                masEnforcing =
-                    mode === adu.AduMode.AtcOverspeed || mode === adu.AduMode.AtcPenalty
-                        ? MasEnforcing.Atc
-                        : MasEnforcing.Acses;
+                const enforcing = output?.enforcing ?? adu.AduEnforcing.None;
+                return {
+                    [adu.AduEnforcing.Atc]: MasEnforcing.Atc,
+                    [adu.AduEnforcing.Acses]: MasEnforcing.Acses,
+                    [adu.AduEnforcing.None]: MasEnforcing.Off,
+                }[enforcing];
             }
+        },
+        output,
+        alarmPlaying,
+        enforcingFlashOn
+    );
 
-            const masSpeedMps = output.enforcing?.visibleSpeedMps;
-            const masSpeedMph = masSpeedMps === undefined ? undefined : masSpeedMps * c.mps.toMph;
-
-            let penaltyBrake: boolean;
-            if (output.state === adu.AduMode.Normal) {
-                penaltyBrake = false;
-            } else {
-                const [mode] = output.state;
-                penaltyBrake =
-                    mode === adu.AduMode.AtcPenalty ||
-                    mode === adu.AduMode.AcsesPenalty ||
-                    mode === adu.AduMode.AcsesPositiveStop;
+    // Combined MAS
+    const masSpeedMph = frp.liftN(
+        (output, atcCutIn, acsesCutIn) => {
+            const atcMps = cs.amtrakAtc.getSpeedMps(output?.atcAspect ?? cs.AmtrakAspect.Restricting);
+            const acsesMps = output?.acsesState?.curveSpeedMps ?? Infinity;
+            let mps: number | undefined = undefined;
+            if (atcCutIn && acsesCutIn) {
+                mps = Math.min(atcMps, acsesMps);
+            } else if (atcCutIn) {
+                mps = atcMps;
+            } else if (acsesCutIn) {
+                mps = acsesMps;
             }
+            return mps !== undefined ? Math.round(mps * c.mps.toMph) : undefined;
+        },
+        output,
+        atcCutIn,
+        acsesCutIn
+    );
 
+    // Output state and events
+    const state$ = frp.compose(
+        output$,
+        frp.map((output): AduState => {
             return {
-                aspect,
+                aspect: frp.snapshot(aspect),
                 isMnrrAspect: frp.snapshot(isMnrrAspect),
-                masEnforcing,
-                masSpeedMph,
-                timeToPenaltyS: output.enforcing?.timeToPenaltyS,
-                alarm,
-                penaltyBrake,
+                masEnforcing: frp.snapshot(masEnforcing),
+                masSpeedMph: frp.snapshot(masSpeedMph),
+                timeToPenaltyS: output?.acsesState?.timeToPenaltyS,
+                alarm: frp.snapshot(alarmPlaying),
+                penaltyBrake: output?.penaltyBrake ?? false,
             };
         })
     );
     const events$ = frp.compose(
         output$,
-        fsm(initialOutput),
+        fsm<adu.AduOutput<cs.AmtrakAspect> | undefined>(undefined),
         frp.map(([from, to]) => {
-            if (frp.snapshot(atcCutIn) && aspectSuperiority(from) < aspectSuperiority(to)) {
+            if (from === undefined || to === undefined) return undefined;
+
+            // Emit events for cab signal upgrades regardless of MAS.
+            const atcActive = frp.snapshot(atcCutIn);
+            if (atcActive && aspectSuperiority(from) < aspectSuperiority(to)) {
                 return AduEvent.Upgrade;
-            } else if (
-                from.enforcing !== undefined &&
-                to.enforcing !== undefined &&
-                from.enforcing.visibleSpeedMps < to.enforcing.visibleSpeedMps
-            ) {
-                return AduEvent.Upgrade;
-            } else {
-                return undefined;
             }
+
+            // Emit events for MAS increases too.
+            const acsesActive = frp.snapshot(acsesCutIn);
+            const fromMps = authorizedSpeedMps(from, atcActive, acsesActive);
+            const toMps = authorizedSpeedMps(to, atcActive, acsesActive);
+            if (fromMps !== undefined && toMps !== undefined && fromMps < toMps) {
+                return AduEvent.Upgrade;
+            }
+
+            return undefined;
         }),
         rejectUndefined()
     );
     return [state$, events$];
 }
 
-function aspectSuperiority(input: adu.AduInput<cs.AmtrakAspect>) {
-    const aspect = input.aspect;
-    return aspect === adu.AduAspect.Stop ? -1 : cs.amtrakAtc.getSuperiority(aspect);
+function authorizedSpeedMps(input: adu.AduInput<cs.AmtrakAspect>, atcCutIn: boolean, acsesCutIn: boolean) {
+    const atcMps = cs.amtrakAtc.getSpeedMps(input.atcAspect);
+    const acsesMps = input.acsesState?.currentLimitMps ?? 0;
+    if (atcCutIn && acsesCutIn) {
+        return Math.min(atcMps, acsesMps);
+    } else if (atcCutIn) {
+        return atcMps;
+    } else if (acsesCutIn) {
+        return acsesMps;
+    } else {
+        return undefined;
+    }
 }
 
-function isCabSignal(aspect: cs.AmtrakAspect | adu.AduAspect) {
+function aspectSuperiority(input: adu.AduInput<cs.AmtrakAspect>) {
+    return adu.getAspectSuperiority(cs.amtrakAtc, input);
+}
+
+function isCabSpeed(aspect: cs.AmtrakAspect | adu.AduAspect) {
     return aspect === cs.AmtrakAspect.CabSpeed60 || aspect === cs.AmtrakAspect.CabSpeed80;
 }
