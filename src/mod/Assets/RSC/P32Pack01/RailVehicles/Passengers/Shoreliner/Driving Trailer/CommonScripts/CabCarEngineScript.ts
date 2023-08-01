@@ -239,6 +239,9 @@ const me = new FrpEngine(() => {
         me.rv.ActivateNode("brakelight", on);
     });
 
+    // Set platform door height.
+    fx.setLowPlatformDoorsForEngine(me, true);
+
     // Enable updates.
     me.e.BeginUpdate();
 });

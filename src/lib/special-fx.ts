@@ -12,7 +12,9 @@ import * as ps from "./power-supply";
 import * as rw from "./railworks";
 
 const sparkTickS = 0.2;
+const brakeLightMessageFrequencyS = 1;
 const brakeLightMessageId = 10101;
+const lowPlatformMessageId = 10146;
 
 /**
  * Track the time that has elapsed since a condition began to be true.
@@ -159,18 +161,33 @@ export function createBrakeLightStreamForEngine(
     eng: FrpEngine,
     isPlayerBraking?: frp.Behavior<boolean>
 ): frp.Stream<boolean> {
-    isPlayerBraking ??= () => (eng.rv.GetControlValue("AirBrakePipePressurePSI", 0) as number) < 100;
-    const playerStatus$ = frp.compose(eng.createPlayerWithKeyUpdateStream(), mapBehavior(isPlayerBraking), frp.hub());
+    const brakePipePsi = () => eng.rv.GetControlValue("AirBrakePipePressurePSI", 0) as number;
+    isPlayerBraking ??= frp.liftN(psi => psi < 100, brakePipePsi);
 
     // When under player control, send consist messages.
-    const playerSend$ = frp.compose(playerStatus$, rejectRepeats());
-    playerSend$(applied => {
-        const content = applied ? "1" : "0";
-        eng.rv.SendConsistMessage(brakeLightMessageId, content, rw.ConsistDirection.Forward);
-        eng.rv.SendConsistMessage(brakeLightMessageId, content, rw.ConsistDirection.Backward);
+    const brakeMessage = frp.liftN(
+        (applied, psi) => `${applied ? "1" : "0"}.10101${string.format("%03d", psi)}`,
+        isPlayerBraking,
+        brakePipePsi
+    );
+    const playerSend$ = frp.compose(
+        eng.createPlayerWithKeyUpdateStream(),
+        frp.throttle(brakeLightMessageFrequencyS * 1000),
+        mapBehavior(brakeMessage)
+    );
+    playerSend$(msg => {
+        eng.rv.SendConsistMessage(brakeLightMessageId, msg, rw.ConsistDirection.Forward);
+        eng.rv.SendConsistMessage(brakeLightMessageId, msg, rw.ConsistDirection.Backward);
     });
 
-    return frp.compose(playerStatus$, frp.merge(createBrakeLightStreamForWagon(eng)), rejectRepeats());
+    // When under player control, set our own brake lights; when under AI
+    // control, read consist messages.
+    return frp.compose(
+        eng.createPlayerWithKeyUpdateStream(),
+        mapBehavior(isPlayerBraking),
+        frp.merge(createBrakeLightStreamForWagon(eng)),
+        rejectRepeats()
+    );
 }
 
 /**
@@ -202,6 +219,42 @@ export function createBrakeLightStreamForWagon(v: FrpVehicle): frp.Stream<boolea
         // transmitted by the player engine, but that's acceptable.
         frp.merge(fromConsist$)
     );
+}
+
+/**
+ * Set the the low- and high-platform modes of the Amfleet I enhancement pack
+ * (and future compatible equipment).
+ * @param eng The engine.
+ * @param aiLow Use low-platform doors for AI trains.
+ * @param playerLow A behavior that indicates the player selected low-platform
+ * doors.
+ */
+export function setLowPlatformDoorsForEngine(eng: FrpEngine, aiLow: boolean, playerLow?: frp.Behavior<boolean>) {
+    playerLow ??= () => (eng.rv.GetControlValue("Reverser", 0) as number) === 0;
+
+    // Send consist messages.
+    const playerSend$ = frp.compose(eng.createPlayerWithKeyUpdateStream(), mapBehavior(playerLow));
+    const send$ = frp.compose(
+        eng.createAiUpdateStream(),
+        frp.map(_ => aiLow),
+        frp.merge(playerSend$),
+        rejectRepeats(),
+        frp.map(low => (low ? "1" : "0"))
+    );
+    send$(msg => {
+        eng.rv.SendConsistMessage(lowPlatformMessageId, msg, rw.ConsistDirection.Forward);
+        eng.rv.SendConsistMessage(lowPlatformMessageId, msg, rw.ConsistDirection.Backward);
+    });
+
+    // Also forward messages in case other engines separate the player's engine
+    // from the rest of the consist.
+    const forward$ = frp.compose(
+        eng.createOnConsistMessageStream(),
+        frp.filter(([id]) => id === lowPlatformMessageId)
+    );
+    forward$(([, content, direction]) => {
+        eng.rv.SendConsistMessage(lowPlatformMessageId, content, direction);
+    });
 }
 
 /**

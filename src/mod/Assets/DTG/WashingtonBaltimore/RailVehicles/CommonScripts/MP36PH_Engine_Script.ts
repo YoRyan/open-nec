@@ -468,6 +468,9 @@ const me = new FrpEngine(() => {
     // Set consist brake lights.
     fx.createBrakeLightStreamForEngine(me);
 
+    // Set platform door height.
+    fx.setLowPlatformDoorsForEngine(me, true);
+
     // Enable updates.
     me.e.BeginUpdate();
 });
