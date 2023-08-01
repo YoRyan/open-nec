@@ -188,7 +188,7 @@ export function createBrakeLightStreamForWagon(v: FrpVehicle): frp.Stream<boolea
     );
     const fromConsist$ = frp.compose(
         consistMessage$,
-        frp.map(([, content]) => parseInt(content) > 0.5)
+        frp.map(([, content]) => parseFloat(content) > 0.167)
     );
     consistMessage$(([, content, direction]) => {
         v.rv.SendConsistMessage(brakeLightMessageId, content, direction);
