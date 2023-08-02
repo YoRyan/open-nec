@@ -185,8 +185,7 @@ export function createBrakeLightStreamForEngine(
     return frp.compose(
         eng.createPlayerWithKeyUpdateStream(),
         mapBehavior(isPlayerBraking),
-        frp.merge(createBrakeLightStreamForWagon(eng)),
-        rejectRepeats()
+        frp.merge(createBrakeLightStreamForWagon(eng))
     );
 }
 

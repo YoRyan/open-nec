@@ -234,7 +234,7 @@ const me = new FrpEngine(() => {
     });
 
     // Set consist brake lights.
-    const brakeLight$ = fx.createBrakeLightStreamForEngine(me);
+    const brakeLight$ = frp.compose(fx.createBrakeLightStreamForEngine(me), rejectRepeats());
     brakeLight$(on => {
         me.rv.ActivateNode("brakelight", on);
     });

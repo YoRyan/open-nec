@@ -431,9 +431,12 @@ const me = new FrpEngine(() => {
     });
 
     // Brake status lights
-    const brakeLight$ = fx.createBrakeLightStreamForEngine(
-        me,
-        () => (me.rv.GetControlValue("TrainBrakeCylinderPressurePSI", 0) as number) > 34
+    const brakeLight$ = frp.compose(
+        fx.createBrakeLightStreamForEngine(
+            me,
+            () => (me.rv.GetControlValue("TrainBrakeCylinderPressurePSI", 0) as number) > 34
+        ),
+        rejectRepeats()
     );
     brakeLight$(on => {
         me.rv.ActivateNode("SL_green", !on);
