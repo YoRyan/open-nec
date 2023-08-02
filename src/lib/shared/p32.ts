@@ -55,7 +55,9 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
             ) as number;
             return throttle < 0.5;
         },
-        dualModeSwitchS
+        dualModeSwitchS,
+        false,
+        ["MaximumSpeedLimit", 0]
     );
     modeSwitch$(mode => {
         if (mode === ps.EngineMode.ThirdRail) {
@@ -76,15 +78,15 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
     });
     // Power3rdRail is not set correctly in the third-rail engine blueprint, so
     // set it ourselves based on the value of PowerMode.
-    // TODO: This breaks save/restore of electrification state.
-    const setInitElectrification$ = frp.compose(
+    const resumeFromSave = frp.stepper(me.createFirstUpdateStream(), false);
+    const fixElectrification$ = frp.compose(
         me.createUpdateStream(),
-        frp.filter(_ => frp.snapshot(me.areControlsSettled)),
+        frp.filter(_ => !frp.snapshot(resumeFromSave) && frp.snapshot(me.areControlsSettled)),
+        once(),
         mapBehavior(modeSelect),
-        frp.map(mode => (mode === ps.EngineMode.ThirdRail ? 1 : 0)),
-        once()
+        frp.map(mode => (mode === ps.EngineMode.ThirdRail ? 1 : 0))
     );
-    setInitElectrification$(thirdRail => {
+    fixElectrification$(thirdRail => {
         me.rv.SetControlValue("Power3rdRail", 0, thirdRail);
     });
 

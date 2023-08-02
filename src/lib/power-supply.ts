@@ -4,7 +4,7 @@
 
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { fsm, rejectUndefined } from "lib/frp-extra";
+import { fsm, rejectRepeats, rejectUndefined } from "lib/frp-extra";
 import * as rw from "lib/railworks";
 import * as ui from "lib/ui";
 
@@ -64,6 +64,8 @@ export function uniModeEngineHasPower(
  * @param transitionS The time it takes to transition between the modes.
  * @param popupsRequireEngineWithKey If true, popups will only be shown by the
  * lead player engine.
+ * @param positionControlValue The name and index of the control value to use
+ * to persist the power state between save states.
  * @returns A stream that emits the current power state of the locomotive, as a
  * number scaled from 0 (operating in mode #1) to 1 (operating in mode #2), and
  * a stream that emits the new selected operating mode if automatic switching is
@@ -77,14 +79,27 @@ export function createDualModeEngineStream<A extends EngineMode, B extends Engin
     getAutoSwitch: frp.Behavior<boolean>,
     getCanTransition: frp.Behavior<boolean>,
     transitionS: number,
-    popupsRequireEngineWithKey?: boolean
+    popupsRequireEngineWithKey: boolean,
+    positionControlValue?: [name: string, index: number]
 ): [position: frp.Stream<number>, autoMode: frp.Stream<EngineMode>] {
     const isEngineStarted = () => (e.rv.GetControlValue("Startup", 0) as number) > 0;
     const autoSwitch$ = createDualModeAutoSwitchStream(e, modeA, modeB, getAutoSwitch);
+    const playerPositionResume$: frp.Stream<number> =
+        positionControlValue !== undefined
+            ? frp.compose(
+                  e.createOnResumeStream(),
+                  frp.map(() => e.rv.GetControlValue(...positionControlValue) as number)
+              )
+            : _ => {};
     const playerPosition$ = frp.compose(
         e.createPlayerUpdateStream(),
         frp.merge(autoSwitch$),
+        frp.merge(playerPositionResume$),
         frp.fold((position, input) => {
+            // Resume from save
+            if (typeof input === "number") {
+                return input;
+            }
             // Automatic switch
             if (typeof input === "string") {
                 return input === modeA ? 0 : 1;
@@ -160,6 +175,13 @@ export function createDualModeEngineStream<A extends EngineMode, B extends Engin
             false
         );
     });
+
+    if (positionControlValue !== undefined) {
+        const playerPositionSave$ = frp.compose(playerPosition$, rejectRepeats());
+        playerPositionSave$(position => {
+            e.rv.SetControlValue(...positionControlValue, position);
+        });
+    }
 
     return [position$, autoSwitch$];
 }

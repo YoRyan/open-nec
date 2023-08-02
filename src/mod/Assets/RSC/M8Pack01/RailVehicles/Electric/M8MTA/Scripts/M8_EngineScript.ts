@@ -32,46 +32,39 @@ const me = new FrpEngine(() => {
     const isFanRailer = me.rv.GetTotalMass() === 65.7;
 
     // Dual mode power supply
-    const initPowerMode = me.rv.GetRVNumber()[0] === "T" ? ps.EngineMode.ThirdRail : ps.EngineMode.Overhead;
     const electrification = ps.createElectrificationBehaviorWithControlValues(me, {
         [ps.Electrification.Overhead]: ["PowerOverhead", 0],
         [ps.Electrification.ThirdRail]: ["Power3rdRail", 0],
     });
-    // Power control values are not set correctly in the engine blueprints, so
-    // set them ourselves.
-    // TODO: This breaks save/restore of power & electrification state.
-    let initModeSelect: number;
-    switch (initPowerMode) {
-        case ps.EngineMode.Overhead:
-            me.rv.SetControlValue("PowerOverhead", 0, 1);
-            initModeSelect = 1;
-            break;
-        case ps.EngineMode.ThirdRail:
-            me.rv.SetControlValue("Power3rdRail", 0, 1);
-            initModeSelect = 2;
-            break;
-    }
-    // The mode control is not set correctly either. It is necessary to set it
-    // *once* so that the game doesn't slew the value to something else.
-    const setModeInit$ = frp.compose(
+    // These control values aren't set properly in the engine blueprints. We'll
+    // fix them, but only for the first time--not when resuming from a save.
+    const rvPowerMode = me.rv.GetRVNumber()[0] === "T" ? ps.EngineMode.ThirdRail : ps.EngineMode.Overhead;
+    const resumeFromSave = frp.stepper(me.createFirstUpdateStream(), false);
+    const fixPowerValues$ = frp.compose(
         me.createUpdateStream(),
-        frp.filter(_ => frp.snapshot(me.areControlsSettled)),
+        frp.filter(_ => !frp.snapshot(resumeFromSave) && frp.snapshot(me.areControlsSettled)),
+        frp.map(_ => true),
         once(),
-        frp.map(_ => initModeSelect),
         frp.hub()
     );
-    const modeInitDone = frp.stepper(setModeInit$, undefined);
-    setModeInit$(panto => {
-        me.rv.SetControlValue("Panto", 0, panto);
+    fixPowerValues$(() => {
+        me.rv.SetControlValue(rvPowerMode === ps.EngineMode.ThirdRail ? "Power3rdRail" : "PowerOverhead", 0, 1);
+        // We need to wait until controls are settled to set this CV, otherwise
+        // it will slew.
+        me.rv.SetControlValue("Panto", 0, rvPowerMode === ps.EngineMode.ThirdRail ? 2 : 1);
     });
-    const modeSelect = () => {
-        if (frp.snapshot(modeInitDone) === undefined) {
-            return initPowerMode;
-        } else {
-            const cv = Math.round(me.rv.GetControlValue("Panto", 0) as number);
-            return cv < 1.5 ? ps.EngineMode.Overhead : ps.EngineMode.ThirdRail;
-        }
-    };
+    const modeSelect = frp.liftN(
+        (resumed, fixedValues) => {
+            if (resumed || fixedValues) {
+                const cv = Math.round(me.rv.GetControlValue("Panto", 0) as number);
+                return cv < 1.5 ? ps.EngineMode.Overhead : ps.EngineMode.ThirdRail;
+            } else {
+                return rvPowerMode;
+            }
+        },
+        resumeFromSave,
+        frp.stepper(fixPowerValues$, false) // Avoid any potential timing issues.
+    );
     const [modePosition$] = ps.createDualModeEngineStream(
         me,
         ps.EngineMode.Overhead,
@@ -80,7 +73,8 @@ const me = new FrpEngine(() => {
         () => false,
         () => me.rv.GetControlValue("Regulator", 0) === 0,
         dualModeSwitchS,
-        true
+        true,
+        ["MaximumSpeedLimit", 0]
     );
     const modePosition = frp.stepper(modePosition$, 0);
     const energyOn = () => (me.rv.GetControlValue("PantographControl", 0) as number) > 0.5;
@@ -591,8 +585,8 @@ const me = new FrpEngine(() => {
     // Brake status lights
     const brakeLight$ = frp.compose(
         fx.createBrakeLightStreamForEngine(
-        me,
-        () => (me.rv.GetControlValue("TrainBrakeCylinderPressurePSI", 0) as number) > 34
+            me,
+            () => (me.rv.GetControlValue("TrainBrakeCylinderPressurePSI", 0) as number) > 34
         ),
         rejectRepeats()
     );

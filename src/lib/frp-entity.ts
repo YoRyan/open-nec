@@ -1,4 +1,5 @@
 import * as frp from "./frp";
+import { once } from "./frp-extra";
 import * as rw from "./railworks";
 
 /**
@@ -61,6 +62,25 @@ export class FrpEntity {
         Update = this.chain(Update, dt => this.updateSource.call(dt));
         OnSave = this.chain(OnSave, () => this.saveSource.call());
         OnResume = this.chain(OnResume, () => this.resumeSource.call());
+    }
+
+    /**
+     * Create an event stream that fires only for the very first Update() or
+     * Resume() callback.
+     * @returns A stream that emits true if the game is being restored from a
+     * save state; false if it is starting from a new session.
+     */
+    createFirstUpdateStream() {
+        const resume$ = frp.compose(
+            this.createOnResumeStream(),
+            frp.map(() => true)
+        );
+        return frp.compose(
+            this.createUpdateStream(),
+            frp.map(_ => false),
+            frp.merge(resume$),
+            once()
+        );
     }
 
     /**
