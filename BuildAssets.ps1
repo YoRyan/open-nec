@@ -83,7 +83,33 @@ function ConvertToTg {
     & "$RailWorks\ConvertToTG.exe" -forcecompress -i $FullIn -o $FullOut
 }
 
+function CopyOutput {
+    New-Item `
+        "dist\Assets\DTG\WashingtonBaltimore\InputMapper" `
+        -Type Directory -Force
+    Copy-Item `
+        "dist\Assets\RSC\AcelaPack01\InputMappers\AcelaExpert.bin" `
+        "dist\Assets\DTG\WashingtonBaltimore\InputMapper\AcelaExpert.bin"
+
+    New-Item `
+        "dist\Assets\DTG\WashingtonBaltimore\Audio\RailVehicles\Electric\Acela" `
+        -Type Directory -Force 
+    Copy-Item `
+        "dist\Assets\RSC\AcelaPack01\Audio\RailVehicles\Electric\Acela\Cab" `
+        "dist\Assets\DTG\WashingtonBaltimore\Audio\RailVehicles\Electric\Acela\Cab" `
+        -Recurse
+
+    New-Item `
+        "dist\Assets\DTG\WashingtonBaltimore\RailVehicles\Electric\Acela\Default\FirstCar" `
+        -Type Directory -Force
+    Copy-Item `
+        "dist\Assets\RSC\AcelaPack01\RailVehicles\Electric\Acela\Default\FirstCar\destinations" `
+        "dist\Assets\DTG\WashingtonBaltimore\RailVehicles\Electric\Acela\Default\FirstCar\destinations" `
+        -Recurse
+}
+
 FindModPaths *.xml | ToDist $Function:Serz .bin
 FindModPaths *.wav | ToDist $Function:ConvertToDav .dav
 FindModPaths *.png | ToSource $Function:Compressonator .dds
 FindModPaths *.dds | ToDist $Function:ConvertToTg .TgPcDx
+CopyOutput

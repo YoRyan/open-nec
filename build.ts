@@ -1,5 +1,4 @@
 import { spawn } from "child_process";
-import * as fs from "fs";
 import * as fsp from "fs/promises";
 import { glob } from "glob";
 import minimist from "minimist";
@@ -152,12 +151,14 @@ async function transpile(entryFile: Path, virtualBundle: [string, string][]) {
         const luaPath = path.join("./dist", path.relative("./mod", tf.outPath));
         const dirPath = path.dirname(luaPath);
         const outPath = path.join(dirPath, path.basename(luaPath, ".lua") + ".out");
-        fs.mkdirSync(dirPath, { recursive: true });
+        await fsp.mkdir(dirPath, { recursive: true });
         // "Lua" mode permits inspection of the transpiled Lua source.
         if (argv.lua) {
             await fsp.writeFile(luaPath, tf.lua);
         } else {
             await compileLua(outPath, tf.lua);
+            // Make multiple copies of the final output if needed.
+            await copyOutput(path.relative("./dist", outPath));
         }
     }
 }
@@ -181,7 +182,10 @@ function printDiagnostics(diagnostics: ts.Diagnostic[]) {
 
 async function compileLua(outPath: string, lua: string) {
     const luac = spawn("luac", ["-o", outPath, "-"], { stdio: ["pipe", "inherit", "inherit"] });
+    const exited = new Promise(resolve => luac.on("close", resolve));
     await writeStreamAsync(luac.stdin, lua);
+    luac.stdin.end();
+    await exited;
 }
 
 async function writeStreamAsync(stream: Writable, chunk: any) {
@@ -194,6 +198,43 @@ async function writeStreamAsync(stream: Writable, chunk: any) {
             }
         });
     });
+}
+
+async function copyOutput(relativeOutPath: string) {
+    const copyTargets: [string, string[]][] = [
+        [
+            "Assets/RSC/NorthEastCorridor/RailVehicles/Electric/AEM7/Default/Engine/RailVehicle_EngineScript.out",
+            ["Assets/RSC/NorthEastCorridor/RailVehicles/Electric/AEM7/Default/Engine/EngineScript.out"],
+        ],
+        [
+            "Assets/RSC/NewYorkNewHaven/RailVehicles/Electric/ACS-64/Default/CommonScripts/EngineScript.out",
+            ["Assets/DTG/WashingtonBaltimore/RailVehicles/Electric/ACS-64/Default/CommonScripts/EngineScript.out"],
+        ],
+        [
+            "Assets/RSC/AcelaPack01/RailVehicles/Electric/Acela/Default/CommonScripts/PowerCar_EngineScript.out",
+            [
+                "Assets/DTG/WashingtonBaltimore/RailVehicles/Electric/Acela/Default/CommonScripts/PowerCar_EngineScript.out",
+            ],
+        ],
+        [
+            "Assets/RSC/P32Pack01/RailVehicles/Passengers/Shoreliner/Driving Trailer/CommonScripts/CabCarEngineScript.out",
+            [
+                "Assets/DTG/HudsonLine/RailVehicles/Passengers/Shoreliner/Driving Trailer/CommonScripts/CabCarEngineScript.out",
+            ],
+        ],
+    ];
+    const copyMap = new Map<string, string[]>(
+        copyTargets.map(([source, destinations]) => [
+            path.normalize(source),
+            destinations.map(relative => path.normalize(path.join("./dist", relative))),
+        ])
+    );
+
+    const destinations = copyMap.get(path.normalize(relativeOutPath)) ?? [];
+    for (const destination of destinations) {
+        await fsp.mkdir(path.dirname(destination), { recursive: true });
+        await fsp.copyFile(path.join("./dist", relativeOutPath), destination);
+    }
 }
 
 async function waitForever() {
