@@ -83,33 +83,38 @@ export function createDualModeEngineStream<A extends EngineMode, B extends Engin
     positionControlValue?: [name: string, index: number]
 ): [position: frp.Stream<number>, autoMode: frp.Stream<EngineMode>] {
     const isEngineStarted = () => (e.rv.GetControlValue("Startup", 0) as number) > 0;
+    const resumeFromSave = frp.stepper(e.createFirstUpdateStream(), false);
+
     const autoSwitch$ = createDualModeAutoSwitchStream(e, modeA, modeB, getAutoSwitch);
-    const playerPositionResume$: frp.Stream<number> =
-        positionControlValue !== undefined
-            ? frp.compose(
-                  e.createOnResumeStream(),
-                  frp.map(() => e.rv.GetControlValue(...positionControlValue) as number)
-              )
-            : _ => {};
+    const playerPositionInit$ = frp.compose(
+        e.createPlayerUpdateStream(),
+        frp.filter(_ => !frp.snapshot(e.areControlsSettled)),
+        frp.map(_ => {
+            if (frp.snapshot(resumeFromSave) && positionControlValue !== undefined) {
+                return e.rv.GetControlValue(...positionControlValue) as number;
+            } else {
+                return frp.snapshot(getMode) === modeA ? 0 : 1;
+            }
+        })
+    );
     const playerPosition$ = frp.compose(
         e.createPlayerUpdateStream(),
+        frp.filter(_ => frp.snapshot(e.areControlsSettled)),
         frp.merge(autoSwitch$),
-        frp.merge(playerPositionResume$),
+        frp.merge(playerPositionInit$),
         frp.fold((position, input) => {
-            // Resume from save
-            if (typeof input === "number") {
-                return input;
-            }
             // Automatic switch
             if (typeof input === "string") {
                 return input === modeA ? 0 : 1;
             }
+            // Initialize position
+            if (typeof input === "number") {
+                return input;
+            }
             // Clock update
             const pu = input;
             const selectedMode = frp.snapshot(getMode);
-            if (!frp.snapshot(e.areControlsSettled)) {
-                return selectedMode === modeA ? 0 : 1;
-            } else if (!frp.snapshot(isEngineStarted)) {
+            if (!frp.snapshot(isEngineStarted)) {
                 // Don't transition while shut down.
                 return position;
             } else if ((position === 0 || position === 1) && !frp.snapshot(getCanTransition)) {
