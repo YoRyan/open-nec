@@ -17,7 +17,7 @@ import * as rw from "lib/railworks";
 import * as fx from "lib/special-fx";
 import * as ui from "lib/ui";
 
-enum MessageId {
+enum ConsistMessageId {
     MotorSounds = 10200,
     ConsistStatus = 10201,
 }
@@ -302,8 +302,8 @@ const me = new FrpEngine(() => {
     );
     motorSoundsPlayerSend$(sound => {
         const msg = sound.map(v => `${Math.round((v ?? 0) * 1e3)}`).join(":");
-        me.rv.SendConsistMessage(MessageId.MotorSounds, msg, rw.ConsistDirection.Forward);
-        me.rv.SendConsistMessage(MessageId.MotorSounds, msg, rw.ConsistDirection.Backward);
+        me.rv.SendConsistMessage(ConsistMessageId.MotorSounds, msg, rw.ConsistDirection.Forward);
+        me.rv.SendConsistMessage(ConsistMessageId.MotorSounds, msg, rw.ConsistDirection.Backward);
     });
     const motorSoundsPlayer$ = frp.compose(
         motorSoundsPlayerSend$,
@@ -314,7 +314,7 @@ const me = new FrpEngine(() => {
     );
     const motorSoundsHelperReceive$ = frp.compose(
         me.createOnConsistMessageStream(),
-        frp.filter(([id]) => id === MessageId.MotorSounds)
+        frp.filter(([id]) => id === ConsistMessageId.MotorSounds)
     );
     motorSoundsHelperReceive$(msg => {
         me.rv.SendConsistMessage(...msg);
@@ -386,19 +386,19 @@ const me = new FrpEngine(() => {
     );
     consistStatusSend$(pu => {
         const msg = `${consistMotorStatus()}:${consistDoorStatus(pu)}`;
-        me.rv.SendConsistMessage(MessageId.ConsistStatus, msg, rw.ConsistDirection.Backward);
+        me.rv.SendConsistMessage(ConsistMessageId.ConsistStatus, msg, rw.ConsistDirection.Backward);
     });
     const consistStatusForward$ = frp.compose(
         me.createOnConsistMessageStream(),
-        frp.filter(([id]) => id === MessageId.ConsistStatus)
+        frp.filter(([id]) => id === ConsistMessageId.ConsistStatus)
     );
     consistStatusForward$(([, prev, dir]) => {
         const msg = `${consistMotorStatus()}:${consistDoorStatus()}`;
-        me.rv.SendConsistMessage(MessageId.ConsistStatus, `${msg};${prev}`, dir);
+        me.rv.SendConsistMessage(ConsistMessageId.ConsistStatus, `${msg};${prev}`, dir);
     });
     const consistStatusReceive$ = frp.compose(
         me.createOnConsistMessageStream(),
-        frp.filter(([id]) => id === MessageId.ConsistStatus),
+        frp.filter(([id]) => id === ConsistMessageId.ConsistStatus),
         frp.map(([, msg]) => msg)
     );
     const consistStatusDisplay$ = frp.compose(

@@ -2,6 +2,7 @@
  * Power supply logic for electric and dual-mode locomotives.
  */
 
+import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
 import { fsm, rejectRepeats, rejectUndefined } from "lib/frp-extra";
@@ -30,8 +31,6 @@ export enum EngineMode {
  * Represents a change in the presence of route electrification.
  */
 export type ElectrificationDelta = [el: Electrification, state: boolean];
-
-const powerSwitchMessageId = 10002;
 
 /**
  * Determine whether a uni-mode electric locomotive has power available from
@@ -235,7 +234,7 @@ export function createDualModeAutoSwitchStream<A extends EngineMode, B extends E
 ): frp.Stream<A | B> {
     const forward$ = frp.compose(
         e.createOnConsistMessageStream(),
-        frp.filter(([id]) => id === powerSwitchMessageId)
+        frp.filter(([id]) => id === c.ConsistMessageId.PowerSwitch)
     );
     forward$(msg => {
         e.eng.SendConsistMessage(...msg);
@@ -250,12 +249,12 @@ export function createDualModeAutoSwitchStream<A extends EngineMode, B extends E
         frp.hub()
     );
     signal$(mode => {
-        e.eng.SendConsistMessage(powerSwitchMessageId, mode, rw.ConsistDirection.Forward);
-        e.eng.SendConsistMessage(powerSwitchMessageId, mode, rw.ConsistDirection.Backward);
+        e.eng.SendConsistMessage(c.ConsistMessageId.PowerSwitch, mode, rw.ConsistDirection.Forward);
+        e.eng.SendConsistMessage(c.ConsistMessageId.PowerSwitch, mode, rw.ConsistDirection.Backward);
     });
     return frp.compose(
         e.createOnConsistMessageStream(),
-        frp.filter(([id]) => id === powerSwitchMessageId),
+        frp.filter(([id]) => id === c.ConsistMessageId.PowerSwitch),
         frp.map(([, msg]) => msg),
         frp.map(mode => (mode === modeA || mode === modeB ? (mode as A | B) : undefined)),
         rejectUndefined(),

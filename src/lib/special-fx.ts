@@ -13,8 +13,6 @@ import * as rw from "./railworks";
 
 const sparkTickS = 0.2;
 const brakeLightMessageFrequencyS = 1;
-const brakeLightMessageId = 10101;
-const lowPlatformMessageId = 10146;
 
 /**
  * Track the time that has elapsed since a condition began to be true.
@@ -176,8 +174,8 @@ export function createBrakeLightStreamForEngine(
         mapBehavior(brakeMessage)
     );
     playerSend$(msg => {
-        eng.rv.SendConsistMessage(brakeLightMessageId, msg, rw.ConsistDirection.Forward);
-        eng.rv.SendConsistMessage(brakeLightMessageId, msg, rw.ConsistDirection.Backward);
+        eng.rv.SendConsistMessage(c.ConsistMessageId.BrakeLight, msg, rw.ConsistDirection.Forward);
+        eng.rv.SendConsistMessage(c.ConsistMessageId.BrakeLight, msg, rw.ConsistDirection.Backward);
     });
 
     // When under player control, set our own brake lights; when under AI
@@ -200,14 +198,14 @@ export function createBrakeLightStreamForWagon(v: FrpVehicle): frp.Stream<boolea
     // For player trains, parse and forward consist messages.
     const consistMessage$ = frp.compose(
         v.createOnConsistMessageStream(),
-        frp.filter(([id]) => id === brakeLightMessageId)
+        frp.filter(([id]) => id === c.ConsistMessageId.BrakeLight)
     );
     const fromConsist$ = frp.compose(
         consistMessage$,
         frp.map(([, content]) => parseFloat(content) > 0.167)
     );
     consistMessage$(([, content, direction]) => {
-        v.rv.SendConsistMessage(brakeLightMessageId, content, direction);
+        v.rv.SendConsistMessage(c.ConsistMessageId.BrakeLight, content, direction);
     });
 
     return frp.compose(
@@ -241,18 +239,18 @@ export function setLowPlatformDoorsForEngine(eng: FrpEngine, aiLow: boolean, pla
         frp.map(low => (low ? "1" : "0"))
     );
     send$(msg => {
-        eng.rv.SendConsistMessage(lowPlatformMessageId, msg, rw.ConsistDirection.Forward);
-        eng.rv.SendConsistMessage(lowPlatformMessageId, msg, rw.ConsistDirection.Backward);
+        eng.rv.SendConsistMessage(c.ConsistMessageId.LowPlatforms, msg, rw.ConsistDirection.Forward);
+        eng.rv.SendConsistMessage(c.ConsistMessageId.LowPlatforms, msg, rw.ConsistDirection.Backward);
     });
 
     // Also forward messages in case other engines separate the player's engine
     // from the rest of the consist.
     const forward$ = frp.compose(
         eng.createOnConsistMessageStream(),
-        frp.filter(([id]) => id === lowPlatformMessageId)
+        frp.filter(([id]) => id === c.ConsistMessageId.LowPlatforms)
     );
     forward$(([, content, direction]) => {
-        eng.rv.SendConsistMessage(lowPlatformMessageId, content, direction);
+        eng.rv.SendConsistMessage(c.ConsistMessageId.LowPlatforms, content, direction);
     });
 }
 

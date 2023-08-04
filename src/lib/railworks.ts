@@ -151,7 +151,7 @@ export type NoRevert = 0;
 /**
  * Signal message types that are provided by the core game code.
  */
-export enum SignalMessage {
+export enum SignalMessageId {
     ResetSignalState = 0,
     InitialiseSignalToBlocked = 1,
     JunctionStateChange = 2,
@@ -161,7 +161,7 @@ export enum SignalMessage {
     OccupationDecrement = 11,
 }
 
-export enum ConsistMessage {
+export enum ConsistMessageId {
     SigmsgCustom = 15,
 }
 
@@ -1161,7 +1161,7 @@ export class Signal extends RenderedEntity {
      * the receiving signal is expected not to pass forward the message.
      */
     SendSignalMessage(
-        message: SignalMessage | number,
+        message: SignalMessageId | number,
         argument: string,
         direction: SignalDirection,
         link: SignalDirection = SignalDirection.Forward,
@@ -1192,7 +1192,7 @@ export class Signal extends RenderedEntity {
      * using the script method OnCustomSignalMessage passing the argument to the
      * engine script.
      */
-    SendConsistMessage(message: ConsistMessage, argument: string) {
+    SendConsistMessage(message: ConsistMessageId, argument: string) {
         Call(this.fn("SendConsistMessage"), message, argument);
     }
 

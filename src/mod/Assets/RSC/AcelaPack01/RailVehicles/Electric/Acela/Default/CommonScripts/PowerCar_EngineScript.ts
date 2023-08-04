@@ -34,7 +34,7 @@ enum DitchLights {
 /**
  * Consist message ID's are used by the Acela's coaches. Do not change.
  */
-enum MessageId {
+enum ConsistMessageId {
     RaisePantographs = 1207,
     PantographSelect = 1208,
     TiltIsolate = 1209,
@@ -90,13 +90,13 @@ const me = new FrpEngine(() => {
         me.createPlayerWithKeyUpdateStream(),
         mapBehavior(pantographsUpPlayer),
         frp.map(bool => `${bool}`),
-        frp.map((msg): [number, string] => [MessageId.RaisePantographs, msg]),
+        frp.map((msg): [number, string] => [ConsistMessageId.RaisePantographs, msg]),
         frp.merge(
             frp.compose(
                 me.createPlayerWithKeyUpdateStream(),
                 mapBehavior(pantographSelectPlayer),
                 frp.map(reversePantoSelect), // Assume all helper engines are flipped.
-                frp.map((msg): [number, string] => [MessageId.PantographSelect, msg])
+                frp.map((msg): [number, string] => [ConsistMessageId.PantographSelect, msg])
             )
         )
     );
@@ -108,7 +108,7 @@ const me = new FrpEngine(() => {
     const pantographsUpHelper = frp.stepper(
         frp.compose(
             me.createOnConsistMessageStream(),
-            frp.filter(([id]) => id === MessageId.RaisePantographs),
+            frp.filter(([id]) => id === ConsistMessageId.RaisePantographs),
             frp.map(([, msg]) => msg === "true")
         ),
         false
@@ -116,18 +116,18 @@ const me = new FrpEngine(() => {
     const pantographSelectHelper = frp.stepper(
         frp.compose(
             me.createOnConsistMessageStream(),
-            frp.filter(([id]) => id === MessageId.PantographSelect),
+            frp.filter(([id]) => id === ConsistMessageId.PantographSelect),
             frp.map(([, msg]) => msg as PantographSelect)
         ),
         PantographSelect.Rear
     );
     const pantographMessageHelper$ = frp.compose(
         me.createOnConsistMessageStream(),
-        frp.filter(([id]) => id === MessageId.RaisePantographs),
+        frp.filter(([id]) => id === ConsistMessageId.RaisePantographs),
         frp.merge(
             frp.compose(
                 me.createOnConsistMessageStream(),
-                frp.filter(([id]) => id === MessageId.PantographSelect),
+                frp.filter(([id]) => id === ConsistMessageId.PantographSelect),
                 // Assume all helper engines are flipped.
                 frp.map(([id, msg, dir]): ConsistMessage => [id, reversePantoSelect(msg as PantographSelect), dir])
             )
@@ -604,7 +604,7 @@ const me = new FrpEngine(() => {
     // This isn't a particularly important control, so we're not going to bother
     // sending it in the forward direction or forwarding it between helpers.
     tiltIsolateMessage$(msg => {
-        me.rv.SendConsistMessage(MessageId.TiltIsolate, msg, rw.ConsistDirection.Backward);
+        me.rv.SendConsistMessage(ConsistMessageId.TiltIsolate, msg, rw.ConsistDirection.Backward);
     });
 
     // Destination selector
@@ -642,15 +642,15 @@ const me = new FrpEngine(() => {
         frp.map(dest => dest.toString())
     );
     destinationMessage$(msg => {
-        me.rv.SendConsistMessage(MessageId.Destination, msg, rw.ConsistDirection.Forward);
-        me.rv.SendConsistMessage(MessageId.Destination, msg, rw.ConsistDirection.Backward);
+        me.rv.SendConsistMessage(ConsistMessageId.Destination, msg, rw.ConsistDirection.Forward);
+        me.rv.SendConsistMessage(ConsistMessageId.Destination, msg, rw.ConsistDirection.Backward);
     });
     const destinationMessageHelper$ = frp.compose(
         me.createOnConsistMessageStream(),
         // All AI power cars send messages, so there's no need to forward any
         // between them.
         frp.filter(_ => me.rv.GetIsPlayer()),
-        frp.filter(([id]) => id === MessageId.Destination)
+        frp.filter(([id]) => id === ConsistMessageId.Destination)
     );
     destinationMessageHelper$(message => {
         me.rv.SendConsistMessage(...message);

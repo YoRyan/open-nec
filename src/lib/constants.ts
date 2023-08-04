@@ -19,3 +19,9 @@ export const ft = {
 export const mi = {
     toKm: 1.60934,
 };
+
+export enum ConsistMessageId {
+    PowerSwitch = 10002,
+    BrakeLight = 10101,
+    LowPlatforms = 10146,
+}
