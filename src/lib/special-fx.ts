@@ -6,7 +6,7 @@ import * as c from "./constants";
 import * as frp from "./frp";
 import { FrpEngine } from "./frp-engine";
 import { FrpEntity } from "./frp-entity";
-import { fsm, mapBehavior, rejectRepeats } from "./frp-extra";
+import { fsm, mapBehavior, rejectRepeats, rejectUndefined } from "./frp-extra";
 import { FrpVehicle, VehicleUpdate } from "./frp-vehicle";
 import * as ps from "./power-supply";
 import * as rw from "./railworks";
@@ -202,7 +202,9 @@ export function createBrakeLightStreamForWagon(v: FrpVehicle): frp.Stream<boolea
     );
     const fromConsist$ = frp.compose(
         consistMessage$,
-        frp.map(([, content]) => parseFloat(content) > 0.167)
+        frp.map(([, content]) => tonumber(content)),
+        rejectUndefined(),
+        frp.map(v => v > 0.167)
     );
     consistMessage$(([, content, direction]) => {
         v.rv.SendConsistMessage(c.ConsistMessageId.BrakeLight, content, direction);

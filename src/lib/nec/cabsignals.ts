@@ -313,7 +313,7 @@ export function toPositiveStopDistanceM(signalMessage: string): number | false |
     }
     const [, , stop] = string.find(signalMessage, "^sig7stop(%d+)$");
     if (stop !== undefined) {
-        return parseInt(stop as string) * c.ft.toM;
+        return (tonumber(stop as string) ?? 0) * c.ft.toM;
     }
 
     // Signals scripted by DTG for Amtrak and NJ Transit DLC's.
