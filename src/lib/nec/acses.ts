@@ -48,7 +48,6 @@ const minTrackSpeedUpgradeDistM = 350 * c.ft.toM; // about 4 car lengths
 // Taken from NJT documentation.
 const alertMarginMps = 3 * c.mph.toMps;
 const penaltyMarginMps = 6 * c.mph.toMps;
-const alertCountdownS = 8;
 
 /**
  * Distance traveled since the last search along with a collection of
@@ -697,14 +696,11 @@ function constantSpeedPiece(limitMps: number): Piece {
 function advanceLimitNotViolatedPiece(sensed: Sensed<SpeedPost>, curveMps2: number): Piece {
     const [distanceM, post] = sensed;
     const aDistanceM = Math.abs(distanceM);
-    const alertCurveMps = Math.min(
-        getBrakingCurve(curveMps2, post.speedMps + penaltyMarginMps, aDistanceM, alertCountdownS),
-        getBrakingCurve(curveMps2, post.speedMps + alertMarginMps, aDistanceM, 0)
-    );
+    const curveSpeedMps = getBrakingCurve(curveMps2, post.speedMps, aDistanceM, 0);
     return {
-        curveSpeedMps: alertCurveMps - alertMarginMps,
-        alertCurveMps,
-        penaltyCurveMps: getBrakingCurve(curveMps2, post.speedMps + penaltyMarginMps, aDistanceM, 0),
+        curveSpeedMps,
+        alertCurveMps: curveSpeedMps + alertMarginMps,
+        penaltyCurveMps: curveSpeedMps + penaltyMarginMps,
         nextLimitMps: post.speedMps,
     };
 }
@@ -712,14 +708,11 @@ function advanceLimitNotViolatedPiece(sensed: Sensed<SpeedPost>, curveMps2: numb
 function advanceLimitViolatedPiece(sensed: Sensed<SpeedPost>, curveMps2: number): Piece {
     const [distanceM, post] = sensed;
     const aDistanceM = Math.abs(distanceM);
-    const alertCurveMps = Math.min(
-        getBrakingCurve(curveMps2, post.speedMps + penaltyMarginMps, aDistanceM, alertCountdownS),
-        getBrakingCurve(curveMps2, post.speedMps + alertMarginMps, aDistanceM, 0)
-    );
+    const curveSpeedMps = getBrakingCurve(curveMps2, post.speedMps, aDistanceM, 0);
     return {
-        curveSpeedMps: alertCurveMps - alertMarginMps,
+        curveSpeedMps,
         alertCurveMps: post.speedMps + alertMarginMps,
-        penaltyCurveMps: getBrakingCurve(curveMps2, post.speedMps + penaltyMarginMps, aDistanceM, 0),
+        penaltyCurveMps: curveSpeedMps + penaltyMarginMps,
         stepSpeedMps: post.speedMps,
         nextLimitMps: post.speedMps,
     };
@@ -735,20 +728,19 @@ function positiveStopPiece(
     const enforceStop = ptsDistanceM !== false;
 
     const cushionM = 85 * c.ft.toM;
-    const minAlarmSpeedMps = 0.5 * c.mph.toMps;
     const targetDistanceM = (enforceStop ? ptsDistanceM : 0) + cushionM;
     const curveDistanceM = Math.max(Math.abs(distanceM) - targetDistanceM, 0);
-    const alertCurveMps = Math.max(getBrakingCurve(curveMps2, 0, curveDistanceM, alertCountdownS), minAlarmSpeedMps);
-    const penaltyCurveMps = Math.max(getBrakingCurve(curveMps2, 0, curveDistanceM, 0), minAlarmSpeedMps);
-    const isImminent = alertCurveMps <= 20 * c.mph.toMps + alertMarginMps;
+    const penaltyCurveMps = getBrakingCurve(curveMps2, 0, curveDistanceM, 0);
+    const isImminent = penaltyCurveMps <= 20 * c.mph.toMps + penaltyMarginMps;
 
     if (enforceStop || !isImminent) {
         // For fully positive stop-aware routes like LIRR, let the curve take
         // the player all the way down to a stop.
+        const minAlarmSpeedMps = 0.5 * c.mph.toMps;
         const timeToPenaltyS = getTimeToPenaltyS(curveMps2, 0, Math.abs(playerSpeedMps), curveDistanceM);
         return {
-            curveSpeedMps: alertCurveMps,
-            alertCurveMps,
+            curveSpeedMps: Math.max(penaltyCurveMps - penaltyMarginMps, minAlarmSpeedMps),
+            alertCurveMps: Math.max(penaltyCurveMps - (penaltyMarginMps - alertMarginMps), minAlarmSpeedMps),
             penaltyCurveMps,
             stepSpeedMps: isImminent ? 0 : undefined,
             nextLimitMps: isImminent ? 0 : undefined,
