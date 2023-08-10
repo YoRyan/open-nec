@@ -174,9 +174,11 @@ export function create(
         false
     );
     const masEnforcing = frp.liftN(
-        (output, alarmPlaying, flashOn) => {
-            if (alarmPlaying && !flashOn) {
-                return MasEnforcing.Off;
+        (output, flashOn) => {
+            if (output?.atcAlarm) {
+                return flashOn ? MasEnforcing.Atc : MasEnforcing.Off;
+            } else if (output?.acsesAlarm) {
+                return flashOn ? MasEnforcing.Acses : MasEnforcing.Off;
             } else {
                 const enforcing = output?.enforcing ?? adu.AduEnforcing.None;
                 return {
@@ -187,7 +189,6 @@ export function create(
             }
         },
         output,
-        alarmPlaying,
         enforcingFlashOn
     );
 
