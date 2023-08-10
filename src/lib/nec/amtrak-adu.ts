@@ -39,7 +39,8 @@ export type AduState = {
     masEnforcing: MasEnforcing;
     masSpeedMph?: number;
     timeToPenaltyS?: number;
-    alarm: boolean;
+    atcAlarm: boolean;
+    acsesAlarm: boolean;
     penaltyBrake: boolean;
 };
 
@@ -221,9 +222,10 @@ export function create(
                 isMnrrAspect: frp.snapshot(isMnrrAspect),
                 masEnforcing: frp.snapshot(masEnforcing),
                 masSpeedMph: frp.snapshot(masSpeedMph),
-                timeToPenaltyS: output?.acsesState?.timeToPenaltyS,
-                alarm: frp.snapshot(alarmPlaying),
-                penaltyBrake: output?.penaltyBrake ?? false,
+                timeToPenaltyS: output.acsesState?.timeToPenaltyS,
+                atcAlarm: output.atcAlarm,
+                acsesAlarm: output.acsesAlarm,
+                penaltyBrake: output.penaltyBrake,
             };
         })
     );

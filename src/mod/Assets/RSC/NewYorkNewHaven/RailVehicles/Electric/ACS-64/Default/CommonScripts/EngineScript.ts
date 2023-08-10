@@ -235,7 +235,7 @@ const me = new FrpEngine(() => {
     const alerterState = frp.stepper(alerter$, undefined);
     // Safety system sounds
     const isAlarm = frp.liftN(
-        (aduState, alerterState) => (aduState?.alarm || alerterState?.alarm) ?? false,
+        (aduState, alerterState) => (aduState?.atcAlarm || aduState?.acsesAlarm || alerterState?.alarm) ?? false,
         aduState,
         alerterState
     );
