@@ -247,16 +247,14 @@ const me = new FrpEngine(() => {
         frp.filter(([name, , value]) => (name === "HEP" && value === 1) || (name === "HEP_Off" && value === 0))
     );
     hepTurnedOn$(_ => {
-        me.rv.SetControlValue("HEP", 0, 1);
-        me.rv.SetControlValue("HEP_Off", 0, 0);
+        me.rv.SetControlTargetValue("HEP_Off", 0, 0);
     });
     const hepTurnedOff$ = frp.compose(
         me.createOnCvChangeStream(),
         frp.filter(([name, , value]) => (name === "HEP" && value === 0) || (name === "HEP_Off" && value === 1))
     );
     hepTurnedOff$(_ => {
-        me.rv.SetControlValue("HEP", 0, 0);
-        me.rv.SetControlValue("HEP_Off", 0, 1);
+        me.rv.SetControlTargetValue("HEP", 0, 0);
     });
 
     // Headlights
@@ -458,7 +456,6 @@ const me = new FrpEngine(() => {
     // Process OnControlValueChange events.
     const onCvChange$ = frp.compose(
         me.createOnCvChangeStream(),
-        frp.reject(([name]) => name === "HEP" || name === "HEP_Off"),
         frp.reject(([name]) => name === "Bell")
     );
     onCvChange$(([name, index, value]) => {
