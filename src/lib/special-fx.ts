@@ -257,7 +257,8 @@ export function setLowPlatformDoorsForEngine(eng: FrpEngine, aiLow: boolean, pla
 }
 
 /**
- * An animation wrapper that manages and tracks its current position.
+ * An animation wrapper that plays or reverses the animation toward a target
+ * position.
  */
 export class Animation {
     private target?: number = undefined;
@@ -308,6 +309,32 @@ export class Animation {
      */
     getPosition() {
         return frp.snapshot(this.current);
+    }
+}
+
+/**
+ * An animation wrapper that plays the animation on a perpetual loop.
+ */
+export class LoopingAnimation {
+    private frequencyHz: number = 0;
+
+    constructor(e: FrpEntity, name: string, durationS: number) {
+        const setTime$ = frp.compose(
+            e.createUpdateStream(),
+            frp.fold((current: number, dt) => (current + (this.frequencyHz * dt) / durationS) % 1, 0),
+            frp.map(pos => pos * durationS)
+        );
+        setTime$(t => {
+            e.re.SetTime(name, t);
+        });
+    }
+
+    /**
+     * Set the playback speed for this looping animation.
+     * @param hz The frequency, in revolutions per second.
+     */
+    setFrequency(hz: number) {
+        this.frequencyHz = hz;
     }
 }
 

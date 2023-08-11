@@ -121,20 +121,23 @@ export class FrpEngine extends FrpVehicle {
      * A convenience stream for a bell that can be automatically turned on, by
      * e.g. a blast of the horn. The keyboard bell toggle will be kept in sync
      * with the control value.
-     * @returns A transformer that maps bell triggers to the final bell state.
+     * @param useVirtual If true, use the virtual bell control value.
+     * @returns A transformer that maps bell triggers to the final bell state
      * control value.
      */
-    mapAutoBellStream(): (eventStream: frp.Stream<any>) => frp.Stream<number> {
+    mapAutoBellStream(useVirtual?: boolean): (eventStream: frp.Stream<any>) => frp.Stream<number> {
+        useVirtual ??= false;
         return eventStream => {
             const turnOn$ = frp.compose(
                 eventStream,
                 frp.filter(_ => this.eng.GetIsEngineWithKey()),
                 frp.map(_ => 1)
             );
+            const cv: [string, number] = [useVirtual ? "VirtualBell" : "Bell", 0];
             return frp.compose(
-                this.createOnCvChangeStreamFor("Bell", 0),
+                this.createOnCvChangeStreamFor(...cv),
                 frp.map(v => {
-                    const outOfSync = (v === 0 || v === 1) && v === this.rv.GetControlValue("Bell", 0);
+                    const outOfSync = (v === 0 || v === 1) && v === this.rv.GetControlValue(...cv);
                     return outOfSync ? 1 - v : v;
                 }),
                 frp.filter(_ => this.eng.GetIsEngineWithKey()),

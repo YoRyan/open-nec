@@ -181,6 +181,14 @@ export class ScrollingMenu {
         return this.selection;
     }
 
+    /**
+     * Set the current selection index.
+     * @param index The new index.
+     */
+    setSelection(index: number) {
+        this.doScroll(index - this.selection);
+    }
+
     private doScroll(move: number) {
         const selection = Math.max(Math.min(this.selection + move, this.nItems - 1), 0);
         let offset: number;

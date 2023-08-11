@@ -229,6 +229,68 @@ export const metroNorthAtc: AtcSystem<FourAspect> = {
 };
 
 /**
+ * A cab signal aspect for NJ Transit trains. (We assume we cannot represent
+ * Clear 100.)
+ */
+export enum NjTransitAspect {
+    Restricting,
+    Approach,
+    ApproachMedium,
+    ApproachLimited,
+    CabSpeed60,
+    CabSpeed80,
+    Clear,
+}
+
+/**
+ * ATC for NJ Transit trains.
+ */
+export const njTransitAtc: AtcSystem<NjTransitAspect> = {
+    restricting: NjTransitAspect.Restricting,
+    fromPulseCode(pc: PulseCode) {
+        return {
+            [PulseCode.C_0_0]: NjTransitAspect.Restricting,
+            [PulseCode.C_75_0]: NjTransitAspect.Approach,
+            [PulseCode.C_75_75]: NjTransitAspect.ApproachMedium,
+            [PulseCode.C_120_0]: NjTransitAspect.ApproachLimited,
+            [PulseCode.C_120_120]: NjTransitAspect.CabSpeed80,
+            [PulseCode.C_180_0]: NjTransitAspect.Clear,
+            [PulseCode.C_180_180]: NjTransitAspect.Clear,
+            [PulseCode.C_270_0]: NjTransitAspect.CabSpeed60,
+            [PulseCode.C_270_270]: NjTransitAspect.CabSpeed80, // Improvising for the Clear 100 aspect.
+            [PulseCode.C_420_0]: NjTransitAspect.Restricting,
+        }[pc];
+    },
+    getSuperiority(aspect: NjTransitAspect) {
+        return {
+            [NjTransitAspect.Restricting]: 0,
+            [NjTransitAspect.Approach]: 1,
+            [NjTransitAspect.ApproachMedium]: 2,
+            [NjTransitAspect.ApproachLimited]: 3,
+            [NjTransitAspect.CabSpeed60]: 4,
+            [NjTransitAspect.CabSpeed80]: 5,
+            [NjTransitAspect.Clear]: 6,
+        }[aspect];
+    },
+    getSpeedMps(aspect: NjTransitAspect) {
+        return (
+            {
+                [NjTransitAspect.Restricting]: 20,
+                [NjTransitAspect.Approach]: 30,
+                [NjTransitAspect.ApproachMedium]: 30,
+                [NjTransitAspect.ApproachLimited]: 45,
+                [NjTransitAspect.CabSpeed60]: 60,
+                [NjTransitAspect.CabSpeed80]: 80,
+                [NjTransitAspect.Clear]: 125,
+            }[aspect] * c.mph.toMps
+        );
+    },
+    restartFlash(_from: NjTransitAspect, _to: NjTransitAspect) {
+        return false;
+    },
+};
+
+/**
  * Attempt to convert a signal message to a pulse code.
  * @param signalMessage The custom signal message.
  * @returns The pulse code, if one matches.

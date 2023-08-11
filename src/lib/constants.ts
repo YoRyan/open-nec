@@ -23,5 +23,6 @@ export const mi = {
 export enum ConsistMessageId {
     PowerSwitch = 10002,
     BrakeLight = 10101,
+    NjtDestination = 10100,
     LowPlatforms = 10146,
 }
