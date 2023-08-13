@@ -96,6 +96,7 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
     ui.createAtcStatusPopup(me, atcCutIn);
     ui.createAcsesStatusPopup(me, acsesCutIn);
     const alerterCutIn = frp.liftN((atcCutIn, acsesCutIn) => atcCutIn || acsesCutIn, atcCutIn, acsesCutIn);
+    ui.createAlerterStatusPopup(me, alerterCutIn);
 
     // Safety systems and ADU
     const acknowledge = me.createAcknowledgeBehavior();

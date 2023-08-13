@@ -136,6 +136,7 @@ const me = new FrpEngine(() => {
     ui.createAtcStatusPopup(me, atcCutIn);
     ui.createAcsesStatusPopup(me, acsesCutIn);
     const alerterCutIn = frp.liftN((atcCutIn, acsesCutIn) => atcCutIn || acsesCutIn, atcCutIn, acsesCutIn);
+    ui.createAlerterStatusPopup(me, alerterCutIn);
     const atcCutIn$ = frp.compose(me.createPlayerWithKeyUpdateStream(), mapBehavior(atcCutIn));
     const acsesCutIn$ = frp.compose(me.createPlayerWithKeyUpdateStream(), mapBehavior(acsesCutIn));
     atcCutIn$(active => {
