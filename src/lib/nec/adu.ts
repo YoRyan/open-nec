@@ -7,7 +7,8 @@ import * as c from "lib/constants";
 import * as cs from "./cabsignals";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { fsm, mapBehavior } from "lib/frp-extra";
+import { fsm, mapBehavior, rejectUndefined } from "lib/frp-extra";
+import * as fx from "lib/special-fx";
 
 /**
  * Combines information from the ATC and ACSES subsystems. Consumed by
@@ -48,7 +49,9 @@ export enum AduAspect {
 export type AduOutput<A> = AduInput<A> & {
     aspect: A | AduAspect;
     atcAlarm: boolean;
+    atcLamp: boolean;
     acsesAlarm: boolean;
+    acsesLamp: boolean;
     penaltyBrake: boolean;
     vZero: boolean;
 };
@@ -63,6 +66,8 @@ enum TimerMode {
 
 const ignoreEventsOnLoadS = 5;
 const acknowledgeCountdownS = 6;
+const aspectFlashS = 0.5;
+const lampFlashS = 0.5;
 
 // Taken from NJT documentation.
 const atcSetPointMps = 1 * c.mph.toMps;
@@ -260,6 +265,7 @@ export function create<A>(
         atcAcknowledgeAccum,
         atcPenaltyAccum
     );
+    const atcLamp = createFlashingLampBehavior(e, atcAlarm);
     const atcPenalty = frp.liftN(
         (ackAccum, penaltyAccum) => ackAccum === TimerMode.Expired || penaltyAccum === TimerMode.Expired,
         atcAcknowledgeAccum,
@@ -276,6 +282,7 @@ export function create<A>(
         acsesAcknowledgeAccum,
         acsesPenaltyAccum
     );
+    const acsesLamp = createFlashingLampBehavior(e, acsesAlarm);
     const acsesPenalty = frp.liftN(
         (ackAccum, penalty) => ackAccum === TimerMode.Expired || penalty,
         acsesAcknowledgeAccum,
@@ -290,7 +297,9 @@ export function create<A>(
                 enforcing: input.enforcing,
                 aspect: isPositiveStop(atc, input) ? AduAspect.Stop : input.atcAspect,
                 atcAlarm: frp.snapshot(atcAlarm),
+                atcLamp: frp.snapshot(atcLamp) ?? input.enforcing === AduEnforcing.Atc,
                 acsesAlarm: frp.snapshot(acsesAlarm),
+                acsesLamp: frp.snapshot(acsesLamp) ?? input.enforcing === AduEnforcing.Acses,
                 penaltyBrake: frp.snapshot(atcPenalty) || frp.snapshot(acsesPenalty),
                 vZero: frp.snapshot(vZero),
             };
@@ -308,6 +317,37 @@ export function create<A>(
  */
 export function getAspectSuperiority<A>(atc: cs.AtcSystem<A>, input: AduInput<A>) {
     return isPositiveStop(atc, input) ? -1 : atc.getSuperiority(input.atcAspect);
+}
+
+/**
+ * Drive the flash effect for a cab signal display. The cycle restarts when the
+ * cab signal changes from an aspect that doesn't require flashing to one that
+ * does.
+ * @template A The set of signal aspects to use for the ATC system.
+ * @param atc The description of the ATC system.
+ * @param e The player's engine.
+ * @returns A stream that emits the flash state at all times (even if the
+ * current aspect does not actually require flashing).
+ */
+export function mapAspectFlashOn<A>(
+    atc: cs.AtcSystem<A>,
+    e: FrpEngine
+): (eventStream: frp.Stream<AduOutput<A>>) => frp.Stream<boolean> {
+    return eventStream => {
+        const restart$ = frp.compose(
+            eventStream,
+            frp.map(output => (output.aspect === AduAspect.Stop ? undefined : output.aspect)),
+            rejectUndefined(),
+            fsm(atc.restricting),
+            frp.filter(([from, to]) => from !== to),
+            frp.filter(([from, to]) => atc.restartFlash(from, to))
+        );
+        return frp.compose(
+            e.createPlayerWithKeyUpdateStream(),
+            fx.eventStopwatchS(restart$),
+            frp.map(stopwatchS => stopwatchS !== undefined && stopwatchS % (aspectFlashS * 2) < aspectFlashS)
+        );
+    };
 }
 
 function createAcknowledgeAccum(
@@ -353,4 +393,16 @@ function createAcknowledgeAccum(
 function isPositiveStop<A>(atc: cs.AtcSystem<A>, input: AduInput<A>) {
     const nextLimitMps = input.acsesState?.nextLimitMps ?? Infinity;
     return input.atcAspect === atc.restricting && nextLimitMps <= 0;
+}
+
+function createFlashingLampBehavior(e: FrpEngine, flash: frp.Behavior<boolean>): frp.Behavior<boolean | undefined> {
+    const flashOn = frp.stepper(
+        frp.compose(
+            e.createPlayerWithKeyUpdateStream(),
+            fx.behaviorStopwatchS(flash),
+            frp.map(stopwatchS => stopwatchS !== undefined && stopwatchS % (lampFlashS * 2) > lampFlashS)
+        ),
+        false
+    );
+    return frp.liftN((flash, on) => (flash ? on : undefined), flash, flashOn);
 }

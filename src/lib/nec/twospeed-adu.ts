@@ -8,7 +8,6 @@ import * as cs from "./cabsignals";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
 import { fsm, rejectUndefined } from "lib/frp-extra";
-import * as fx from "lib/special-fx";
 
 /**
  * Represents the state of the ADU and the safety systems it is attached to.
@@ -16,22 +15,13 @@ import * as fx from "lib/special-fx";
 export type AduState<A> = {
     aspect: A | adu.AduAspect;
     aspectFlashOn: boolean;
-    masEnforcing: MasEnforcing;
     trackSpeedMph?: number;
     atcAlarm: boolean;
+    atcLamp: boolean;
     acsesAlarm: boolean;
+    acsesLamp: boolean;
     penaltyBrake: boolean;
 };
-
-/**
- * Represents the safety system status lights, including flashing during an
- * alarm state.
- */
-export enum MasEnforcing {
-    Off,
-    Atc,
-    Acses,
-}
 
 /**
  * Represents a discrete event emitted by the ADU.
@@ -39,9 +29,6 @@ export enum MasEnforcing {
 export enum AduEvent {
     Upgrade,
 }
-
-const aspectFlashS = 0.5;
-const enforcingFlashS = 0.5;
 
 /**
  * Creates a two-speed ADU.
@@ -97,53 +84,9 @@ export function create<A>(
         frp.hub()
     );
     const output = frp.stepper(output$, undefined);
-    const alarmPlaying = frp.liftN(output => (output?.atcAlarm || output?.acsesAlarm) ?? false, output);
 
-    // Aspect display, including cab speed flash
-    const aspectFlashStart$ = frp.compose(
-        output$,
-        frp.map(output => (output.aspect !== adu.AduAspect.Stop ? output.aspect : undefined)),
-        rejectUndefined(),
-        fsm(atc.restricting),
-        frp.filter(([from, to]) => from !== to),
-        frp.filter(([from, to]) => atc.restartFlash(from, to))
-    );
-    const aspectFlashOn = frp.stepper(
-        frp.compose(
-            e.createPlayerWithKeyUpdateStream(),
-            fx.eventStopwatchS(aspectFlashStart$),
-            frp.map(stopwatchS => stopwatchS !== undefined && stopwatchS % (aspectFlashS * 2) < aspectFlashS)
-        ),
-        false
-    );
-
-    // ATC & ACSES enforcing lights, including alarm flash
-    const enforcingFlashOn = frp.stepper(
-        frp.compose(
-            e.createPlayerWithKeyUpdateStream(),
-            fx.behaviorStopwatchS(alarmPlaying),
-            frp.map(stopwatchS => stopwatchS !== undefined && stopwatchS % (enforcingFlashS * 2) > enforcingFlashS)
-        ),
-        false
-    );
-    const masEnforcing = frp.liftN(
-        (output, flashOn) => {
-            if (output?.atcAlarm) {
-                return flashOn ? MasEnforcing.Atc : MasEnforcing.Off;
-            } else if (output?.acsesAlarm) {
-                return flashOn ? MasEnforcing.Acses : MasEnforcing.Off;
-            } else {
-                const enforcing = output?.enforcing ?? adu.AduEnforcing.None;
-                return {
-                    [adu.AduEnforcing.Atc]: MasEnforcing.Atc,
-                    [adu.AduEnforcing.Acses]: MasEnforcing.Acses,
-                    [adu.AduEnforcing.None]: MasEnforcing.Off,
-                }[enforcing];
-            }
-        },
-        output,
-        enforcingFlashOn
-    );
+    // Aspect display flash
+    const aspectFlashOn = frp.stepper(frp.compose(output$, adu.mapAspectFlashOn(atc, e)), false);
 
     // ACSES track speed
     const trackSpeedMph = frp.liftN(output => {
@@ -158,10 +101,11 @@ export function create<A>(
             return {
                 aspect: output.aspect,
                 aspectFlashOn: frp.snapshot(aspectFlashOn),
-                masEnforcing: frp.snapshot(masEnforcing),
                 trackSpeedMph: frp.snapshot(trackSpeedMph),
                 atcAlarm: output.atcAlarm,
+                atcLamp: output.atcLamp,
                 acsesAlarm: output.acsesAlarm,
+                acsesLamp: output.acsesLamp,
                 penaltyBrake: output.penaltyBrake,
             };
         })

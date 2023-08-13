@@ -200,8 +200,8 @@ const me = new FrpEngine(() => {
             }
         }
 
-        me.rv.SetControlValue("SigModeATC", 0, state.masEnforcing === adu.MasEnforcing.Atc ? 1 : 0);
-        me.rv.SetControlValue("SigModeACSES", 0, state.masEnforcing === adu.MasEnforcing.Acses ? 1 : 0);
+        me.rv.SetControlValue("SigModeATC", 0, state.atcLamp ? 1 : 0);
+        me.rv.SetControlValue("SigModeACSES", 0, state.acsesLamp ? 1 : 0);
 
         if (state.masSpeedMph !== undefined) {
             const [[h, t, u]] = m.digits(state.masSpeedMph, 3);

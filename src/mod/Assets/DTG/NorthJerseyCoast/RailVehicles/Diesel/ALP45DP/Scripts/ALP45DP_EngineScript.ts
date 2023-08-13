@@ -190,8 +190,8 @@ const me = new FrpEngine(() => {
             me.rv.SetControlValue("ACSES_SpeedU", 0, -1);
         }
 
-        me.rv.SetControlValue("ATC_Node", 0, state.masEnforcing === adu.MasEnforcing.Atc ? 1 : 0);
-        me.rv.SetControlValue("ACSES_Node", 0, state.masEnforcing === adu.MasEnforcing.Acses ? 1 : 0);
+        me.rv.SetControlValue("ATC_Node", 0, state.atcLamp ? 1 : 0);
+        me.rv.SetControlValue("ACSES_Node", 0, state.acsesLamp ? 1 : 0);
     });
     const aduState = frp.stepper(aduStateHub$, undefined);
     // Alerter

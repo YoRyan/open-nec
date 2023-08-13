@@ -125,15 +125,15 @@ const me = new FrpEngine(() => {
             me.rv.SetControlValue("TSUnits", 0, -1);
         }
 
-        me.rv.SetControlValue(
-            "MaximumSpeedLimitIndicator",
-            0,
-            {
-                [adu.MasEnforcing.Off]: -1,
-                [adu.MasEnforcing.Atc]: 0,
-                [adu.MasEnforcing.Acses]: 1,
-            }[state.masEnforcing]
-        );
+        let lamp: number;
+        if (state.atcLamp) {
+            lamp = 0;
+        } else if (state.acsesLamp) {
+            lamp = 1;
+        } else {
+            lamp = -1;
+        }
+        me.rv.SetControlValue("MaximumSpeedLimitIndicator", 0, lamp);
     });
     const aduState = frp.stepper(aduStateHub$, undefined);
     // Alerter
