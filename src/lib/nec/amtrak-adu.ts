@@ -51,6 +51,8 @@ export enum AduEvent {
     Upgrade,
 }
 
+type AduInput = adu.AduInput<cs.AmtrakAspect>;
+
 /**
  * Creates a contemporary Amtrak-style ADU.
  */
@@ -63,8 +65,6 @@ export function create(
     equipmentSpeedMps: number,
     pulseCodeControlValue?: [name: string, index: number]
 ): [frp.Stream<AduState>, frp.Stream<AduEvent>] {
-    type AduInput = adu.AduInput<cs.AmtrakAspect>;
-
     // MNRR aspect indicators
     const isMnrrAspect = frp.stepper(
         frp.compose(e.createOnSignalMessageStream(), frp.map(cs.isMnrrAspect), rejectUndefined()),
@@ -200,7 +200,11 @@ export function create(
     return [state$, events$];
 }
 
-function authorizedSpeedMps(input: adu.AduInput<cs.AmtrakAspect>, atcCutIn: boolean, acsesCutIn: boolean) {
+function aspectSuperiority(input: AduInput) {
+    return adu.getAspectSuperiority(cs.amtrakAtc, input);
+}
+
+function authorizedSpeedMps(input: AduInput, atcCutIn: boolean, acsesCutIn: boolean) {
     const atcMps = cs.amtrakAtc.getSpeedMps(input.atcAspect);
     const acsesMps = input.acsesState?.currentLimitMps ?? 0;
     if (atcCutIn && acsesCutIn) {
@@ -212,8 +216,4 @@ function authorizedSpeedMps(input: adu.AduInput<cs.AmtrakAspect>, atcCutIn: bool
     } else {
         return undefined;
     }
-}
-
-function aspectSuperiority(input: adu.AduInput<cs.AmtrakAspect>) {
-    return adu.getAspectSuperiority(cs.amtrakAtc, input);
 }
