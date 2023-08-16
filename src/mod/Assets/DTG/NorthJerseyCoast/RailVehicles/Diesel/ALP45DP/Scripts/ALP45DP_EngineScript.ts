@@ -397,7 +397,7 @@ const me = new FrpEngine(() => {
     // Set the indicated RPM in diesel mode only.
     const trueRpm = () => me.rv.GetControlValue("RPM", 0) as number;
     const dieselRpm = frp.liftN((rpm, modePosition) => (modePosition < 0.3 ? rpm : 0), trueRpm, modePosition);
-    const dieselRpm$ = frp.compose(me.createPlayerWithKeyUpdateStream(), mapBehavior(dieselRpm));
+    const dieselRpm$ = frp.compose(me.createUpdateStream(), mapBehavior(dieselRpm));
     dieselRpm$(rpm => {
         me.rv.SetControlValue("VirtualRPM", 0, rpm);
     });
