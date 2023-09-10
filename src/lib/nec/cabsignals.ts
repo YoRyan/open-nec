@@ -6,7 +6,7 @@
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { rejectUndefined } from "lib/frp-extra";
+import { nullStream, rejectUndefined } from "lib/frp-extra";
 
 /**
  * A pulse code frequency combination in use on the Northeast Corridor.
@@ -447,7 +447,7 @@ export function createCabSignalStream<A>(
                   frp.map(() => e.rv.GetControlValue(...pulseCodeControlValue) as number),
                   frp.map(pulseCodeFromResumeValue)
               )
-            : _ => {};
+            : nullStream;
     const pulseCodeFromMessage$ = frp.compose(e.createOnSignalMessageStream(), frp.map(toPulseCode), rejectUndefined());
     const aspect$ = frp.compose(
         pulseCodeFromResume$,

@@ -6,7 +6,7 @@ import * as ale from "lib/alerter";
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine, PlayerLocation } from "lib/frp-engine";
-import { fsm, mapBehavior, movingAverage, rejectRepeats, rejectUndefined } from "lib/frp-extra";
+import { fsm, mapBehavior, movingAverage, nullStream, rejectRepeats, rejectUndefined } from "lib/frp-extra";
 import { SensedDirection } from "lib/frp-vehicle";
 import * as adu from "lib/nec/amtrak-adu";
 import * as m from "lib/math";
@@ -515,7 +515,7 @@ const me = new FrpEngine(() => {
             me.rv.SetControlValue("Bell", 0, onOff ? 1 : 0);
         });
     } else {
-        ctslDitchLightEvents$ = _ => {};
+        ctslDitchLightEvents$ = nullStream;
     }
 
     // Ditch lights, front and rear

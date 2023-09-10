@@ -21,6 +21,13 @@ export function debug(eventStream: frp.Stream<any>) {
 }
 
 /**
+ * An event stream that produces no events.
+ */
+export function nullStream<T>(): frp.Stream<T> {
+    return _ => {};
+}
+
+/**
  * Creates a state machine that records the last and current values of the event
  * stream.
  * @param initState The initial value of the state machine.
