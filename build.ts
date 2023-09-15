@@ -120,10 +120,15 @@ async function globEntryPoints() {
 
 async function timedTranspile(entryFile: Path, virtualBundle: [string, string][]) {
     const startMs = nowTime();
-    await transpile(entryFile, virtualBundle);
+    let err = undefined;
+    try {
+        await transpile(entryFile, virtualBundle);
+    } catch (e) {
+        err = e;
+    }
     const endMs = nowTime();
 
-    console.log(`${entryFile.relative()} - ${endMs - startMs}ms`);
+    console.log(entryFile.relative() + (err !== undefined ? ` ! ${err}` : ` - ${endMs - startMs}ms`));
 }
 
 async function transpile(entryFile: Path, virtualBundle: [string, string][]) {
@@ -186,6 +191,9 @@ async function compileLua(outPath: string, lua: string) {
     await writeStreamAsync(luac.stdin, lua);
     luac.stdin.end();
     await exited;
+    if (luac.exitCode !== 0) {
+        throw new Error("Lua compilation failed");
+    }
 }
 
 async function writeStreamAsync(stream: Writable, chunk: any) {
