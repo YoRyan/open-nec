@@ -243,10 +243,31 @@ const me = new FrpEngine(() => {
     });
 
     // Exterior windows
-    const windowsUpdate$ = me.createPlayerWithKeyUpdateStream();
-    windowsUpdate$(_ => {
-        me.rv.SetTime("LeftWindow", (me.rv.GetControlValue("Window Left", 0) as number) * 2);
-        me.rv.SetTime("RightWindow", (me.rv.GetControlValue("Window Right", 0) as number) * 2);
+    const leftWindow$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        mapBehavior(
+            frp.liftN(
+                position => position * 2,
+                () => me.rv.GetControlValue("Window Left", 0) as number
+            )
+        ),
+        rejectRepeats()
+    );
+    const rightWindow$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        mapBehavior(
+            frp.liftN(
+                position => position * 2,
+                () => me.rv.GetControlValue("Window Right", 0) as number
+            )
+        ),
+        rejectRepeats()
+    );
+    leftWindow$(t => {
+        me.rv.SetTime("LeftWindow", t);
+    });
+    rightWindow$(t => {
+        me.rv.SetTime("RightWindow", t);
     });
 
     // Process OnControlValueChange events.
