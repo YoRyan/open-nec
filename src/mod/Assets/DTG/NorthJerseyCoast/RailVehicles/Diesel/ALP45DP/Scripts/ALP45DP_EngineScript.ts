@@ -17,6 +17,7 @@ import * as rw from "lib/railworks";
 import * as fx from "lib/special-fx";
 import * as ui from "lib/ui";
 
+const dualModeOrder: [ps.EngineMode.Diesel, ps.EngineMode.Overhead] = [ps.EngineMode.Diesel, ps.EngineMode.Overhead];
 const dualModeSwitchS = 100;
 const dieselPower = 3600 / 5900;
 const ditchLightsFadeS = 0.3;
@@ -28,48 +29,31 @@ const me = new FrpEngine(() => {
         [ps.Electrification.Overhead]: ["PowerState", 0],
         [ps.Electrification.ThirdRail]: undefined,
     });
-    const modeSelect = () =>
-        (me.rv.GetControlValue("PowerMode", 0) as number) > 0.5 ? ps.EngineMode.Overhead : ps.EngineMode.Diesel;
     const modeAuto = () => (me.rv.GetControlValue("PowerSwitchAuto", 0) as number) > 0.5;
     ui.createAutoPowerStatusPopup(me, modeAuto);
-    const [modePosition$, modeSwitch$] = ps.createDualModeEngineStream(
+    const modeAutoSwitch$ = ps.createDualModeAutoSwitchStream(me, ...dualModeOrder, modeAuto);
+    modeAutoSwitch$(mode => {
+        me.rv.SetControlValue("PowerMode", 0, mode === ps.EngineMode.Overhead ? 1 : 0);
+    });
+    const modeSelect = () =>
+        (me.rv.GetControlValue("PowerMode", 0) as number) > 0.5 ? ps.EngineMode.Overhead : ps.EngineMode.Diesel;
+    const modePosition = ps.createDualModeEngineBehavior(
         me,
-        ps.EngineMode.Diesel,
-        ps.EngineMode.Overhead,
+        ...dualModeOrder,
         modeSelect,
-        modeAuto,
+        modeSelect,
         () => true, // We handle the transition lockout ourselves.
         dualModeSwitchS,
-        false,
-        ["PowerSwitchState", 0]
+        modeAutoSwitch$,
+        () => me.rv.GetControlValue("PowerSwitchState", 0) as number
     );
-    modeSwitch$(mode => {
-        if (mode === ps.EngineMode.Diesel) {
-            me.rv.SetControlValue("PowerMode", 0, 0);
-        } else if (mode === ps.EngineMode.Overhead) {
-            me.rv.SetControlValue("PowerMode", 0, 1);
-        }
-    });
-    const modePosition = frp.stepper(modePosition$, 0);
-    const pantographUp = () => (me.rv.GetControlValue("VirtualPantographControl", 0) as number) > 0.5;
-    const powerProportion = frp.liftN(
-        (position, pantographUp) => {
-            if (position === 0) {
-                return dieselPower;
-            } else if (position === 1) {
-                const haveElectrification = ps.uniModeEngineHasPower(ps.EngineMode.Overhead, electrification);
-                return haveElectrification && pantographUp ? 1 : 0;
-            } else {
-                return 0;
-            }
-        },
-        modePosition,
-        pantographUp
+    const setModePosition$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        mapBehavior(modePosition),
+        rejectRepeats()
     );
-    const setPlayerPower$ = frp.compose(me.createPlayerUpdateStream(), mapBehavior(powerProportion));
-    setPlayerPower$(power => {
-        // Unlike the virtual throttle, this works for helper engines.
-        me.eng.SetPowerProportion(-1, power);
+    setModePosition$(position => {
+        me.rv.SetControlValue("PowerSwitchState", 0, position);
     });
     // Power mode switch
     const canSwitchModes = frp.liftN(
@@ -105,7 +89,8 @@ const me = new FrpEngine(() => {
     // Lower the pantograph near the end of the transition to diesel. Raise it
     // when switching to electric using the power switch hotkey.
     const setPantographAuto$ = frp.compose(
-        modePosition$,
+        me.createPlayerWithKeyUpdateStream(),
+        mapBehavior(modePosition),
         fsm(0),
         frp.filter(([from, to]) => from > 0.03 && to <= 0.03),
         frp.map(_ => 0),
@@ -245,18 +230,33 @@ const me = new FrpEngine(() => {
     });
 
     // Throttle, dynamic brake, and air brake controls
+    const pantographUp = () => (me.rv.GetControlValue("VirtualPantographControl", 0) as number) > 0.5;
     const isPenaltyBrake = frp.liftN(
         (aduState, alerterState) => (aduState?.penaltyBrake || alerterState?.penaltyBrake) ?? false,
         aduState,
         alerterState
     );
+    const powerAvailable = frp.liftN(
+        (modePosition, pantographUp) => {
+            if (modePosition === 0) {
+                return dieselPower;
+            } else if (modePosition === 1) {
+                const haveElectrification = ps.uniModeEngineHasPower(ps.EngineMode.Overhead, electrification);
+                return haveElectrification && pantographUp ? 1 : 0;
+            } else {
+                return 0;
+            }
+        },
+        modePosition,
+        pantographUp
+    );
     const throttle$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
         mapBehavior(
             frp.liftN(
-                (isPenaltyBrake, isPowerAvailable, input) => (isPenaltyBrake || !isPowerAvailable ? 0 : input),
+                (isPenaltyBrake, available, input) => (isPenaltyBrake ? 0 : available * input),
                 isPenaltyBrake,
-                frp.liftN(power => power > 0, powerProportion),
+                powerAvailable,
                 () => Math.max(me.rv.GetControlValue("ThrottleAndBrake", 0) as number, 0)
             )
         )

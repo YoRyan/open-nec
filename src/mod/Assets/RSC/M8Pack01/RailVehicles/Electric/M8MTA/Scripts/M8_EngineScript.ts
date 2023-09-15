@@ -6,7 +6,7 @@ import * as ale from "lib/alerter";
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { mapBehavior, once, rejectRepeats, rejectUndefined } from "lib/frp-extra";
+import * as xt from "lib/frp-extra";
 import { SensedDirection, VehicleCamera, VehicleUpdate } from "lib/frp-vehicle";
 import { AduAspect } from "lib/nec/adu";
 import * as cs from "lib/nec/cabsignals";
@@ -24,6 +24,10 @@ enum ConsistMessageId {
 
 type MotorSounds = [lowPitch: number, highPitch: number, volume: number, compressor?: number];
 
+const dualModeOrder: [ps.EngineMode.Overhead, ps.EngineMode.ThirdRail] = [
+    ps.EngineMode.Overhead,
+    ps.EngineMode.ThirdRail,
+];
 const dualModeSwitchS = 10;
 // Try to limit the performance impact of consist messages.
 const consistUpdateMs = (1 / 4) * 1e3;
@@ -32,19 +36,19 @@ const me = new FrpEngine(() => {
     const isFanRailer = me.rv.GetTotalMass() === 65.7;
 
     // Dual mode power supply
+    const rvPowerMode = me.rv.GetRVNumber()[0] === "T" ? ps.EngineMode.ThirdRail : ps.EngineMode.Overhead;
     const electrification = ps.createElectrificationBehaviorWithControlValues(me, {
         [ps.Electrification.Overhead]: ["PowerOverhead", 0],
         [ps.Electrification.ThirdRail]: ["Power3rdRail", 0],
     });
     // These control values aren't set properly in the engine blueprints. We'll
     // fix them, but only for the first time--not when resuming from a save.
-    const rvPowerMode = me.rv.GetRVNumber()[0] === "T" ? ps.EngineMode.ThirdRail : ps.EngineMode.Overhead;
     const resumeFromSave = frp.stepper(me.createFirstUpdateStream(), false);
     const fixPowerValues$ = frp.compose(
         me.createUpdateStream(),
         frp.filter(_ => !frp.snapshot(resumeFromSave) && frp.snapshot(me.areControlsSettled)),
         frp.map(_ => true),
-        once(),
+        xt.once(),
         frp.hub()
     );
     fixPowerValues$(() => {
@@ -53,7 +57,7 @@ const me = new FrpEngine(() => {
         // it will slew.
         me.rv.SetControlValue("Panto", 0, rvPowerMode === ps.EngineMode.ThirdRail ? 2 : 1);
     });
-    const modeSelect = frp.liftN(
+    const modeSelectPlayer = frp.liftN(
         (resumed, fixedValues) => {
             if (resumed || fixedValues) {
                 const cv = Math.round(me.rv.GetControlValue("Panto", 0) as number);
@@ -65,18 +69,24 @@ const me = new FrpEngine(() => {
         resumeFromSave,
         frp.stepper(fixPowerValues$, false) // Avoid any potential timing issues.
     );
-    const [modePosition$] = ps.createDualModeEngineStream(
+    const modePosition = ps.createDualModeEngineBehavior(
         me,
-        ps.EngineMode.Overhead,
-        ps.EngineMode.ThirdRail,
-        modeSelect,
-        () => false,
+        ...dualModeOrder,
+        modeSelectPlayer,
+        rvPowerMode,
         () => me.rv.GetControlValue("Regulator", 0) === 0,
         dualModeSwitchS,
-        true,
-        ["MaximumSpeedLimit", 0]
+        xt.nullStream, // The M8 doesn't have a toggle for automatic switching.
+        () => (me.rv.GetControlValue("PowerStart", 0) as number) - 1
     );
-    const modePosition = frp.stepper(modePosition$, 0);
+    const setModePosition$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        xt.mapBehavior(modePosition),
+        xt.rejectRepeats()
+    );
+    setModePosition$(position => {
+        me.rv.SetControlValue("PowerStart", 0, position + 1);
+    });
     const energyOn = () => (me.rv.GetControlValue("PantographControl", 0) as number) > 0.5;
     const pantoUp = () => {
         const cv = me.rv.GetControlValue("Panto", 0) as number;
@@ -101,8 +111,8 @@ const me = new FrpEngine(() => {
     const pantoAnim = new fx.Animation(me, "panto", 2);
     const pantoUp$ = frp.compose(
         me.createAiUpdateStream(),
-        mapBehavior(frp.liftN(modeSelect => modeSelect === ps.EngineMode.Overhead, modeSelect)),
-        frp.merge(frp.compose(me.createPlayerUpdateStream(), mapBehavior(pantoUp)))
+        xt.mapBehavior(frp.liftN(modeSelect => modeSelect === ps.EngineMode.Overhead, rvPowerMode)),
+        frp.merge(frp.compose(me.createPlayerUpdateStream(), xt.mapBehavior(pantoUp)))
     );
     pantoUp$(up => {
         pantoAnim.setTargetPosition(up ? 1 : 0);
@@ -217,7 +227,7 @@ const me = new FrpEngine(() => {
         isPowerAvailable,
         combinedPower
     );
-    const throttle$ = frp.compose(me.createPlayerWithKeyUpdateStream(), mapBehavior(throttle));
+    const throttle$ = frp.compose(me.createPlayerWithKeyUpdateStream(), xt.mapBehavior(throttle));
     throttle$(v => {
         me.rv.SetControlValue("Regulator", 0, v);
     });
@@ -229,7 +239,7 @@ const me = new FrpEngine(() => {
     );
     const blendedBrakes$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        mapBehavior(brake),
+        xt.mapBehavior(brake),
         frp.map(isFanRailer ? fanRailerBlendedBraking : vanillaBlendedBraking)
     );
     blendedBrakes$(([air, dynamic]) => {
@@ -344,23 +354,23 @@ const me = new FrpEngine(() => {
     const motorLowPitch$ = frp.compose(
         motorSounds$,
         frp.map(([lowPitch]) => lowPitch),
-        rejectRepeats()
+        xt.rejectRepeats()
     );
     const motorHighPitch$ = frp.compose(
         motorSounds$,
         frp.map(([, highPitch]) => highPitch),
-        rejectRepeats()
+        xt.rejectRepeats()
     );
     const motorVolume$ = frp.compose(
         motorSounds$,
         frp.map(([, , volume]) => volume),
-        rejectRepeats()
+        xt.rejectRepeats()
     );
     const motorCompressor$ = frp.compose(
         motorSounds$,
         frp.map(([, , , compressor]) => compressor),
-        rejectRepeats(),
-        rejectUndefined()
+        xt.rejectRepeats(),
+        xt.rejectUndefined()
     );
     motorLowPitch$(v => {
         me.rv.SetControlValue("MotorLowPitch", 0, v);
@@ -406,7 +416,7 @@ const me = new FrpEngine(() => {
         me.createPlayerWithKeyUpdateStream(),
         // Prevent the last car from flickering.
         frp.filter(_ => frp.snapshot(me.areControlsSettled)),
-        mapBehavior(frp.stepper(consistStatusReceive$, undefined))
+        xt.mapBehavior(frp.stepper(consistStatusReceive$, undefined))
     );
     consistStatusDisplay$(status => {
         const behind = status?.split(";") ?? [];
@@ -451,13 +461,13 @@ const me = new FrpEngine(() => {
     });
     const acDcPower$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        mapBehavior(
+        xt.mapBehavior(
             frp.liftN(
                 (selected, isPowerAvailable): [number, number] => {
                     const status = isPowerAvailable ? 2 : 1;
                     return selected === ps.EngineMode.Overhead ? [status, 0] : [0, status];
                 },
-                modeSelect,
+                modeSelectPlayer,
                 isPowerAvailable
             )
         )
@@ -486,7 +496,7 @@ const me = new FrpEngine(() => {
         frp.map(_ => false),
         frp.merge(ditchLightsPlayer$),
         frp.merge(ditchLightsAi$),
-        rejectRepeats()
+        xt.rejectRepeats()
     );
     ditchLights$(on => {
         me.rv.ActivateNode("left_ditch_light", on);
@@ -508,7 +518,7 @@ const me = new FrpEngine(() => {
         frp.merge(me.createAiUpdateStream()),
         frp.map(_ => false),
         frp.merge(cabLightPlayer$),
-        rejectRepeats()
+        xt.rejectRepeats()
     );
     cabLight$(on => {
         cabLight.Activate(on);
@@ -526,7 +536,7 @@ const me = new FrpEngine(() => {
         ),
         false
     );
-    const passLight$ = frp.compose(me.createUpdateStream(), mapBehavior(isPassengerView), rejectRepeats());
+    const passLight$ = frp.compose(me.createUpdateStream(), xt.mapBehavior(isPassengerView), xt.rejectRepeats());
     passLight$(on => {
         for (const light of passLights) {
             light.Activate(on);
@@ -546,7 +556,7 @@ const me = new FrpEngine(() => {
         me.createAiUpdateStream(),
         frp.map(_ => false),
         frp.merge(hallLightsPlayer$),
-        rejectRepeats()
+        xt.rejectRepeats()
     );
     hallLights$(on => {
         for (const light of hallLights) {
@@ -569,12 +579,12 @@ const me = new FrpEngine(() => {
     const doorLightLeft$ = frp.compose(
         doorLights$,
         frp.map(([l]) => l),
-        rejectRepeats()
+        xt.rejectRepeats()
     );
     const doorLightRight$ = frp.compose(
         doorLights$,
         frp.map(([, r]) => r),
-        rejectRepeats()
+        xt.rejectRepeats()
     );
     doorLightLeft$(on => {
         me.rv.ActivateNode("SL_doors_L", on);
@@ -589,7 +599,7 @@ const me = new FrpEngine(() => {
             me,
             () => (me.rv.GetControlValue("TrainBrakeCylinderPressurePSI", 0) as number) > 34
         ),
-        rejectRepeats()
+        xt.rejectRepeats()
     );
     brakeLight$(on => {
         me.rv.ActivateNode("SL_green", !on);
@@ -604,7 +614,7 @@ const me = new FrpEngine(() => {
         me.createAiUpdateStream(),
         frp.map(_ => false),
         frp.merge(handBrakeLightPlayer$),
-        rejectRepeats()
+        xt.rejectRepeats()
     );
     handBrakeLight$(on => {
         me.rv.ActivateNode("SL_blue", on);

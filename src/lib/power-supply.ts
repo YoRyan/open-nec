@@ -2,10 +2,9 @@
  * Power supply logic for electric and dual-mode locomotives.
  */
 
-import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { fsm, rejectRepeats, rejectUndefined } from "lib/frp-extra";
+import { fsm, once, rejectUndefined } from "lib/frp-extra";
 import * as rw from "lib/railworks";
 import * as ui from "lib/ui";
 
@@ -55,53 +54,50 @@ export function uniModeEngineHasPower(
  * @param e The player engine.
  * @param modeA The first operating mode.
  * @param modeB The second operating mode.
- * @param getMode A behavior that returns the player-selected operating mode.
- * @param getAutoSwitch A behavior that, when true, allows the engine to switch
- * modes according to the power change signal messages.
- * @param getCanTransition A behavior that, when true, allows the player to
+ * @param getPlayerMode A behavior that returns the player-selected operating
+ * mode.
+ * @param getAiMode: A behavior that returns the mode a non-player train should
+ * operate in.
+ * @param getPlayerCanSwitch A behavior that, when true, allows the player to
  * change modes.
  * @param transitionS The time it takes to transition between the modes.
- * @param popupsRequireEngineWithKey If true, popups will only be shown by the
- * lead player engine.
- * @param positionControlValue The name and index of the control value to use
- * to persist the power state between save states.
- * @returns A stream that emits the current power state of the locomotive, as a
- * number scaled from 0 (operating in mode #1) to 1 (operating in mode #2), and
- * a stream that emits the new selected operating mode if automatic switching is
- * used.
+ * @param instantSwitch An event stream that instantly switches the power mode
+ * due to, e.g., power change signal messages.
+ * @param positionFromSaveOrConsist Read the current power state from a control
+ * value to persist it between save states or to read it from the rest of the
+ * consist.
+ * @returns A behavior that returns the current power state of the locomotive as
+ * a number scaled from 0 (operating in mode #1) to 1 (operating in mode #2).
  */
-export function createDualModeEngineStream<A extends EngineMode, B extends EngineMode>(
+export function createDualModeEngineBehavior<A extends EngineMode, B extends EngineMode>(
     e: FrpEngine,
     modeA: A,
     modeB: B,
-    getMode: frp.Behavior<A | B>,
-    getAutoSwitch: frp.Behavior<boolean>,
-    getCanTransition: frp.Behavior<boolean>,
+    getPlayerMode: frp.Behavior<A | B>,
+    getAiMode: frp.Behavior<A | B>,
+    getPlayerCanSwitch: frp.Behavior<boolean>,
     transitionS: number,
-    popupsRequireEngineWithKey: boolean,
-    positionControlValue?: [name: string, index: number]
-): [position: frp.Stream<number>, autoMode: frp.Stream<EngineMode>] {
-    const isEngineStarted = () => (e.rv.GetControlValue("Startup", 0) as number) > 0;
-    const resumeFromSave = frp.stepper(e.createFirstUpdateStream(), false);
-
-    const autoSwitch$ = createDualModeAutoSwitchStream(e, modeA, modeB, getAutoSwitch);
-    const playerPositionInit$ = frp.compose(
-        e.createPlayerUpdateStream(),
-        frp.filter(_ => !frp.snapshot(e.areControlsSettled)),
-        frp.map(_ => {
-            if (frp.snapshot(resumeFromSave) && positionControlValue !== undefined) {
-                return e.rv.GetControlValue(...positionControlValue) as number;
-            } else {
-                return frp.snapshot(getMode) === modeA ? 0 : 1;
-            }
-        })
-    );
-    const playerPosition$ = frp.compose(
-        e.createPlayerUpdateStream(),
+    instantSwitch: frp.Stream<A | B>,
+    positionFromSaveOrConsist: frp.Behavior<number>
+): frp.Behavior<number> {
+    // Start from the first selected mode, or load a saved transition position.
+    const playerInitFresh$ = frp.compose(
+        e.createPlayerWithKeyUpdateStream(),
         frp.filter(_ => frp.snapshot(e.areControlsSettled)),
-        frp.merge(autoSwitch$),
-        frp.merge(playerPositionInit$),
-        frp.fold((position, input) => {
+        frp.map(_ => (frp.snapshot(getPlayerMode) === modeA ? 0 : 1))
+    );
+    const playerInitFromSave$ = frp.compose(
+        e.createOnResumeStream(),
+        frp.map(_ => frp.snapshot(positionFromSaveOrConsist))
+    );
+    const playerInit$ = frp.compose(playerInitFresh$, frp.merge(playerInitFromSave$), once());
+
+    const isEngineStarted = () => (e.rv.GetControlValue("Startup", 0) as number) > 0;
+    const playerPosition$ = frp.compose(
+        e.createPlayerWithKeyUpdateStream(),
+        frp.merge(playerInit$),
+        frp.merge(instantSwitch),
+        frp.fold((position: number | undefined, input) => {
             // Automatic switch
             if (typeof input === "string") {
                 return input === modeA ? 0 : 1;
@@ -110,13 +106,17 @@ export function createDualModeEngineStream<A extends EngineMode, B extends Engin
             if (typeof input === "number") {
                 return input;
             }
+            // Do nothing if not yet initialized.
+            if (position === undefined) {
+                return undefined;
+            }
             // Clock update
             const pu = input;
-            const selectedMode = frp.snapshot(getMode);
+            const selectedMode = frp.snapshot(getPlayerMode);
             if (!frp.snapshot(isEngineStarted)) {
-                // Don't transition while shut down.
+                // Halt the transition if shut down.
                 return position;
-            } else if ((position === 0 || position === 1) && !frp.snapshot(getCanTransition)) {
+            } else if ((position === 0 || position === 1) && !frp.snapshot(getPlayerCanSwitch)) {
                 return position;
             } else {
                 let direction: number;
@@ -133,22 +133,16 @@ export function createDualModeEngineStream<A extends EngineMode, B extends Engin
                 }
                 return Math.max(Math.min(position + (direction * pu.dt) / transitionS, 1), 0);
             }
-        }, 0),
+        }, undefined),
         frp.hub()
     );
-    const position$ = frp.compose(
-        e.createAiUpdateStream(),
-        frp.map(_ => (frp.snapshot(getMode) === modeA ? 0 : 1)),
-        frp.merge(playerPosition$)
-    );
 
+    // Player status popups
     const playerChange$ = frp.compose(
         playerPosition$,
-        fsm(0),
-        frp.filter(_ => frp.snapshot(e.areControlsSettled)),
-        frp.filter(_ => (popupsRequireEngineWithKey ?? false ? e.eng.GetIsEngineWithKey() : true)),
-        frp.filter(([from, to]) => from !== to),
-        frp.map(([, to]) => to),
+        fsm<number | undefined>(undefined),
+        frp.map(([from, to]) => (from !== undefined && from !== to ? to : undefined)),
+        rejectUndefined(),
         frp.hub()
     );
     const playerProgress$ = frp.compose(
@@ -180,14 +174,21 @@ export function createDualModeEngineStream<A extends EngineMode, B extends Engin
         );
     });
 
-    if (positionControlValue !== undefined) {
-        const playerPositionSave$ = frp.compose(playerPosition$, rejectRepeats());
-        playerPositionSave$(position => {
-            e.rv.SetControlValue(...positionControlValue, position);
-        });
-    }
-
-    return [position$, autoSwitch$];
+    const playerPosition = frp.stepper(playerPosition$, undefined);
+    return frp.liftN(
+        (isEngineWithKey, isPlayer) => {
+            if (isEngineWithKey) {
+                return frp.snapshot(playerPosition) ?? 0;
+            } else if (isPlayer) {
+                return frp.snapshot(positionFromSaveOrConsist);
+            } else {
+                const aiMode = frp.snapshot(getAiMode);
+                return aiMode === modeA ? 0 : 1;
+            }
+        },
+        () => e.eng.GetIsEngineWithKey(),
+        () => e.rv.GetIsPlayer()
+    );
 }
 
 /**
@@ -215,14 +216,12 @@ export function dualModeEngineHasPower<A extends EngineMode, B extends EngineMod
 
 /**
  * Process custom signal messages that communicate the automatically selected
- * power mode, and transmit that information to the rest of the consist via
- * consist messages.
+ * power mode.
  * @param e The player engine.
  * @param modeA The first operating mode.
  * @param modeB The second operating mode.
  * @param getAutoSwitch This behavior must be true to process power change
  * messages.
- * modes according to the power change signal messages.
  * @returns A stream that emits the new selected operating mode if automatic
  * switching is used.
  */
@@ -232,40 +231,19 @@ export function createDualModeAutoSwitchStream<A extends EngineMode, B extends E
     modeB: B,
     getAutoSwitch: frp.Behavior<boolean>
 ): frp.Stream<A | B> {
-    const forward$ = frp.compose(
-        e.createOnConsistMessageStream(),
-        frp.filter(([id]) => id === c.ConsistMessageId.PowerSwitch)
-    );
-    forward$(msg => {
-        e.eng.SendConsistMessage(...msg);
-    });
-
-    const signal$ = frp.compose(
+    return frp.compose(
         e.createOnSignalMessageStream(),
         frp.filter(_ => frp.snapshot(getAutoSwitch)),
         frp.map(parseModeSwitchMessage),
         frp.map(mode => (mode === modeA || mode === modeB ? (mode as A | B) : undefined)),
-        rejectUndefined(),
-        frp.hub()
-    );
-    signal$(mode => {
-        e.eng.SendConsistMessage(c.ConsistMessageId.PowerSwitch, mode, rw.ConsistDirection.Forward);
-        e.eng.SendConsistMessage(c.ConsistMessageId.PowerSwitch, mode, rw.ConsistDirection.Backward);
-    });
-    return frp.compose(
-        e.createOnConsistMessageStream(),
-        frp.filter(([id]) => id === c.ConsistMessageId.PowerSwitch),
-        frp.map(([, msg]) => msg),
-        frp.map(mode => (mode === modeA || mode === modeB ? (mode as A | B) : undefined)),
-        rejectUndefined(),
-        frp.merge(signal$)
+        rejectUndefined()
     );
 }
 
 /**
  * Create a behavior that represents the current electrification state, backed
- * by control values, which are saved and resumed and can be transmitted across
- * the consist. Also creates status popups for the player.
+ * by control values, which are saved and resumed. Also creates status popups
+ * for the player.
  * @param e The player engine.
  * @param cvs A mapping of electrification types to control values.
  * @returns The new behavior.
@@ -292,17 +270,15 @@ export function createElectrificationBehaviorWithControlValues(
             e.rv.SetControlValue(...cv, state ? 1 : 0);
         }
 
-        if (e.eng.GetIsEngineWithKey()) {
-            showElectrificationAlert(frp.snapshot(behavior));
-        }
+        showElectrificationAlert(frp.snapshot(behavior));
     });
     return behavior;
 }
 
 /**
  * Create a behavior that represents the current electrification state, backed
- * by an in-memory Lua table that is not currently synced across the consist.
- * Also creates status popups for the player.
+ * by an in-memory Lua table that is not currently saved. Also creates status
+ * popups for the player.
  * @param e The player engine.
  * @param init A list of electrification types that are available at startup.
  * @returns The new behavior.
@@ -320,9 +296,7 @@ export function createElectrificationBehaviorWithLua(
             set.delete(el);
         }
 
-        if (e.eng.GetIsEngineWithKey()) {
-            showElectrificationAlert(set);
-        }
+        showElectrificationAlert(set);
     });
     return () => set;
 }

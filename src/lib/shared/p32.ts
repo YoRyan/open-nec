@@ -17,6 +17,7 @@ import * as fx from "lib/special-fx";
 import * as ui from "lib/ui";
 import { SensedDirection } from "lib/frp-vehicle";
 
+const dualModeOrder: [ps.EngineMode.ThirdRail, ps.EngineMode.Diesel] = [ps.EngineMode.ThirdRail, ps.EngineMode.Diesel];
 const dualModeSwitchS = 20;
 const ditchLightsFadeS = 0.3;
 const ditchLightFlashS = 0.65;
@@ -28,53 +29,36 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
         [ps.Electrification.Overhead]: ["PowerOverhead", 0],
         [ps.Electrification.ThirdRail]: ["Power3rdRail", 0],
     });
-    const modeSelect = () => {
-        const cv = Math.round(me.rv.GetControlValue("PowerMode", 0) as number);
-        // The power mode control is reversed in the Shoreliner cab car, so
-        // compensate for this (while sacrificing P32-to-P32 MU capability).
-        if (me.rv.GetIsPlayer() && !me.eng.GetIsEngineWithKey()) {
-            return cv < 0.5 ? ps.EngineMode.Diesel : ps.EngineMode.ThirdRail;
-        } else {
-            return cv < 0.5 ? ps.EngineMode.ThirdRail : ps.EngineMode.Diesel;
-        }
-    };
     const modeAuto = () => (me.rv.GetControlValue("ExpertPowerMode", 0) as number) > 0.5;
     ui.createAutoPowerStatusPopup(me, modeAuto);
-    const [modePosition$, modeSwitch$] = ps.createDualModeEngineStream(
+    const modeAutoSwitch$ = ps.createDualModeAutoSwitchStream(me, ...dualModeOrder, modeAuto);
+    modeAutoSwitch$(mode => {
+        me.rv.SetControlValue("PowerMode", 0, mode === ps.EngineMode.Diesel ? 1 : 0);
+    });
+    const modeSelect = () => {
+        const cv = Math.round(me.rv.GetControlValue("PowerMode", 0) as number);
+        return cv < 0.5 ? ps.EngineMode.ThirdRail : ps.EngineMode.Diesel;
+    };
+    const modePosition = ps.createDualModeEngineBehavior(
         me,
-        ps.EngineMode.ThirdRail,
-        ps.EngineMode.Diesel,
+        ...dualModeOrder,
         modeSelect,
-        modeAuto,
+        modeSelect,
         () => {
-            // VirtualThrottle is the more correct control here, but it's
-            // not applied within the consist.
-            const throttle = me.rv.GetControlValue(
-                me.eng.GetIsEngineWithKey() ? "VirtualThrottle" : "Regulator",
-                0
-            ) as number;
+            const throttle = me.rv.GetControlValue("VirtualThrottle", 0) as number;
             return throttle < 0.5;
         },
         dualModeSwitchS,
-        false,
-        ["MaximumSpeedLimit", 0]
+        modeAutoSwitch$,
+        () => (me.rv.GetControlValue("PowerStart", 0) as number) - 1
     );
-    modeSwitch$(mode => {
-        if (mode === ps.EngineMode.ThirdRail) {
-            me.rv.SetControlValue("PowerMode", 0, 0);
-        } else if (mode === ps.EngineMode.Diesel) {
-            me.rv.SetControlValue("PowerMode", 0, 1);
-        }
-    });
-    const modePosition = frp.stepper(modePosition$, 0);
-    const isPowerAvailable = frp.liftN(
-        position => ps.dualModeEngineHasPower(position, ps.EngineMode.ThirdRail, ps.EngineMode.Diesel, electrification),
-        modePosition
+    const setModePosition$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        mapBehavior(modePosition),
+        rejectRepeats()
     );
-    const setPlayerPower$ = frp.compose(me.createPlayerUpdateStream(), mapBehavior(isPowerAvailable));
-    setPlayerPower$(power => {
-        // Unlike the virtual throttle, this works for helper engines.
-        me.eng.SetPowerProportion(-1, power ? 1 : 0);
+    setModePosition$(position => {
+        me.rv.SetControlValue("PowerStart", 0, position + 1);
     });
     // Power3rdRail is not set correctly in the third-rail engine blueprint, so
     // set it ourselves based on the value of PowerMode.
@@ -188,6 +172,10 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
         (aduState, alerterState) => (aduState?.penaltyBrake || alerterState?.penaltyBrake) ?? false,
         aduState,
         alerterState
+    );
+    const isPowerAvailable = frp.liftN(
+        position => ps.dualModeEngineHasPower(position, ...dualModeOrder, electrification),
+        modePosition
     );
     const throttle = frp.liftN(
         (isPenaltyBrake, isPowerAvailable, input) => (isPenaltyBrake || !isPowerAvailable ? 0 : input),

@@ -17,29 +17,48 @@ import * as fx from "lib/special-fx";
 import * as ui from "lib/ui";
 import { SensedDirection } from "lib/frp-vehicle";
 
+// Annoyingly, the power modes are reversed for the Shoreliner. We'll use the
+// P32's order internally and reverse the player's input to the Shoreliner. The
+// downside is that this flips the mode if the player switches ends.
+const dualModeOrder: [ps.EngineMode.ThirdRail, ps.EngineMode.Diesel] = [ps.EngineMode.ThirdRail, ps.EngineMode.Diesel];
+const dualModeSwitchS = 20;
+
 const me = new FrpEngine(() => {
     // Dual-mode power supply
-    ps.createElectrificationBehaviorWithControlValues(me, {
+    const electrification = ps.createElectrificationBehaviorWithControlValues(me, {
         [ps.Electrification.Overhead]: ["PowerOverhead", 0],
         [ps.Electrification.ThirdRail]: ["Power3rdRail", 0],
     });
     const modeAuto = () => (me.rv.GetControlValue("ExpertPowerMode", 0) as number) > 0.5;
     ui.createAutoPowerStatusPopup(me, modeAuto);
+    const modeAutoSwitch$ = ps.createDualModeAutoSwitchStream(me, ...dualModeOrder, modeAuto);
+    modeAutoSwitch$(mode => {
+        me.rv.SetControlValue("PowerMode", 0, mode === ps.EngineMode.Diesel ? 0 : 1); // reversed
+    });
     const modeSelect = () => {
         const cv = Math.round(me.rv.GetControlValue("PowerMode", 0) as number);
-        // The power mode control is reversed compared to that of the P32.
-        return cv === 0 ? ps.EngineMode.Diesel : ps.EngineMode.ThirdRail;
+        return cv > 0.5 ? ps.EngineMode.ThirdRail : ps.EngineMode.Diesel; // reversed
     };
-    // Match the P32 here, because this value is transmitted directly via
-    // consist message.
-    const modeSwitch$ = ps.createDualModeAutoSwitchStream(me, ps.EngineMode.ThirdRail, ps.EngineMode.Diesel, modeAuto);
-    modeSwitch$(mode => {
-        // Again, inverse of the P32.
-        if (mode === ps.EngineMode.ThirdRail) {
-            me.rv.SetControlValue("PowerMode", 0, 1);
-        } else if (mode === ps.EngineMode.Diesel) {
-            me.rv.SetControlValue("PowerMode", 0, 0);
-        }
+    const modePosition = ps.createDualModeEngineBehavior(
+        me,
+        ...dualModeOrder,
+        modeSelect,
+        ps.EngineMode.Diesel, // doesn't matter
+        () => {
+            const throttle = me.rv.GetControlValue("VirtualThrottle", 0) as number;
+            return throttle < 0.5;
+        },
+        dualModeSwitchS,
+        modeAutoSwitch$,
+        () => (me.rv.GetControlValue("PowerStart", 0) as number) - 1
+    );
+    const setModePosition$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        mapBehavior(modePosition),
+        rejectRepeats()
+    );
+    setModePosition$(position => {
+        me.rv.SetControlValue("PowerStart", 0, position + 1);
     });
     // Power3rdRail is not set correctly in the third-rail engine blueprint, so
     // set it ourselves based on the value of PowerMode.
@@ -123,9 +142,14 @@ const me = new FrpEngine(() => {
         aduState,
         alerterState
     );
+    const isPowerAvailable = frp.liftN(
+        position => ps.dualModeEngineHasPower(position, ...dualModeOrder, electrification),
+        modePosition
+    );
     const throttle = frp.liftN(
-        (isPenaltyBrake, input) => (isPenaltyBrake ? 0 : input),
+        (isPenaltyBrake, isPowerAvailable, input) => (isPenaltyBrake || !isPowerAvailable ? 0 : input),
         isPenaltyBrake,
+        isPowerAvailable,
         () => me.rv.GetControlValue("VirtualThrottle", 0) as number
     );
     const throttle$ = frp.compose(me.createPlayerWithKeyUpdateStream(), mapBehavior(throttle));
