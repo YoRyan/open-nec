@@ -1,3 +1,4 @@
+import colors from "@colors/colors";
 import { spawn } from "child_process";
 import * as fsp from "fs/promises";
 import { glob } from "glob";
@@ -128,7 +129,9 @@ async function timedTranspile(entryFile: Path, virtualBundle: [string, string][]
     }
     const endMs = nowTime();
 
-    console.log(entryFile.relative() + (err !== undefined ? ` ! ${err}` : ` - ${endMs - startMs}ms`));
+    const entryPath = colors.gray(entryFile.relative());
+    const result = err !== undefined ? colors.red(err + "") : `${endMs - startMs}ms`;
+    console.log(`${entryPath} ${result}`);
 }
 
 async function transpile(entryFile: Path, virtualBundle: [string, string][]) {

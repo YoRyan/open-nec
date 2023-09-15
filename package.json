@@ -7,6 +7,7 @@
     "build": "ts-node-esm ./build.ts"
   },
   "dependencies": {
+    "@colors/colors": "^1.6.0",
     "glob": "^10.2.1",
     "lua-types": "^2.13.1",
     "minimist": "^1.2.8",
