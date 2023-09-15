@@ -314,6 +314,7 @@ const me = new FrpEngine(() => {
     const deskLight = new rw.Light("DeskLight");
     const cabLightsNonPlayer$ = frp.compose(
         me.createAiUpdateStream(),
+        frp.merge(me.createPlayerWithoutKeyUpdateStream()),
         frp.map(_ => false)
     );
     const domeLight$ = frp.compose(
