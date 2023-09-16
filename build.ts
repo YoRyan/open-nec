@@ -233,6 +233,14 @@ async function copyOutput(relativeOutPath: string) {
                 "Assets/DTG/HudsonLine/RailVehicles/Passengers/Shoreliner/Driving Trailer/CommonScripts/CabCarEngineScript.out",
             ],
         ],
+        [
+            "Assets/DTG/NorthJerseyCoast/RailVehicles/Passengers/Comet/Driving Trailer/CommonScripts/CometCab_EngineScript.out",
+            [
+                "Assets/DTG/NJT-Alp46/RailVehicles/Passengers/Comet/Driving Trailer/CommonScripts/CometCab_EngineScript.out",
+                "Assets/DTG/GP40PHPack01/RailVehicles/Passengers/Comet/Driving Trailer/CommonScripts/CometCab_EngineScript.out",
+                "Assets/DTG/F40PH2Pack01/RailVehicles/Passengers/Comet/Driving Trailer/CommonScripts/CometCab_EngineScript.out",
+            ],
+        ],
     ];
     const copyMap = new Map<string, string[]>(
         copyTargets.map(([source, destinations]) => [

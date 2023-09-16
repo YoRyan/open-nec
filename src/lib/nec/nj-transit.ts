@@ -94,6 +94,69 @@ function getRvNumberDestination(v: FrpVehicle) {
 }
 
 /**
+ * Drive animations for passenger coach doors. The player has the option of
+ * locking the doors open until they close them manually. AI trains obey the
+ * simulator's commands.
+ * @param v The coach or cab car.
+ * @param openTimeS The time taken to open or close the doors.
+ * @returns A behavior that returns the door states for both sides of the car as
+ * numbers scaled from 0 (closed) to 1 (open).
+ */
+export function createManualDoorsBehavior(
+    v: FrpVehicle,
+    openTimeS: number = 1
+): frp.Behavior<[left: number, right: number]> {
+    const leftDoor = frp.stepper(
+        createManualDoorsStream(v, openTimeS, () => (v.rv.GetControlValue("DoorsOpenCloseLeft", 0) as number) > 0.5),
+        0
+    );
+    const rightDoor = frp.stepper(
+        createManualDoorsStream(v, openTimeS, () => (v.rv.GetControlValue("DoorsOpenCloseRight", 0) as number) > 0.5),
+        0
+    );
+    return frp.liftN((left, right) => [left, right], leftDoor, rightDoor);
+}
+
+function createManualDoorsStream(
+    v: FrpVehicle,
+    openTimeS: number,
+    doorsOpen: frp.Behavior<boolean>
+): frp.Stream<number> {
+    type DoorsAccum = {
+        position: number;
+        stayOpen: boolean;
+    };
+
+    const manualEnabled = () => (v.rv.GetControlValue("DoorsManual", 0) as number) > 0.5;
+    const manualClose = () => (v.rv.GetControlValue("DoorsManualClose", 0) as number) >= 1;
+    return frp.compose(
+        v.createUpdateStream(),
+        frp.fold(
+            (accum: DoorsAccum, dt) => {
+                let position: number;
+                let stayOpen: boolean;
+                if (frp.snapshot(doorsOpen)) {
+                    position = Math.min(accum.position + dt / openTimeS, 1);
+                    stayOpen = frp.snapshot(manualEnabled);
+                } else if (v.rv.GetIsPlayer() && accum.stayOpen) {
+                    position = accum.position;
+                    stayOpen = !frp.snapshot(manualClose);
+                } else {
+                    position = Math.max(accum.position - dt / openTimeS, 0);
+                    stayOpen = false;
+                }
+                return { position, stayOpen };
+            },
+            {
+                position: 0,
+                stayOpen: false,
+            }
+        ),
+        frp.map(accum => accum.position)
+    );
+}
+
+/**
  * Create popups for the manual door enable/disable control value.
  * @param e The player's engine.
  */
