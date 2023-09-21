@@ -13,15 +13,10 @@ import * as adu from "lib/nec/twospeed-adu";
 import * as m from "lib/math";
 import * as ps from "lib/power-supply";
 import * as rw from "lib/railworks";
+import { dualModeOrder, dualModeSwitchS } from "lib/shared/p32";
 import * as fx from "lib/special-fx";
 import * as ui from "lib/ui";
 import { SensedDirection } from "lib/frp-vehicle";
-
-// Annoyingly, the power modes are reversed for the Shoreliner. We'll use the
-// P32's order internally and reverse the player's input to the Shoreliner. The
-// downside is that this flips the mode if the player switches ends.
-const dualModeOrder: [ps.EngineMode.ThirdRail, ps.EngineMode.Diesel] = [ps.EngineMode.ThirdRail, ps.EngineMode.Diesel];
-const dualModeSwitchS = 20;
 
 const me = new FrpEngine(() => {
     // Dual-mode power supply
@@ -31,6 +26,10 @@ const me = new FrpEngine(() => {
     });
     const modeAuto = () => (me.rv.GetControlValue("ExpertPowerMode", 0) as number) > 0.5;
     ui.createAutoPowerStatusPopup(me, modeAuto);
+    // Annoyingly, the power modes are reversed for the Shoreliner. We'll use
+    // the P32's order internally and reverse the player's input to the
+    // Shoreliner. The downside is that this flips the mode if the player
+    // switches ends.
     const modeAutoSwitch$ = ps.createDualModeAutoSwitchStream(me, ...dualModeOrder, modeAuto);
     modeAutoSwitch$(mode => {
         me.rv.SetControlValue("PowerMode", 0, mode === ps.EngineMode.Diesel ? 0 : 1); // reversed

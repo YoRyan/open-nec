@@ -17,8 +17,12 @@ import * as fx from "lib/special-fx";
 import * as ui from "lib/ui";
 import { SensedDirection } from "lib/frp-vehicle";
 
-const dualModeOrder: [ps.EngineMode.ThirdRail, ps.EngineMode.Diesel] = [ps.EngineMode.ThirdRail, ps.EngineMode.Diesel];
-const dualModeSwitchS = 20;
+export const dualModeOrder: [ps.EngineMode.ThirdRail, ps.EngineMode.Diesel] = [
+    ps.EngineMode.ThirdRail,
+    ps.EngineMode.Diesel,
+];
+export const dualModeSwitchS = 20;
+
 const ditchLightsFadeS = 0.3;
 const ditchLightFlashS = 0.65;
 const taskLightFadeS = 0.8 / 2;

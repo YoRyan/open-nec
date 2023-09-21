@@ -14,12 +14,10 @@ import * as njt from "lib/nec/nj-transit";
 import * as adu from "lib/nec/twospeed-adu";
 import * as ps from "lib/power-supply";
 import * as rw from "lib/railworks";
+import { dualModeOrder, dualModeSwitchS, dieselPowerPct } from "lib/shared/alp45";
 import * as fx from "lib/special-fx";
 import * as ui from "lib/ui";
 
-const dualModeOrder: [ps.EngineMode.Diesel, ps.EngineMode.Overhead] = [ps.EngineMode.Diesel, ps.EngineMode.Overhead];
-const dualModeSwitchS = 100;
-const dieselPower = 3600 / 5900;
 const ditchLightsFadeS = 0.3;
 const intWipeTimeS = 3;
 
@@ -239,7 +237,7 @@ const me = new FrpEngine(() => {
     const powerAvailable = frp.liftN(
         (modePosition, pantographUp) => {
             if (modePosition === 0) {
-                return dieselPower;
+                return dieselPowerPct;
             } else if (modePosition === 1) {
                 const haveElectrification = ps.uniModeEngineHasPower(ps.EngineMode.Overhead, electrification);
                 return haveElectrification && pantographUp ? 1 : 0;
