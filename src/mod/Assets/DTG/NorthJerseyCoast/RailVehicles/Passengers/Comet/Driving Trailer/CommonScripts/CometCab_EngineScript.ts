@@ -13,7 +13,7 @@ import * as njt from "lib/nec/nj-transit";
 import * as adu from "lib/nec/njt-adu";
 import * as ps from "lib/power-supply";
 import * as rw from "lib/railworks";
-import { dualModeOrder, dualModeSwitchS, dieselPowerPct } from "lib/shared/alp45";
+import { dieselPowerPct, dualModeOrder, dualModeSwitchS, pantographLowerPosition } from "lib/shared/alp45";
 import * as fx from "lib/special-fx";
 import * as ui from "lib/ui";
 
@@ -98,7 +98,7 @@ const me = new FrpEngine(() => {
             me.createPlayerWithKeyUpdateStream(),
             mapBehavior(modePosition),
             fsm(0),
-            frp.filter(([from, to]) => from > 0.03 && to <= 0.03),
+            frp.filter(([from, to]) => from > pantographLowerPosition && to <= pantographLowerPosition),
             frp.map(_ => 0),
             frp.merge(
                 frp.compose(
