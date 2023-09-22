@@ -4,7 +4,7 @@
 
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { fsm, once, rejectUndefined } from "lib/frp-extra";
+import { fsm, mapBehavior, once, rejectUndefined } from "lib/frp-extra";
 import * as rw from "lib/railworks";
 import * as ui from "lib/ui";
 
@@ -84,12 +84,10 @@ export function createDualModeEngineBehavior<A extends EngineMode, B extends Eng
     const playerInitFresh$ = frp.compose(
         e.createPlayerWithKeyUpdateStream(),
         frp.filter(_ => frp.snapshot(e.areControlsSettled)),
-        frp.map(_ => (frp.snapshot(getPlayerMode) === modeA ? 0 : 1))
+        mapBehavior(getPlayerMode),
+        frp.map(mode => (mode === modeA ? 0 : 1))
     );
-    const playerInitFromSave$ = frp.compose(
-        e.createOnResumeStream(),
-        frp.map(_ => frp.snapshot(positionFromSaveOrConsist))
-    );
+    const playerInitFromSave$ = frp.compose(e.createOnResumeStream(), mapBehavior(positionFromSaveOrConsist));
     const playerInit$ = frp.compose(playerInitFresh$, frp.merge(playerInitFromSave$), once());
 
     const isEngineStarted = () => (e.rv.GetControlValue("Startup", 0) as number) > 0;
