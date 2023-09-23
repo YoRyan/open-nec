@@ -5,13 +5,15 @@
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { rejectRepeats, rejectUndefined } from "lib/frp-extra";
+import { mapBehavior, rejectRepeats, rejectUndefined } from "lib/frp-extra";
 import { FrpVehicle } from "lib/frp-vehicle";
 import * as rw from "lib/railworks";
 import * as ui from "lib/ui";
 
-export const destinationNames = ["Trenton", "New York", "Long Branch", "Hoboken", "Dover", "Bay Head"];
-export const destinationNodes = [
+// name indices start at -1
+const destinationNames = ["(no sign)", "Trenton", "New York", "Long Branch", "Hoboken", "Dover", "Bay Head"];
+// node indices start at 0
+const destinationNodes = [
     "Dest_Trenton",
     "Dest_NewYork",
     "Dest_LongBranch",
@@ -24,15 +26,19 @@ export const destinationNodes = [
  * Read and set destination signs for NJT rolling stock. Also creates a nice
  * selection menu for the player.
  * @param e The engine or cab car.
- * @returns A stream of indices into destinationNodes.
  */
-export function createDestinationSignStream(e: FrpEngine) {
+export function createDestinationSignSelector(e: FrpEngine) {
     // If our rail vehicle has a destination encoded in its #, then emit that
     // one at startup. Unless we are the player and we are resuming from a save;
     // then use the control value.
     const playerDestination = () => {
         const cv = e.rv.GetControlValue("Destination", 0);
-        return cv !== undefined ? Math.round(cv) - 1 : undefined;
+        if (cv === undefined) {
+            return undefined;
+        } else {
+            const i = Math.round(cv);
+            return Math.max(Math.min(i, destinationNames.length - 2), -1);
+        }
     };
     const firstDestination$ = frp.compose(
         e.createFirstUpdateStream(),
@@ -49,18 +55,18 @@ export function createDestinationSignStream(e: FrpEngine) {
     const playerMenu = new ui.ScrollingMenu("Set Destination Signs", destinationNames);
     const newDestination$ = frp.compose(
         e.createOnCvChangeStreamFor("Destination", 0),
-        frp.map(v => Math.round(v) - 1),
+        mapBehavior(playerDestination as frp.Behavior<number>),
         rejectRepeats(),
         frp.hub()
     );
     newDestination$(index => {
-        playerMenu.setSelection(index);
+        playerMenu.setSelection(index + 1);
         playerMenu.showPopup();
     });
 
     const sendToConsist$ = frp.compose(firstDestination$, frp.merge(newDestination$));
     sendToConsist$(index => {
-        const content = `${index + 1}`; // Maintain compatibility with DTG scripts.
+        const content = `${index}`;
         e.rv.SendConsistMessage(c.ConsistMessageId.NjtDestination, content, rw.ConsistDirection.Forward);
         e.rv.SendConsistMessage(c.ConsistMessageId.NjtDestination, content, rw.ConsistDirection.Backward);
     });
@@ -78,10 +84,14 @@ export function createDestinationSignStream(e: FrpEngine) {
     const readFromConsist$ = frp.compose(
         consistMessage$,
         frp.map(([, content]) => tonumber(content)),
-        rejectUndefined(),
-        frp.map(index => index - 1)
+        rejectUndefined()
     );
-    return frp.compose(readFromConsist$, frp.merge(firstDestination$), frp.merge(newDestination$));
+    const showDestination$ = frp.compose(readFromConsist$, frp.merge(firstDestination$), frp.merge(newDestination$));
+    showDestination$(selected => {
+        for (let i = 0; i < destinationNodes.length; i++) {
+            e.rv.ActivateNode(destinationNodes[i], i === selected);
+        }
+    });
 }
 
 function getRvNumberDestination(v: FrpVehicle) {

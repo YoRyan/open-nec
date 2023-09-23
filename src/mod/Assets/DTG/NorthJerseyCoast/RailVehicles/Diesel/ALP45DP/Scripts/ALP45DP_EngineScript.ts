@@ -691,7 +691,7 @@ const me = new FrpEngine(() => {
     fx.setLowPlatformDoorsForEngine(me, false);
 
     // Miscellaneous NJT features
-    njt.createDestinationSignStream(me);
+    njt.createDestinationSignSelector(me);
     njt.createManualDoorsPopup(me);
 
     // Set in-cab vehicle number.
