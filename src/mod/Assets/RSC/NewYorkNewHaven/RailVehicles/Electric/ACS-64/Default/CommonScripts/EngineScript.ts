@@ -95,12 +95,15 @@ const me = new FrpEngine(() => {
     // Safety systems cut in/out
     const atcCutIn = () => (me.rv.GetControlValue("ATCCutIn", 0) as number) > 0.5;
     const acsesCutIn = () => (me.rv.GetControlValue("ACSESCutIn", 0) as number) > 0.5;
-    const updateCutIns$ = me.createPlayerWithKeyUpdateStream();
-    updateCutIns$(_ => {
-        const atc = frp.snapshot(atcCutIn);
+    const updateCutIns$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        mapBehavior(
+            frp.liftN((atcCutIn, acsesCutIn): [boolean, boolean] => [atcCutIn, acsesCutIn], atcCutIn, acsesCutIn)
+        )
+    );
+    updateCutIns$(([atc, acses]) => {
         me.rv.SetControlValue("SigATCCutIn", 0, atc ? 1 : 0);
         me.rv.SetControlValue("SigATCCutOut", 0, atc ? 0 : 1);
-        const acses = frp.snapshot(acsesCutIn);
         me.rv.SetControlValue("SigACSESCutIn", 0, acses ? 1 : 0);
         me.rv.SetControlValue("SigACSESCutOut", 0, acses ? 0 : 1);
     });

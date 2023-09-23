@@ -142,14 +142,6 @@ const me = new FrpEngine(() => {
     // ATC and ACSES controls are reversed for NJT DLC.
     const atcCutIn = () => (me.rv.GetControlValue("ACSES", 0) as number) < 0.5;
     const acsesCutIn = () => (me.rv.GetControlValue("ATC", 0) as number) < 0.5;
-    const updateCutIns$ = me.createPlayerWithKeyUpdateStream();
-    updateCutIns$(_ => {
-        const atc = frp.snapshot(atcCutIn);
-        me.rv.SetControlValue("ATC_CutOut", 0, atc ? 0 : 1);
-        const acses = frp.snapshot(acsesCutIn);
-        me.rv.SetControlValue("ACSES_CutIn", 0, acses ? 1 : 0);
-        me.rv.SetControlValue("ACSES_CutOut", 0, acses ? 0 : 1);
-    });
     ui.createAtcStatusPopup(me, atcCutIn);
     ui.createAcsesStatusPopup(me, acsesCutIn);
     // Some versions of the Comet have no alarm sound, so having an alerter isn't a good idea.
