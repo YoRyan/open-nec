@@ -45,7 +45,7 @@ export function onInit(me: FrpEngine, version: Version) {
             me,
             ...dualModeOrder,
             modeSelect,
-            modeSelect,
+            ps.EngineMode.Diesel, // doesn't matter
             () => true, // We handle the transition lockout ourselves.
             dualModeSwitchS,
             modeAutoSwitch$,
