@@ -10,9 +10,8 @@ import { FrpVehicle } from "lib/frp-vehicle";
 import * as rw from "lib/railworks";
 import * as ui from "lib/ui";
 
-// name indices start at -1
-const destinationNames = ["(no sign)", "Trenton", "New York", "Long Branch", "Hoboken", "Dover", "Bay Head"];
-// node indices start at 0
+export const destinationNames = ["Trenton", "New York", "Long Branch", "Hoboken", "Dover", "Bay Head"];
+
 const destinationNodes = [
     "Dest_Trenton",
     "Dest_NewYork",
@@ -26,8 +25,13 @@ const destinationNodes = [
  * Read and set destination signs for NJT rolling stock. Also creates a nice
  * selection menu for the player.
  * @param e The engine or cab car.
+ * @param desinations An array of destination names to present to the player. Do
+ * not include -1, the no-sign item.
  */
-export function createDestinationSignSelector(e: FrpEngine) {
+export function createDestinationSignSelector(e: FrpEngine, destinations: string[] = destinationNames) {
+    const menuItems = ["(no sign)"];
+    menuItems.push(...destinations);
+
     // If our rail vehicle has a destination encoded in its #, then emit that
     // one at startup. Unless we are the player and we are resuming from a save;
     // then use the control value.
@@ -37,7 +41,7 @@ export function createDestinationSignSelector(e: FrpEngine) {
             return undefined;
         } else {
             const i = Math.round(cv);
-            return Math.max(Math.min(i, destinationNames.length - 2), -1);
+            return Math.max(Math.min(i, menuItems.length - 2), -1);
         }
     };
     const firstDestination$ = frp.compose(
@@ -52,7 +56,7 @@ export function createDestinationSignSelector(e: FrpEngine) {
     // We don't set the player's control value on first load, so if it was set
     // by rail vehicle # it will be out of sync until they change it, but that's
     // okay.
-    const playerMenu = new ui.ScrollingMenu("Set Destination Signs", destinationNames);
+    const playerMenu = new ui.ScrollingMenu("Set Destination Signs", menuItems);
     const newDestination$ = frp.compose(
         e.createOnCvChangeStreamFor("Destination", 0),
         mapBehavior(playerDestination as frp.Behavior<number>),
