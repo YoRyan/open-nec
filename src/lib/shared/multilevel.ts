@@ -27,7 +27,6 @@ const ditchLightsFadeS = 0.3;
 
 export function onInit(me: FrpEngine, version: Version) {
     // Dual-mode power supply (for the ALP-45 version only)
-    const pantographUp = () => (me.rv.GetControlValue("VirtualPantographControl", 0) as number) > 0.5;
     let powerAvailable: frp.Behavior<number>;
     if (version === Version.Alp45) {
         const electrification = ps.createElectrificationBehaviorWithControlValues(me, {
@@ -110,7 +109,7 @@ export function onInit(me: FrpEngine, version: Version) {
                 }
             },
             modePosition,
-            pantographUp
+            () => (me.rv.GetControlValue("VirtualPantographControl", 0) as number) > 0.5
         );
     } else {
         powerAvailable = 1;
