@@ -629,7 +629,7 @@ me.setup();
 function readRvNumber() {
     const [, , unit] = string.find(me.rv.GetRVNumber(), "(%d+)");
     if (unit !== undefined) {
-        const [[tt, h, t, u]] = m.digits(tonumber(unit) as number, 2);
+        const [[tt, h, t, u]] = m.digits(tonumber(unit) as number, 4);
         me.rv.SetControlValue("UN_thousands", 0, tt);
         me.rv.SetControlValue("UN_hundreds", 0, h);
         me.rv.SetControlValue("UN_tens", 0, t);
