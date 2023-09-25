@@ -43,31 +43,28 @@ const me = new FrpEngine(() => {
     });
     // These control values aren't set properly in the engine blueprints. We'll
     // fix them, but only for the first time--not when resuming from a save.
-    const resumeFromSave = frp.stepper(me.createFirstUpdateStream(), false);
+    const firstSettledUpdate$ = frp.compose(me.createFirstUpdateAfterControlsSettledStream(), frp.hub());
     const fixPowerValues$ = frp.compose(
-        me.createUpdateStream(),
-        frp.filter(_ => !frp.snapshot(resumeFromSave) && frp.snapshot(me.areControlsSettled)),
-        frp.map(_ => true),
-        xt.once(),
-        frp.hub()
+        firstSettledUpdate$,
+        frp.filter(resumeFromSave => !resumeFromSave)
     );
-    fixPowerValues$(() => {
+    fixPowerValues$(_ => {
         me.rv.SetControlValue(rvPowerMode === ps.EngineMode.ThirdRail ? "Power3rdRail" : "PowerOverhead", 0, 1);
         // We need to wait until controls are settled to set this CV, otherwise
         // it will slew.
         me.rv.SetControlValue("Panto", 0, rvPowerMode === ps.EngineMode.ThirdRail ? 2 : 1);
     });
     const modeSelectPlayer = frp.liftN(
-        (resumed, fixedValues) => {
-            if (resumed || fixedValues) {
-                const cv = Math.round(me.rv.GetControlValue("Panto", 0) as number);
-                return cv < 1.5 ? ps.EngineMode.Overhead : ps.EngineMode.ThirdRail;
-            } else {
+        (firstUpdate, cv) => {
+            if (firstUpdate === undefined) {
+                // Avoid any potential timing issues.
                 return rvPowerMode;
+            } else {
+                return cv < 1.5 ? ps.EngineMode.Overhead : ps.EngineMode.ThirdRail;
             }
         },
-        resumeFromSave,
-        frp.stepper(fixPowerValues$, false) // Avoid any potential timing issues.
+        frp.stepper(firstSettledUpdate$, undefined),
+        () => me.rv.GetControlValue("Panto", 0) as number
     );
     const modePosition = ps.createDualModeEngineBehavior(
         me,

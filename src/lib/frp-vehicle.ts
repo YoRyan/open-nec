@@ -1,7 +1,7 @@
 import * as c from "./constants";
 import * as frp from "./frp";
 import { FrpEntity, FrpSource } from "./frp-entity";
-import { rejectUndefined } from "./frp-extra";
+import { once, rejectUndefined } from "./frp-extra";
 import * as rw from "./railworks";
 
 /**
@@ -275,6 +275,29 @@ export class FrpVehicle extends FrpEntity {
         const onUpdate$ = frp.compose(this.createPlayerUpdateStream(), this.mapGetCvStream(name, index));
         const onCvChange$ = this.createOnCvChangeStreamFor(name, index);
         return frp.compose(onUpdate$, frp.merge(onCvChange$));
+    }
+
+    /**
+     * Create an event stream that fires once for the Resume() callback, or if
+     * not resuming from save, the first Update() callback after the
+     * controlvalues have settled.
+     * This is useful for setting initial controlvalues without modifying the
+     * engine blueprint.
+     * @returns A stream that emits true if the game is being restored from a
+     * save state; false if it is starting from a new session.
+     */
+    createFirstUpdateAfterControlsSettledStream(): frp.Stream<boolean> {
+        const resume$ = frp.compose(
+            this.createOnResumeStream(),
+            frp.map(() => true)
+        );
+        return frp.compose(
+            this.createUpdateStream(),
+            frp.map(_ => false),
+            frp.filter(_ => frp.snapshot(this.areControlsSettled)),
+            frp.merge(resume$),
+            once()
+        );
     }
 
     /**

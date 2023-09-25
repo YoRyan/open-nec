@@ -35,7 +35,7 @@ const me = new FrpEngine(() => {
         me.rv.SetControlValue("PowerMode", 0, mode === ps.EngineMode.Diesel ? 0 : 1); // reversed
     });
     const modeSelect = () => {
-        const cv = Math.round(me.rv.GetControlValue("PowerMode", 0) as number);
+        const cv = me.rv.GetControlValue("PowerMode", 0) as number;
         return cv > 0.5 ? ps.EngineMode.ThirdRail : ps.EngineMode.Diesel; // reversed
     };
     const modePosition = ps.createDualModeEngineBehavior(
@@ -61,11 +61,9 @@ const me = new FrpEngine(() => {
     });
     // Power3rdRail is not set correctly in the third-rail engine blueprint, so
     // set it ourselves based on the value of PowerMode.
-    const resumeFromSave = frp.stepper(me.createFirstUpdateStream(), false);
     const fixElectrification$ = frp.compose(
-        me.createUpdateStream(),
-        frp.filter(_ => !frp.snapshot(resumeFromSave) && frp.snapshot(me.areControlsSettled)),
-        once(),
+        me.createFirstUpdateAfterControlsSettledStream(),
+        frp.filter(resumeFromSave => !resumeFromSave),
         mapBehavior(modeSelect),
         frp.map(mode => (mode === ps.EngineMode.ThirdRail ? 1 : 0))
     );
