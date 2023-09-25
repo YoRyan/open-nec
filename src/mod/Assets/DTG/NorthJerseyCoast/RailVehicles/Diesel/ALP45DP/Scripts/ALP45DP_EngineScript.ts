@@ -336,6 +336,15 @@ const me = new FrpEngine(() => {
     deskLight$(on => {
         deskLight.Activate(on);
     });
+    // The dome light is on by default, which obscures the cab signal aspects.
+    const domeLightDefault$ = frp.compose(
+        me.createFirstUpdateAfterControlsSettledStream(),
+        frp.filter(resumeFromSave => !resumeFromSave),
+        frp.map(_ => 0)
+    );
+    domeLightDefault$(v => {
+        me.rv.SetControlValue("CabLight", 0, v);
+    });
 
     // Ditch lights
     const ditchLights = [
