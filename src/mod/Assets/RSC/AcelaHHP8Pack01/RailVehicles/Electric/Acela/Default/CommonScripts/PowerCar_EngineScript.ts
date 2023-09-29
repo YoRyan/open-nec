@@ -54,7 +54,8 @@ const me = new FrpEngine(() => {
             return PantographSelect.Rear;
         }
     };
-    const pantographAnims = [new fx.Animation(me, "frontPanto", 2), new fx.Animation(me, "rearPanto", 2)];
+    // The pantograph animations are reversed.
+    const pantographAnims = [new fx.Animation(me, "rearPanto", 2), new fx.Animation(me, "frontPanto", 2)];
     const raisePantographs$ = frp.compose(
         me.createPlayerUpdateStream(),
         mapBehavior(
@@ -114,6 +115,16 @@ const me = new FrpEngine(() => {
             light.Activate(on);
             nodes.forEach(node => me.rv.ActivateNode(node, on));
         });
+    });
+    // In the blueprints, the pantograph select defaults to the front one, which
+    // is weird.
+    const pantographSelectDefault$ = frp.compose(
+        me.createFirstUpdateAfterControlsSettledStream(),
+        frp.filter(resumeFromSave => !resumeFromSave),
+        frp.map(_ => 2)
+    );
+    pantographSelectDefault$(v => {
+        me.rv.SetControlValue("SelPanto", 0, v);
     });
 
     // Safety systems cut in/out
