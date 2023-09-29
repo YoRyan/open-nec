@@ -374,15 +374,7 @@ const me = new FrpEngine(() => {
             }
         })
     );
-    const ditchLightsFrontAi$ = frp.compose(
-        me.createAiUpdateStream(),
-        frp.map((au): [boolean, boolean] => {
-            const [frontCoupled] = au.couplings;
-            const ditchOn = !frontCoupled && au.direction === SensedDirection.Forward;
-            return [ditchOn, ditchOn];
-        })
-    );
-    const ditchLightsFrontHelper$ = frp.compose(
+    const ditchLightsHelper$ = frp.compose(
         me.createPlayerWithoutKeyUpdateStream(),
         frp.map((_): [boolean, boolean] => [false, false])
     );
@@ -391,20 +383,34 @@ const me = new FrpEngine(() => {
         frp.map(([l, r]): [boolean, boolean] =>
             frp.snapshot(playerLocation) === PlayerLocation.InFrontCab ? [l, r] : [false, false]
         ),
-        frp.merge(ditchLightsFrontAi$),
-        frp.merge(ditchLightsFrontHelper$)
-    );
-    const ditchLightsRearNonPlayer$ = frp.compose(
-        me.createPlayerWithoutKeyUpdateStream(),
-        frp.merge(me.createAiUpdateStream()),
-        frp.map((_): [boolean, boolean] => [false, false])
+        frp.merge(ditchLightsHelper$),
+        frp.merge(
+            frp.compose(
+                me.createAiUpdateStream(),
+                frp.map((au): [boolean, boolean] => {
+                    const [frontCoupled] = au.couplings;
+                    const ditchOn = !frontCoupled && au.direction === SensedDirection.Forward;
+                    return [ditchOn, ditchOn];
+                })
+            )
+        )
     );
     const ditchLightsRear$ = frp.compose(
         ditchLightsPlayer$,
         frp.map(([l, r]): [boolean, boolean] =>
             frp.snapshot(playerLocation) === PlayerLocation.InRearCab ? [l, r] : [false, false]
         ),
-        frp.merge(ditchLightsRearNonPlayer$)
+        frp.merge(ditchLightsHelper$),
+        frp.merge(
+            frp.compose(
+                me.createAiUpdateStream(),
+                frp.map((au): [boolean, boolean] => {
+                    const [, rearCoupled] = au.couplings;
+                    const ditchOn = !rearCoupled && au.direction === SensedDirection.Backward;
+                    return [ditchOn, ditchOn];
+                })
+            )
+        )
     );
     ditchLightsFront$(([l, r]) => {
         const [lightL, lightR] = ditchLightsFront;
