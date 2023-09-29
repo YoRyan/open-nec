@@ -7,7 +7,7 @@ import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine, PlayerLocation } from "lib/frp-engine";
 import { mapBehavior, movingAverage, rejectRepeats } from "lib/frp-extra";
-import { SensedDirection } from "lib/frp-vehicle";
+import { SensedDirection, VehicleCamera } from "lib/frp-vehicle";
 import { AduAspect } from "lib/nec/adu";
 import * as cs from "lib/nec/cabsignals";
 import * as adu from "lib/nec/twospeed-adu";
@@ -36,6 +36,7 @@ const nDisplaySamples = 30;
 const me = new FrpEngine(() => {
     const isFanRailer = me.rv.ControlExists("NewVirtualThrottle", 0);
     const playerLocation = me.createPlayerLocationBehavior();
+    const playerCamera = frp.stepper(me.createOnCameraStream(), VehicleCamera.Outside);
 
     // Electric power supply
     const electrification = ps.createElectrificationBehaviorWithLua(me, ps.Electrification.Overhead);
@@ -316,21 +317,61 @@ const me = new FrpEngine(() => {
     });
 
     // Cab dome light
-    const cabLight = new rw.Light("CabLight");
-    const cabLightPlayer$ = frp.compose(
-        me.createPlayerWithKeyUpdateStream(),
-        me.mapGetCvStream("CabLight", 0),
-        frp.map(v => v > 0.5)
-    );
-    const cabLight$ = frp.compose(
+    const cabLights = [new rw.Light("CabLight"), new rw.Light("CabLight2")];
+    const cabLightOn = () => (me.rv.GetControlValue("CabLight", 0) as number) > 0.5;
+    const cabLightNonPlayer$ = frp.compose(
         me.createPlayerWithoutKeyUpdateStream(),
         frp.merge(me.createAiUpdateStream()),
         frp.map(_ => false),
-        frp.merge(cabLightPlayer$),
+        frp.hub()
+    );
+    const cabLightFront$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        mapBehavior(
+            frp.liftN((location, on) => location === PlayerLocation.InFrontCab && on, playerLocation, cabLightOn)
+        ),
+        frp.merge(cabLightNonPlayer$),
         rejectRepeats()
     );
-    cabLight$(on => {
-        cabLight.Activate(on);
+    const cabLightRear$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        mapBehavior(
+            frp.liftN((location, on) => location === PlayerLocation.InRearCab && on, playerLocation, cabLightOn)
+        ),
+        frp.merge(cabLightNonPlayer$),
+        rejectRepeats()
+    );
+    cabLightFront$(on => {
+        const [light] = cabLights;
+        light.Activate(on);
+    });
+    cabLightRear$(on => {
+        const [, light] = cabLights;
+        light.Activate(on);
+    });
+
+    // Dashboard light
+    const dashLights = [new rw.Light("DashLight1"), new rw.Light("DashLight2")];
+    const dashLightOn = () => (me.rv.GetControlValue("Dimmer", 0) as number) > 0.9;
+    const dashLightFront$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        mapBehavior(frp.liftN((camera, on) => camera === VehicleCamera.FrontCab && on, playerCamera, dashLightOn)),
+        frp.merge(cabLightNonPlayer$),
+        rejectRepeats()
+    );
+    const dashLightRear$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        mapBehavior(frp.liftN((camera, on) => camera === VehicleCamera.RearCab && on, playerCamera, dashLightOn)),
+        frp.merge(cabLightNonPlayer$),
+        rejectRepeats()
+    );
+    dashLightFront$(on => {
+        const [light] = dashLights;
+        light.Activate(on);
+    });
+    dashLightRear$(on => {
+        const [, light] = dashLights;
+        light.Activate(on);
     });
 
     // Horn rings the bell.
