@@ -7,7 +7,7 @@ import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
 import * as xt from "lib/frp-extra";
-import { SensedDirection } from "lib/frp-vehicle";
+import { SensedDirection, VehicleCamera } from "lib/frp-vehicle";
 import * as m from "lib/math";
 import * as njt from "lib/nec/nj-transit";
 import * as adu from "lib/nec/njt-adu";
@@ -125,6 +125,7 @@ const me = new FrpEngine(() => {
     setPantographAuto$(v => {
         me.rv.SetControlValue("VirtualPantographControl", 0, v);
     });
+    const pantographUp = () => (me.rv.GetControlValue("VirtualPantographControl", 0) as number) > 0.5;
     const powerAvailable = frp.liftN(
         (modePosition, pantographUp) => {
             if (modePosition === 0) {
@@ -137,7 +138,7 @@ const me = new FrpEngine(() => {
             }
         },
         modePosition,
-        () => (me.rv.GetControlValue("VirtualPantographControl", 0) as number) > 0.5
+        pantographUp
     );
     // Keep the pantograph lowered if spawning in diesel mode.
     if (binPowerMode === ps.EngineMode.Diesel) {
@@ -306,20 +307,63 @@ const me = new FrpEngine(() => {
 
     // Cab lights
     const domeLight = new rw.Light("CabLight");
+    const cabLightsNonPlayer$ = frp.compose(
+        me.createAiUpdateStream(),
+        frp.merge(me.createPlayerWithoutKeyUpdateStream()),
+        frp.map(_ => false)
+    );
     const domeLight$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
         frp.map(_ => (me.rv.GetControlValue("CabLight", 0) as number) > 0.5),
-        frp.merge(
-            frp.compose(
-                me.createAiUpdateStream(),
-                frp.merge(me.createPlayerWithoutKeyUpdateStream()),
-                frp.map(_ => false)
-            )
-        ),
+        frp.merge(cabLightsNonPlayer$),
         xt.rejectRepeats()
     );
     domeLight$(on => {
         domeLight.Activate(on);
+    });
+
+    // Gauge lights
+    const inCab = frp.liftN(
+        camera => camera === VehicleCamera.FrontCab,
+        frp.stepper(me.createOnCameraStream(), VehicleCamera.Outside)
+    );
+    const instrumentLights = [new rw.Light("ConsoleLight_Guage01"), new rw.Light("ConsoleLight_Guage02")];
+    const instrumentLights$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        xt.mapBehavior(
+            frp.liftN(
+                (inCab, cv) => inCab && cv > 0.9,
+                inCab,
+                () => me.rv.GetControlValue("InstrumentLights", 0) as number
+            )
+        ),
+        frp.merge(cabLightsNonPlayer$),
+        xt.rejectRepeats()
+    );
+    instrumentLights$(on => {
+        instrumentLights.forEach(light => light.Activate(on));
+    });
+
+    // Status panel lights
+    const statusLights: [turnOn: frp.Behavior<boolean>, light: rw.Light][] = [
+        [() => (me.rv.GetControlValue("VirtualSander", 0) as number) > 0.5, new rw.Light("AlertLight_Sanding")],
+        [() => (me.rv.GetControlValue("Wheelslip", 0) as number) >= 2, new rw.Light("AlertLight_WheelSlip")],
+        [() => (me.rv.GetControlValue("HEP", 0) as number) > 0.5, new rw.Light("AlertLight_HEPOn")],
+        [() => (me.rv.GetControlValue("AWSWarnCount", 0) as number) > 0.5, new rw.Light("AlertLight_Alarm")],
+        [pantographUp, new rw.Light("AlertLight_PantographUp")],
+        [frp.liftN(pantographUp => !pantographUp, pantographUp), new rw.Light("AlertLight_PantographDown")],
+        [() => (me.rv.GetControlValue("HandBrake", 0) as number) > 0.5, new rw.Light("AlertLight_Handbreak")],
+    ];
+    statusLights.forEach(([turnOn, light]) => {
+        const lightOn$ = frp.compose(
+            me.createPlayerWithKeyUpdateStream(),
+            xt.mapBehavior(frp.liftN((inCab, on) => inCab && on, inCab, turnOn)),
+            frp.merge(cabLightsNonPlayer$),
+            xt.rejectRepeats()
+        );
+        lightOn$(on => {
+            light.Activate(on);
+        });
     });
 
     // Ditch lights
