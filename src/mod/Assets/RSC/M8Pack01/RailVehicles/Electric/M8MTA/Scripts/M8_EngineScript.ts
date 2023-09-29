@@ -7,7 +7,7 @@ import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
 import * as xt from "lib/frp-extra";
-import { SensedDirection, VehicleCamera, VehicleUpdate } from "lib/frp-vehicle";
+import * as vh from "lib/frp-vehicle";
 import { AduAspect } from "lib/nec/adu";
 import * as cs from "lib/nec/cabsignals";
 import * as adu from "lib/nec/twospeed-adu";
@@ -112,7 +112,7 @@ const me = new FrpEngine(() => {
         frp.merge(
             frp.compose(
                 me.createAiUpdateStream(),
-                frp.map(au => au.direction !== SensedDirection.None),
+                frp.map(au => au.direction !== vh.SensedDirection.None),
                 frp.map(moving => moving && rvPowerMode === ps.EngineMode.Overhead)
             )
         )
@@ -491,7 +491,7 @@ const me = new FrpEngine(() => {
         me.createAiUpdateStream(),
         frp.map(au => {
             const [frontCoupled] = au.couplings;
-            return !frontCoupled && au.direction === SensedDirection.Forward;
+            return !frontCoupled && au.direction === vh.SensedDirection.Forward;
         })
     );
     const ditchLights$ = frp.compose(
@@ -528,22 +528,28 @@ const me = new FrpEngine(() => {
     });
 
     // Passenger interior lights
-    let passLights: rw.Light[] = [];
-    for (let i = 0; i < 12; i++) {
-        passLights.push(new rw.Light(`PVLight_0${i < 10 ? "0" : ""}${i}`));
-    }
-    const isPassengerView = frp.stepper(
-        frp.compose(
-            me.createOnCameraStream(),
-            frp.map(camera => camera === VehicleCamera.Carriage)
-        ),
-        false
+    const inPassengerView = frp.liftN(
+        camera => camera === vh.VehicleCamera.Carriage,
+        frp.stepper(me.createOnCameraStream(), vh.VehicleCamera.Outside)
     );
-    const passLight$ = frp.compose(me.createUpdateStream(), xt.mapBehavior(isPassengerView), xt.rejectRepeats());
-    passLight$(on => {
-        for (const light of passLights) {
-            light.Activate(on);
-        }
+    let passCameraLights: rw.Light[] = [];
+    for (let i = 0; i < 6; i++) {
+        const n = i * 2 + 1;
+        passCameraLights.push(new rw.Light(`PVLight_0${n < 10 ? "0" : ""}${n}`));
+    }
+    const passCameraLight$ = frp.compose(
+        me.createPlayerUpdateStream(),
+        xt.mapBehavior(inPassengerView),
+        frp.merge(
+            frp.compose(
+                me.createAiUpdateStream(),
+                frp.map(_ => false)
+            )
+        ),
+        xt.rejectRepeats()
+    );
+    passCameraLight$(on => {
+        passCameraLights.forEach(light => light.Activate(on));
     });
 
     // Door hallway lights
@@ -562,9 +568,7 @@ const me = new FrpEngine(() => {
         xt.rejectRepeats()
     );
     hallLights$(on => {
-        for (const light of hallLights) {
-            light.Activate(on);
-        }
+        hallLights.forEach(light => light.Activate(on));
         me.rv.ActivateNode("round_lights_off", !on);
         me.rv.ActivateNode("round_lights_on", on);
     });
@@ -693,7 +697,7 @@ function consistMotorStatus() {
     }
 }
 
-function consistDoorStatus(vu?: VehicleUpdate) {
+function consistDoorStatus(vu?: vh.VehicleUpdate) {
     const doorsOpen = () => [
         (me.rv.GetControlValue("DoorsOpenCloseLeft", 0) as number) === 1,
         (me.rv.GetControlValue("DoorsOpenCloseRight", 0) as number) === 1,
