@@ -1,0 +1,723 @@
+/**
+ * NJ Transit Comet IV Cab Car
+ */
+
+import * as ale from "lib/alerter";
+import * as c from "lib/constants";
+import * as frp from "lib/frp";
+import { FrpEngine } from "lib/frp-engine";
+import * as xt from "lib/frp-extra";
+import { SensedDirection } from "lib/frp-vehicle";
+import * as m from "lib/math";
+import * as njt from "lib/nec/nj-transit";
+import * as adu from "lib/nec/njt-adu";
+import * as ps from "lib/power-supply";
+import * as rw from "lib/railworks";
+import { dieselPowerPct, dualModeOrder, dualModeSwitchS, pantographLowerPosition } from "lib/shared/alp45";
+import * as fx from "lib/special-fx";
+import * as ui from "lib/ui";
+
+enum DitchLights {
+    Off,
+    Fixed,
+    Flash,
+}
+
+enum StrobeLights {
+    Off,
+    ManualOn,
+    AutoBell,
+}
+
+const ditchLightsFadeS = 0.3;
+const ditchLightFlashS = 0.65;
+const strobeLightFlashS = 0.08;
+const strobeLightCycleS = 0.8;
+const strobeLightBellS = 30;
+
+const me = new FrpEngine(() => {
+    // Dual-mode power supply
+    // (Yes, hilariously, this is the only way to tell the versions apart.)
+    const binPowerMode = me.rv.ControlExists("WindowRightExt", 0) ? ps.EngineMode.Overhead : ps.EngineMode.Diesel;
+    const electrification = ps.createElectrificationBehaviorWithControlValues(me, {
+        [ps.Electrification.Overhead]: ["PowerState", 0],
+        [ps.Electrification.ThirdRail]: undefined,
+    });
+    const modeAuto = () => (me.rv.GetControlValue("PowerSwitchAuto", 0) as number) > 0.5;
+    ui.createAutoPowerStatusPopup(me, modeAuto);
+    const modeAutoSwitch$ = ps.createDualModeAutoSwitchStream(me, ...dualModeOrder, modeAuto);
+    modeAutoSwitch$(mode => {
+        me.rv.SetControlValue("PowerMode", 0, mode === ps.EngineMode.Overhead ? 1 : 0);
+    });
+    // (Yes, that means we have to fix this control value too.)
+    const firstSettledUpdate$ = frp.compose(me.createFirstUpdateAfterControlsSettledStream(), frp.hub());
+    const fixPowerMode$ = frp.compose(
+        firstSettledUpdate$,
+        frp.filter(resumeFromSave => !resumeFromSave)
+    );
+    fixPowerMode$(_ => {
+        me.rv.SetControlValue("PowerMode", 0, binPowerMode === ps.EngineMode.Overhead ? 1 : 0);
+    });
+    const modeSelect = frp.liftN(
+        (firstUpdate, cv) => {
+            if (firstUpdate === undefined) {
+                // Avoid any potential timing issues.
+                return binPowerMode;
+            } else {
+                return cv > 0.5 ? ps.EngineMode.Overhead : ps.EngineMode.Diesel;
+            }
+        },
+        frp.stepper(firstSettledUpdate$, undefined),
+        () => me.rv.GetControlValue("PowerMode", 0) as number
+    );
+    const modePosition = ps.createDualModeEngineBehavior(
+        me,
+        ...dualModeOrder,
+        modeSelect,
+        ps.EngineMode.Diesel, // doesn't matter
+        () => true, // We handle the transition lockout ourselves.
+        dualModeSwitchS,
+        modeAutoSwitch$,
+        () => me.rv.GetControlValue("PowerSwitchState", 0) as number
+    );
+    const setModePosition$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        xt.mapBehavior(modePosition),
+        xt.rejectRepeats()
+    );
+    setModePosition$(position => {
+        me.rv.SetControlValue("PowerSwitchState", 0, position);
+    });
+    // Power mode switch
+    // (The Comet IV lacks a working fault reset control, so we don't simulate
+    // the manual sequence.)
+    const canSwitchModes = frp.liftN(
+        (controlsSettled, isStopped, throttle) => controlsSettled && isStopped && throttle <= 0,
+        me.areControlsSettled,
+        () => me.rv.GetSpeed() < c.stopSpeed,
+        () => me.rv.GetControlValue("VirtualThrottle", 0) as number
+    );
+    const playerSwitchModesEasy$ = frp.compose(
+        me.createOnCvChangeStreamFor("PowerSwitch", 0),
+        frp.filter(v => v === 1),
+        frp.map(_ => 1 - (me.rv.GetControlValue("PowerMode", 0) as number)),
+        frp.filter(_ => frp.snapshot(canSwitchModes)),
+        frp.hub()
+    );
+    playerSwitchModesEasy$(v => {
+        me.rv.SetControlValue("PowerMode", 0, v);
+    });
+    // Lower the pantograph near the end of the transition to diesel. Raise it
+    // when switching to electric using the power switch hotkey.
+    const setPantographAuto$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        xt.mapBehavior(modePosition),
+        xt.fsm(0),
+        frp.filter(([from, to]) => from > pantographLowerPosition && to <= pantographLowerPosition),
+        frp.map(_ => 0),
+        frp.merge(
+            frp.compose(
+                playerSwitchModesEasy$,
+                frp.filter(v => v === 1)
+            )
+        )
+    );
+    setPantographAuto$(v => {
+        me.rv.SetControlValue("VirtualPantographControl", 0, v);
+    });
+    const powerAvailable = frp.liftN(
+        (modePosition, pantographUp) => {
+            if (modePosition === 0) {
+                return dieselPowerPct;
+            } else if (modePosition === 1) {
+                const haveElectrification = ps.uniModeEngineHasPower(ps.EngineMode.Overhead, electrification);
+                return haveElectrification && pantographUp ? 1 : 0;
+            } else {
+                return 0;
+            }
+        },
+        modePosition,
+        () => (me.rv.GetControlValue("VirtualPantographControl", 0) as number) > 0.5
+    );
+
+    // Safety systems cut in/out
+    // ATC and ACSES controls are reversed for NJT DLC.
+    const atcCutIn = () => (me.rv.GetControlValue("ACSES", 0) as number) < 0.5;
+    const acsesCutIn = () => (me.rv.GetControlValue("ATC", 0) as number) < 0.5;
+    ui.createAtcStatusPopup(me, atcCutIn);
+    ui.createAcsesStatusPopup(me, acsesCutIn);
+    const alerterCutIn = frp.liftN((atcCutIn, acsesCutIn) => atcCutIn || acsesCutIn, atcCutIn, acsesCutIn);
+    ui.createAlerterStatusPopup(me, alerterCutIn);
+
+    // Safety systems and ADU
+    const acknowledge = me.createAcknowledgeBehavior();
+    const suppression = () => (me.rv.GetControlValue("VirtualBrake", 0) as number) > 0.5;
+    const [aduState$, aduEvents$] = adu.create(me, acknowledge, suppression, atcCutIn, acsesCutIn, 100 * c.mph.toMps, [
+        "ACSES_SpeedSignal",
+        0,
+    ]);
+    const aduStateHub$ = frp.compose(aduState$, frp.hub());
+    aduStateHub$(state => {
+        // Almost nothing works with this ADU; we only have the green digits to
+        // manipulate.
+        if (state.masSpeedMph !== undefined) {
+            const [[h, t, u], guide] = m.digits(Math.round(state.masSpeedMph), 3);
+            me.rv.SetControlValue("SpeedH", 0, h);
+            me.rv.SetControlValue("SpeedT", 0, t);
+            me.rv.SetControlValue("SpeedU", 0, u);
+            me.rv.SetControlValue("SpeedP", 0, guide);
+        } else {
+            me.rv.SetControlValue("SpeedH", 0, -1);
+            me.rv.SetControlValue("SpeedT", 0, -1);
+            me.rv.SetControlValue("SpeedU", 0, -1);
+        }
+
+        // This keeps the gray bar underneath the current speed visible.
+        me.rv.SetControlValue("ACSES_SpeedGreen", 0, 0);
+    });
+    const aduState = frp.stepper(aduStateHub$, undefined);
+    // Alerter
+    const alerterReset$ = frp.compose(
+        me.createOnCvChangeStream(),
+        frp.filter(([name]) => name === "VirtualThrottle" || name === "VirtualBrake")
+    );
+    const alerterState = frp.stepper(ale.create(me, acknowledge, alerterReset$, alerterCutIn), undefined);
+    // Safety system sounds
+    const upgradeSound$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        fx.triggerSound(
+            1,
+            frp.compose(
+                aduEvents$,
+                frp.filter(evt => evt === adu.AduEvent.Upgrade)
+            )
+        )
+    );
+    const safetyAlarmSound$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        fx.loopSound(
+            0.5,
+            frp.liftN(aduState => (aduState?.atcAlarm || aduState?.acsesAlarm) ?? false, aduState)
+        )
+    );
+    const alarmsUpdate$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        xt.mapBehavior(
+            frp.liftN(
+                (aduState, alerterState, upgradeSound, alarmSound) => {
+                    return {
+                        awsWarnCount: (aduState?.atcAlarm || aduState?.acsesAlarm || alerterState?.alarm) ?? false,
+                        acsesAlert: alerterState?.alarm ?? false,
+                        acsesIncrease: upgradeSound,
+                        acsesDecrease: alarmSound,
+                    };
+                },
+                aduState,
+                alerterState,
+                frp.stepper(upgradeSound$, false),
+                frp.stepper(safetyAlarmSound$, false)
+            )
+        )
+    );
+    alarmsUpdate$(cvs => {
+        me.rv.SetControlValue("AWSWarnCount", 0, cvs.awsWarnCount ? 1 : 0);
+        me.rv.SetControlValue("ACSES_Alert", 0, cvs.acsesAlert ? 1 : 0);
+        me.rv.SetControlValue("ACSES_AlertIncrease", 0, cvs.acsesIncrease ? 1 : 0);
+        me.rv.SetControlValue("ACSES_AlertDecrease", 0, cvs.acsesDecrease ? 1 : 0);
+    });
+
+    // Manual door control
+    njt.createManualDoorsPopup(me);
+    const passengerDoors = njt.createManualDoorsBehavior(me);
+    const areDoorsOpen = frp.liftN(([left, right]) => left > 0 || right > 0, passengerDoors);
+    const leftDoor$ = frp.compose(
+        me.createUpdateStream(),
+        xt.mapBehavior(passengerDoors),
+        frp.map(([left]) => left),
+        xt.rejectRepeats()
+    );
+    const rightDoor$ = frp.compose(
+        me.createUpdateStream(),
+        xt.mapBehavior(passengerDoors),
+        frp.map(([, right]) => right),
+        xt.rejectRepeats()
+    );
+    leftDoor$(position => {
+        me.rv.SetTime("Doors_l", position * 2);
+    });
+    rightDoor$(position => {
+        me.rv.SetTime("Doors_r", position * 2);
+    });
+
+    // Throttle, dynamic brake, and air brake controls
+    const isPenaltyBrake = frp.liftN(
+        (aduState, alerterState) => (aduState?.penaltyBrake || alerterState?.penaltyBrake) ?? false,
+        aduState,
+        alerterState
+    );
+    const throttle$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        xt.mapBehavior(
+            frp.liftN(
+                (isPenaltyBrake, available, input) => (isPenaltyBrake ? 0 : available * input),
+                isPenaltyBrake,
+                powerAvailable,
+                () => me.rv.GetControlValue("VirtualThrottle", 0) as number
+            )
+        )
+    );
+    throttle$(v => {
+        me.rv.SetControlValue("Regulator", 0, v);
+    });
+    const airBrake$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        xt.mapBehavior(
+            frp.liftN(
+                (isPenaltyBrake, areDoorsOpen, input) => (isPenaltyBrake || areDoorsOpen ? 0.6 : input),
+                isPenaltyBrake,
+                areDoorsOpen,
+                () => me.rv.GetControlValue("VirtualBrake", 0) as number
+            )
+        )
+    );
+    airBrake$(v => {
+        me.rv.SetControlValue("TrainBrakeControl", 0, v);
+    });
+    // DTG's "blended braking" algorithm
+    const brakePipePsi = () => me.rv.GetControlValue("AirBrakePipePressurePSI", 0) as number;
+    const dynamicBrake$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        xt.mapBehavior(frp.liftN(bpPsi => Math.min((110 - bpPsi) / 16, 1), brakePipePsi))
+    );
+    dynamicBrake$(v => {
+        me.rv.SetControlValue("DynamicBrake", 0, v);
+    });
+
+    // Cab lights
+    const domeLight = new rw.Light("CabLight");
+    const domeLight$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        frp.map(_ => (me.rv.GetControlValue("CabLight", 0) as number) > 0.5),
+        frp.merge(
+            frp.compose(
+                me.createAiUpdateStream(),
+                frp.merge(me.createPlayerWithoutKeyUpdateStream()),
+                frp.map(_ => false)
+            )
+        ),
+        xt.rejectRepeats()
+    );
+    domeLight$(on => {
+        domeLight.Activate(on);
+    });
+
+    // Ditch lights
+    const ditchLights = [
+        new fx.FadeableLight(me, ditchLightsFadeS, "Ditch_L"),
+        new fx.FadeableLight(me, ditchLightsFadeS, "Ditch_R"),
+    ];
+    const areHeadLightsOn = () => (me.rv.GetControlValue("Headlights", 0) as number) > 1.5;
+    const ditchLightsSetting = frp.liftN(
+        (headLights, cv) => {
+            if (!headLights || cv < 0.5) {
+                return DitchLights.Off;
+            } else if (cv < 1.5) {
+                return DitchLights.Fixed;
+            } else {
+                return DitchLights.Flash;
+            }
+        },
+        areHeadLightsOn,
+        () => me.rv.GetControlValue("DitchLightSwitch", 0) as number
+    );
+    const ditchLightsPlayer$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        fx.behaviorStopwatchS(frp.liftN(setting => setting === DitchLights.Flash, ditchLightsSetting)),
+        frp.map((stopwatchS): [boolean, boolean] => {
+            if (stopwatchS === undefined) {
+                const ditchFixed = frp.snapshot(ditchLightsSetting) === DitchLights.Fixed;
+                return [ditchFixed, ditchFixed];
+            } else {
+                const flashLeft = stopwatchS % (ditchLightFlashS * 2) < ditchLightFlashS;
+                return [flashLeft, !flashLeft];
+            }
+        })
+    );
+    const ditchLightsAi$ = frp.compose(
+        me.createAiUpdateStream(),
+        frp.map((au): [boolean, boolean] => {
+            const ditchOn = au.direction === SensedDirection.Forward;
+            return [ditchOn, ditchOn];
+        })
+    );
+    const ditchLights$ = frp.compose(
+        me.createPlayerWithoutKeyUpdateStream(),
+        frp.map((_): [boolean, boolean] => [false, false]),
+        frp.merge(ditchLightsPlayer$),
+        frp.merge(ditchLightsAi$)
+    );
+    ditchLights$(([l, r]) => {
+        const [left, right] = ditchLights;
+        left.setOnOff(l);
+        right.setOnOff(r);
+    });
+    const ditchNodeLeft$ = frp.compose(
+        me.createUpdateStream(),
+        frp.map(_ => {
+            const [light] = ditchLights;
+            return light.getIntensity() > 0.5;
+        }),
+        xt.rejectRepeats()
+    );
+    const ditchNodeRight$ = frp.compose(
+        me.createUpdateStream(),
+        frp.map(_ => {
+            const [, light] = ditchLights;
+            return light.getIntensity() > 0.5;
+        }),
+        xt.rejectRepeats()
+    );
+    ditchNodeLeft$(on => {
+        me.rv.ActivateNode("ditch_left", on);
+    });
+    ditchNodeRight$(on => {
+        me.rv.ActivateNode("ditch_right", on);
+    });
+
+    // Strobe lights
+    const strobeLights = [new rw.Light("Strobe_L"), new rw.Light("Strobe_R")];
+    const strobeLightsSetting = frp.liftN(
+        (cv, controlsSettled) => {
+            if (!controlsSettled) {
+                return StrobeLights.Off;
+            } else if (cv < 0.5) {
+                return StrobeLights.Off;
+            } else if (cv < 1.5) {
+                return StrobeLights.ManualOn;
+            } else {
+                return StrobeLights.AutoBell;
+            }
+        },
+        () => me.rv.GetControlValue("StrobeLights", 0) as number,
+        me.areControlsSettled
+    );
+    const strobeLightsBell = frp.stepper(
+        frp.compose(
+            me.createPlayerWithKeyUpdateStream(),
+            fx.eventStopwatchS(
+                frp.compose(
+                    me.createPlayerWithKeyUpdateStream(),
+                    me.mapGetCvStream("VirtualBell", 0),
+                    frp.filter(v => v > 0.5),
+                    frp.filter(_ => frp.snapshot(strobeLightsSetting) === StrobeLights.AutoBell)
+                )
+            ),
+            frp.map(t => t !== undefined && t < strobeLightBellS)
+        ),
+        false
+    );
+    const strobeLights$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        fx.behaviorStopwatchS(
+            frp.liftN(
+                (setting, bell) => setting === StrobeLights.ManualOn || bell,
+                strobeLightsSetting,
+                strobeLightsBell
+            )
+        ),
+        frp.map((elapsedS): [boolean, boolean] => {
+            if (elapsedS === undefined) {
+                return [false, false];
+            } else {
+                const t = elapsedS % strobeLightCycleS;
+                if (t < strobeLightFlashS) {
+                    return [true, false];
+                } else if (t > 2 * strobeLightFlashS && t < 3 * strobeLightFlashS) {
+                    return [false, true];
+                } else {
+                    return [false, false];
+                }
+            }
+        }),
+        frp.merge(
+            frp.compose(
+                me.createPlayerWithoutKeyUpdateStream(),
+                frp.merge(me.createAiUpdateStream()),
+                frp.map((_): [boolean, boolean] => [false, false])
+            )
+        ),
+        frp.hub()
+    );
+    const strobeLightLeft$ = frp.compose(
+        strobeLights$,
+        frp.map(([left]) => left),
+        xt.rejectRepeats()
+    );
+    const strobeLightRight$ = frp.compose(
+        strobeLights$,
+        frp.map(([, right]) => right),
+        xt.rejectRepeats()
+    );
+    strobeLightLeft$(on => {
+        const [light] = strobeLights;
+        light.Activate(on);
+        me.rv.ActivateNode("strobe_L_on", on);
+        me.rv.ActivateNode("strobe_L_off", !on);
+    });
+    strobeLightRight$(on => {
+        const [, light] = strobeLights;
+        light.Activate(on);
+        me.rv.ActivateNode("strobe_R_on", on);
+        me.rv.ActivateNode("strobe_R_off", !on);
+    });
+    // The control defaults to "manual" for some reason.
+    const strobeLightsDefault$ = frp.compose(
+        me.createFirstUpdateAfterControlsSettledStream(),
+        frp.filter(resumeFromSave => !resumeFromSave),
+        frp.map(_ => 2)
+    );
+    strobeLightsDefault$(v => {
+        me.rv.SetControlValue("StrobeLights", 0, v);
+    });
+
+    // Horn rings the bell.
+    const virtualBellControl$ = frp.compose(
+        me.createOnCvChangeStreamFor("VirtualHorn", 0),
+        frp.filter(v => v === 1),
+        me.mapAutoBellStream(true)
+    );
+    virtualBellControl$(v => {
+        me.rv.SetControlValue("VirtualBell", 0, v);
+    });
+    const bellControl$ = frp.compose(me.createPlayerWithKeyUpdateStream(), me.mapGetCvStream("VirtualBell", 0));
+    bellControl$(v => {
+        me.rv.SetControlValue("Bell", 0, v);
+    });
+
+    // Head-end power
+    const hepLights: rw.Light[] = [];
+    for (let i = 0; i < 8; i++) {
+        hepLights.push(new rw.Light(`Carriage Light ${i + 1}`));
+    }
+    const hep$ = frp.compose(
+        ps.createHepStream(me, () => (me.rv.GetControlValue("HEP", 0) as number) > 0.5),
+        xt.rejectRepeats()
+    );
+    hep$(on => {
+        hepLights.forEach(light => light.Activate(on));
+        me.rv.ActivateNode("1_1000_LitInteriorLights", on);
+        me.rv.SetControlValue("HEP_State", 0, on ? 1 : 0);
+    });
+    njt.createHepPopup(me);
+
+    // Link the various virtual controls.
+    const reverserControl$ = me.createOnCvChangeStreamFor("UserVirtualReverser", 0);
+    reverserControl$(v => {
+        me.rv.SetControlValue("Reverser", 0, v);
+    });
+    const hornControl$ = me.createOnCvChangeStreamFor("VirtualHorn", 0);
+    hornControl$(v => {
+        me.rv.SetControlValue("Horn", 0, v);
+    });
+    const startupControl$ = me.createOnCvChangeStreamFor("VirtualStartup", 0);
+    startupControl$(v => {
+        me.rv.SetControlValue("Startup", 0, v);
+    });
+    const sanderControl$ = me.createOnCvChangeStreamFor("VirtualSander", 0);
+    sanderControl$(v => {
+        me.rv.SetControlValue("Sander", 0, v);
+    });
+    const eBrakeControl$ = me.createOnCvChangeStreamFor("VirtualEmergencyBrake", 0);
+    eBrakeControl$(v => {
+        me.rv.SetControlValue("EmergencyBrake", 0, v);
+    });
+
+    // Link the control desk switches.
+    const setHeadlights$ = frp.compose(
+        me.createOnCvChangeStreamFor("HeadlightSwitch", 0),
+        frp.map(v => {
+            switch (v) {
+                case 0:
+                    return 0;
+                case 1:
+                    return 2;
+                case 2:
+                    return 3;
+                default:
+                    return undefined;
+            }
+        }),
+        xt.rejectUndefined()
+    );
+    const moveHeadlightSwitch$ = frp.compose(
+        me.createOnCvChangeStreamFor("Headlights", 0),
+        frp.map(v => {
+            switch (v) {
+                case 0:
+                    return 0;
+                case 2:
+                    return 1;
+                case 3:
+                    return 2;
+                default:
+                    return undefined;
+            }
+        }),
+        xt.rejectUndefined()
+    );
+    setHeadlights$(v => {
+        me.rv.SetControlValue("Headlights", 0, v);
+    });
+    moveHeadlightSwitch$(v => {
+        me.rv.SetControlTargetValue("HeadlightSwitch", 0, v);
+    });
+    const setDitchLights$ = frp.compose(
+        me.createOnCvChangeStreamFor("DitchLightSwitch", 0),
+        frp.map(v => {
+            switch (v) {
+                case 0:
+                    return 0;
+                case 1:
+                    return 1;
+                default:
+                    return undefined;
+            }
+        }),
+        xt.rejectUndefined()
+    );
+    const moveDitchLightSwitch$ = frp.compose(
+        me.createOnCvChangeStreamFor("DitchLights", 0),
+        frp.map(v => {
+            switch (v) {
+                case 0:
+                    return 0;
+                case 1:
+                    return 1;
+                default:
+                    return undefined;
+            }
+        }),
+        xt.rejectUndefined()
+    );
+    setDitchLights$(v => {
+        me.rv.SetControlValue("DitchLights", 0, v);
+    });
+    moveDitchLightSwitch$(v => {
+        me.rv.SetControlTargetValue("DitchLightSwitch", 0, v);
+    });
+    const setPantograph$ = frp.compose(
+        me.createOnCvChangeStreamFor("PantographSwitch", 0),
+        frp.map(v => {
+            switch (v) {
+                case -1:
+                    return 0;
+                case 1:
+                    return 1;
+                default:
+                    return undefined;
+            }
+        }),
+        xt.rejectUndefined()
+    );
+    setPantograph$(v => {
+        me.rv.SetControlValue("VirtualPantographControl", 0, v);
+        me.rv.SetControlTargetValue("PantographSwitch", 0, 0);
+    });
+    const setWipers$ = me.createOnCvChangeStreamFor("WiperSwitch", 0);
+    const moveWipersSwitch$ = me.createOnCvChangeStreamFor("Wipers", 0);
+    setWipers$(v => {
+        me.rv.SetControlValue("Wipers", 0, v);
+    });
+    moveWipersSwitch$(v => {
+        me.rv.SetControlTargetValue("WiperSwitch", 0, v);
+    });
+
+    // Process OnControlValueChange events.
+    const onCvChange$ = frp.compose(
+        me.createOnCvChangeStream(),
+        frp.reject(([name]) => name === "VirtualBell")
+    );
+    onCvChange$(([name, index, value]) => {
+        me.rv.SetControlValue(name, index, value);
+    });
+
+    // Set consist brake lights.
+    const brakesAppliedLight$ = frp.compose(
+        fx.createBrakeLightStreamForEngine(me, () => (me.rv.GetControlValue("TrainBrakeControl", 0) as number) > 0),
+        xt.rejectRepeats()
+    );
+    brakesAppliedLight$(on => {
+        me.rv.ActivateNode("LightsGreen", !on);
+        me.rv.ActivateNode("LightsYellow", on);
+    });
+    const handBrakeLight$ = frp.compose(
+        me.createUpdateStream(),
+        frp.map(_ => (me.rv.GetControlValue("HandBrake", 0) as number) > 0),
+        xt.rejectRepeats()
+    );
+    handBrakeLight$(on => {
+        me.rv.ActivateNode("LightsBlue", on);
+    });
+    const doorsOpenLight$ = frp.compose(me.createUpdateStream(), xt.mapBehavior(areDoorsOpen), xt.rejectRepeats());
+    doorsOpenLight$(on => {
+        me.rv.ActivateNode("LightsRed", on);
+    });
+
+    // Sync exterior animations.
+    const leftWindow$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        frp.map(_ => me.rv.GetControlValue("WindowLeft", 0) as number),
+        xt.rejectRepeats()
+    );
+    leftWindow$(pos => {
+        me.rv.SetTime("WindowLeft", pos);
+    });
+    const rightWindow$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        frp.map(_ => me.rv.GetControlValue("WindowRight", 0) as number),
+        xt.rejectRepeats()
+    );
+    rightWindow$(pos => {
+        me.rv.SetTime("WindowRight", pos);
+    });
+    const driverDoor$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        frp.map(_ => me.rv.GetControlValue("DriverDoor", 0) as number),
+        xt.rejectRepeats()
+    );
+    driverDoor$(pos => {
+        me.rv.SetTime("DriverDoor", pos);
+    });
+
+    // These "marker lights" are just regular headlights that are completely
+    // inappropriate for the task.
+    const markerLights = [new rw.Light("MarkerLight1"), new rw.Light("MarkerLight2")];
+    const disableMarkerLights$ = frp.compose(me.createUpdateStream(), xt.once());
+    disableMarkerLights$(() => {
+        markerLights.forEach(l => l.Activate(false));
+    });
+
+    // Set platform door height.
+    fx.setLowPlatformDoorsForEngine(me, false);
+
+    // Destination signs
+    njt.createDestinationSignSelector(me);
+
+    // Set in-cab vehicle number.
+    readRvNumber();
+
+    // Enable updates.
+    me.e.BeginUpdate();
+});
+me.setup();
+
+function readRvNumber() {
+    const [, , unit] = string.find(me.rv.GetRVNumber(), "(%d+)");
+    if (unit !== undefined) {
+        const [[tt, h, t, u]] = m.digits(tonumber(unit) as number, 4);
+        me.rv.SetControlValue("UN_thousands", 0, tt);
+        me.rv.SetControlValue("UN_hundreds", 0, h);
+        me.rv.SetControlValue("UN_tens", 0, t);
+        me.rv.SetControlValue("UN_units", 0, u);
+    }
+}
