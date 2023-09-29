@@ -368,17 +368,33 @@ const me = new FrpEngine(() => {
     });
 
     // Passenger interior lights
-    const passLight = new rw.Light("RoomLight_PassView");
-    const isPassengerView = frp.stepper(
-        frp.compose(
-            me.createOnCameraStream(),
-            frp.map(camera => camera === VehicleCamera.Carriage)
-        ),
-        false
+    const playerCamera = frp.stepper(me.createOnCameraStream(), VehicleCamera.Outside);
+    const passExteriorLight = new rw.Light("RoomLight_PassView");
+    const passCameraLights: rw.Light[] = [];
+    for (let i = 0; i < 9; i++) {
+        passCameraLights.push(new rw.Light(`RoomLight_0${i + 1}`));
+    }
+    const passLightsNonPlayer$ = frp.compose(
+        me.createAiUpdateStream(),
+        frp.map(_ => false)
     );
-    const passLight$ = frp.compose(me.createUpdateStream(), mapBehavior(isPassengerView), rejectRepeats());
-    passLight$(on => {
-        passLight.Activate(on);
+    const passExteriorLight$ = frp.compose(
+        me.createPlayerUpdateStream(),
+        mapBehavior(frp.liftN(camera => camera === VehicleCamera.Outside, playerCamera)),
+        frp.merge(passLightsNonPlayer$),
+        rejectRepeats()
+    );
+    const passCameraLight$ = frp.compose(
+        me.createPlayerUpdateStream(),
+        mapBehavior(frp.liftN(camera => camera === VehicleCamera.Carriage, playerCamera)),
+        frp.merge(passLightsNonPlayer$),
+        rejectRepeats()
+    );
+    passExteriorLight$(on => {
+        passExteriorLight.Activate(on);
+    });
+    passCameraLight$(on => {
+        passCameraLights.forEach(light => light.Activate(on));
     });
 
     // Door hallway lights
