@@ -7,6 +7,7 @@ import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
 import { fsm, mapBehavior, rejectRepeats, rejectUndefined } from "lib/frp-extra";
+import { SensedDirection } from "lib/frp-vehicle";
 import { AduAspect } from "lib/nec/adu";
 import * as m from "lib/math";
 import * as cs from "lib/nec/cabsignals";
@@ -367,8 +368,16 @@ const me = new FrpEngine(() => {
         frp.merge(
             frp.compose(
                 me.createPlayerWithoutKeyUpdateStream(),
-                frp.merge(me.createAiUpdateStream()),
                 frp.map(_ => false)
+            )
+        ),
+        frp.merge(
+            frp.compose(
+                me.createAiUpdateStream(),
+                frp.map(au => {
+                    const [frontCoupled] = au.couplings;
+                    return !frontCoupled && au.direction === SensedDirection.Forward;
+                })
             )
         )
     );
