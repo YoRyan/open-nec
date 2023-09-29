@@ -239,6 +239,26 @@ const me = new FrpEngine(() => {
         cabLight.Activate(on);
     });
 
+    // Passenger interior lights
+    const passExteriorLights: rw.Light[] = [];
+    for (let i = 0; i < 8; i++) {
+        passExteriorLights.push(new rw.Light(`Carriage Light ${i + 1}`));
+    }
+    const passExteriorLight$ = frp.compose(
+        me.createPlayerUpdateStream(),
+        frp.map(_ => true),
+        frp.merge(
+            frp.compose(
+                me.createAiUpdateStream(),
+                frp.map(_ => false)
+            )
+        ),
+        rejectRepeats()
+    );
+    passExteriorLight$(on => {
+        passExteriorLights.forEach(light => light.Activate(on));
+    });
+
     // Exterior windows
     const leftWindow$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
