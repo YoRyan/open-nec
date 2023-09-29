@@ -405,8 +405,8 @@ const me = new FrpEngine(() => {
         frp.merge(
             frp.compose(
                 me.createAiUpdateStream(),
-                mapBehavior(modeSelect),
-                frp.map(mode => mode === ps.EngineMode.Overhead)
+                frp.map(au => au.direction !== SensedDirection.None),
+                frp.map(moving => moving && frp.snapshot(modeSelect) === ps.EngineMode.Overhead)
             )
         )
     );

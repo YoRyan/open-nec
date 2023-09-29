@@ -35,6 +35,7 @@ const nDisplaySamples = 30;
 
 const me = new FrpEngine(() => {
     const isFanRailer = me.rv.ControlExists("NewVirtualThrottle", 0);
+    const playerLocation = me.createPlayerLocationBehavior();
 
     // Electric power supply
     const electrification = ps.createElectrificationBehaviorWithLua(me, ps.Electrification.Overhead);
@@ -54,25 +55,45 @@ const me = new FrpEngine(() => {
         }
     };
     const pantographAnims = [new fx.Animation(me, "frontPanto", 2), new fx.Animation(me, "rearPanto", 2)];
-    const pantographUpdate$ = me.createUpdateStream();
-    pantographUpdate$(_ => {
-        let frontUp: boolean;
-        let rearUp: boolean;
-        const raise = frp.snapshot(pantographsUp);
-        switch (frp.snapshot(pantographSelect)) {
-            case PantographSelect.Both:
-                frontUp = rearUp = raise;
-                break;
-            case PantographSelect.Front:
-                frontUp = raise;
-                rearUp = false;
-                break;
-            case PantographSelect.Rear:
-                frontUp = false;
-                rearUp = raise;
-                break;
-        }
-
+    const raisePantographs$ = frp.compose(
+        me.createPlayerUpdateStream(),
+        mapBehavior(
+            frp.liftN(
+                (location, up, select): [boolean, boolean] => {
+                    if (!up) {
+                        return [false, false];
+                    } else if (select === PantographSelect.Front) {
+                        const reversed = location === PlayerLocation.InRearCab;
+                        return [!reversed, reversed];
+                    } else if (select === PantographSelect.Rear) {
+                        const reversed = location === PlayerLocation.InRearCab;
+                        return [reversed, !reversed];
+                    } else {
+                        return [true, true];
+                    }
+                },
+                playerLocation,
+                pantographsUp,
+                pantographSelect
+            )
+        ),
+        frp.merge(
+            frp.compose(
+                me.createAiUpdateStream(),
+                frp.map((au): [boolean, boolean] => {
+                    switch (au.direction) {
+                        case SensedDirection.Forward:
+                            return [false, true];
+                        case SensedDirection.Backward:
+                            return [true, false];
+                        case SensedDirection.None:
+                            return [false, false];
+                    }
+                })
+            )
+        )
+    );
+    raisePantographs$(([frontUp, rearUp]) => {
         const [frontAnim, rearAnim] = pantographAnims;
         frontAnim.setTargetPosition(frontUp ? 1 : 0);
         rearAnim.setTargetPosition(rearUp ? 1 : 0);
@@ -91,9 +112,7 @@ const me = new FrpEngine(() => {
         );
         sparkOnOff$(on => {
             light.Activate(on);
-            for (const node of nodes) {
-                me.rv.ActivateNode(node, on);
-            }
+            nodes.forEach(node => me.rv.ActivateNode(node, on));
         });
     });
 
@@ -360,7 +379,6 @@ const me = new FrpEngine(() => {
         ditchLightControl,
         frp.stepper(ditchLightsAutoFlash$, false)
     );
-    const playerLocation = me.createPlayerLocationBehavior();
     const ditchLightsPlayer$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
         fx.behaviorStopwatchS(frp.liftN(state => state === DitchLights.Flash, ditchLightsState)),

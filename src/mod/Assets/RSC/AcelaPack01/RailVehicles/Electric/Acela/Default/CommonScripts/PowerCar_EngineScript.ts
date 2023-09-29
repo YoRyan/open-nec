@@ -17,8 +17,6 @@ import * as rw from "lib/railworks";
 import * as fx from "lib/special-fx";
 import * as ui from "lib/ui";
 
-type PantographState = [raise: boolean, select: PantographSelect];
-
 enum PantographSelect {
     Front = "f",
     Both = "fr",
@@ -138,24 +136,13 @@ const me = new FrpEngine(() => {
     });
     // Pantograph animations
     const pantographAnims = [new fx.Animation(me, "frontPanto", 2), new fx.Animation(me, "rearPanto", 2)];
-    const pantographState$ = frp.compose(
-        me.createAiUpdateStream(),
-        frp.map(
-            (au): PantographState => [
-                true,
-                au.direction === SensedDirection.Backward ? PantographSelect.Rear : PantographSelect.Front,
-            ]
-        ),
-        frp.merge(
-            frp.compose(
-                me.createPlayerWithKeyUpdateStream(),
-                mapBehavior(
-                    frp.liftN(
-                        (raise, select): PantographState => [raise, select],
-                        pantographsUpPlayer,
-                        pantographSelectPlayer
-                    )
-                )
+    const raisePantographs$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        mapBehavior(
+            frp.liftN(
+                (raise, select): [boolean, PantographSelect] => [raise, select],
+                pantographsUpPlayer,
+                pantographSelectPlayer
             )
         ),
         frp.merge(
@@ -163,18 +150,45 @@ const me = new FrpEngine(() => {
                 me.createPlayerWithoutKeyUpdateStream(),
                 mapBehavior(
                     frp.liftN(
-                        (raise, select): PantographState => [raise, select],
+                        (raise, select): [boolean, PantographSelect] => [raise, select],
                         pantographsUpHelper,
                         pantographSelectHelper
                     )
                 )
             )
+        ),
+        frp.map(([raise, select]): [boolean, boolean] => {
+            if (!raise) {
+                return [false, false];
+            } else if (select === PantographSelect.Front) {
+                return [true, false];
+            } else if (select === PantographSelect.Rear) {
+                return [false, true];
+            } else {
+                return [true, true];
+            }
+        }),
+        frp.merge(
+            frp.compose(
+                me.createAiUpdateStream(),
+                frp.map((au): [boolean, boolean] => {
+                    switch (au.direction) {
+                        // In a standard Acela trainset, both power cars use the
+                        // rear panto.
+                        case SensedDirection.Forward:
+                        case SensedDirection.Backward:
+                            return [false, true];
+                        case SensedDirection.None:
+                            return [false, false];
+                    }
+                })
+            )
         )
     );
-    pantographState$(([raise, select]) => {
-        const [front, rear] = pantographAnims;
-        front.setTargetPosition(raise && select !== PantographSelect.Rear ? 1 : 0);
-        rear.setTargetPosition(raise && select !== PantographSelect.Front ? 1 : 0);
+    raisePantographs$(([frontUp, rearUp]) => {
+        const [frontAnim, rearAnim] = pantographAnims;
+        frontAnim.setTargetPosition(frontUp ? 1 : 0);
+        rearAnim.setTargetPosition(rearUp ? 1 : 0);
     });
     // Pantograph sparks
     const pantographAnimsAndSparks: [animation: fx.Animation, light: rw.Light, nodes: string[]][] = [
@@ -190,9 +204,7 @@ const me = new FrpEngine(() => {
         );
         sparkOnOff$(on => {
             light.Activate(on);
-            for (const node of nodes) {
-                me.rv.ActivateNode(node, on);
-            }
+            nodes.forEach(node => me.rv.ActivateNode(node, on));
         });
     });
 

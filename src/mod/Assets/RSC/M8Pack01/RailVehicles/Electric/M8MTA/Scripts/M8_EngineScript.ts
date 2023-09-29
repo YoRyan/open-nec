@@ -107,9 +107,15 @@ const me = new FrpEngine(() => {
     // Pantograph animation and spark
     const pantoAnim = new fx.Animation(me, "panto", 2);
     const pantoUp$ = frp.compose(
-        me.createAiUpdateStream(),
-        xt.mapBehavior(frp.liftN(modeSelect => modeSelect === ps.EngineMode.Overhead, rvPowerMode)),
-        frp.merge(frp.compose(me.createPlayerUpdateStream(), xt.mapBehavior(pantoUp)))
+        me.createPlayerUpdateStream(),
+        xt.mapBehavior(pantoUp),
+        frp.merge(
+            frp.compose(
+                me.createAiUpdateStream(),
+                frp.map(au => au.direction !== SensedDirection.None),
+                frp.map(moving => moving && rvPowerMode === ps.EngineMode.Overhead)
+            )
+        )
     );
     pantoUp$(up => {
         pantoAnim.setTargetPosition(up ? 1 : 0);
