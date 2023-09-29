@@ -7,7 +7,7 @@ import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine, PlayerLocation } from "lib/frp-engine";
 import { mapBehavior, rejectRepeats, rejectUndefined } from "lib/frp-extra";
-import { SensedDirection } from "lib/frp-vehicle";
+import { SensedDirection, VehicleCamera } from "lib/frp-vehicle";
 import * as m from "lib/math";
 import * as njt from "lib/nec/nj-transit";
 import * as adu from "lib/nec/njt-adu";
@@ -22,6 +22,7 @@ const intWipeTimeS = 3;
 
 const me = new FrpEngine(() => {
     const playerLocation = me.createPlayerLocationBehavior();
+    const playerCamera = frp.stepper(me.createOnCameraStream(), VehicleCamera.Outside);
 
     // Electric power supply
     const electrification = ps.createElectrificationBehaviorWithLua(me, ps.Electrification.Overhead);
@@ -167,22 +168,33 @@ const me = new FrpEngine(() => {
         frp.merge(me.createPlayerWithoutKeyUpdateStream()),
         frp.map(_ => false)
     );
-    const domeLights = [
-        new rw.Light("CabLight1"),
-        new rw.Light("CabLight2"),
-        new rw.Light("CabLight3"),
-        new rw.Light("CabLight4"),
-    ];
-    const domeLights$ = frp.compose(
+    const domeLightsFront = [new rw.Light("ScreenLight"), new rw.Light("CabLight1"), new rw.Light("CabLight2")];
+    const domeLightsRear = [new rw.Light("CabLight3"), new rw.Light("CabLight4")];
+    const domeLightOn = () => (me.rv.GetControlValue("CabLight", 0) as number) > 0.5;
+    const domeLightFront$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        frp.map(_ => (me.rv.GetControlValue("CabLight", 0) as number) > 0.5),
+        mapBehavior(
+            frp.liftN((location, on) => location === PlayerLocation.InFrontCab && on, playerLocation, domeLightOn)
+        ),
         frp.merge(cabLightsNonPlayer$),
         rejectRepeats()
     );
-    domeLights$(on => {
-        domeLights.forEach(light => light.Activate(on));
+    const domeLightRear$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        mapBehavior(
+            frp.liftN((location, on) => location === PlayerLocation.InRearCab && on, playerLocation, domeLightOn)
+        ),
+        frp.merge(cabLightsNonPlayer$),
+        rejectRepeats()
+    );
+    domeLightFront$(on => {
+        domeLightsFront.forEach(light => light.Activate(on));
     });
-    const instrumentLights = [
+    domeLightRear$(on => {
+        domeLightsRear.forEach(light => light.Activate(on));
+    });
+    // Gauge lights
+    const instrumentLightsFront = [
         new rw.Light("FDialLight01"),
         new rw.Light("FDialLight02"),
         new rw.Light("FDialLight03"),
@@ -191,6 +203,8 @@ const me = new FrpEngine(() => {
         new rw.Light("FBDialLight02"),
         new rw.Light("FBDialLight03"),
         new rw.Light("FBDialLight04"),
+    ];
+    const instrumentLightsRear = [
         new rw.Light("RDialLight01"),
         new rw.Light("RDialLight02"),
         new rw.Light("RDialLight03"),
@@ -200,14 +214,28 @@ const me = new FrpEngine(() => {
         new rw.Light("RBDialLight03"),
         new rw.Light("RBDialLight04"),
     ];
-    const instrumentLights$ = frp.compose(
+    const instrumentLightsOn = () => (me.rv.GetControlValue("InstrumentLights", 0) as number) > 0.5;
+    const instrumentLightsFront$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        frp.map(_ => (me.rv.GetControlValue("InstrumentLights", 0) as number) > 0.5),
+        mapBehavior(
+            frp.liftN((camera, on) => camera === VehicleCamera.FrontCab && on, playerCamera, instrumentLightsOn)
+        ),
         frp.merge(cabLightsNonPlayer$),
         rejectRepeats()
     );
-    instrumentLights$(on => {
-        instrumentLights.forEach(light => light.Activate(on));
+    const instrumentLightsRear$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        mapBehavior(
+            frp.liftN((camera, on) => camera === VehicleCamera.RearCab && on, playerCamera, instrumentLightsOn)
+        ),
+        frp.merge(cabLightsNonPlayer$),
+        rejectRepeats()
+    );
+    instrumentLightsFront$(on => {
+        instrumentLightsFront.forEach(light => light.Activate(on));
+    });
+    instrumentLightsRear$(on => {
+        instrumentLightsRear.forEach(light => light.Activate(on));
     });
 
     // Ditch lights
