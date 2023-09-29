@@ -139,6 +139,17 @@ const me = new FrpEngine(() => {
         modePosition,
         () => (me.rv.GetControlValue("VirtualPantographControl", 0) as number) > 0.5
     );
+    // Keep the pantograph lowered if spawning in diesel mode.
+    if (binPowerMode === ps.EngineMode.Diesel) {
+        const pantographDefault$ = frp.compose(
+            me.createFirstUpdateAfterControlsSettledStream(),
+            frp.filter(resumeFromSave => !resumeFromSave),
+            frp.map(_ => 0)
+        );
+        pantographDefault$(v => {
+            me.rv.SetControlValue("VirtualPantographControl", 0, v);
+        });
+    }
 
     // Safety systems cut in/out
     // ATC and ACSES controls are reversed for NJT DLC.
