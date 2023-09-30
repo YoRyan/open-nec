@@ -37,7 +37,13 @@ const me = new FrpEngine(() => {
     });
     const isPowerAvailable = () => ps.uniModeEngineHasPower(ps.EngineMode.ThirdRail, electrification);
     // Power3rdRail defaults to 0.
-    me.rv.SetControlValue("Power3rdRail", 0, 1);
+    const fixElectrification$ = frp.compose(
+        me.createFirstUpdateAfterControlsSettledStream(),
+        frp.filter(resumeFromSave => !resumeFromSave)
+    );
+    fixElectrification$(_ => {
+        me.rv.SetControlValue("Power3rdRail", 0, 1);
+    });
 
     // Safety systems cut in/out
     const atcCutIn = () => (me.rv.GetControlValue("ATCCutIn", 0) as number) > 0.5;
