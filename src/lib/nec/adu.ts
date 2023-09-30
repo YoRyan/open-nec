@@ -235,7 +235,7 @@ export function create<A>(
     const acsesBelowTargetSpeed = frp.liftN(
         (aSpeedoMps, acsesState) => {
             const targetSpeedMps = acsesState?.nextLimitMps ?? acsesState?.currentLimitMps;
-            return aSpeedoMps >= (targetSpeedMps ?? Infinity);
+            return aSpeedoMps < (targetSpeedMps ?? Infinity);
         },
         aSpeedoMps,
         acsesState
