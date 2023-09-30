@@ -89,7 +89,9 @@ function nowTime() {
 async function build() {
     const bundle = await readVirtualBundle();
     const entryPoints = await globEntryPoints();
-    await Promise.all(entryPoints.map(async entry => await timedTranspile(entry, bundle)));
+    for (const entry of entryPoints) {
+        await timedTranspile(entry, bundle);
+    }
 }
 
 async function readVirtualBundle() {
