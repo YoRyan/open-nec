@@ -405,42 +405,28 @@ const me = new FrpEngine(() => {
 
     // Door hallway lights
     const hallLights = [new rw.Light("HallLight_001"), new rw.Light("HallLight_002")];
-    const hallLightsPlayer$ = frp.compose(
-        me.createPlayerUpdateStream(),
-        frp.map(pu => {
-            const [l, r] = pu.doorsOpen;
-            return l || r;
-        })
+    const doorsOpen$ = frp.compose(
+        me.createVehicleUpdateStream(),
+        frp.map((vu): [left: boolean, right: boolean] => vu.doorsOpen),
+        frp.hub()
     );
     const hallLights$ = frp.compose(
-        me.createAiUpdateStream(),
-        frp.map(_ => false),
-        frp.merge(hallLightsPlayer$),
+        doorsOpen$,
+        frp.map(([l, r]) => l || r),
         rejectRepeats()
     );
     hallLights$(on => {
-        for (const light of hallLights) {
-            light.Activate(on);
-        }
+        hallLights.forEach(light => light.Activate(on));
     });
 
     // Door status lights
-    const doorLightsPlayer$ = frp.compose(
-        me.createPlayerUpdateStream(),
-        frp.map((pu): [boolean, boolean] => pu.doorsOpen)
-    );
-    const doorLights$ = frp.compose(
-        me.createAiUpdateStream(),
-        frp.map((au): [boolean, boolean] => [au.isStopped, au.isStopped]),
-        frp.merge(doorLightsPlayer$)
-    );
     const doorLightLeft$ = frp.compose(
-        doorLights$,
+        doorsOpen$,
         frp.map(([l]) => l),
         rejectRepeats()
     );
     const doorLightRight$ = frp.compose(
-        doorLights$,
+        doorsOpen$,
         frp.map(([, r]) => r),
         rejectRepeats()
     );
