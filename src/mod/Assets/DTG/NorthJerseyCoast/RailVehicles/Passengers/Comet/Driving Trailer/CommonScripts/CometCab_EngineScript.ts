@@ -42,16 +42,16 @@ const me = new FrpEngine(() => {
         });
         const modeSelect = () =>
             (me.rv.GetControlValue("PowerMode", 0) as number) > 0.5 ? ps.EngineMode.Overhead : ps.EngineMode.Diesel;
-        const modePosition = ps.createDualModeEngineBehavior(
-            me,
-            ...dualModeOrder,
-            modeSelect,
-            ps.EngineMode.Diesel, // doesn't matter
-            () => true, // We handle the transition lockout ourselves.
-            dualModeSwitchS,
-            modeAutoSwitch$,
-            () => me.rv.GetControlValue("PowerSwitchState", 0) as number
-        );
+        const modePosition = ps.createDualModeEngineBehavior({
+            e: me,
+            modes: dualModeOrder,
+            getPlayerMode: modeSelect,
+            getAiMode: ps.EngineMode.Diesel,
+            getPlayerCanSwitch: () => true,
+            transitionS: dualModeSwitchS,
+            instantSwitch: modeAutoSwitch$,
+            positionFromSaveOrConsist: () => me.rv.GetControlValue("PowerSwitchState", 0) as number,
+        });
         const setModePosition$ = frp.compose(
             me.createPlayerWithKeyUpdateStream(),
             mapBehavior(modePosition),
@@ -151,10 +151,15 @@ const me = new FrpEngine(() => {
     const acknowledge = me.createAcknowledgeBehavior();
     const suppression = () => (me.rv.GetControlValue("VirtualBrake", 0) as number) > 0.5;
     const aSpeedoMph = () => Math.abs(me.rv.GetControlValue("SpeedometerMPH", 0) as number);
-    const [aduState$, aduEvents$] = adu.create(me, acknowledge, suppression, atcCutIn, acsesCutIn, 100 * c.mph.toMps, [
-        "ACSES_SpeedSignal",
-        0,
-    ]);
+    const [aduState$, aduEvents$] = adu.create({
+        e: me,
+        acknowledge,
+        suppression,
+        atcCutIn,
+        acsesCutIn,
+        equipmentSpeedMps: 100 * c.mph.toMps,
+        pulseCodeControlValue: ["ACSES_SpeedSignal", 0],
+    });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
         const [[h, t, u], guide] = m.digits(Math.round(frp.snapshot(aSpeedoMph)), 3);
@@ -178,7 +183,10 @@ const me = new FrpEngine(() => {
         me.createOnCvChangeStream(),
         frp.filter(([name]) => name === "ThrottleAndBrake" || name === "VirtualBrake")
     );
-    const alerterState = frp.stepper(ale.create(me, acknowledge, alerterReset$, alerterCutIn), undefined);
+    const alerterState = frp.stepper(
+        ale.create({ e: me, acknowledge, acknowledgeStream: alerterReset$, cutIn: alerterCutIn }),
+        undefined
+    );
     // Safety system sounds
     const upgradeSound$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),

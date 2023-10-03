@@ -6,7 +6,6 @@ import * as adu from "./adu";
 import * as c from "lib/constants";
 import * as cs from "./cabsignals";
 import * as frp from "lib/frp";
-import { FrpEngine } from "lib/frp-engine";
 import { fsm, rejectUndefined } from "lib/frp-extra";
 
 /**
@@ -56,15 +55,15 @@ type AduInput = adu.AduInput<cs.AmtrakAspect>;
 /**
  * Creates a contemporary Amtrak-style ADU.
  */
-export function create(
-    e: FrpEngine,
-    acknowledge: frp.Behavior<boolean>,
-    suppression: frp.Behavior<boolean>,
-    atcCutIn: frp.Behavior<boolean>,
-    acsesCutIn: frp.Behavior<boolean>,
-    equipmentSpeedMps: number,
-    pulseCodeControlValue?: [name: string, index: number]
-): [frp.Stream<AduState>, frp.Stream<AduEvent>] {
+export function create({
+    e,
+    acknowledge,
+    suppression,
+    atcCutIn,
+    acsesCutIn,
+    equipmentSpeedMps,
+    pulseCodeControlValue,
+}: adu.CommonAduOptions): [frp.Stream<AduState>, frp.Stream<AduEvent>] {
     // MNRR aspect indicators
     const isMnrrAspect = frp.stepper(
         frp.compose(e.createOnSignalMessageStream(), frp.map(cs.isMnrrAspect), rejectUndefined()),
@@ -99,18 +98,18 @@ export function create(
             rejectUndefined()
         );
     const output$ = frp.compose(
-        adu.create(
-            cs.amtrakAtc,
-            getDowngrades,
-            false,
+        adu.create({
+            atc: cs.amtrakAtc,
+            getEvents: getDowngrades,
+            acsesStepsDown: false,
             equipmentSpeedMps,
             e,
             acknowledge,
             suppression,
             atcCutIn,
             acsesCutIn,
-            pulseCodeControlValue
-        ),
+            pulseCodeControlValue,
+        }),
         frp.hub()
     );
     const output = frp.stepper(output$, undefined);

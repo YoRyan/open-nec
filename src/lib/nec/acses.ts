@@ -77,13 +77,19 @@ const iterateStepM = 0.01;
  * control.
  * @returns An event stream that communicates all state for this system.
  */
-export function create(
-    e: FrpEngine,
-    cutIn: frp.Behavior<boolean>,
-    stepsDown: boolean,
-    equipmentSpeedMps: number,
-    atcCutIn: frp.Behavior<boolean>
-): frp.Stream<AcsesState> {
+export function create({
+    e,
+    cutIn,
+    stepsDown,
+    equipmentSpeedMps,
+    atcCutIn,
+}: {
+    e: FrpEngine;
+    cutIn: frp.Behavior<boolean>;
+    stepsDown: boolean;
+    equipmentSpeedMps: number;
+    atcCutIn: frp.Behavior<boolean>;
+}): frp.Stream<AcsesState> {
     type PiecesAccum = {
         speedPostViolated: Map<number, boolean>;
         piecesByCurveSpeed: Piece[];

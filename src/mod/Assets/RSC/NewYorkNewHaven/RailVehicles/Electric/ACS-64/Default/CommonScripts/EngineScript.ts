@@ -115,10 +115,15 @@ const me = new FrpEngine(() => {
     // Safety systems and ADU
     const acknowledge = me.createAcknowledgeBehavior();
     const suppression = () => (me.rv.GetControlValue("VirtualBrake", 0) as number) > (isCtslEnhancedPack ? 0.4 : 0.66);
-    const [aduState$, aduEvents$] = adu.create(me, acknowledge, suppression, atcCutIn, acsesCutIn, 125 * c.mph.toMps, [
-        "CabSignal",
-        0,
-    ]);
+    const [aduState$, aduEvents$] = adu.create({
+        e: me,
+        acknowledge,
+        suppression,
+        atcCutIn,
+        acsesCutIn,
+        equipmentSpeedMps: 125 * c.mph.toMps,
+        pulseCodeControlValue: ["CabSignal", 0],
+    });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
         me.rv.SetControlValue(
@@ -235,7 +240,10 @@ const me = new FrpEngine(() => {
         me.createOnCvChangeStream(),
         frp.filter(([name]) => name === "ThrottleAndBrake" || name === "VirtualBrake")
     );
-    const alerter$ = frp.compose(ale.create(me, acknowledge, alerterReset$, alerterCutIn), frp.hub());
+    const alerter$ = frp.compose(
+        ale.create({ e: me, acknowledge, acknowledgeStream: alerterReset$, cutIn: alerterCutIn }),
+        frp.hub()
+    );
     const alerterState = frp.stepper(alerter$, undefined);
     // Safety system sounds
     const isAlarm = frp.liftN(

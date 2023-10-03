@@ -11,6 +11,19 @@ import { fsm, mapBehavior, rejectUndefined } from "lib/frp-extra";
 import * as fx from "lib/special-fx";
 
 /**
+ * Configuration parameters common to all ADU styles.
+ */
+export type CommonAduOptions = {
+    e: FrpEngine;
+    atcCutIn: frp.Behavior<boolean>;
+    acsesCutIn: frp.Behavior<boolean>;
+    acknowledge: frp.Behavior<boolean>;
+    suppression: frp.Behavior<boolean>;
+    equipmentSpeedMps: number;
+    pulseCodeControlValue?: [name: string, index: number];
+};
+
+/**
  * Combines information from the ATC and ACSES subsystems. Consumed by
  * subclasses.
  */
@@ -96,23 +109,30 @@ const vZeroMps = 2.5 * c.mph.toMps;
  * to persist the cab signal pulse code between save states.
  * @returns An event stream that communicates the ADU's state.
  */
-export function create<A>(
-    atc: cs.AtcSystem<A>,
-    getEvents: (eventStream: frp.Stream<[from: AduInput<A>, to: AduInput<A>]>) => frp.Stream<AduEvent>,
-    acsesStepsDown: boolean,
-    equipmentSpeedMps: number,
-    e: FrpEngine,
-    acknowledge: frp.Behavior<boolean>,
-    suppression: frp.Behavior<boolean>,
-    atcCutIn: frp.Behavior<boolean>,
-    acsesCutIn: frp.Behavior<boolean>,
-    pulseCodeControlValue?: [name: string, index: number]
-): frp.Stream<AduOutput<A>> {
+export function create<A>({
+    atc,
+    getEvents,
+    acsesStepsDown,
+    equipmentSpeedMps,
+    e,
+    acknowledge,
+    suppression,
+    atcCutIn,
+    acsesCutIn,
+    pulseCodeControlValue,
+}: {
+    atc: cs.AtcSystem<A>;
+    getEvents: (eventStream: frp.Stream<[from: AduInput<A>, to: AduInput<A>]>) => frp.Stream<AduEvent>;
+    acsesStepsDown: boolean;
+} & CommonAduOptions): frp.Stream<AduOutput<A>> {
     const atcAspect = frp.stepper(cs.createCabSignalStream(atc, e, pulseCodeControlValue), atc.restricting);
     const aSpeedoMps = () => Math.abs(e.rv.GetControlValue("SpeedometerMPH", 0) as number) * c.mph.toMps;
     const vZero = frp.liftN(aSpeedoMps => aSpeedoMps < vZeroMps, aSpeedoMps);
 
-    const acsesState = frp.stepper(acses.create(e, acsesCutIn, acsesStepsDown, equipmentSpeedMps, atcCutIn), undefined);
+    const acsesState = frp.stepper(
+        acses.create({ e, cutIn: acsesCutIn, stepsDown: acsesStepsDown, equipmentSpeedMps, atcCutIn }),
+        undefined
+    );
 
     // Phase 1, input state and events.
     const enforcing = frp.liftN(

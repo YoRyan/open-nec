@@ -66,16 +66,16 @@ const me = new FrpEngine(() => {
         frp.stepper(firstSettledUpdate$, undefined),
         () => me.rv.GetControlValue("Panto", 0) as number
     );
-    const modePosition = ps.createDualModeEngineBehavior(
-        me,
-        ...dualModeOrder,
-        modeSelectPlayer,
-        rvPowerMode,
-        () => me.rv.GetControlValue("Regulator", 0) === 0,
-        dualModeSwitchS,
-        xt.nullStream, // The M8 doesn't have a toggle for automatic switching.
-        () => (me.rv.GetControlValue("PowerStart", 0) as number) - 1
-    );
+    const modePosition = ps.createDualModeEngineBehavior({
+        e: me,
+        modes: dualModeOrder,
+        getPlayerMode: modeSelectPlayer,
+        getAiMode: rvPowerMode,
+        getPlayerCanSwitch: () => me.rv.GetControlValue("Regulator", 0) === 0,
+        transitionS: dualModeSwitchS,
+        instantSwitch: xt.nullStream,
+        positionFromSaveOrConsist: () => (me.rv.GetControlValue("PowerStart", 0) as number) - 1,
+    });
     const setModePosition$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
         xt.mapBehavior(modePosition),
@@ -142,16 +142,16 @@ const me = new FrpEngine(() => {
     // Safety systems and ADU
     const acknowledge = me.createAcknowledgeBehavior();
     const suppression = () => (me.rv.GetControlValue("ThrottleAndBrake", 0) as number) <= -0.4;
-    const [aduState$, aduEvents$] = adu.create(
-        cs.metroNorthAtc,
-        me,
+    const [aduState$, aduEvents$] = adu.create({
+        atc: cs.metroNorthAtc,
+        e: me,
         acknowledge,
         suppression,
         atcCutIn,
         acsesCutIn,
-        80 * c.mph.toMps,
-        ["SignalSpeedLimit", 0]
-    );
+        equipmentSpeedMps: 80 * c.mph.toMps,
+        pulseCodeControlValue: ["SignalSpeedLimit", 0],
+    });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
         me.rv.SetControlValue("SigN", 0, state.aspect === cs.FourAspect.Clear ? 1 : 0);
@@ -186,7 +186,10 @@ const me = new FrpEngine(() => {
     const aduState = frp.stepper(aduStateHub$, undefined);
     // Alerter
     const alerterReset$ = me.createOnCvChangeStreamFor("ThrottleAndBrake", 0);
-    const alerter$ = frp.compose(ale.create(me, acknowledge, alerterReset$, alerterCutIn), frp.hub());
+    const alerter$ = frp.compose(
+        ale.create({ e: me, acknowledge, acknowledgeStream: alerterReset$, cutIn: alerterCutIn }),
+        frp.hub()
+    );
     const alerterState = frp.stepper(alerter$, undefined);
     // Safety system sounds
     // Unfortunately, we cannot display the AWS symbol without also playing the

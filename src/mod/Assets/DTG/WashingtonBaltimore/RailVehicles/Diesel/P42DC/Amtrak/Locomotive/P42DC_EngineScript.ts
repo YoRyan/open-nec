@@ -32,15 +32,15 @@ const me = new FrpEngine(() => {
     // Safety systems and ADU
     const acknowledge = me.createAcknowledgeBehavior();
     const suppression = () => (me.rv.GetControlValue("TrainBrakeControl", 0) as number) >= 0.4;
-    const [aduState$, aduEvents$] = adu.create(
-        cs.fourAspectAtc,
-        me,
+    const [aduState$, aduEvents$] = adu.create({
+        atc: cs.fourAspectAtc,
+        e: me,
         acknowledge,
         suppression,
         atcCutIn,
         acsesCutIn,
-        110 * c.mph.toMps
-    );
+        equipmentSpeedMps: 110 * c.mph.toMps,
+    });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
         me.rv.SetControlValue("ADU00", 0, state.aspect === cs.FourAspect.Clear ? 1 : 0);
@@ -70,7 +70,10 @@ const me = new FrpEngine(() => {
         me.createOnCvChangeStream(),
         frp.filter(([name]) => name === "ThrottleAndBrake" || name === "TrainBrakeControl")
     );
-    const alerter$ = frp.compose(ale.create(me, acknowledge, alerterReset$, alerterCutIn), frp.hub());
+    const alerter$ = frp.compose(
+        ale.create({ e: me, acknowledge, acknowledgeStream: alerterReset$, cutIn: alerterCutIn }),
+        frp.hub()
+    );
     const alerterState = frp.stepper(alerter$, undefined);
     alerter$(state => {
         me.rv.SetControlValue("AlerterVisual", 0, state.alarm ? 1 : 0);

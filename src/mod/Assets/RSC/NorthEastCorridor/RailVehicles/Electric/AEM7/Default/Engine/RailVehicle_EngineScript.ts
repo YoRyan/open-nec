@@ -31,16 +31,16 @@ const me = new FrpEngine(() => {
     // Safety systems and ADU
     const acknowledge = me.createAcknowledgeBehavior();
     const suppression = () => (me.rv.GetControlValue("VirtualBrake", 0) as number) >= 0.5;
-    const [aduState$, aduEvents$] = adu.create(
-        cs.amtrakAtc,
-        me,
+    const [aduState$, aduEvents$] = adu.create({
+        atc: cs.amtrakAtc,
+        e: me,
         acknowledge,
         suppression,
-        speedControlCutIn,
-        speedControlCutIn,
-        125 * c.mph.toMps,
-        ["OverSpeed", 0]
-    );
+        atcCutIn: speedControlCutIn,
+        acsesCutIn: speedControlCutIn,
+        equipmentSpeedMps: 125 * c.mph.toMps,
+        pulseCodeControlValue: ["OverSpeed", 0],
+    });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
         me.rv.SetControlValue(
@@ -90,7 +90,10 @@ const me = new FrpEngine(() => {
         me.createOnCvChangeStream(),
         frp.filter(([name]) => name === "VirtualThrottle" || name === "VirtualBrake")
     );
-    const alerterState = frp.stepper(ale.create(me, acknowledge, alerterReset$, alerterCutIn), undefined);
+    const alerterState = frp.stepper(
+        ale.create({ e: me, acknowledge, acknowledgeStream: alerterReset$, cutIn: alerterCutIn }),
+        undefined
+    );
     // Safety system sounds
     const upgradeEvents$ = frp.compose(
         aduEvents$,

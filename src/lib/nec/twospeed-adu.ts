@@ -33,16 +33,18 @@ export enum AduEvent {
 /**
  * Creates a two-speed ADU.
  */
-export function create<A>(
-    atc: cs.AtcSystem<A>,
-    e: FrpEngine,
-    acknowledge: frp.Behavior<boolean>,
-    suppression: frp.Behavior<boolean>,
-    atcCutIn: frp.Behavior<boolean>,
-    acsesCutIn: frp.Behavior<boolean>,
-    equipmentSpeedMps: number,
-    pulseCodeControlValue?: [name: string, index: number]
-): [frp.Stream<AduState<A>>, frp.Stream<AduEvent>] {
+export function create<A>({
+    atc,
+    e,
+    acknowledge,
+    suppression,
+    atcCutIn,
+    acsesCutIn,
+    equipmentSpeedMps,
+    pulseCodeControlValue,
+}: {
+    atc: cs.AtcSystem<A>;
+} & adu.CommonAduOptions): [frp.Stream<AduState<A>>, frp.Stream<AduEvent>] {
     type AduInput = adu.AduInput<A>;
 
     function aspectSuperiority(input: adu.AduInput<A>) {
@@ -69,18 +71,18 @@ export function create<A>(
             rejectUndefined()
         );
     const output$ = frp.compose(
-        adu.create(
+        adu.create({
             atc,
-            getDowngrades,
-            true,
+            getEvents: getDowngrades,
+            acsesStepsDown: true,
             equipmentSpeedMps,
             e,
             acknowledge,
             suppression,
             atcCutIn,
             acsesCutIn,
-            pulseCodeControlValue
-        ),
+            pulseCodeControlValue,
+        }),
         frp.hub()
     );
     const output = frp.stepper(output$, undefined);

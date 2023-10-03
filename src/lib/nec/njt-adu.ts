@@ -35,15 +35,15 @@ type AduInput = adu.AduInput<cs.NjTransitAspect>;
 /**
  * Creates an NJ Transit ADU.
  */
-export function create(
-    e: FrpEngine,
-    acknowledge: frp.Behavior<boolean>,
-    suppression: frp.Behavior<boolean>,
-    atcCutIn: frp.Behavior<boolean>,
-    acsesCutIn: frp.Behavior<boolean>,
-    equipmentSpeedMps: number,
-    pulseCodeControlValue?: [name: string, index: number]
-): [frp.Stream<AduState>, frp.Stream<AduEvent>] {
+export function create({
+    e,
+    acknowledge,
+    suppression,
+    atcCutIn,
+    acsesCutIn,
+    equipmentSpeedMps,
+    pulseCodeControlValue,
+}: adu.CommonAduOptions): [frp.Stream<AduState>, frp.Stream<AduEvent>] {
     // Adu computation
     const getDowngrades = (eventStream: frp.Stream<[AduInput, AduInput]>) =>
         frp.compose(
@@ -66,18 +66,18 @@ export function create(
             rejectUndefined()
         );
     const output$ = frp.compose(
-        adu.create(
-            cs.njTransitAtc,
-            getDowngrades,
-            false,
+        adu.create({
+            atc: cs.njTransitAtc,
+            getEvents: getDowngrades,
+            acsesStepsDown: false,
             equipmentSpeedMps,
             e,
             acknowledge,
             suppression,
             atcCutIn,
             acsesCutIn,
-            pulseCodeControlValue
-        ),
+            pulseCodeControlValue,
+        }),
         frp.hub()
     );
     const output = frp.stepper(output$, undefined);

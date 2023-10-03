@@ -212,7 +212,19 @@ export class ScrollingMenu {
  * @param to Show some text on the right side of the progress bar.
  * @param progress The progress to show, scaled from 0 to 1.
  */
-export function showProgressPopup(title: string, message: string, from: string, to: string, progress: number) {
+export function showProgressPopup({
+    title,
+    message,
+    from,
+    to,
+    progress,
+}: {
+    title: string;
+    message: string;
+    from: string;
+    to: string;
+    progress: number;
+}) {
     const done = Math.floor(progress * progressBarWidth * 2) / 2;
     const remaining = Math.ceil((1 - progress) * progressBarWidth * 2) / 2;
     const isHalfDone = done % 1 > 0;

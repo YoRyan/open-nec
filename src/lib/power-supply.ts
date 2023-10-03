@@ -52,8 +52,7 @@ export function uniModeEngineHasPower(
  * Create a timed transition for a dual-mode locomotive, complete with popups
  * that indicate the transition progress for the player.
  * @param e The player engine.
- * @param modeA The first operating mode.
- * @param modeB The second operating mode.
+ * @param modes The first and second operating modes.
  * @param getPlayerMode A behavior that returns the player-selected operating
  * mode.
  * @param getAiMode: A behavior that returns the mode a non-player train should
@@ -69,17 +68,27 @@ export function uniModeEngineHasPower(
  * @returns A behavior that returns the current power state of the locomotive as
  * a number scaled from 0 (operating in mode #1) to 1 (operating in mode #2).
  */
-export function createDualModeEngineBehavior<A extends EngineMode, B extends EngineMode>(
-    e: FrpEngine,
-    modeA: A,
-    modeB: B,
-    getPlayerMode: frp.Behavior<A | B>,
-    getAiMode: frp.Behavior<A | B>,
-    getPlayerCanSwitch: frp.Behavior<boolean>,
-    transitionS: number,
-    instantSwitch: frp.Stream<A | B>,
-    positionFromSaveOrConsist: frp.Behavior<number>
-): frp.Behavior<number> {
+export function createDualModeEngineBehavior<A extends EngineMode, B extends EngineMode>({
+    e,
+    modes,
+    getPlayerMode,
+    getAiMode,
+    getPlayerCanSwitch,
+    transitionS,
+    instantSwitch,
+    positionFromSaveOrConsist,
+}: {
+    e: FrpEngine;
+    modes: [A, B];
+    getPlayerMode: frp.Behavior<A | B>;
+    getAiMode: frp.Behavior<A | B>;
+    getPlayerCanSwitch: frp.Behavior<boolean>;
+    transitionS: number;
+    instantSwitch: frp.Stream<A | B>;
+    positionFromSaveOrConsist: frp.Behavior<number>;
+}): frp.Behavior<number> {
+    const [modeA, modeB] = modes;
+
     // Start from the first selected mode, or load a saved transition position.
     const playerInitFresh$ = frp.compose(
         e.createPlayerWithKeyUpdateStream(),
@@ -153,13 +162,13 @@ export function createDualModeEngineBehavior<A extends EngineMode, B extends Eng
         frp.map(position => (position === 0 ? modeA : modeB))
     );
     playerProgress$(position => {
-        ui.showProgressPopup(
-            "Power Mode Change",
-            "Switch in progress...",
-            engineModeName(modeA),
-            engineModeName(modeB),
-            position
-        );
+        ui.showProgressPopup({
+            title: "Power Mode Change",
+            message: "Switch in progress...",
+            from: engineModeName(modeA),
+            to: engineModeName(modeB),
+            progress: position,
+        });
     });
     playerComplete$(mode => {
         rw.ScenarioManager.ShowInfoMessageExt(

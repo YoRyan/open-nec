@@ -54,16 +54,16 @@ const me = new FrpEngine(() => {
     // Safety systems and ADU
     const acknowledge = me.createAcknowledgeBehavior();
     const suppression = () => (me.rv.GetControlValue("ThrottleAndBrake", 0) as number) <= -0.4;
-    const [aduState$, aduEvents$] = adu.create(
-        cs.metroNorthAtc,
-        me,
+    const [aduState$, aduEvents$] = adu.create({
+        atc: cs.metroNorthAtc,
+        e: me,
         acknowledge,
         suppression,
         atcCutIn,
-        () => false,
-        80 * c.mph.toMps,
-        ["CurrentMNRRSignal", 0]
-    );
+        acsesCutIn: () => false,
+        equipmentSpeedMps: 80 * c.mph.toMps,
+        pulseCodeControlValue: ["CurrentMNRRSignal", 0],
+    });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
         me.rv.SetControlValue("SigN", 0, state.aspect === cs.FourAspect.Clear ? 1 : 0);
@@ -78,7 +78,10 @@ const me = new FrpEngine(() => {
     const aduState = frp.stepper(aduStateHub$, undefined);
     // Alerter
     const alerterReset$ = me.createOnCvChangeStreamFor("ThrottleAndBrake", 0);
-    const alerter$ = frp.compose(ale.create(me, acknowledge, alerterReset$, alerterCutIn), frp.hub());
+    const alerter$ = frp.compose(
+        ale.create({ e: me, acknowledge, acknowledgeStream: alerterReset$, cutIn: alerterCutIn }),
+        frp.hub()
+    );
     const alerterState = frp.stepper(alerter$, undefined);
     // Safety system sounds
     // Unfortunately, we cannot display the AWS symbol without also playing the

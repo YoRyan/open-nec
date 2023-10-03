@@ -27,14 +27,21 @@ const defaultPenaltyS = 10;
  * @param penaltyS The time to wait, once the alarm has sounded, until applying
  * the brakes.
  */
-export function create(
-    e: FrpEngine,
-    acknowledge: frp.Behavior<boolean>,
-    acknowledgeStream: frp.Stream<any>,
-    cutIn: frp.Behavior<boolean>,
-    countdownS?: number,
-    penaltyS?: number
-): frp.Stream<AlerterState> {
+export function create({
+    e,
+    acknowledge,
+    acknowledgeStream,
+    cutIn,
+    countdownS,
+    penaltyS,
+}: {
+    e: FrpEngine;
+    acknowledge: frp.Behavior<boolean>;
+    acknowledgeStream: frp.Stream<any>;
+    cutIn: frp.Behavior<boolean>;
+    countdownS?: number;
+    penaltyS?: number;
+}): frp.Stream<AlerterState> {
     countdownS ??= defaultCountdownS;
     penaltyS ??= defaultPenaltyS;
 

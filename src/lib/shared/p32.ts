@@ -43,19 +43,19 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
         const cv = Math.round(me.rv.GetControlValue("PowerMode", 0) as number);
         return cv < 0.5 ? ps.EngineMode.ThirdRail : ps.EngineMode.Diesel;
     };
-    const modePosition = ps.createDualModeEngineBehavior(
-        me,
-        ...dualModeOrder,
-        modeSelect,
-        modeSelect,
-        () => {
+    const modePosition = ps.createDualModeEngineBehavior({
+        e: me,
+        modes: dualModeOrder,
+        getPlayerMode: modeSelect,
+        getAiMode: modeSelect,
+        getPlayerCanSwitch: () => {
             const throttle = me.rv.GetControlValue("VirtualThrottle", 0) as number;
             return throttle < 0.5;
         },
-        dualModeSwitchS,
-        modeAutoSwitch$,
-        () => (me.rv.GetControlValue("PowerStart", 0) as number) - 1
-    );
+        transitionS: dualModeSwitchS,
+        instantSwitch: modeAutoSwitch$,
+        positionFromSaveOrConsist: () => (me.rv.GetControlValue("PowerStart", 0) as number) - 1,
+    });
     const setModePosition$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
         mapBehavior(modePosition),
@@ -87,16 +87,16 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
     // Safety systems and ADU
     const acknowledge = me.createAcknowledgeBehavior();
     const suppression = () => (me.rv.GetControlValue("TrainBrakeControl", 0) as number) >= 0.4;
-    const [aduState$, aduEvents$] = adu.create(
-        isAmtrak ? cs.fourAspectAtc : cs.metroNorthAtc,
-        me,
+    const [aduState$, aduEvents$] = adu.create({
+        atc: isAmtrak ? cs.fourAspectAtc : cs.metroNorthAtc,
+        e: me,
         acknowledge,
         suppression,
         atcCutIn,
         acsesCutIn,
-        (isAmtrak ? 110 : 80) * c.mph.toMps,
-        ["SignalSpeedLimit", 0]
-    );
+        equipmentSpeedMps: (isAmtrak ? 110 : 80) * c.mph.toMps,
+        pulseCodeControlValue: ["SignalSpeedLimit", 0],
+    });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
         me.rv.SetControlValue("SigN", 0, state.aspect === cs.FourAspect.Clear ? 1 : 0);
@@ -137,7 +137,10 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
         me.createOnCvChangeStream(),
         frp.filter(([name]) => name === "VirtualThrottle" || name === "TrainBrakeControl")
     );
-    const alerter$ = frp.compose(ale.create(me, acknowledge, alerterReset$, alerterCutIn), frp.hub());
+    const alerter$ = frp.compose(
+        ale.create({ e: me, acknowledge, acknowledgeStream: alerterReset$, cutIn: alerterCutIn }),
+        frp.hub()
+    );
     const alerterState = frp.stepper(alerter$, undefined);
     alerter$(state => {
         me.rv.SetControlValue("AlerterVisual", 0, state.alarm ? 1 : 0);
