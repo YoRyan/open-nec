@@ -154,7 +154,7 @@ export function createDualModeEngineBehavior<A extends EngineMode, B extends Eng
     );
     playerProgress$(position => {
         ui.showProgressPopup(
-            "Dual-Mode Power Change",
+            "Power Mode Change",
             "Switch in progress...",
             engineModeName(modeA),
             engineModeName(modeB),
@@ -163,7 +163,7 @@ export function createDualModeEngineBehavior<A extends EngineMode, B extends Eng
     });
     playerComplete$(mode => {
         rw.ScenarioManager.ShowInfoMessageExt(
-            "Dual-Mode Power Change",
+            "Power Mower Change",
             `${engineModeName(mode)} switch complete.`,
             ui.popupS,
             rw.MessageBoxPosition.Bottom + rw.MessageBoxPosition.Left,
