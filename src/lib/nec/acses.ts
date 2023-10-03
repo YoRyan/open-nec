@@ -596,7 +596,7 @@ function indexObjectsSensedByDistance<T>(
                     }
                 }
 
-                return { counter: counter, sensed: sensed, passing: passing };
+                return { counter, sensed, passing };
             }, accumStart),
             frp.map(accum => accum.sensed)
         );
