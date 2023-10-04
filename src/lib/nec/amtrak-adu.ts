@@ -2,11 +2,11 @@
  * A contemporary, single-speed Amtrak ADU with ATC and ACSES-II.
  */
 
-import * as adu from "./adu";
 import * as c from "lib/constants";
-import * as cs from "./cabsignals";
 import * as frp from "lib/frp";
 import { fsm, rejectUndefined } from "lib/frp-extra";
+import * as adu from "./adu";
+import * as cs from "./cabsignals";
 
 /**
  * Represents the in-cab signal aspect, including flashing when displaying a Cab

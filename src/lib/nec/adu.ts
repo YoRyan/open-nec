@@ -2,13 +2,13 @@
  * Base logic for a safety systems controller with ATC and ACSES subsystems.
  */
 
-import * as acses from "./acses";
 import * as c from "lib/constants";
-import * as cs from "./cabsignals";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
 import { fsm, mapBehavior, rejectUndefined } from "lib/frp-extra";
 import * as fx from "lib/special-fx";
+import * as acses from "./acses";
+import * as cs from "./cabsignals";
 
 /**
  * Configuration parameters common to all ADU styles.

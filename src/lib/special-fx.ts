@@ -6,7 +6,7 @@ import * as c from "./constants";
 import * as frp from "./frp";
 import { FrpEngine } from "./frp-engine";
 import { FrpEntity } from "./frp-entity";
-import { fsm, mapBehavior, rejectRepeats, rejectUndefined } from "./frp-extra";
+import { mapBehavior, rejectRepeats, rejectUndefined } from "./frp-extra";
 import { FrpVehicle, VehicleUpdate } from "./frp-vehicle";
 import * as ps from "./power-supply";
 import * as rw from "./railworks";

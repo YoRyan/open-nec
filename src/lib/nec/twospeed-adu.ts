@@ -2,12 +2,11 @@
  * A generic two-speed ADU with separate ATC and ACSES speeds.
  */
 
-import * as adu from "./adu";
 import * as c from "lib/constants";
-import * as cs from "./cabsignals";
 import * as frp from "lib/frp";
-import { FrpEngine } from "lib/frp-engine";
 import { fsm, rejectUndefined } from "lib/frp-extra";
+import * as adu from "./adu";
+import * as cs from "./cabsignals";
 
 /**
  * Represents the state of the ADU and the safety systems it is attached to.

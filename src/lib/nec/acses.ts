@@ -2,13 +2,13 @@
  * Advanced Civil Speed Enforcement System for the Northeast Corridor.
  */
 
-import * as cs from "./cabsignals";
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
 import { rejectUndefined } from "lib/frp-extra";
 import { VehicleUpdate } from "lib/frp-vehicle";
 import * as rw from "lib/railworks";
+import * as cs from "./cabsignals";
 
 export type AcsesState = {
     /**

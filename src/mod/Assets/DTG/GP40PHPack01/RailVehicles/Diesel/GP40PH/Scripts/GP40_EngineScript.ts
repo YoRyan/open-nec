@@ -6,7 +6,7 @@ import * as ale from "lib/alerter";
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { fsm, mapBehavior, rejectRepeats } from "lib/frp-extra";
+import { mapBehavior, rejectRepeats } from "lib/frp-extra";
 import { SensedDirection } from "lib/frp-vehicle";
 import * as m from "lib/math";
 import * as njt from "lib/nec/nj-transit";

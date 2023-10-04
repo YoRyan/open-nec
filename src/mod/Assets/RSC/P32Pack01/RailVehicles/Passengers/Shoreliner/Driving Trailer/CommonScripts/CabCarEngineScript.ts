@@ -6,17 +6,17 @@ import * as ale from "lib/alerter";
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { mapBehavior, once, rejectRepeats } from "lib/frp-extra";
+import { mapBehavior, rejectRepeats } from "lib/frp-extra";
+import { SensedDirection } from "lib/frp-vehicle";
+import * as m from "lib/math";
 import { AduAspect } from "lib/nec/adu";
 import * as cs from "lib/nec/cabsignals";
 import * as adu from "lib/nec/twospeed-adu";
-import * as m from "lib/math";
 import * as ps from "lib/power-supply";
 import * as rw from "lib/railworks";
 import { dualModeOrder, dualModeSwitchS } from "lib/shared/p32";
 import * as fx from "lib/special-fx";
 import * as ui from "lib/ui";
-import { SensedDirection } from "lib/frp-vehicle";
 
 const me = new FrpEngine(() => {
     // Dual-mode power supply
