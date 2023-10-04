@@ -348,7 +348,7 @@ export class FrpVehicle extends FrpEntity {
     setup() {
         super.setup();
 
-        OnControlValueChange = (name, index, value) => {
+        OnControlValueChange = (name, _index, value) => {
             this.cvChangeSource.call([name, value]);
         };
         OnConsistMessage = (id, content, dir) => {
