@@ -277,7 +277,7 @@ export function createElectrificationBehaviorWithControlValues(
             e.rv.SetControlValue(cv, state ? 1 : 0);
         }
 
-        showElectrificationAlert(frp.snapshot(behavior));
+        showElectrificationAlert(frp.snapshot(behavior), [el, state]);
     });
     return behavior;
 }
@@ -303,7 +303,7 @@ export function createElectrificationBehaviorWithLua(
             set.delete(el);
         }
 
-        showElectrificationAlert(set);
+        showElectrificationAlert(set, [el, state]);
     });
     return () => set;
 }
@@ -382,22 +382,33 @@ function parseModeSwitchMessage(msg: string) {
     }
 }
 
-function showElectrificationAlert(set: Set<Electrification>) {
-    let abbreviated, message: string;
+function showElectrificationAlert(set: Set<Electrification>, delta: [Electrification, boolean]) {
+    let setAbbreviated, setMessage: string;
     if (set.has(Electrification.Overhead) && set.has(Electrification.ThirdRail)) {
-        abbreviated = "T_";
-        message = "Third rail and overhead power are available.";
+        setAbbreviated = "T_";
+        setMessage = "Third rail and overhead power are available";
     } else if (set.has(Electrification.Overhead)) {
-        abbreviated = "T";
-        message = "Overhead power is available.";
+        setAbbreviated = "T";
+        setMessage = "Overhead power is available";
     } else if (set.has(Electrification.ThirdRail)) {
-        abbreviated = "_";
-        message = "Third rail power is available.";
+        setAbbreviated = "_";
+        setMessage = "Third rail power is available";
     } else {
-        abbreviated = " ";
-        message = "Electric power is not available.";
+        setAbbreviated = " ";
+        setMessage = "Electric power is not available";
     }
-    rw.ScenarioManager.ShowAlertMessageExt(`Electrification [${abbreviated}]`, message, ui.popupS, "");
+
+    const [deltaType, deltaState] = delta;
+    const deltaMessage = `${deltaState ? "Begin" : "End"} ${
+        deltaType === Electrification.Overhead ? "overhead" : "third rail"
+    } power`;
+
+    rw.ScenarioManager.ShowAlertMessageExt(
+        `Electrification - ${deltaMessage}`,
+        `[${setAbbreviated}] ${setMessage}.`,
+        ui.popupS,
+        ""
+    );
 }
 
 function engineModeName(mode: EngineMode) {
