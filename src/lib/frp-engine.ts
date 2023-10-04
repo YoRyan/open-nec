@@ -112,7 +112,7 @@ export class FrpEngine extends FrpVehicle {
                 const isOutside = cameraView === VehicleCamera.Outside || cameraView === VehicleCamera.Carriage;
                 return awsReset || isOutside;
             },
-            () => (this.rv.GetControlValue("AWSReset", 0) as number) > 0.5,
+            () => (this.rv.GetControlValue("AWSReset") as number) > 0.5,
             cameraView
         );
     }
@@ -133,11 +133,11 @@ export class FrpEngine extends FrpVehicle {
                 frp.filter(_ => this.eng.GetIsEngineWithKey()),
                 frp.map(_ => 1)
             );
-            const cv: [string, number] = [useVirtual ? "VirtualBell" : "Bell", 0];
+            const cv = useVirtual ? "VirtualBell" : "Bell";
             return frp.compose(
-                this.createOnCvChangeStreamFor(...cv),
+                this.createOnCvChangeStreamFor(cv),
                 frp.map(v => {
-                    const outOfSync = (v === 0 || v === 1) && v === this.rv.GetControlValue(...cv);
+                    const outOfSync = (v === 0 || v === 1) && v === this.rv.GetControlValue(cv);
                     return outOfSync ? 1 - v : v;
                 }),
                 frp.filter(_ => this.eng.GetIsEngineWithKey()),
@@ -174,7 +174,7 @@ export class FrpEngine extends FrpVehicle {
                     return initAccum;
                 }
                 // See https://en.wikipedia.org/wiki/PID_controller#Pseudocode
-                const speedoMps = (this.rv.GetControlValue("SpeedometerMPH", 0) as number) * c.mph.toMps;
+                const speedoMps = (this.rv.GetControlValue("SpeedometerMPH") as number) * c.mph.toMps;
                 const error = frp.snapshot(targetSpeedMps) - speedoMps;
                 const proportional = error;
                 const integral = accum.integral + error * pu.dt;
@@ -191,12 +191,11 @@ export class FrpEngine extends FrpVehicle {
      * notches, but do so infrequently enough for the player to still be able to
      * manipulate the control.
      * @param name The name of the control value.
-     * @param index The index of the control value.
      * @param getTarget A function that returns the target slew value given the
      * current value of the control. To stop slewing, simply return the given
      * value.
      */
-    slewControlValue(name: string, index: number, getTarget: (current: number) => number) {
+    slewControlValue(name: string, getTarget: (current: number) => number) {
         type Accum = {
             frames: number;
             update?: VehicleUpdate;
@@ -212,7 +211,7 @@ export class FrpEngine extends FrpVehicle {
             rejectUndefined(),
             frp.map(pu => {
                 const maxDelta = 0.25 / pu.dt;
-                const current = this.rv.GetControlValue(name, index) ?? 0;
+                const current = this.rv.GetControlValue(name) ?? 0;
                 const target = getTarget(current);
                 if (target > current) {
                     return Math.min(target, current + maxDelta);
@@ -225,7 +224,7 @@ export class FrpEngine extends FrpVehicle {
             rejectUndefined()
         );
         setValue$(v => {
-            this.rv.SetControlValue(name, index, v);
+            this.rv.SetControlValue(name, v);
         });
     }
 

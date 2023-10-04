@@ -114,7 +114,7 @@ export function create({
     const excessSpeedMph = frp.liftN(
         (masSpeedMph, aSpeedoMph) => (masSpeedMph !== undefined && aSpeedoMph > masSpeedMph ? aSpeedoMph : undefined),
         masSpeedMph,
-        () => Math.abs(e.rv.GetControlValue("SpeedometerMPH", 0) as number)
+        () => Math.abs(e.rv.GetControlValue("SpeedometerMPH") as number)
     );
 
     // Output state and events

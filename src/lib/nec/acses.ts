@@ -99,7 +99,7 @@ export function create({
         atcCutIn => (atcCutIn ? equipmentSpeedMps : Math.min(equipmentSpeedMps, 79 * c.mph.toMps)),
         atcCutIn
     );
-    const speedoMps = () => (e.rv.GetControlValue("SpeedometerMPH", 0) as number) * c.mph.toMps;
+    const speedoMps = () => (e.rv.GetControlValue("SpeedometerMPH") as number) * c.mph.toMps;
 
     // Process positive stop signal messages.
     const ptsDistanceM = frp.stepper(

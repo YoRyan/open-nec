@@ -159,7 +159,7 @@ export function createBrakeLightStreamForEngine(
     eng: FrpEngine,
     isPlayerBraking?: frp.Behavior<boolean>
 ): frp.Stream<boolean> {
-    const brakePipePsi = () => eng.rv.GetControlValue("AirBrakePipePressurePSI", 0) as number;
+    const brakePipePsi = () => eng.rv.GetControlValue("AirBrakePipePressurePSI") as number;
     isPlayerBraking ??= frp.liftN(psi => psi < 100, brakePipePsi);
 
     // When under player control, send consist messages.
@@ -229,7 +229,7 @@ export function createBrakeLightStreamForWagon(v: FrpVehicle): frp.Stream<boolea
  * doors.
  */
 export function setLowPlatformDoorsForEngine(eng: FrpEngine, aiLow: boolean, playerLow?: frp.Behavior<boolean>) {
-    playerLow ??= () => (eng.rv.GetControlValue("Reverser", 0) as number) === 0;
+    playerLow ??= () => (eng.rv.GetControlValue("Reverser") as number) === 0;
 
     // Send consist messages.
     const playerSend$ = frp.compose(eng.createPlayerWithKeyUpdateStream(), mapBehavior(playerLow));

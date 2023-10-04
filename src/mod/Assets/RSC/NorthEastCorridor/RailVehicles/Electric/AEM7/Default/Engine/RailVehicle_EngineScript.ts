@@ -22,15 +22,15 @@ const me = new FrpEngine(() => {
 
     // Safety systems cut in/out
     // (Reverse the polarity so they are on by default.)
-    const speedControlCutIn = () => (me.rv.GetControlValue("SpeedControl", 0) as number) < 0.5;
+    const speedControlCutIn = () => (me.rv.GetControlValue("SpeedControl") as number) < 0.5;
     ui.createAtcStatusPopup(me, speedControlCutIn);
     ui.createAcsesStatusPopup(me, speedControlCutIn);
-    const alerterCutIn = () => (me.rv.GetControlValue("AlertControl", 0) as number) < 0.5;
+    const alerterCutIn = () => (me.rv.GetControlValue("AlertControl") as number) < 0.5;
     ui.createAlerterStatusPopup(me, alerterCutIn);
 
     // Safety systems and ADU
     const acknowledge = me.createAcknowledgeBehavior();
-    const suppression = () => (me.rv.GetControlValue("VirtualBrake", 0) as number) >= 0.5;
+    const suppression = () => (me.rv.GetControlValue("VirtualBrake") as number) >= 0.5;
     const [aduState$, aduEvents$] = adu.create({
         atc: cs.amtrakAtc,
         e: me,
@@ -39,13 +39,12 @@ const me = new FrpEngine(() => {
         atcCutIn: speedControlCutIn,
         acsesCutIn: speedControlCutIn,
         equipmentSpeedMps: 125 * c.mph.toMps,
-        pulseCodeControlValue: ["OverSpeed", 0],
+        pulseCodeControlValue: "OverSpeed",
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
         me.rv.SetControlValue(
             "CabSignal",
-            0,
             {
                 [AduAspect.Stop]: 7, // The AEM-7 does not have a proper Stop aspect.
                 [cs.AmtrakAspect.Restricting]: 7,
@@ -62,7 +61,6 @@ const me = new FrpEngine(() => {
         // Top green head
         me.rv.SetControlValue(
             "CabSignal1",
-            0,
             ((state.aspect === cs.AmtrakAspect.CabSpeed60 || state.aspect === cs.AmtrakAspect.CabSpeed80) &&
                 state.aspectFlashOn) ||
                 state.aspect === cs.AmtrakAspect.Clear100 ||
@@ -74,7 +72,6 @@ const me = new FrpEngine(() => {
         // Bottom green head
         me.rv.SetControlValue(
             "CabSignal2",
-            0,
             state.aspect === cs.AmtrakAspect.ApproachMedium ||
                 (state.aspect === cs.AmtrakAspect.ApproachLimited && state.aspectFlashOn)
                 ? 1
@@ -82,7 +79,7 @@ const me = new FrpEngine(() => {
         );
 
         const blankTrackSpeed = 9.5;
-        me.rv.SetControlValue("TrackSpeed", 0, state.trackSpeedMph ?? blankTrackSpeed);
+        me.rv.SetControlValue("TrackSpeed", state.trackSpeedMph ?? blankTrackSpeed);
     });
     const aduState = frp.stepper(aduStateHub$, undefined);
     // Alerter
@@ -118,14 +115,14 @@ const me = new FrpEngine(() => {
         )
     );
     alarmsUpdate$(cvs => {
-        me.rv.SetControlValue("AWS", 0, cvs.aws ? 1 : 0);
-        me.rv.SetControlValue("AWSWarnCount", 0, cvs.awsWarnCount ? 1 : 0);
-        me.rv.SetControlValue("OverSpeedAlert", 0, cvs.overSpeedAlert ? 1 : 0);
+        me.rv.SetControlValue("AWS", cvs.aws ? 1 : 0);
+        me.rv.SetControlValue("AWSWarnCount", cvs.awsWarnCount ? 1 : 0);
+        me.rv.SetControlValue("OverSpeedAlert", cvs.overSpeedAlert ? 1 : 0);
     });
 
     // Cruise control
     const cruiseTargetMps = () => {
-        const targetMph = me.rv.GetControlValue("CruiseSet", 0) as number;
+        const targetMph = me.rv.GetControlValue("CruiseSet") as number;
         return targetMph * c.mph.toMps;
     };
     const cruiseOn = frp.liftN(targetMps => targetMps > 10 * c.mph.toMps, cruiseTargetMps);
@@ -148,16 +145,16 @@ const me = new FrpEngine(() => {
             }
         },
         isPenaltyBrake,
-        () => (me.rv.GetControlValue("CutIn", 0) as number) > 0.5,
-        () => me.rv.GetControlValue("VirtualBrake", 0) as number
+        () => (me.rv.GetControlValue("CutIn") as number) > 0.5,
+        () => me.rv.GetControlValue("VirtualBrake") as number
     );
     // DTG's "blended braking" algorithm
     const dynamicBrake = frp.liftN(airBrake => airBrake / 2, airBrake);
     const controlsUpdate$ = me.createPlayerWithKeyUpdateStream();
     controlsUpdate$(_ => {
-        me.rv.SetControlValue("Regulator", 0, frp.snapshot(throttle));
-        me.rv.SetControlValue("TrainBrakeControl", 0, frp.snapshot(airBrake));
-        me.rv.SetControlValue("DynamicBrake", 0, frp.snapshot(dynamicBrake));
+        me.rv.SetControlValue("Regulator", frp.snapshot(throttle));
+        me.rv.SetControlValue("TrainBrakeControl", frp.snapshot(airBrake));
+        me.rv.SetControlValue("DynamicBrake", frp.snapshot(dynamicBrake));
     });
     const throttle = frp.liftN(
         (isPowerAvailable, isPenaltyBrake, airBrake, cruiseOn, cruiseOutput, input) => {
@@ -174,22 +171,22 @@ const me = new FrpEngine(() => {
         airBrake,
         cruiseOn,
         cruiseOutput,
-        () => me.rv.GetControlValue("VirtualThrottle", 0) as number
+        () => me.rv.GetControlValue("VirtualThrottle") as number
     );
 
     // Horn rings the bell.
     const bellControl$ = frp.compose(
-        me.createOnCvChangeStreamFor("Horn", 0),
+        me.createOnCvChangeStreamFor("Horn"),
         frp.filter(v => v > 0),
         me.mapAutoBellStream()
     );
     bellControl$(v => {
-        me.rv.SetControlValue("Bell", 0, v);
+        me.rv.SetControlValue("Bell", v);
     });
 
     // Cab dome lights, front and rear
     const playerLocation = me.createPlayerLocationBehavior();
-    const cabLightControl = () => (me.rv.GetControlValue("CabLightControl", 0) ?? 0) > 0.5;
+    const cabLightControl = () => (me.rv.GetControlValue("CabLightControl") ?? 0) > 0.5;
     const allCabLights: [location: PlayerLocation, light: rw.Light][] = [
         [PlayerLocation.InFrontCab, new rw.Light("FrontCabLight")],
         [PlayerLocation.InRearCab, new rw.Light("RearCabLight")],
@@ -214,11 +211,11 @@ const me = new FrpEngine(() => {
     // Possibly used for a sound effect?
     const dynamicCurrent$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        me.mapGetCvStream("Ammeter", 0),
+        me.mapGetCvStream("Ammeter"),
         frp.map(v => Math.abs(v))
     );
     dynamicCurrent$(v => {
-        me.rv.SetControlValue("DynamicCurrent", 0, v);
+        me.rv.SetControlValue("DynamicCurrent", v);
     });
 
     // Process OnControlValueChange events.
@@ -226,8 +223,8 @@ const me = new FrpEngine(() => {
         me.createOnCvChangeStream(),
         frp.reject(([name]) => name === "Bell")
     );
-    onCvChange$(([name, index, value]) => {
-        me.rv.SetControlValue(name, index, value);
+    onCvChange$(([name, value]) => {
+        me.rv.SetControlValue(name, value);
     });
 
     // Set consist brake lights.

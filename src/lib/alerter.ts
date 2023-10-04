@@ -49,7 +49,7 @@ export function create({
         acknowledgeStream,
         frp.map(_ => undefined)
     );
-    const isStopped = () => Math.abs(e.rv.GetControlValue("SpeedometerMPH", 0) as number) < c.stopSpeed;
+    const isStopped = () => Math.abs(e.rv.GetControlValue("SpeedometerMPH") as number) < c.stopSpeed;
     const startS = countdownS + penaltyS;
     return frp.compose(
         e.createPlayerWithKeyUpdateStream(),

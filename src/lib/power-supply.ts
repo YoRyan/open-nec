@@ -99,7 +99,7 @@ export function createDualModeEngineBehavior<A extends EngineMode, B extends Eng
     const playerInitFromSave$ = frp.compose(e.createOnResumeStream(), mapBehavior(positionFromSaveOrConsist));
     const playerInit$ = frp.compose(playerInitFresh$, frp.merge(playerInitFromSave$), once());
 
-    const isEngineStarted = () => (e.rv.GetControlValue("Startup", 0) as number) > 0;
+    const isEngineStarted = () => (e.rv.GetControlValue("Startup") as number) > 0;
     const playerPosition$ = frp.compose(
         e.createPlayerWithKeyUpdateStream(),
         frp.merge(playerInit$),
@@ -257,14 +257,14 @@ export function createDualModeAutoSwitchStream<A extends EngineMode, B extends E
  */
 export function createElectrificationBehaviorWithControlValues(
     e: FrpEngine,
-    cvs: Record<Electrification, [name: string, index: number] | undefined>
+    cvs: Record<Electrification, string | undefined>
 ): frp.Behavior<Set<Electrification>> {
     const behavior = () => {
         const set = new Set<Electrification>();
         for (const p in cvs) {
             const el = p as Electrification;
             const cv = cvs[el];
-            if (cv !== undefined && (e.rv.GetControlValue(...cv) ?? 0) > 0.5) {
+            if (cv !== undefined && (e.rv.GetControlValue(cv) ?? 0) > 0.5) {
                 set.add(el);
             }
         }
@@ -274,7 +274,7 @@ export function createElectrificationBehaviorWithControlValues(
     stream$(([el, state]) => {
         const cv = cvs[el];
         if (cv !== undefined) {
-            e.rv.SetControlValue(...cv, state ? 1 : 0);
+            e.rv.SetControlValue(cv, state ? 1 : 0);
         }
 
         showElectrificationAlert(frp.snapshot(behavior));
@@ -328,7 +328,7 @@ export function createElectrificationDeltaStream(e: FrpEngine): frp.Stream<Elect
  * @returns A stream that indicates HEP is available.
  */
 export function createHepStream(e: FrpEngine, hepOn?: frp.Behavior<boolean>): frp.Stream<boolean> {
-    hepOn ??= () => (e.rv.GetControlValue("Startup", 0) as number) > 0;
+    hepOn ??= () => (e.rv.GetControlValue("Startup") as number) > 0;
 
     const startupS = 10;
     const player$ = frp.compose(

@@ -431,20 +431,20 @@ export function isMnrrAspect(signalMessage: string): boolean | undefined {
  * @template A The set of signal aspects to use for the ATC system.
  * @param atc The description of the ATC system.
  * @param e The player's engine.
- * @param pulseCodeControlValue The name and index of the control value to use
- * to persist the cab signal pulse code between save states.
+ * @param pulseCodeControlValue The name of the control value to use to persist
+ * the cab signal pulse code between save states.
  * @returns The new stream.
  */
 export function createCabSignalStream<A>(
     atc: AtcSystem<A>,
     e: FrpEngine,
-    pulseCodeControlValue?: [name: string, index: number]
+    pulseCodeControlValue?: string
 ): frp.Stream<A> {
     const pulseCodeFromResume$: frp.Stream<PulseCode> =
         pulseCodeControlValue !== undefined
             ? frp.compose(
                   e.createOnResumeStream(),
-                  frp.map(() => e.rv.GetControlValue(...pulseCodeControlValue) as number),
+                  frp.map(() => e.rv.GetControlValue(pulseCodeControlValue) as number),
                   frp.map(pulseCodeFromResumeValue)
               )
             : nullStream;
@@ -458,8 +458,8 @@ export function createCabSignalStream<A>(
     // Persist the current pulse code between save states.
     if (pulseCodeControlValue !== undefined) {
         const pulseCodeSave$ = frp.compose(pulseCodeFromMessage$, frp.map(pulseCodeToSaveValue));
-        pulseCodeSave$(cv => {
-            e.rv.SetControlValue(...pulseCodeControlValue, cv);
+        pulseCodeSave$(v => {
+            e.rv.SetControlValue(pulseCodeControlValue, v);
         });
     }
 

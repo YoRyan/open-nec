@@ -36,7 +36,7 @@ export function createDestinationSignSelector(e: FrpEngine, destinations: string
     // one at startup. Unless we are the player and we are resuming from a save;
     // then use the control value.
     const playerDestination = () => {
-        const cv = e.rv.GetControlValue("Destination", 0);
+        const cv = e.rv.GetControlValue("Destination");
         if (cv === undefined) {
             return undefined;
         } else {
@@ -58,7 +58,7 @@ export function createDestinationSignSelector(e: FrpEngine, destinations: string
     // okay.
     const playerMenu = new ui.ScrollingMenu("Set Destination Signs", menuItems);
     const newDestination$ = frp.compose(
-        e.createOnCvChangeStreamFor("Destination", 0),
+        e.createOnCvChangeStreamFor("Destination"),
         mapBehavior(playerDestination as frp.Behavior<number>),
         rejectRepeats(),
         frp.hub()
@@ -121,11 +121,11 @@ export function createManualDoorsBehavior(
     openTimeS: number = 1
 ): frp.Behavior<[left: number, right: number]> {
     const leftDoor = frp.stepper(
-        createManualDoorsStream(v, openTimeS, () => (v.rv.GetControlValue("DoorsOpenCloseLeft", 0) as number) > 0.5),
+        createManualDoorsStream(v, openTimeS, () => (v.rv.GetControlValue("DoorsOpenCloseLeft") as number) > 0.5),
         0
     );
     const rightDoor = frp.stepper(
-        createManualDoorsStream(v, openTimeS, () => (v.rv.GetControlValue("DoorsOpenCloseRight", 0) as number) > 0.5),
+        createManualDoorsStream(v, openTimeS, () => (v.rv.GetControlValue("DoorsOpenCloseRight") as number) > 0.5),
         0
     );
     return frp.liftN((left, right) => [left, right], leftDoor, rightDoor);
@@ -141,8 +141,8 @@ function createManualDoorsStream(
         stayOpen: boolean;
     };
 
-    const manualEnabled = () => (v.rv.GetControlValue("DoorsManual", 0) as number) > 0.5;
-    const manualClose = () => (v.rv.GetControlValue("DoorsManualClose", 0) as number) >= 1;
+    const manualEnabled = () => (v.rv.GetControlValue("DoorsManual") as number) > 0.5;
+    const manualClose = () => (v.rv.GetControlValue("DoorsManualClose") as number) >= 1;
     return frp.compose(
         v.createUpdateStream(),
         frp.fold(
@@ -177,7 +177,7 @@ function createManualDoorsStream(
 export function createManualDoorsPopup(e: FrpEngine) {
     ui.createStatusPopup(
         e,
-        () => (e.rv.GetControlValue("DoorsManual", 0) as number) > 0.5,
+        () => (e.rv.GetControlValue("DoorsManual") as number) > 0.5,
         "Manual Door Control",
         new Map([
             [true, "Enabled"],
@@ -193,7 +193,7 @@ export function createManualDoorsPopup(e: FrpEngine) {
 export function createHepPopup(e: FrpEngine) {
     ui.createStatusPopup(
         e,
-        () => (e.rv.GetControlValue("HEP", 0) as number) > 0.5,
+        () => (e.rv.GetControlValue("HEP") as number) > 0.5,
         "Head-End Power",
         new Map([
             [true, "Enabled"],

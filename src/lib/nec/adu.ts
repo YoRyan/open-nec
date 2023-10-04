@@ -20,7 +20,7 @@ export type CommonAduOptions = {
     acknowledge: frp.Behavior<boolean>;
     suppression: frp.Behavior<boolean>;
     equipmentSpeedMps: number;
-    pulseCodeControlValue?: [name: string, index: number];
+    pulseCodeControlValue?: string;
 };
 
 /**
@@ -126,7 +126,7 @@ export function create<A>({
     acsesStepsDown: boolean;
 } & CommonAduOptions): frp.Stream<AduOutput<A>> {
     const atcAspect = frp.stepper(cs.createCabSignalStream(atc, e, pulseCodeControlValue), atc.restricting);
-    const aSpeedoMps = () => Math.abs(e.rv.GetControlValue("SpeedometerMPH", 0) as number) * c.mph.toMps;
+    const aSpeedoMps = () => Math.abs(e.rv.GetControlValue("SpeedometerMPH") as number) * c.mph.toMps;
     const vZero = frp.liftN(aSpeedoMps => aSpeedoMps < vZeroMps, aSpeedoMps);
 
     const acsesState = frp.stepper(

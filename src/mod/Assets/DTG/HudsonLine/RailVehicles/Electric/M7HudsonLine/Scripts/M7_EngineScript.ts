@@ -32,8 +32,8 @@ const me = new FrpEngine(() => {
 
     // Electric power supply
     const electrification = ps.createElectrificationBehaviorWithControlValues(me, {
-        [ps.Electrification.Overhead]: ["PowerOverhead", 0],
-        [ps.Electrification.ThirdRail]: ["Power3rdRail", 0],
+        [ps.Electrification.Overhead]: "PowerOverhead",
+        [ps.Electrification.ThirdRail]: "Power3rdRail",
     });
     const isPowerAvailable = () => ps.uniModeEngineHasPower(ps.EngineMode.ThirdRail, electrification);
     // Power3rdRail defaults to 0.
@@ -42,18 +42,18 @@ const me = new FrpEngine(() => {
         frp.filter(resumeFromSave => !resumeFromSave)
     );
     fixElectrification$(_ => {
-        me.rv.SetControlValue("Power3rdRail", 0, 1);
+        me.rv.SetControlValue("Power3rdRail", 1);
     });
 
     // Safety systems cut in/out
-    const atcCutIn = () => (me.rv.GetControlValue("ATCCutIn", 0) as number) > 0.5;
+    const atcCutIn = () => (me.rv.GetControlValue("ATCCutIn") as number) > 0.5;
     ui.createAtcStatusPopup(me, atcCutIn);
-    const alerterCutIn = () => (me.rv.GetControlValue("ACSESCutIn", 0) as number) > 0.5;
+    const alerterCutIn = () => (me.rv.GetControlValue("ACSESCutIn") as number) > 0.5;
     ui.createAlerterStatusPopup(me, alerterCutIn);
 
     // Safety systems and ADU
     const acknowledge = me.createAcknowledgeBehavior();
-    const suppression = () => (me.rv.GetControlValue("ThrottleAndBrake", 0) as number) <= -0.4;
+    const suppression = () => (me.rv.GetControlValue("ThrottleAndBrake") as number) <= -0.4;
     const [aduState$, aduEvents$] = adu.create({
         atc: cs.metroNorthAtc,
         e: me,
@@ -62,22 +62,21 @@ const me = new FrpEngine(() => {
         atcCutIn,
         acsesCutIn: () => false,
         equipmentSpeedMps: 80 * c.mph.toMps,
-        pulseCodeControlValue: ["CurrentMNRRSignal", 0],
+        pulseCodeControlValue: "CurrentMNRRSignal",
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
-        me.rv.SetControlValue("SigN", 0, state.aspect === cs.FourAspect.Clear ? 1 : 0);
-        me.rv.SetControlValue("SigL", 0, state.aspect === cs.FourAspect.ApproachLimited ? 1 : 0);
-        me.rv.SetControlValue("SigM", 0, state.aspect === cs.FourAspect.Approach ? 1 : 0);
+        me.rv.SetControlValue("SigN", state.aspect === cs.FourAspect.Clear ? 1 : 0);
+        me.rv.SetControlValue("SigL", state.aspect === cs.FourAspect.ApproachLimited ? 1 : 0);
+        me.rv.SetControlValue("SigM", state.aspect === cs.FourAspect.Approach ? 1 : 0);
         me.rv.SetControlValue(
             "SigR",
-            0,
             state.aspect === cs.FourAspect.Restricting || state.aspect === AduAspect.Stop ? 1 : 0
         );
     });
     const aduState = frp.stepper(aduStateHub$, undefined);
     // Alerter
-    const alerterReset$ = me.createOnCvChangeStreamFor("ThrottleAndBrake", 0);
+    const alerterReset$ = me.createOnCvChangeStreamFor("ThrottleAndBrake");
     const alerter$ = frp.compose(
         ale.create({ e: me, acknowledge, acknowledgeStream: alerterReset$, cutIn: alerterCutIn }),
         frp.hub()
@@ -91,15 +90,15 @@ const me = new FrpEngine(() => {
         mapBehavior(frp.liftN(aduState => (aduState?.atcAlarm || aduState?.acsesAlarm) ?? false, aduState))
     );
     safetyAlarm$(play => {
-        me.rv.SetControlValue("SpeedReductionAlert", 0, play ? 1 : 0);
+        me.rv.SetControlValue("SpeedReductionAlert", play ? 1 : 0);
     });
     const alerterAlarm$ = frp.compose(
         alerter$,
         frp.map(state => state.alarm)
     );
     alerterAlarm$(play => {
-        me.rv.SetControlValue("AWS", 0, play ? 1 : 0);
-        me.rv.SetControlValue("AWSWarnCount", 0, play ? 1 : 0);
+        me.rv.SetControlValue("AWS", play ? 1 : 0);
+        me.rv.SetControlValue("AWSWarnCount", play ? 1 : 0);
     });
     const upgradeEvents$ = frp.compose(
         aduEvents$,
@@ -107,7 +106,7 @@ const me = new FrpEngine(() => {
     );
     const upgradeSound$ = frp.compose(me.createPlayerWithKeyUpdateStream(), fx.triggerSound(1, upgradeEvents$));
     upgradeSound$(play => {
-        me.rv.SetControlValue("SpeedIncreaseAlert", 0, play ? 1 : 0);
+        me.rv.SetControlValue("SpeedIncreaseAlert", play ? 1 : 0);
     });
 
     // Throttle, dynamic brake, and air brake controls
@@ -116,7 +115,7 @@ const me = new FrpEngine(() => {
         aduState,
         alerterState
     );
-    const combinedPower = () => me.rv.GetControlValue("ThrottleAndBrake", 0) as number;
+    const combinedPower = () => me.rv.GetControlValue("ThrottleAndBrake") as number;
     const throttle = frp.liftN(
         (isPenaltyBrake, isPowerAvailable, input) => (isPenaltyBrake || !isPowerAvailable ? 0 : Math.max(input, 0)),
         isPenaltyBrake,
@@ -125,7 +124,7 @@ const me = new FrpEngine(() => {
     );
     const throttle$ = frp.compose(me.createPlayerWithKeyUpdateStream(), mapBehavior(throttle));
     throttle$(v => {
-        me.rv.SetControlValue("Regulator", 0, v);
+        me.rv.SetControlValue("Regulator", v);
     });
     const brake = frp.liftN(
         (isPenaltyBrake, input, fullService) => (isPenaltyBrake ? fullService : Math.max(-input, 0)),
@@ -139,12 +138,12 @@ const me = new FrpEngine(() => {
         frp.map(isFanRailer ? fanRailerBlendedBraking : vanillaBlendedBraking)
     );
     blendedBrakes$(([air, dynamic]) => {
-        me.rv.SetControlValue("TrainBrakeControl", 0, air);
-        me.rv.SetControlValue("DynamicBrake", 0, dynamic);
+        me.rv.SetControlValue("TrainBrakeControl", air);
+        me.rv.SetControlValue("DynamicBrake", dynamic);
     });
 
     // Blueprintless notches for the master controller
-    me.slewControlValue("ThrottleAndBrake", 0, v => {
+    me.slewControlValue("ThrottleAndBrake", v => {
         const coast = 0.0667;
         const minimum = 0.2;
         if (v > coast && v < minimum) {
@@ -170,9 +169,9 @@ const me = new FrpEngine(() => {
                 // Player motor sound algorithm by DTG
                 const [, lastHighPitch, lastVolume] = last;
                 const aSpeedMph = Math.abs(pu.speedMps) * c.mps.toMph;
-                const power = me.rv.GetControlValue("Regulator", 0) as number;
-                const brake = me.rv.GetControlValue("TrainBrakeControl", 0) as number;
-                const compressor = me.rv.GetControlValue("CompressorState", 0) as number;
+                const power = me.rv.GetControlValue("Regulator") as number;
+                const brake = me.rv.GetControlValue("TrainBrakeControl") as number;
+                const compressor = me.rv.GetControlValue("CompressorState") as number;
 
                 const [speedCurveMult, lowPitchSpeedCurveMult] = [0.07, 0.05];
                 const [dcOffset, dcSpeedMax] = [0.1, 1];
@@ -262,18 +261,18 @@ const me = new FrpEngine(() => {
         rejectUndefined()
     );
     motorLowPitch$(v => {
-        me.rv.SetControlValue("MotorLowPitch", 0, v);
+        me.rv.SetControlValue("MotorLowPitch", v);
     });
     motorHighPitch$(v => {
-        me.rv.SetControlValue("MotorHighPitch", 0, v);
+        me.rv.SetControlValue("MotorHighPitch", v);
     });
     motorVolume$(v => {
-        me.rv.SetControlValue("MotorVolume", 0, v);
+        me.rv.SetControlValue("MotorVolume", v);
     });
     motorCompressor$(v => {
-        me.rv.SetControlValue("CompressorState", 0, v);
+        me.rv.SetControlValue("CompressorState", v);
     });
-    me.rv.SetControlValue("FanSound", 0, 1);
+    me.rv.SetControlValue("FanSound", 1);
 
     // Consist display
     const consistStatusSend$ = frp.compose(
@@ -309,60 +308,60 @@ const me = new FrpEngine(() => {
     );
     consistStatusDisplay$(status => {
         const behind = status?.split(";") ?? [];
-        me.rv.SetControlValue("Cars", 0, behind.length);
+        me.rv.SetControlValue("Cars", behind.length);
         for (let i = 0; i < behind.length; i++) {
             const [motor, doors] = behind[i].split(":").map(s => tonumber(s) ?? 0);
-            me.rv.SetControlValue(`Motor_${i + 2}`, 0, motor);
-            me.rv.SetControlValue(`Doors_${i + 2}`, 0, doors);
+            me.rv.SetControlValue(`Motor_${i + 2}`, motor);
+            me.rv.SetControlValue(`Doors_${i + 2}`, doors);
         }
     });
 
     // Driving display
     const speedoMphDigits$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        me.mapGetCvStream("SpeedometerMPH", 0),
+        me.mapGetCvStream("SpeedometerMPH"),
         threeDigitDisplay
     );
     speedoMphDigits$(([[h, t, u], guide]) => {
-        me.rv.SetControlValue("SpeedoHundreds", 0, h);
-        me.rv.SetControlValue("SpeedoTens", 0, t);
-        me.rv.SetControlValue("SpeedoUnits", 0, u);
-        me.rv.SetControlValue("SpeedoGuide", 0, guide);
+        me.rv.SetControlValue("SpeedoHundreds", h);
+        me.rv.SetControlValue("SpeedoTens", t);
+        me.rv.SetControlValue("SpeedoUnits", u);
+        me.rv.SetControlValue("SpeedoGuide", guide);
     });
     const brakePipePsiDigits$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        me.mapGetCvStream("AirBrakePipePressurePSI", 0),
+        me.mapGetCvStream("AirBrakePipePressurePSI"),
         threeDigitDisplay
     );
     brakePipePsiDigits$(([[h, t, u], guide]) => {
-        me.rv.SetControlValue("PipeHundreds", 0, h);
-        me.rv.SetControlValue("PipeTens", 0, t);
-        me.rv.SetControlValue("PipeUnits", 0, u);
-        me.rv.SetControlValue("PipeGuide", 0, guide);
+        me.rv.SetControlValue("PipeHundreds", h);
+        me.rv.SetControlValue("PipeTens", t);
+        me.rv.SetControlValue("PipeUnits", u);
+        me.rv.SetControlValue("PipeGuide", guide);
     });
     const brakeCylinderPsiDigits$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        me.mapGetCvStream("TrainBrakeCylinderPressurePSI", 0),
+        me.mapGetCvStream("TrainBrakeCylinderPressurePSI"),
         threeDigitDisplay
     );
     brakeCylinderPsiDigits$(([[h, t, u], guide]) => {
-        me.rv.SetControlValue("CylinderHundreds", 0, h);
-        me.rv.SetControlValue("CylinderTens", 0, t);
-        me.rv.SetControlValue("CylinderUnits", 0, u);
-        me.rv.SetControlValue("CylGuide", 0, guide);
+        me.rv.SetControlValue("CylinderHundreds", h);
+        me.rv.SetControlValue("CylinderTens", t);
+        me.rv.SetControlValue("CylinderUnits", u);
+        me.rv.SetControlValue("CylGuide", guide);
     });
     const indicatorsUpdate$ = me.createPlayerWithKeyUpdateStream();
     indicatorsUpdate$(pu => {
         const [leftDoor, rightDoor] = pu.doorsOpen;
-        me.rv.SetControlValue("DoorsState", 0, leftDoor || rightDoor ? 1 : 0);
-        me.rv.SetControlValue("PenaltyIndicator", 0, frp.snapshot(isPenaltyBrake) ? 1 : 0);
+        me.rv.SetControlValue("DoorsState", leftDoor || rightDoor ? 1 : 0);
+        me.rv.SetControlValue("PenaltyIndicator", frp.snapshot(isPenaltyBrake) ? 1 : 0);
     });
 
     // Dome light
     const cabLight = new rw.Light("Cablight");
     const cabLightPlayer$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        me.mapGetCvStream("Cablight", 0),
+        me.mapGetCvStream("Cablight"),
         frp.map(v => v > 0.5)
     );
     const cabLight$ = frp.compose(
@@ -444,7 +443,7 @@ const me = new FrpEngine(() => {
     const brakeLight$ = frp.compose(
         fx.createBrakeLightStreamForEngine(
             me,
-            () => (me.rv.GetControlValue("TrainBrakeCylinderPressurePSI", 0) as number) > 34
+            () => (me.rv.GetControlValue("TrainBrakeCylinderPressurePSI") as number) > 34
         ),
         rejectRepeats()
     );
@@ -454,7 +453,7 @@ const me = new FrpEngine(() => {
     });
     const handBrakeLightPlayer$ = frp.compose(
         me.createPlayerUpdateStream(),
-        me.mapGetCvStream("HandBrake", 0),
+        me.mapGetCvStream("HandBrake"),
         frp.map(v => v === 1)
     );
     const handBrakeLight$ = frp.compose(
@@ -483,8 +482,8 @@ const me = new FrpEngine(() => {
 
     // Process OnControlValueChange events.
     const onCvChange$ = me.createOnCvChangeStream();
-    onCvChange$(([name, index, value]) => {
-        me.rv.SetControlValue(name, index, value);
+    onCvChange$(([name, value]) => {
+        me.rv.SetControlValue(name, value);
     });
 
     // Enable updates.
@@ -493,7 +492,7 @@ const me = new FrpEngine(() => {
 me.setup();
 
 function vanillaBlendedBraking(pct: number): [air: number, dynamic: number] {
-    const brakePipePsi = me.rv.GetControlValue("AirBrakePipePressurePSI", 0) as number;
+    const brakePipePsi = me.rv.GetControlValue("AirBrakePipePressurePSI") as number;
     return [pct, Math.max((150 - brakePipePsi) * 0.01428, 0)];
 }
 
@@ -527,7 +526,7 @@ function clampDelta(current: number, target: number, maxChange: number) {
 }
 
 function consistMotorStatus() {
-    const amps = me.rv.GetControlValue("Ammeter", 0) as number;
+    const amps = me.rv.GetControlValue("Ammeter") as number;
     if (amps >= 30) {
         return 1;
     } else if (amps >= -30) {
@@ -539,8 +538,8 @@ function consistMotorStatus() {
 
 function consistDoorStatus(vu?: VehicleUpdate) {
     const doorsOpen = () => [
-        (me.rv.GetControlValue("DoorsOpenCloseLeft", 0) as number) === 1,
-        (me.rv.GetControlValue("DoorsOpenCloseRight", 0) as number) === 1,
+        (me.rv.GetControlValue("DoorsOpenCloseLeft") as number) === 1,
+        (me.rv.GetControlValue("DoorsOpenCloseRight") as number) === 1,
     ];
     const [l, r] = vu === undefined ? frp.snapshot(doorsOpen) : vu.doorsOpen;
     if (l) {

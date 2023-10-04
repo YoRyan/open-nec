@@ -37,8 +37,8 @@ const strobeLightBellS = 30;
 const me = new FrpEngine(() => {
     // Safety systems cut in/out
     // ATC and ACSES controls are reversed for NJT DLC.
-    const atcCutIn = () => !((me.rv.GetControlValue("ACSES", 0) as number) > 0.5);
-    const acsesCutIn = () => !((me.rv.GetControlValue("ATC", 0) as number) > 0.5);
+    const atcCutIn = () => !((me.rv.GetControlValue("ACSES") as number) > 0.5);
+    const acsesCutIn = () => !((me.rv.GetControlValue("ATC") as number) > 0.5);
     ui.createAtcStatusPopup(me, atcCutIn);
     ui.createAcsesStatusPopup(me, acsesCutIn);
     const alerterCutIn = frp.liftN((atcCutIn, acsesCutIn) => atcCutIn || acsesCutIn, atcCutIn, acsesCutIn);
@@ -46,8 +46,8 @@ const me = new FrpEngine(() => {
 
     // Safety systems and ADU
     const acknowledge = me.createAcknowledgeBehavior();
-    const suppression = () => (me.rv.GetControlValue("VirtualBrake", 0) as number) >= 0.5;
-    const aSpeedoMph = () => Math.abs(me.rv.GetControlValue("SpeedometerMPH", 0) as number);
+    const suppression = () => (me.rv.GetControlValue("VirtualBrake") as number) >= 0.5;
+    const aSpeedoMph = () => Math.abs(me.rv.GetControlValue("SpeedometerMPH") as number);
     const [aduState$, aduEvents$] = adu.create({
         e: me,
         acknowledge,
@@ -55,24 +55,24 @@ const me = new FrpEngine(() => {
         atcCutIn,
         acsesCutIn,
         equipmentSpeedMps: 100 * c.mph.toMps,
-        pulseCodeControlValue: ["ACSES_SpeedSignal", 0],
+        pulseCodeControlValue: "ACSES_SpeedSignal",
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
         const [[h, t, u], guide] = m.digits(Math.round(frp.snapshot(aSpeedoMph)), 3);
-        me.rv.SetControlValue("SpeedH", 0, state.clearAspect ? h : -1);
-        me.rv.SetControlValue("SpeedT", 0, state.clearAspect ? t : -1);
-        me.rv.SetControlValue("SpeedU", 0, state.clearAspect ? u : -1);
-        me.rv.SetControlValue("Speed2H", 0, !state.clearAspect ? h : -1);
-        me.rv.SetControlValue("Speed2T", 0, !state.clearAspect ? t : -1);
-        me.rv.SetControlValue("Speed2U", 0, !state.clearAspect ? u : -1);
-        me.rv.SetControlValue("SpeedP", 0, guide);
+        me.rv.SetControlValue("SpeedH", state.clearAspect ? h : -1);
+        me.rv.SetControlValue("SpeedT", state.clearAspect ? t : -1);
+        me.rv.SetControlValue("SpeedU", state.clearAspect ? u : -1);
+        me.rv.SetControlValue("Speed2H", !state.clearAspect ? h : -1);
+        me.rv.SetControlValue("Speed2T", !state.clearAspect ? t : -1);
+        me.rv.SetControlValue("Speed2U", !state.clearAspect ? u : -1);
+        me.rv.SetControlValue("SpeedP", guide);
 
-        me.rv.SetControlValue("ACSES_SpeedGreen", 0, state.masSpeedMph ?? 0);
-        me.rv.SetControlValue("ACSES_SpeedRed", 0, state.excessSpeedMph ?? 0);
+        me.rv.SetControlValue("ACSES_SpeedGreen", state.masSpeedMph ?? 0);
+        me.rv.SetControlValue("ACSES_SpeedRed", state.excessSpeedMph ?? 0);
 
-        me.rv.SetControlValue("ATC_Node", 0, state.atcLamp ? 1 : 0);
-        me.rv.SetControlValue("ACSES_Node", 0, state.acsesLamp ? 1 : 0);
+        me.rv.SetControlValue("ATC_Node", state.atcLamp ? 1 : 0);
+        me.rv.SetControlValue("ACSES_Node", state.acsesLamp ? 1 : 0);
     });
     const aduState = frp.stepper(aduStateHub$, undefined);
     // Alerter
@@ -122,10 +122,10 @@ const me = new FrpEngine(() => {
         )
     );
     alarmsUpdate$(cvs => {
-        me.rv.SetControlValue("AWSWarnCount", 0, cvs.awsWarnCount ? 1 : 0);
-        me.rv.SetControlValue("ACSES_Alert", 0, cvs.acsesAlert ? 1 : 0);
-        me.rv.SetControlValue("ACSES_AlertIncrease", 0, cvs.acsesIncrease ? 1 : 0);
-        me.rv.SetControlValue("ACSES_AlertDecrease", 0, cvs.acsesDecrease ? 1 : 0);
+        me.rv.SetControlValue("AWSWarnCount", cvs.awsWarnCount ? 1 : 0);
+        me.rv.SetControlValue("ACSES_Alert", cvs.acsesAlert ? 1 : 0);
+        me.rv.SetControlValue("ACSES_AlertIncrease", cvs.acsesIncrease ? 1 : 0);
+        me.rv.SetControlValue("ACSES_AlertDecrease", cvs.acsesDecrease ? 1 : 0);
     });
 
     // Throttle, dynamic brake, and air brake controls
@@ -140,12 +140,12 @@ const me = new FrpEngine(() => {
             frp.liftN(
                 (isPenaltyBrake, input) => (isPenaltyBrake ? 0 : input),
                 isPenaltyBrake,
-                () => Math.max(me.rv.GetControlValue("VirtualThrottle", 0) as number, 0)
+                () => Math.max(me.rv.GetControlValue("VirtualThrottle") as number)
             )
         )
     );
     throttle$(v => {
-        me.rv.SetControlValue("Regulator", 0, v);
+        me.rv.SetControlValue("Regulator", v);
     });
     const airBrake$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
@@ -153,12 +153,12 @@ const me = new FrpEngine(() => {
             frp.liftN(
                 (isPenaltyBrake, input) => (isPenaltyBrake ? 0.6 : input),
                 isPenaltyBrake,
-                () => me.rv.GetControlValue("VirtualBrake", 0) as number
+                () => me.rv.GetControlValue("VirtualBrake") as number
             )
         )
     );
     airBrake$(v => {
-        me.rv.SetControlValue("TrainBrakeControl", 0, v);
+        me.rv.SetControlValue("TrainBrakeControl", v);
     });
     // DTG's "blended braking" algorithm
     const dynamicBrake$ = frp.compose(
@@ -169,13 +169,13 @@ const me = new FrpEngine(() => {
                     const blended = Math.min((89 - bpPsi) / 16, 1);
                     return Math.max(blended, input);
                 },
-                () => me.rv.GetControlValue("AirBrakePipePressurePSI", 0) as number,
-                () => me.rv.GetControlValue("VirtualDynamicBrake", 0) as number
+                () => me.rv.GetControlValue("AirBrakePipePressurePSI") as number,
+                () => me.rv.GetControlValue("VirtualDynamicBrake") as number
             )
         )
     );
     dynamicBrake$(v => {
-        me.rv.SetControlValue("DynamicBrake", 0, v);
+        me.rv.SetControlValue("DynamicBrake", v);
     });
 
     // Air pressure gauges
@@ -183,18 +183,18 @@ const me = new FrpEngine(() => {
         me.createPlayerWithKeyUpdateStream(),
         frp.map(_ => {
             return {
-                application: me.rv.GetControlValue("AirBrakePipePressurePSI", 0) as number,
-                suppression: me.rv.GetControlValue("MainReservoirPressurePSI", 0) as number,
+                application: me.rv.GetControlValue("AirBrakePipePressurePSI") as number,
+                suppression: me.rv.GetControlValue("MainReservoirPressurePSI") as number,
             };
         })
     );
     brakePipes$(v => {
-        me.rv.SetControlValue("ApplicationPipe", 0, v.application);
-        me.rv.SetControlValue("SuppressionPipe", 0, v.suppression);
+        me.rv.SetControlValue("ApplicationPipe", v.application);
+        me.rv.SetControlValue("SuppressionPipe", v.suppression);
     });
 
     // Diesel exhaust
-    const dieselRpm = () => me.rv.GetControlValue("RPM", 0) as number;
+    const dieselRpm = () => me.rv.GetControlValue("RPM") as number;
     const exhaustEmitters = [new rw.Emitter("Exhaust"), new rw.Emitter("Exhaust2"), new rw.Emitter("Exhaust3")];
     const exhaustState = frp.liftN((dieselRpm): [rate: number, alpha: number] => {
         const effort = (dieselRpm - 600) / (1500 - 600);
@@ -254,7 +254,7 @@ const me = new FrpEngine(() => {
     const domeLight = new rw.Light("CabLight");
     const domeLight$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        frp.map(_ => (me.rv.GetControlValue("CabLight", 0) as number) > 0.5),
+        frp.map(_ => (me.rv.GetControlValue("CabLight") as number) > 0.5),
         frp.merge(
             frp.compose(
                 me.createAiUpdateStream(),
@@ -273,7 +273,7 @@ const me = new FrpEngine(() => {
     // Number lights
     const numberLight$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        frp.map(_ => (me.rv.GetControlValue("NumberLights", 0) as number) > 0.5),
+        frp.map(_ => (me.rv.GetControlValue("NumberLights") as number) > 0.5),
         frp.merge(
             frp.compose(
                 me.createPlayerWithoutKeyUpdateStream(),
@@ -309,7 +309,7 @@ const me = new FrpEngine(() => {
         frp.merge(
             frp.compose(
                 me.createPlayerWithKeyUpdateStream(),
-                me.mapGetCvStream("StepsLight", 0),
+                me.mapGetCvStream("StepsLight"),
                 frp.map(v => v > 0.5)
             )
         ),
@@ -330,7 +330,7 @@ const me = new FrpEngine(() => {
                 return HeadLights.Backward;
             }
         },
-        () => me.rv.GetControlValue("Headlights", 0) as number
+        () => me.rv.GetControlValue("Headlights") as number
     );
     const ditchLightsSetting = frp.liftN(
         (headLights, cv) => {
@@ -343,7 +343,7 @@ const me = new FrpEngine(() => {
             }
         },
         headLightsSetting,
-        () => me.rv.GetControlValue("DitchLights", 0) as number
+        () => me.rv.GetControlValue("DitchLights") as number
     );
     const ditchLightsPlayer$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
@@ -460,7 +460,7 @@ const me = new FrpEngine(() => {
             fx.eventStopwatchS(
                 frp.compose(
                     me.createPlayerWithKeyUpdateStream(),
-                    me.mapGetCvStream("VirtualBell", 0),
+                    me.mapGetCvStream("VirtualBell"),
                     frp.filter(v => v > 0.5)
                 )
             ),
@@ -507,73 +507,73 @@ const me = new FrpEngine(() => {
     }
 
     // Head-end power
-    const hep$ = ps.createHepStream(me, () => (me.rv.GetControlValue("HEP", 0) as number) > 0.5);
+    const hep$ = ps.createHepStream(me, () => (me.rv.GetControlValue("HEP") as number) > 0.5);
     hep$(on => {
-        me.rv.SetControlValue("HEP_State", 0, on ? 1 : 0);
+        me.rv.SetControlValue("HEP_State", on ? 1 : 0);
     });
     njt.createHepPopup(me);
 
     // Horn rings the bell.
     const virtualBellControl$ = frp.compose(
-        me.createOnCvChangeStreamFor("VirtualHorn", 0),
+        me.createOnCvChangeStreamFor("VirtualHorn"),
         frp.filter(v => v === 1),
         me.mapAutoBellStream(true)
     );
     virtualBellControl$(v => {
-        me.rv.SetControlValue("VirtualBell", 0, v);
+        me.rv.SetControlValue("VirtualBell", v);
     });
-    const bellControl$ = frp.compose(me.createPlayerWithKeyUpdateStream(), me.mapGetCvStream("VirtualBell", 0));
+    const bellControl$ = frp.compose(me.createPlayerWithKeyUpdateStream(), me.mapGetCvStream("VirtualBell"));
     bellControl$(v => {
-        me.rv.SetControlValue("Bell", 0, v);
+        me.rv.SetControlValue("Bell", v);
     });
 
     // Link the various virtual controls.
-    const reverserControl$ = me.createOnCvChangeStreamFor("UserVirtualReverser", 0);
+    const reverserControl$ = me.createOnCvChangeStreamFor("UserVirtualReverser");
     reverserControl$(v => {
-        me.rv.SetControlValue("Reverser", 0, v);
+        me.rv.SetControlValue("Reverser", v);
     });
-    const engineBrakeControl$ = me.createOnCvChangeStreamFor("VirtualEngineBrakeControl", 0);
+    const engineBrakeControl$ = me.createOnCvChangeStreamFor("VirtualEngineBrakeControl");
     engineBrakeControl$(v => {
-        me.rv.SetControlValue("EngineBrakeControl", 0, v);
+        me.rv.SetControlValue("EngineBrakeControl", v);
     });
-    const hornControl$ = me.createOnCvChangeStreamFor("VirtualHorn", 0);
+    const hornControl$ = me.createOnCvChangeStreamFor("VirtualHorn");
     hornControl$(v => {
-        me.rv.SetControlValue("Horn", 0, v);
+        me.rv.SetControlValue("Horn", v);
     });
-    const startupControl$ = me.createOnCvChangeStreamFor("VirtualStartup", 0);
+    const startupControl$ = me.createOnCvChangeStreamFor("VirtualStartup");
     startupControl$(v => {
-        me.rv.SetControlValue("Startup", 0, v);
+        me.rv.SetControlValue("Startup", v);
     });
-    const sanderControl$ = me.createOnCvChangeStreamFor("VirtualSander", 0);
+    const sanderControl$ = me.createOnCvChangeStreamFor("VirtualSander");
     sanderControl$(v => {
-        me.rv.SetControlValue("Sander", 0, v);
+        me.rv.SetControlValue("Sander", v);
     });
-    const eBrakeControl$ = me.createOnCvChangeStreamFor("VirtualEmergencyBrake", 0);
+    const eBrakeControl$ = me.createOnCvChangeStreamFor("VirtualEmergencyBrake");
     eBrakeControl$(v => {
-        me.rv.SetControlValue("EmergencyBrake", 0, v);
+        me.rv.SetControlValue("EmergencyBrake", v);
     });
 
     // Engine start/stop buttons
     const startupButtons$ = frp.compose(
-        me.createOnCvChangeStreamFor("EngineStart", 0),
+        me.createOnCvChangeStreamFor("EngineStart"),
         frp.filter(v => v === 1),
         frp.merge(
             frp.compose(
-                me.createOnCvChangeStreamFor("EngineStop", 0),
+                me.createOnCvChangeStreamFor("EngineStop"),
                 frp.filter(v => v === 1),
                 frp.map(_ => -1)
             )
         )
     );
     startupButtons$(v => {
-        me.rv.SetControlValue("VirtualStartup", 0, v);
-        me.rv.SetControlValue("Startup", 0, v);
+        me.rv.SetControlValue("VirtualStartup", v);
+        me.rv.SetControlValue("Startup", v);
     });
 
     // Wiper control
-    const wipeWipers$ = frp.compose(me.createPlayerWithKeyUpdateStream(), me.mapGetCvStream("VirtualWipers", 0));
+    const wipeWipers$ = frp.compose(me.createPlayerWithKeyUpdateStream(), me.mapGetCvStream("VirtualWipers"));
     wipeWipers$(v => {
-        me.rv.SetControlValue("Wipers", 0, v);
+        me.rv.SetControlValue("Wipers", v);
     });
 
     // Process OnControlValueChange events.
@@ -581,13 +581,13 @@ const me = new FrpEngine(() => {
         me.createOnCvChangeStream(),
         frp.reject(([name]) => name === "VirtualBell")
     );
-    onCvChange$(([name, index, value]) => {
-        me.rv.SetControlValue(name, index, value);
+    onCvChange$(([name, value]) => {
+        me.rv.SetControlValue(name, value);
     });
 
     // Set consist brake lights.
     const brakesAppliedLight$ = frp.compose(
-        fx.createBrakeLightStreamForEngine(me, () => (me.rv.GetControlValue("TrainBrakeControl", 0) as number) > 0),
+        fx.createBrakeLightStreamForEngine(me, () => (me.rv.GetControlValue("TrainBrakeControl") as number) > 0),
         rejectRepeats()
     );
     brakesAppliedLight$(on => {
