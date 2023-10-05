@@ -117,8 +117,8 @@ export function onInit(me: FrpEngine, version: Version) {
 
     // Safety systems cut in/out
     // ATC and ACSES controls are reversed for NJT DLC.
-    const atcCutIn = () => (me.rv.GetControlValue("ACSES") as number) < 0.5;
-    const acsesCutIn = () => (me.rv.GetControlValue("ATC") as number) < 0.5;
+    const atcCutIn = () => !((me.rv.GetControlValue("ACSES") as number) > 0.5);
+    const acsesCutIn = () => !((me.rv.GetControlValue("ATC") as number) > 0.5);
     ui.createAtcStatusPopup(me, atcCutIn);
     ui.createAcsesStatusPopup(me, acsesCutIn);
     const alerterCutIn = frp.liftN((atcCutIn, acsesCutIn) => atcCutIn || acsesCutIn, atcCutIn, acsesCutIn);

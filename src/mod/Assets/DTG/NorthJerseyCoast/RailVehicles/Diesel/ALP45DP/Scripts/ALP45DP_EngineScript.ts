@@ -115,8 +115,8 @@ const me = new FrpEngine(() => {
 
     // Safety systems cut in/out
     // ATC and ACSES controls are reversed for NJT DLC.
-    const atcCutIn = () => (me.rv.GetControlValue("ACSES") as number) < 0.5;
-    const acsesCutIn = () => (me.rv.GetControlValue("ATC") as number) < 0.5;
+    const atcCutIn = () => !((me.rv.GetControlValue("ACSES") as number) > 0.5);
+    const acsesCutIn = () => !((me.rv.GetControlValue("ATC") as number) > 0.5);
     const updateCutIns$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
         mapBehavior(

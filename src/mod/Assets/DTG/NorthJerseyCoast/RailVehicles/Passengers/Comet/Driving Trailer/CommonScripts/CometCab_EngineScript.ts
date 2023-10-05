@@ -139,8 +139,8 @@ const me = new FrpEngine(() => {
 
     // Safety systems cut in/out
     // ATC and ACSES controls are reversed for NJT DLC.
-    const atcCutIn = () => (me.rv.GetControlValue("ACSES") as number) < 0.5;
-    const acsesCutIn = () => (me.rv.GetControlValue("ATC") as number) < 0.5;
+    const atcCutIn = () => !((me.rv.GetControlValue("ACSES") as number) > 0.5);
+    const acsesCutIn = () => !((me.rv.GetControlValue("ATC") as number) > 0.5);
     ui.createAtcStatusPopup(me, atcCutIn);
     ui.createAcsesStatusPopup(me, acsesCutIn);
     // Some versions of the Comet have no alarm sound, so having an alerter isn't a good idea.
