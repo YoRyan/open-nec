@@ -27,9 +27,11 @@ const ditchLightsFadeS = 0.3;
 const ditchLightFlashS = 0.65;
 
 const me = new FrpEngine(() => {
+    const isAlp45Version = me.rv.ControlExists("PowerMode");
+
     // Dual-mode power supply (for the ALP-45 version only)
     let powerAvailable: frp.Behavior<number>;
-    if (me.rv.ControlExists("PowerMode")) {
+    if (isAlp45Version) {
         const electrification = ps.createElectrificationBehaviorWithControlValues(me, {
             [ps.Electrification.Overhead]: "PowerState",
             [ps.Electrification.ThirdRail]: undefined,
@@ -171,8 +173,13 @@ const me = new FrpEngine(() => {
         me.rv.SetControlValue("Speed2U", !state.clearAspect ? u : -1);
         me.rv.SetControlValue("SpeedP", guide);
 
-        me.rv.SetControlValue("ACSES_SpeedGreen", state.masSpeedMph ?? 0);
-        me.rv.SetControlValue("ACSES_SpeedRed", state.excessSpeedMph ?? 0);
+        if (isAlp45Version) {
+            // The green bar animation is broken on this version.
+            me.rv.SetControlValue("ACSES_SpeedRed", state.masSpeedMph ?? 0);
+        } else {
+            me.rv.SetControlValue("ACSES_SpeedGreen", state.masSpeedMph ?? 0);
+            me.rv.SetControlValue("ACSES_SpeedRed", state.excessSpeedMph ?? 0);
+        }
 
         me.rv.SetControlValue("ATC_Node", state.atcLamp ? 1 : 0);
         me.rv.SetControlValue("ACSES_Node", state.acsesLamp ? 1 : 0);
