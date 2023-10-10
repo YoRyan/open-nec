@@ -1,4 +1,4 @@
-# Open NEC
+![Open NEC logo](https://opennec.trinancrat.me/assets/opennec-logo.svg)
 
 Open NEC is a free and open-source Train Simulator Classic mod that greatly enhances the functionality of passenger locomotives released for the Northeast Corridor (Washington, D.C. to Boston) locale. It’s a complete rescripting effort, using code written from scratch, to achieve an ultra-realistic driving experience.
 
