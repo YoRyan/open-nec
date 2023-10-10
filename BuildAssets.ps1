@@ -110,4 +110,8 @@ FindModPaths *.xml | ToDist $Function:Serz .bin
 FindModPaths *.wav | ToDist $Function:ConvertToDav .dav
 FindModPaths *.png | ToSource $Function:Compressonator .dds
 FindModPaths *.dds | ToDist $Function:ConvertToTg .TgPcDx
+# Wait for all ConvertToTG.exe jobs to finish (it forks).
+while (Get-Process ConvertToTG -ErrorAction SilentlyContinue) {
+    Start-Sleep -Milliseconds 1000
+}
 CopyOutput
