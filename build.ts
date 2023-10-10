@@ -1,12 +1,10 @@
 import colors from "@colors/colors";
-import { spawn } from "child_process";
 import * as fsp from "fs/promises";
 import { glob } from "glob";
 import minimist from "minimist";
 import * as path from "path";
 import { Path } from "path-scurry";
 import { exit } from "process";
-import { Writable } from "stream";
 import ts from "typescript";
 import * as tstl from "typescript-to-lua";
 
@@ -162,14 +160,9 @@ async function transpile(entryFile: Path, virtualBundle: [string, string][]) {
         const dirPath = path.dirname(luaPath);
         const outPath = path.join(dirPath, path.basename(luaPath, ".lua") + ".out");
         await fsp.mkdir(dirPath, { recursive: true });
-        // "Lua" mode permits inspection of the transpiled Lua source.
-        if (argv.lua) {
-            await fsp.writeFile(luaPath, tf.lua);
-        } else {
-            await compileLua(outPath, tf.lua);
-            // Make multiple copies of the final output if needed.
-            await copyOutput(path.relative("./dist", outPath));
-        }
+        await fsp.writeFile(outPath, tf.lua);
+        // Make multiple copies of the final output if needed.
+        await copyOutput(path.relative("./dist", outPath));
     }
 }
 
@@ -188,29 +181,6 @@ function printDiagnostics(diagnostics: ts.Diagnostic[]) {
             })
         );
     }
-}
-
-async function compileLua(outPath: string, lua: string) {
-    const luac = spawn("luac", ["-o", outPath, "-"], { stdio: ["pipe", "inherit", "inherit"] });
-    const exited = new Promise(resolve => luac.on("close", resolve));
-    await writeStreamAsync(luac.stdin, lua);
-    luac.stdin.end();
-    await exited;
-    if (luac.exitCode !== 0) {
-        throw new Error("Lua compilation failed");
-    }
-}
-
-async function writeStreamAsync(stream: Writable, chunk: any) {
-    return new Promise((resolve, reject) => {
-        stream.write(chunk, err => {
-            if (err === null || err === undefined) {
-                resolve(undefined);
-            } else {
-                reject(err);
-            }
-        });
-    });
 }
 
 async function copyOutput(relativeOutPath: string) {
