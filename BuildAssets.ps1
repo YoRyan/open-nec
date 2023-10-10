@@ -92,20 +92,18 @@ function CopyOutput {
         "dist\Assets\DTG\WashingtonBaltimore\InputMapper\AcelaExpert.bin"
 
     New-Item `
-        "dist\Assets\DTG\WashingtonBaltimore\Audio\RailVehicles\Electric\Acela" `
+        "dist\Assets\DTG\WashingtonBaltimore\Audio\RailVehicles\Electric\Acela\Cab" `
         -Type Directory -Force 
     Copy-Item `
-        "dist\Assets\RSC\AcelaPack01\Audio\RailVehicles\Electric\Acela\Cab" `
-        "dist\Assets\DTG\WashingtonBaltimore\Audio\RailVehicles\Electric\Acela\Cab" `
-        -Recurse
+        "dist\Assets\RSC\AcelaPack01\Audio\RailVehicles\Electric\Acela\Cab\*" `
+        "dist\Assets\DTG\WashingtonBaltimore\Audio\RailVehicles\Electric\Acela\Cab"
 
     New-Item `
-        "dist\Assets\DTG\WashingtonBaltimore\RailVehicles\Electric\Acela\Default\FirstCar" `
+        "dist\Assets\DTG\WashingtonBaltimore\RailVehicles\Electric\Acela\Default\FirstCar\destinations" `
         -Type Directory -Force
     Copy-Item `
-        "dist\Assets\RSC\AcelaPack01\RailVehicles\Electric\Acela\Default\FirstCar\destinations" `
-        "dist\Assets\DTG\WashingtonBaltimore\RailVehicles\Electric\Acela\Default\FirstCar\destinations" `
-        -Recurse
+        "dist\Assets\RSC\AcelaPack01\RailVehicles\Electric\Acela\Default\FirstCar\destinations\*" `
+        "dist\Assets\DTG\WashingtonBaltimore\RailVehicles\Electric\Acela\Default\FirstCar\destinations"
 }
 
 FindModPaths *.xml | ToDist $Function:Serz .bin
