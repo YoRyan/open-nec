@@ -627,7 +627,9 @@ const me = new FrpEngine(() => {
     });
     const destinationTurnedOn$ = frp.compose(
         me.createOnCvChangeStreamFor("DestOnOff"),
-        frp.filter(v => v === 1)
+        frp.filter(v => v === 1),
+        // Sometimes this fires for other units...
+        frp.filter(_ => me.eng.GetIsEngineWithKey())
     );
     destinationTurnedOn$(_ => {
         destinationMenu.showPopup();
