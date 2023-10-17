@@ -2,6 +2,7 @@ import colors from "@colors/colors";
 import * as fsp from "fs/promises";
 import { glob } from "glob";
 import minimist from "minimist";
+import { parseArgs } from "node:util";
 import * as path from "path";
 import { Path } from "path-scurry";
 import { exit } from "process";
@@ -9,8 +10,9 @@ import ts from "typescript";
 import * as tstl from "typescript-to-lua";
 
 async function main() {
-    const mode = argv._.length === 0 ? "build" : argv._[0];
-    switch (mode) {
+    const { positionals } = parseArgs({ strict: false });
+    const [mode] = positionals;
+    switch (mode ?? "build") {
         // Watch mode transpiles files when they get changed.
         case "watch":
             await watch();
