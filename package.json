@@ -3,6 +3,7 @@
   "scripts": {
     "lint": "prettier --check .",
     "fix:prettier": "prettier --write .",
+    "test": "jest",
     "watch": "ts-node-esm ./build.ts watch",
     "build": "ts-node-esm ./build.ts",
     "package": "cd dist/ && zip -r package.zip Assets/"

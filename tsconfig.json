@@ -1,16 +1,10 @@
-// Note that this file is only used for editing in your IDE. It is not used by
-// the build script.
 {
     "compilerOptions": {
-        "target": "esnext",
-        "lib": ["esnext"],
-        "moduleResolution": "node",
-        "baseUrl": "./src/",
+        "target": "ESNext",
+        "lib": ["ESNext"],
         "strict": true,
-        "types": ["lua-types/5.0", "jest"],
-        // Needed for build.ts and ts-node.
-        "module": "ESNext",
-        "allowSyntheticDefaultImports": true
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext"
     },
-    "include": ["src"]
+    "include": ["build.ts"]
 }

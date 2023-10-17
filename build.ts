@@ -76,7 +76,7 @@ class WatchQueue {
     }
     private async buildFile(file: Path) {
         const bundle = await readVirtualBundle();
-        await timedTranspile(file, bundle);
+        await timedTranspile(readCompilerOptions(), file, bundle);
     }
 }
 
@@ -88,7 +88,7 @@ async function build() {
     const bundle = await readVirtualBundle();
     const entryPoints = await globEntryPoints();
     for (const entry of entryPoints) {
-        await timedTranspile(entry, bundle);
+        await timedTranspile(readCompilerOptions(), entry, bundle);
     }
 }
 
@@ -119,11 +119,16 @@ async function globEntryPoints() {
     return await glob("mod/**/*.ts", { cwd: "./src", withFileTypes: true });
 }
 
-async function timedTranspile(entryFile: Path, virtualBundle: [string, string][]) {
+function readCompilerOptions() {
+    const configJson = ts.readConfigFile("./src/tsconfig.json", ts.sys.readFile);
+    return ts.parseJsonConfigFileContent(configJson.config, ts.sys, ".").options;
+}
+
+async function timedTranspile(compilerOptions: ts.CompilerOptions, entryFile: Path, virtualBundle: [string, string][]) {
     const startMs = nowTime();
     let err = undefined;
     try {
-        await transpile(entryFile, virtualBundle);
+        await transpile(compilerOptions, entryFile, virtualBundle);
     } catch (e) {
         err = e;
     }
@@ -134,17 +139,16 @@ async function timedTranspile(entryFile: Path, virtualBundle: [string, string][]
     console.log(`${entryPath} ${result}`);
 }
 
-async function transpile(entryFile: Path, virtualBundle: [string, string][]) {
+async function transpile(compilerOptions: ts.CompilerOptions, entryFile: Path, virtualBundle: [string, string][]) {
     // Create a virtual project that includes the entry point file.
     const virtualProject = Object.fromEntries([await readVirtualFile(entryFile), ...virtualBundle]);
 
     // Call TypeScriptToLua.
     const bundleFile = (entryFile.parent ?? entryFile).resolve(path.basename(entryFile.name, ".ts") + ".lua");
     const result = tstl.transpileVirtualProject(virtualProject, {
-        target: ts.ScriptTarget.ESNext,
+        ...compilerOptions,
+        // Drop the jest types here.
         types: ["lua-types/5.0", "@typescript-to-lua/language-extensions"],
-        baseUrl: ".",
-        strict: true,
         luaTarget: tstl.LuaTarget.Lua50,
         sourceMapTraceback: false,
         luaBundle: bundleFile.relative(),
