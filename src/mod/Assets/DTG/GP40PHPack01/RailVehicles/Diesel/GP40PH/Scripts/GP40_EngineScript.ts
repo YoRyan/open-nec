@@ -433,11 +433,13 @@ const me = new FrpEngine(() => {
 
         const nodeLeft$ = frp.compose(
             me.createUpdateStream(),
-            frp.map(_ => lightL.getIntensity() > 0.5)
+            frp.map(_ => lightL.getIntensity() > 0.5),
+            rejectRepeats()
         );
         const nodeRight$ = frp.compose(
             me.createUpdateStream(),
-            frp.map(_ => lightR.getIntensity() > 0.5)
+            frp.map(_ => lightR.getIntensity() > 0.5),
+            rejectRepeats()
         );
         nodeLeft$(on => {
             me.rv.ActivateNode(nodeL, on);
