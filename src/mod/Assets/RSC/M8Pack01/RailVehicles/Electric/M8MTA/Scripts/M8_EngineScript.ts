@@ -30,7 +30,7 @@ const dualModeOrder: [ps.EngineMode.Overhead, ps.EngineMode.ThirdRail] = [
 ];
 const dualModeSwitchS = 10;
 // Try to limit the performance impact of consist messages.
-const consistUpdateMs = (1 / 4) * 1e3;
+const consistUpdateS = 0.25;
 
 const me = new FrpEngine(() => {
     const isFanRailer = me.rv.GetTotalMass() === 65.7;
@@ -394,7 +394,7 @@ const me = new FrpEngine(() => {
     // Consist display
     const consistStatusSend$ = frp.compose(
         me.createPlayerWithoutKeyUpdateStream(),
-        frp.throttle(consistUpdateMs),
+        frp.throttle(consistUpdateS),
         frp.filter(pu => {
             const [frontCoupled] = pu.couplings;
             return !frontCoupled;

@@ -7,12 +7,12 @@ type PrimitiveTypes = number | boolean | string | undefined | null;
  * Continously display the value of an event stream to aid in FRP debugging.
  */
 export function debug(eventStream: frp.Stream<any>) {
-    const frequency = 0.5;
-    frp.throttle(frequency * 1000)(eventStream)(value => {
+    const frequencyS = 0.5;
+    frp.throttle(frequencyS)(eventStream)(value => {
         rw.ScenarioManager.ShowInfoMessageExt(
             "Event Stream",
             `${value}`,
-            frequency,
+            frequencyS,
             rw.MessageBoxPosition.Centre,
             rw.MessageBoxSize.Small,
             false

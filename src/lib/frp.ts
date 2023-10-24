@@ -190,13 +190,13 @@ export function stepper<T>(eventStream: Stream<T>, initial: T): Behavior<T> {
  * @description Note that unlike Santosh Rajan's original version of the
  * function, this one is curried.
  */
-export function throttle<T>(ms: number): (eventStream: Stream<T>) => Stream<T> {
+export function throttle<T>(s: number): (eventStream: Stream<T>) => Stream<T> {
     return function (eventStream) {
         return function (next) {
             let last = 0;
             eventStream(function (value) {
-                let now = e.GetSimulationTime() * 1000;
-                if (last === 0 || now - last > ms) {
+                let now = e.GetSimulationTime();
+                if (last === 0 || now - last > s) {
                     next(value);
                     last = now;
                 }

@@ -620,7 +620,7 @@ const me = new FrpEngine(() => {
         me.createPlayerWithKeyUpdateStream(),
         me.mapGetCvStream("DestJoy"),
         frp.filter(v => v === -1 || v === 1),
-        frp.throttle(destinationScrollS * 1000)
+        frp.throttle(destinationScrollS)
     );
     destinationScroll$(move => {
         destinationMenu.scroll(move);

@@ -50,7 +50,7 @@ enum DitchLightEvent {
 }
 
 const nDisplaySamples = 30;
-const displayRefreshMs = 100;
+const displayRefreshS = 0.1;
 
 const me = new FrpEngine(() => {
     const isCtslEnhancedPack = me.rv.ControlExists("TAPRBYL");
@@ -344,7 +344,7 @@ const me = new FrpEngine(() => {
     });
 
     // Driving screen
-    const displayUpdate$ = frp.compose(me.createPlayerWithKeyUpdateStream(), frp.throttle(displayRefreshMs));
+    const displayUpdate$ = frp.compose(me.createPlayerWithKeyUpdateStream(), frp.throttle(displayRefreshS));
     const tractiveEffortKlbs$ = frp.compose(
         displayUpdate$,
         frp.map(_ => (me.eng.GetTractiveEffort() * 71 * 71) / 80.5),
@@ -361,7 +361,7 @@ const me = new FrpEngine(() => {
         displayUpdate$,
         frp.map(_ => Math.abs(me.rv.GetAcceleration() * 134.2162)),
         movingAverage(nDisplaySamples),
-        frp.throttle(displayRefreshMs)
+        frp.throttle(displayRefreshS)
     );
     accelerationMphMin$(accelMphMin => {
         const [[h, t, u], guide] = m.digits(Math.round(accelMphMin), 3);

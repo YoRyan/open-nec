@@ -136,7 +136,7 @@ export function createPantographSparkStream(
         v.createPlayerUpdateStream(),
         frp.merge(v.createAiUpdateStream()),
         frp.map(u => Math.abs(u.speedMps)),
-        frp.throttle(sparkTickS * 1000),
+        frp.throttle(sparkTickS),
         frp.map(contactMps => {
             // Calibrated for 100 mph = 30 s, with a rapid falloff for lower speeds.
             const meanTimeBetweenS = 1341 / contactMps;
@@ -170,7 +170,7 @@ export function createBrakeLightStreamForEngine(
     );
     const playerSend$ = frp.compose(
         eng.createPlayerWithKeyUpdateStream(),
-        frp.throttle(brakeLightMessageFrequencyS * 1000),
+        frp.throttle(brakeLightMessageFrequencyS),
         mapBehavior(brakeMessage)
     );
     playerSend$(msg => {

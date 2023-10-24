@@ -25,7 +25,7 @@ enum ConsistMessageId {
 type MotorSounds = [lowPitch: number, highPitch: number, volume: number, compressor?: number];
 
 // Try to limit the performance impact of consist messages.
-const consistUpdateMs = (1 / 4) * 1e3;
+const consistUpdateS = 0.25;
 
 const me = new FrpEngine(() => {
     const isFanRailer = me.rv.GetTotalMass() === 56;
@@ -277,7 +277,7 @@ const me = new FrpEngine(() => {
     // Consist display
     const consistStatusSend$ = frp.compose(
         me.createPlayerWithoutKeyUpdateStream(),
-        frp.throttle(consistUpdateMs),
+        frp.throttle(consistUpdateS),
         frp.filter(pu => {
             const [frontCoupled] = pu.couplings;
             return !frontCoupled;
