@@ -69,6 +69,7 @@ const me = new FrpEngine(() => {
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
+        const { aspect } = state;
         const [ss, sd] = {
             [cs.NjTransitAspect.Clear]: [120, 1],
             [cs.NjTransitAspect.CabSpeed80]: [80, 2],
@@ -78,7 +79,7 @@ const me = new FrpEngine(() => {
             [cs.NjTransitAspect.Approach]: [30, 6],
             [cs.NjTransitAspect.Restricting]: [20, 7],
             [AduAspect.Stop]: [20, 7],
-        }[state.aspect];
+        }[aspect];
         me.rv.SetControlValue("ACSES_SpeedSignal", ss);
         me.rv.SetControlValue("ACSES_SignalDisplay", sd);
     });

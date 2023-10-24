@@ -177,8 +177,9 @@ const me = new FrpEngine(() => {
     aduStateHub$(state => {
         // Almost nothing works with this ADU; we only have the green digits to
         // manipulate.
-        if (state.masSpeedMph !== undefined) {
-            const [[h, t, u], guide] = m.digits(Math.round(state.masSpeedMph), 3);
+        const { masSpeedMph } = state;
+        if (masSpeedMph !== undefined) {
+            const [[h, t, u], guide] = m.digits(Math.round(masSpeedMph), 3);
             me.rv.SetControlValue("SpeedH", h);
             me.rv.SetControlValue("SpeedT", t);
             me.rv.SetControlValue("SpeedU", u);

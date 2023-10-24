@@ -61,21 +61,24 @@ const me = new FrpEngine(() => {
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
+        const { clearAspect } = state;
         const [[h, t, u], guide] = m.digits(Math.round(frp.snapshot(aSpeedoMph)), 3);
-        me.rv.SetControlValue("SpeedH", state.clearAspect ? h : -1);
-        me.rv.SetControlValue("SpeedT", state.clearAspect ? t : -1);
-        me.rv.SetControlValue("SpeedU", state.clearAspect ? u : -1);
-        me.rv.SetControlValue("Speed2H", !state.clearAspect ? h : -1);
-        me.rv.SetControlValue("Speed2T", !state.clearAspect ? t : -1);
-        me.rv.SetControlValue("Speed2U", !state.clearAspect ? u : -1);
+        me.rv.SetControlValue("SpeedH", clearAspect ? h : -1);
+        me.rv.SetControlValue("SpeedT", clearAspect ? t : -1);
+        me.rv.SetControlValue("SpeedU", clearAspect ? u : -1);
+        me.rv.SetControlValue("Speed2H", !clearAspect ? h : -1);
+        me.rv.SetControlValue("Speed2T", !clearAspect ? t : -1);
+        me.rv.SetControlValue("Speed2U", !clearAspect ? u : -1);
         me.rv.SetControlValue("SpeedP", guide);
 
         // The green speed zone behaves like a speedometer, so use the red zone
         // to show MAS.
-        me.rv.SetControlValue("ACSES_SpeedRed", state.masSpeedMph ?? 0);
+        const { masSpeedMph } = state;
+        me.rv.SetControlValue("ACSES_SpeedRed", masSpeedMph ?? 0);
 
-        me.rv.SetControlValue("ATC_Node", state.atcLamp ? 1 : 0);
-        me.rv.SetControlValue("ACSES_Node", state.acsesLamp ? 1 : 0);
+        const { atcLamp, acsesLamp } = state;
+        me.rv.SetControlValue("ATC_Node", atcLamp ? 1 : 0);
+        me.rv.SetControlValue("ACSES_Node", acsesLamp ? 1 : 0);
     });
     const aduState = frp.stepper(aduStateHub$, undefined);
     // Alerter

@@ -64,36 +64,32 @@ const me = new FrpEngine(() => {
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
+        const { aspect, aspectFlashOn } = state;
         me.rv.SetControlValue(
             "SigN",
-            ((state.aspect === cs.AmtrakAspect.CabSpeed60 || state.aspect === cs.AmtrakAspect.CabSpeed80) &&
-                state.aspectFlashOn) ||
-                state.aspect === cs.AmtrakAspect.Clear100 ||
-                state.aspect === cs.AmtrakAspect.Clear125 ||
-                state.aspect === cs.AmtrakAspect.Clear150
+            ((aspect === cs.AmtrakAspect.CabSpeed60 || aspect === cs.AmtrakAspect.CabSpeed80) && aspectFlashOn) ||
+                aspect === cs.AmtrakAspect.Clear100 ||
+                aspect === cs.AmtrakAspect.Clear125 ||
+                aspect === cs.AmtrakAspect.Clear150
                 ? 1
                 : 0
         );
         me.rv.SetControlValue(
             "SigL",
-            state.aspect === cs.AmtrakAspect.Approach ||
-                state.aspect === cs.AmtrakAspect.ApproachMedium ||
-                state.aspect === cs.AmtrakAspect.ApproachLimited
+            aspect === cs.AmtrakAspect.Approach ||
+                aspect === cs.AmtrakAspect.ApproachMedium ||
+                aspect === cs.AmtrakAspect.ApproachLimited
                 ? 1
                 : 0
         );
-        me.rv.SetControlValue(
-            "SigS",
-            state.aspect === AduAspect.Stop || state.aspect === cs.AmtrakAspect.Restricting ? 1 : 0
-        );
+        me.rv.SetControlValue("SigS", aspect === AduAspect.Stop || aspect === cs.AmtrakAspect.Restricting ? 1 : 0);
         me.rv.SetControlValue(
             "SigM",
-            state.aspect === cs.AmtrakAspect.ApproachMedium ||
-                (state.aspect === cs.AmtrakAspect.ApproachLimited && state.aspectFlashOn)
+            aspect === cs.AmtrakAspect.ApproachMedium || (aspect === cs.AmtrakAspect.ApproachLimited && aspectFlashOn)
                 ? 1
                 : 0
         );
-        me.rv.SetControlValue("SigR", state.aspect === cs.AmtrakAspect.Restricting ? 1 : 0);
+        me.rv.SetControlValue("SigR", aspect === cs.AmtrakAspect.Restricting ? 1 : 0);
         me.rv.SetControlValue(
             "SignalSpeed",
             {
@@ -107,11 +103,12 @@ const me = new FrpEngine(() => {
                 [cs.AmtrakAspect.Clear100]: 99,
                 [cs.AmtrakAspect.Clear125]: 99,
                 [cs.AmtrakAspect.Clear150]: 99,
-            }[state.aspect]
+            }[aspect]
         );
 
-        if (state.trackSpeedMph !== undefined) {
-            const [[h, t, u]] = m.digits(state.trackSpeedMph, 3);
+        const { trackSpeedMph } = state;
+        if (trackSpeedMph !== undefined) {
+            const [[h, t, u]] = m.digits(trackSpeedMph, 3);
             me.rv.SetControlValue("TSHundreds", h);
             me.rv.SetControlValue("TSTens", t);
             me.rv.SetControlValue("TSUnits", u);
@@ -121,10 +118,11 @@ const me = new FrpEngine(() => {
             me.rv.SetControlValue("TSUnits", -1);
         }
 
+        const { atcLamp, acsesLamp } = state;
         let lamp: number;
-        if (state.atcLamp) {
+        if (atcLamp) {
             lamp = 0;
-        } else if (state.acsesLamp) {
+        } else if (acsesLamp) {
             lamp = 1;
         } else {
             lamp = -1;

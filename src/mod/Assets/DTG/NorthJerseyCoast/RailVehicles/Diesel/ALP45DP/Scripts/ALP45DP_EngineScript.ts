@@ -148,8 +148,9 @@ const me = new FrpEngine(() => {
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
+        const { aspect } = state;
         let signal: number;
-        if (state.aspect === AduAspect.Stop) {
+        if (aspect === AduAspect.Stop) {
             signal = 8;
         } else if (frp.snapshot(atcCutIn)) {
             signal = {
@@ -160,14 +161,15 @@ const me = new FrpEngine(() => {
                 [cs.NjTransitAspect.CabSpeed60]: 3,
                 [cs.NjTransitAspect.CabSpeed80]: 2,
                 [cs.NjTransitAspect.Clear]: 1,
-            }[state.aspect];
+            }[aspect];
         } else {
             signal = 0;
         }
         me.rv.SetControlValue("ACSES_SignalDisplay", signal);
 
-        if (state.trackSpeedMph !== undefined) {
-            const [[h, t, u]] = m.digits(state.trackSpeedMph, 3);
+        const { trackSpeedMph } = state;
+        if (trackSpeedMph !== undefined) {
+            const [[h, t, u]] = m.digits(trackSpeedMph, 3);
             me.rv.SetControlValue("ACSES_SpeedH", h);
             me.rv.SetControlValue("ACSES_SpeedT", t);
             me.rv.SetControlValue("ACSES_SpeedU", u);
@@ -177,8 +179,9 @@ const me = new FrpEngine(() => {
             me.rv.SetControlValue("ACSES_SpeedU", -1);
         }
 
-        me.rv.SetControlValue("ATC_Node", state.atcLamp ? 1 : 0);
-        me.rv.SetControlValue("ACSES_Node", state.acsesLamp ? 1 : 0);
+        const { atcLamp, acsesLamp } = state;
+        me.rv.SetControlValue("ATC_Node", atcLamp ? 1 : 0);
+        me.rv.SetControlValue("ACSES_Node", acsesLamp ? 1 : 0);
     });
     const aduState = frp.stepper(aduStateHub$, undefined);
     // Alerter

@@ -43,6 +43,7 @@ const me = new FrpEngine(() => {
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
+        const { aspect, aspectFlashOn } = state;
         me.rv.SetControlValue(
             "CabSignal",
             {
@@ -56,30 +57,29 @@ const me = new FrpEngine(() => {
                 [cs.AmtrakAspect.Clear100]: 0,
                 [cs.AmtrakAspect.Clear125]: 0,
                 [cs.AmtrakAspect.Clear150]: 0,
-            }[state.aspect]
+            }[aspect]
         );
         // Top green head
         me.rv.SetControlValue(
             "CabSignal1",
-            ((state.aspect === cs.AmtrakAspect.CabSpeed60 || state.aspect === cs.AmtrakAspect.CabSpeed80) &&
-                state.aspectFlashOn) ||
-                state.aspect === cs.AmtrakAspect.Clear100 ||
-                state.aspect === cs.AmtrakAspect.Clear125 ||
-                state.aspect === cs.AmtrakAspect.Clear150
+            ((aspect === cs.AmtrakAspect.CabSpeed60 || aspect === cs.AmtrakAspect.CabSpeed80) && aspectFlashOn) ||
+                aspect === cs.AmtrakAspect.Clear100 ||
+                aspect === cs.AmtrakAspect.Clear125 ||
+                aspect === cs.AmtrakAspect.Clear150
                 ? 1
                 : 0
         );
         // Bottom green head
         me.rv.SetControlValue(
             "CabSignal2",
-            state.aspect === cs.AmtrakAspect.ApproachMedium ||
-                (state.aspect === cs.AmtrakAspect.ApproachLimited && state.aspectFlashOn)
+            aspect === cs.AmtrakAspect.ApproachMedium || (aspect === cs.AmtrakAspect.ApproachLimited && aspectFlashOn)
                 ? 1
                 : 0
         );
 
+        const { trackSpeedMph } = state;
         const blankTrackSpeed = 9.5;
-        me.rv.SetControlValue("TrackSpeed", state.trackSpeedMph ?? blankTrackSpeed);
+        me.rv.SetControlValue("TrackSpeed", trackSpeedMph ?? blankTrackSpeed);
     });
     const aduState = frp.stepper(aduStateHub$, undefined);
     // Alerter

@@ -154,11 +154,12 @@ const me = new FrpEngine(() => {
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
-        me.rv.SetControlValue("SigN", state.aspect === cs.FourAspect.Clear ? 1 : 0);
-        me.rv.SetControlValue("SigL", state.aspect === cs.FourAspect.ApproachLimited ? 1 : 0);
-        me.rv.SetControlValue("SigM", state.aspect === cs.FourAspect.Approach ? 1 : 0);
-        me.rv.SetControlValue("SigR", state.aspect === cs.FourAspect.Restricting ? 1 : 0);
-        me.rv.SetControlValue("SigS", state.aspect === AduAspect.Stop ? 1 : 0);
+        const { aspect } = state;
+        me.rv.SetControlValue("SigN", aspect === cs.FourAspect.Clear ? 1 : 0);
+        me.rv.SetControlValue("SigL", aspect === cs.FourAspect.ApproachLimited ? 1 : 0);
+        me.rv.SetControlValue("SigM", aspect === cs.FourAspect.Approach ? 1 : 0);
+        me.rv.SetControlValue("SigR", aspect === cs.FourAspect.Restricting ? 1 : 0);
+        me.rv.SetControlValue("SigS", aspect === AduAspect.Stop ? 1 : 0);
 
         me.rv.SetControlValue(
             "SignalSpeed",
@@ -168,11 +169,12 @@ const me = new FrpEngine(() => {
                 [cs.FourAspect.Approach]: 30,
                 [cs.FourAspect.ApproachLimited]: 45,
                 [cs.FourAspect.Clear]: -1,
-            }[state.aspect]
+            }[aspect]
         );
 
-        if (state.trackSpeedMph !== undefined) {
-            const [[h, t, u]] = m.digits(state.trackSpeedMph, 3);
+        const { trackSpeedMph } = state;
+        if (trackSpeedMph !== undefined) {
+            const [[h, t, u]] = m.digits(trackSpeedMph, 3);
             me.rv.SetControlValue("TrackSpeedHundreds", h);
             me.rv.SetControlValue("TrackSpeedTens", t);
             me.rv.SetControlValue("TrackSpeedUnits", u);
