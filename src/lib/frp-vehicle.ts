@@ -226,15 +226,14 @@ export class FrpVehicle extends FrpEntity {
     }
 
     /**
-     * Transform a player or AI update into a continuously updating stream of
-     * controlvalues. Nil values are filtered out, so nonexistent controlvalues
-     * will simply never fire their callbacks. To account for initial control
-     * movements, values will not be produced until a brief period after the
-     * simulation has initialized.
+     * Map an event stream to a stream of controlvalues. Nil values are
+     * filtered out, so nonexistent controlvalues will simply never fire their
+     * callbacks. To account for initial control movements, values will not be
+     * produced until a brief period after the simulation has initialized.
      * @param name The name of the controlvalue.
      * @returns The new stream of numbers.
      */
-    mapGetCvStream(name: string): (eventStream: frp.Stream<VehicleUpdate>) => frp.Stream<number> {
+    mapGetCvStream(name: string): (eventStream: frp.Stream<any>) => frp.Stream<number> {
         return eventStream =>
             frp.compose(
                 eventStream,
