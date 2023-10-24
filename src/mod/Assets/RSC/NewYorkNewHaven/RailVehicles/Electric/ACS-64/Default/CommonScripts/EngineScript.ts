@@ -126,37 +126,7 @@ const me = new FrpEngine(() => {
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
-        me.rv.SetControlValue(
-            "SigAspectTopGreen",
-            state.aspect === adu.AduAspect.CabSpeed60 ||
-                state.aspect === adu.AduAspect.CabSpeed80 ||
-                state.aspect === adu.AduAspect.Clear100 ||
-                state.aspect === adu.AduAspect.Clear125 ||
-                state.aspect === adu.AduAspect.Clear150
-                ? 1
-                : 0
-        );
-        me.rv.SetControlValue(
-            "SigAspectTopYellow",
-            state.aspect === adu.AduAspect.Approach ||
-                state.aspect === adu.AduAspect.ApproachMedium ||
-                state.aspect === adu.AduAspect.ApproachLimited ||
-                state.aspect === adu.AduAspect.ApproachLimitedOff
-                ? 1
-                : 0
-        );
-        me.rv.SetControlValue(
-            "SigAspectTopRed",
-            state.aspect === adu.AduAspect.Stop || state.aspect === adu.AduAspect.Restrict ? 1 : 0
-        );
-        me.rv.SetControlValue("SigAspectTopWhite", 0);
-        me.rv.SetControlValue(
-            "SigAspectBottomGreen",
-            state.aspect === adu.AduAspect.ApproachMedium || state.aspect === adu.AduAspect.ApproachLimited ? 1 : 0
-        );
-        me.rv.SetControlValue("SigAspectBottomYellow", 0);
-        me.rv.SetControlValue("SigAspectBottomWhite", state.aspect === adu.AduAspect.Restrict ? 1 : 0);
-
+        const { isMnrrAspect, aspect } = state;
         me.rv.SetControlValue(
             "SigText",
             {
@@ -173,39 +143,70 @@ const me = new FrpEngine(() => {
                 [adu.AduAspect.Clear100]: 1,
                 [adu.AduAspect.Clear125]: 1,
                 [adu.AduAspect.Clear150]: 1,
-            }[state.aspect]
+            }[aspect]
         );
+        // NORAC aspects
+        me.rv.SetControlValue(
+            "SigAspectTopGreen",
+            !isMnrrAspect &&
+                (aspect === adu.AduAspect.CabSpeed60 ||
+                    aspect === adu.AduAspect.CabSpeed80 ||
+                    aspect === adu.AduAspect.Clear100 ||
+                    aspect === adu.AduAspect.Clear125 ||
+                    aspect === adu.AduAspect.Clear150)
+                ? 1
+                : 0
+        );
+        me.rv.SetControlValue(
+            "SigAspectTopYellow",
+            !isMnrrAspect &&
+                (aspect === adu.AduAspect.Approach ||
+                    aspect === adu.AduAspect.ApproachMedium ||
+                    aspect === adu.AduAspect.ApproachLimited ||
+                    aspect === adu.AduAspect.ApproachLimitedOff)
+                ? 1
+                : 0
+        );
+        me.rv.SetControlValue(
+            "SigAspectTopRed",
+            !isMnrrAspect && (aspect === adu.AduAspect.Stop || aspect === adu.AduAspect.Restrict) ? 1 : 0
+        );
+        me.rv.SetControlValue("SigAspectTopWhite", 0);
+        me.rv.SetControlValue(
+            "SigAspectBottomGreen",
+            !isMnrrAspect && (aspect === adu.AduAspect.ApproachMedium || aspect === adu.AduAspect.ApproachLimited)
+                ? 1
+                : 0
+        );
+        me.rv.SetControlValue("SigAspectBottomYellow", 0);
+        me.rv.SetControlValue("SigAspectBottomWhite", !isMnrrAspect && aspect === adu.AduAspect.Restrict ? 1 : 0);
+        // Metro-North aspects
+        me.rv.SetControlValue("SigS", isMnrrAspect && aspect === adu.AduAspect.Stop ? 1 : 0);
+        me.rv.SetControlValue("SigR", isMnrrAspect && aspect === adu.AduAspect.Restrict ? 1 : 0);
+        me.rv.SetControlValue("SigM", isMnrrAspect && aspect === adu.AduAspect.Approach ? 1 : 0);
+        me.rv.SetControlValue(
+            "SigL",
+            isMnrrAspect && (aspect === adu.AduAspect.ApproachLimited || aspect === adu.AduAspect.ApproachLimitedOff)
+                ? 1
+                : 0
+        );
+        me.rv.SetControlValue(
+            "Sig60",
+            isMnrrAspect && (aspect === adu.AduAspect.CabSpeed60 || aspect === adu.AduAspect.CabSpeed60Off) ? 1 : 0
+        );
+        me.rv.SetControlValue(
+            "Sig80",
+            isMnrrAspect && (aspect === adu.AduAspect.CabSpeed80 || aspect === adu.AduAspect.CabSpeed80Off) ? 1 : 0
+        );
+        me.rv.SetControlValue("SigN", isMnrrAspect && aspect === adu.AduAspect.Clear125 ? 1 : 0);
 
-        if (state.isMnrrAspect) {
-            me.rv.SetControlValue("SigS", state.aspect === adu.AduAspect.Stop ? 1 : 0);
-            me.rv.SetControlValue("SigR", state.aspect === adu.AduAspect.Restrict ? 1 : 0);
-            me.rv.SetControlValue("SigM", state.aspect === adu.AduAspect.Approach ? 1 : 0);
-            me.rv.SetControlValue(
-                "SigL",
-                state.aspect === adu.AduAspect.ApproachLimited || state.aspect === adu.AduAspect.ApproachLimitedOff
-                    ? 1
-                    : 0
-            );
-            me.rv.SetControlValue(
-                "Sig60",
-                state.aspect === adu.AduAspect.CabSpeed60 || state.aspect === adu.AduAspect.CabSpeed60Off ? 1 : 0
-            );
-            me.rv.SetControlValue(
-                "Sig80",
-                state.aspect === adu.AduAspect.CabSpeed80 || state.aspect === adu.AduAspect.CabSpeed80Off ? 1 : 0
-            );
-            me.rv.SetControlValue("SigN", state.aspect === adu.AduAspect.Clear125 ? 1 : 0);
-        } else {
-            for (const cv of ["SigS", "SigR", "SigM", "SigL", "Sig60", "Sig80", "SigN"]) {
-                me.rv.SetControlValue(cv, 0);
-            }
-        }
+        const { atcLamp, acsesLamp } = state;
+        me.rv.SetControlValue("SigModeATC", atcLamp ? 1 : 0);
+        me.rv.SetControlValue("SigModeACSES", acsesLamp ? 1 : 0);
 
-        me.rv.SetControlValue("SigModeATC", state.atcLamp ? 1 : 0);
-        me.rv.SetControlValue("SigModeACSES", state.acsesLamp ? 1 : 0);
-
-        if (state.masSpeedMph !== undefined) {
-            const [[h, t, u]] = m.digits(state.masSpeedMph, 3);
+        const { masSpeedMph } = state;
+        if (masSpeedMph !== undefined) {
+            const [[h, t, u]] = m.digits(masSpeedMph, 3);
             me.rv.SetControlValue("SpeedLimit_hundreds", h);
             me.rv.SetControlValue("SpeedLimit_tens", t);
             me.rv.SetControlValue("SpeedLimit_units", u);
@@ -215,8 +216,9 @@ const me = new FrpEngine(() => {
             me.rv.SetControlValue("SpeedLimit_units", -1);
         }
 
-        if (state.timeToPenaltyS !== undefined) {
-            const [[h, t, u]] = m.digits(state.timeToPenaltyS, 3);
+        const { timeToPenaltyS } = state;
+        if (timeToPenaltyS !== undefined) {
+            const [[h, t, u]] = m.digits(timeToPenaltyS, 3);
             me.rv.SetControlValue("Penalty_hundreds", h);
             me.rv.SetControlValue("Penalty_tens", t);
             me.rv.SetControlValue("Penalty_units", u);
