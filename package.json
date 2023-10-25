@@ -4,23 +4,20 @@
     "lint": "prettier --check .",
     "fix:prettier": "prettier --write .",
     "test": "jest",
-    "watch": "ts-node-esm ./build.ts watch",
-    "build": "ts-node-esm ./build.ts",
+    "watch": "ts-node-esm ./build.ts watch --workers 4",
+    "build": "ts-node-esm ./build.ts build --workers 4",
     "package": "cd dist/ && zip -r package.zip Assets/"
   },
   "dependencies": {
     "@colors/colors": "^1.6.0",
     "glob": "^10.2.1",
     "lua-types": "^2.13.1",
-    "minimist": "^1.2.8",
-    "npx": "^10.2.2",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.4",
     "typescript-to-lua": "^1.14.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.0",
-    "@types/minimist": "^1.2.2",
     "@types/node": "^20.8.6",
     "jest": "^29.5.0",
     "npm-check-updates": "^16.10.8",

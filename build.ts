@@ -1,35 +1,42 @@
 import colors from "@colors/colors";
+import { ChildProcess, fork } from "child_process";
 import * as fsp from "fs/promises";
 import { glob } from "glob";
-import minimist from "minimist";
-import { parseArgs } from "node:util";
-import * as path from "path";
 import { Path } from "path-scurry";
 import { exit } from "process";
-import ts from "typescript";
-import * as tstl from "typescript-to-lua";
+import { parseArgs } from "util";
+import { Job, globBundleFiles, transpile } from "./build-worker.js";
 
 async function main() {
-    const { positionals } = parseArgs({ strict: false });
+    const { values, positionals } = parseArgs({
+        strict: false,
+        options: {
+            workers: { type: "string", short: "w", default: "0" },
+        },
+    });
+
+    const workers = parseInt(values.workers as string);
+    const transpiler = workers > 0 ? new MultiProcessTranspiler(workers) : new SingleProcessTranspiler();
+
     const [mode] = positionals;
     switch (mode ?? "build") {
         // Watch mode transpiles files when they get changed.
         case "watch":
-            await watch();
+            await watch(transpiler);
             break;
         // Build mode transpiles everything and then exits.
         case "build":
         default:
-            await build();
+            await build(transpiler);
             break;
     }
     return 0;
 }
 
-async function watch() {
-    const queue = new WatchQueue();
+async function watch(transpiler: Transpiler) {
+    const queue = new WatchQueue(transpiler);
     // Transpile everything when a common library or type definition changes.
-    for (const bundle of await globVirtualBundle()) {
+    for (const bundle of await globBundleFiles()) {
         (async () => {
             const watcher = fsp.watch(bundle.fullpath());
             for await (const _ of watcher) {
@@ -50,16 +57,20 @@ async function watch() {
 }
 
 class WatchQueue {
-    readonly minIntervalMs = 2 * 1000;
-    lastAll: number | undefined = undefined;
-    lastByFile: { [key: string]: number } = {};
+    private readonly minIntervalMs = 2 * 1000;
+    private lastAll: number | undefined = undefined;
+    private lastByFile: { [key: string]: number } = {};
+    private readonly transpiler: Transpiler;
+    constructor(transpiler: Transpiler) {
+        this.transpiler = transpiler;
+    }
     async all() {
         const now = nowTime();
         if (this.allStale()) {
             console.log("Transpiling all ...");
 
             this.lastAll = now;
-            await build();
+            await build(this.transpiler);
         }
     }
     async file(file: Path) {
@@ -70,176 +81,129 @@ class WatchQueue {
             console.log(`Transpiling ${file.relative()} ...`);
 
             this.lastByFile[key] = now;
-            await this.buildFile(file);
+            reportTimedResult(file, await this.transpiler.timedTranspileMs(file));
         }
     }
     private allStale() {
         return this.lastAll === undefined || nowTime() - this.lastAll > this.minIntervalMs;
     }
-    private async buildFile(file: Path) {
-        const bundle = await readVirtualBundle();
-        await timedTranspile(readCompilerOptions(), file, bundle);
+}
+
+interface Transpiler {
+    timedTranspileMs(entryFile: Path): Promise<number>;
+}
+
+/**
+ * Just calls the transpiler--no fancy workers. Includes a mutex so transpile
+ * times are reported correctly.
+ */
+class SingleProcessTranspiler implements Transpiler {
+    private mutex = false;
+    private waitingForMutex: (() => void)[] = [];
+    async timedTranspileMs(entryFile: Path) {
+        await this.getMutex();
+
+        const startMs = nowTime();
+        await transpile({
+            entryPathFromSrc: entryFile.relative(),
+        });
+        const endMs = nowTime();
+
+        this.releaseMutex();
+        return endMs - startMs;
+    }
+    private async getMutex() {
+        if (!this.mutex) {
+            this.mutex = true;
+        } else {
+            return await new Promise<void>(resolve => {
+                this.waitingForMutex.push(resolve);
+            });
+        }
+    }
+    private releaseMutex() {
+        const next = this.waitingForMutex.pop();
+        if (next !== undefined) {
+            next();
+        } else {
+            this.mutex = false;
+        }
     }
 }
 
-function nowTime() {
-    return new Date().getTime();
+/**
+ * Spawns other Node processes running build-worker.ts and uses them as a worker
+ * pool.
+ */
+class MultiProcessTranspiler implements Transpiler {
+    private workersToSpawn: number;
+    private waitingForWorker: ((worker: ChildProcess) => void)[] = [];
+    private spareWorkers: ChildProcess[] = [];
+    constructor(maxWorkers: number) {
+        this.workersToSpawn = maxWorkers;
+    }
+    async timedTranspileMs(entryFile: Path) {
+        const worker = await this.getWorker();
+        worker.send({
+            entryPathFromSrc: entryFile.relative(),
+        } as Job);
+
+        const startMs = nowTime();
+        await new Promise<void>(resolve => {
+            worker.on("message", resolve);
+        });
+        const endMs = nowTime();
+
+        this.returnWorker(worker);
+        return endMs - startMs;
+    }
+    private async getWorker() {
+        const spareWorker = this.spareWorkers.pop();
+        if (spareWorker !== undefined) {
+            return spareWorker;
+        } else if (this.workersToSpawn > 0) {
+            this.workersToSpawn--;
+            return fork("./build-worker.ts", { detached: true, stdio: ["ipc", "inherit", "inherit"] });
+        } else {
+            return await new Promise<ChildProcess>(resolve => {
+                this.waitingForWorker.push(resolve);
+            });
+        }
+    }
+    private returnWorker(worker: ChildProcess) {
+        worker.removeAllListeners("message");
+        const next = this.waitingForWorker.pop();
+        if (next !== undefined) {
+            next(worker);
+        } else {
+            this.spareWorkers.push(worker);
+        }
+    }
 }
 
-async function build() {
-    const bundle = await readVirtualBundle();
+async function build(transpiler: Transpiler) {
     const entryPoints = await globEntryPoints();
-    for (const entry of entryPoints) {
-        await timedTranspile(readCompilerOptions(), entry, bundle);
-    }
-}
-
-async function readVirtualBundle() {
-    const bundleFiles = await globVirtualBundle();
-    return await Promise.all(bundleFiles.map(readVirtualFile));
-}
-
-async function globVirtualBundle() {
-    return (
-        await Promise.all([
-            glob(
-                [
-                    "node_modules/lua-types/5.0.d.ts",
-                    "node_modules/lua-types/core/index-5.0.d.ts",
-                    "node_modules/lua-types/core/coroutine.d.ts",
-                    "node_modules/lua-types/core/5.0/*",
-                    "node_modules/lua-types/special/5.0.d.ts",
-                ],
-                { withFileTypes: true }
-            ),
-            glob(["@types/**/*", "lib/**/*.ts"], { cwd: "./src", withFileTypes: true }),
-        ])
-    ).flat();
+    await Promise.all(
+        entryPoints.map(async entry => {
+            reportTimedResult(entry, await transpiler.timedTranspileMs(entry));
+        })
+    );
 }
 
 async function globEntryPoints() {
     return await glob("mod/**/*.ts", { cwd: "./src", withFileTypes: true });
 }
 
-function readCompilerOptions() {
-    const configJson = ts.readConfigFile("./src/tsconfig.json", ts.sys.readFile);
-    return ts.parseJsonConfigFileContent(configJson.config, ts.sys, ".").options;
+function reportTimedResult(file: Path, ms: number) {
+    console.log(`${colors.gray(file.relative())} ${ms}ms`);
 }
 
-async function timedTranspile(compilerOptions: ts.CompilerOptions, entryFile: Path, virtualBundle: [string, string][]) {
-    const startMs = nowTime();
-    let err = undefined;
-    try {
-        await transpile(compilerOptions, entryFile, virtualBundle);
-    } catch (e) {
-        err = e;
-    }
-    const endMs = nowTime();
-
-    const entryPath = colors.gray(entryFile.relative());
-    const result = err !== undefined ? colors.red(err + "") : `${endMs - startMs}ms`;
-    console.log(`${entryPath} ${result}`);
-}
-
-async function transpile(compilerOptions: ts.CompilerOptions, entryFile: Path, virtualBundle: [string, string][]) {
-    // Create a virtual project that includes the entry point file.
-    const virtualProject = Object.fromEntries([await readVirtualFile(entryFile), ...virtualBundle]);
-
-    // Call TypeScriptToLua.
-    const bundleFile = (entryFile.parent ?? entryFile).resolve(path.basename(entryFile.name, ".ts") + ".lua");
-    const result = tstl.transpileVirtualProject(virtualProject, {
-        ...compilerOptions,
-        // Drop the jest types here.
-        types: ["lua-types/5.0", "@typescript-to-lua/language-extensions"],
-        luaTarget: tstl.LuaTarget.Lua50,
-        sourceMapTraceback: false,
-        luaBundle: bundleFile.relative(),
-        luaBundleEntry: entryFile.relative(),
-    });
-    printDiagnostics(result.diagnostics);
-
-    // Write the result.
-    for (const tf of result.transpiledFiles) {
-        if (!tf.lua) continue;
-
-        const luaPath = path.join("./dist", path.relative("./mod", tf.outPath));
-        const dirPath = path.dirname(luaPath);
-        const outPath = path.join(dirPath, path.basename(luaPath, ".lua") + ".out");
-        await fsp.mkdir(dirPath, { recursive: true });
-        await fsp.writeFile(outPath, tf.lua);
-        // Make multiple copies of the final output if needed.
-        await copyOutput(path.relative("./dist", outPath));
-    }
-}
-
-async function readVirtualFile(file: Path) {
-    const contents = await fsp.readFile(file.fullpath(), { encoding: "utf-8" });
-    return [file.relative(), contents] as [string, string];
-}
-
-function printDiagnostics(diagnostics: ts.Diagnostic[]) {
-    if (diagnostics.length > 0) {
-        console.log(
-            ts.formatDiagnosticsWithColorAndContext(diagnostics, {
-                getCurrentDirectory: () => ts.sys.getCurrentDirectory(),
-                getCanonicalFileName: f => f,
-                getNewLine: () => "\n",
-            })
-        );
-    }
-}
-
-async function copyOutput(relativeOutPath: string) {
-    const copyTargets: [string, string[]][] = [
-        [
-            "Assets/RSC/NorthEastCorridor/RailVehicles/Electric/AEM7/Default/Engine/RailVehicle_EngineScript.out",
-            ["Assets/RSC/NorthEastCorridor/RailVehicles/Electric/AEM7/Default/Engine/EngineScript.out"],
-        ],
-        [
-            "Assets/RSC/NewYorkNewHaven/RailVehicles/Electric/ACS-64/Default/CommonScripts/EngineScript.out",
-            ["Assets/DTG/WashingtonBaltimore/RailVehicles/Electric/ACS-64/Default/CommonScripts/EngineScript.out"],
-        ],
-        [
-            "Assets/RSC/AcelaPack01/RailVehicles/Electric/Acela/Default/CommonScripts/PowerCar_EngineScript.out",
-            [
-                "Assets/DTG/WashingtonBaltimore/RailVehicles/Electric/Acela/Default/CommonScripts/PowerCar_EngineScript.out",
-            ],
-        ],
-        [
-            "Assets/RSC/P32Pack01/RailVehicles/Passengers/Shoreliner/Driving Trailer/CommonScripts/CabCarEngineScript.out",
-            [
-                "Assets/DTG/HudsonLine/RailVehicles/Passengers/Shoreliner/Driving Trailer/CommonScripts/CabCarEngineScript.out",
-            ],
-        ],
-        [
-            "Assets/DTG/NorthJerseyCoast/RailVehicles/Passengers/Comet/Driving Trailer/CommonScripts/CometCab_EngineScript.out",
-            [
-                "Assets/DTG/NJT-Alp46/RailVehicles/Passengers/Comet/Driving Trailer/CommonScripts/CometCab_EngineScript.out",
-                "Assets/DTG/GP40PHPack01/RailVehicles/Passengers/Comet/Driving Trailer/CommonScripts/CometCab_EngineScript.out",
-                "Assets/DTG/F40PH2Pack01/RailVehicles/Passengers/Comet/Driving Trailer/CommonScripts/CometCab_EngineScript.out",
-            ],
-        ],
-    ];
-    const copyMap = new Map<string, string[]>(
-        copyTargets.map(([source, destinations]) => [
-            path.normalize(source),
-            destinations.map(relative => path.normalize(path.join("./dist", relative))),
-        ])
-    );
-
-    const destinations = copyMap.get(path.normalize(relativeOutPath)) ?? [];
-    for (const destination of destinations) {
-        await fsp.mkdir(path.dirname(destination), { recursive: true });
-        await fsp.copyFile(path.join("./dist", relativeOutPath), destination);
-    }
+function nowTime() {
+    return new Date().getTime();
 }
 
 async function waitForever() {
     return new Promise((_resolve, _reject) => {});
 }
 
-const argv = minimist(process.argv.slice(2), {
-    boolean: ["lua"],
-    default: { lua: false },
-});
 exit(await main());
