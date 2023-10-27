@@ -163,7 +163,7 @@ class MultiProcessTranspiler implements Transpiler {
             return spareWorker;
         } else if (this.workersToSpawn > 0) {
             this.workersToSpawn--;
-            return fork("./build-worker.ts", { detached: true, stdio: ["ipc", "inherit", "inherit"] });
+            return fork("./build-worker.ts", { stdio: ["ipc", "inherit", "inherit"] });
         } else {
             return await new Promise<ChildProcess>(resolve => {
                 this.waitingForWorker.push(resolve);
