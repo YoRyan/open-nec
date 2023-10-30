@@ -536,46 +536,42 @@ function indexObjectsSensedByDistance<T>(
                 let sensed = new Map<number, Sensed<T>>();
                 let passing = new Map<number, Sensed<T>>();
                 for (const [distanceM, obj] of objects) {
-                    // There's no continue in Lua 5.0, but we do have break...
-                    while (true) {
-                        // First, try to match a sensed object with a previously sensed
-                        // object.
-                        const bestSensed = bestScoreOfMapEntries(accum.sensed, (id, [sensedDistanceM]) => {
-                            if (sensed.has(id)) {
-                                return undefined;
-                            } else {
-                                const inferredM = sensedDistanceM - traveledM;
-                                const differenceM = Math.abs(inferredM - distanceM);
-                                return differenceM > senseMarginM ? undefined : -differenceM;
-                            }
-                        });
-                        if (bestSensed !== undefined) {
-                            sensed.set(bestSensed, [distanceM, obj]);
-                            break;
+                    // First, try to match a sensed object with a previously sensed
+                    // object.
+                    const bestSensed = bestScoreOfMapEntries(accum.sensed, (id, [sensedDistanceM]) => {
+                        if (sensed.has(id)) {
+                            return undefined;
+                        } else {
+                            const inferredM = sensedDistanceM - traveledM;
+                            const differenceM = Math.abs(inferredM - distanceM);
+                            return differenceM > senseMarginM ? undefined : -differenceM;
                         }
-
-                        // Next, try to match with a passing object.
-                        let bestPassing: number | undefined;
-                        if (distanceM <= 0 && distanceM > -senseMarginM) {
-                            bestPassing = bestScoreOfMapEntries(accum.passing, (id, [passingDistanceM]) => {
-                                const inferredM = passingDistanceM - traveledM;
-                                return sensed.has(id) ? undefined : -inferredM;
-                            });
-                        } else if (distanceM >= 0 && distanceM < senseMarginM) {
-                            bestPassing = bestScoreOfMapEntries(accum.passing, (id, [passingDistanceM]) => {
-                                const inferredM = passingDistanceM - traveledM;
-                                return sensed.has(id) ? undefined : inferredM;
-                            });
-                        }
-                        if (bestPassing !== undefined) {
-                            sensed.set(bestPassing, [distanceM, obj]);
-                            break;
-                        }
-
-                        // If neither strategy matched, then this is a new object.
-                        sensed.set(++counter, [distanceM, obj]);
-                        break;
+                    });
+                    if (bestSensed !== undefined) {
+                        sensed.set(bestSensed, [distanceM, obj]);
+                        continue;
                     }
+
+                    // Next, try to match with a passing object.
+                    let bestPassing: number | undefined;
+                    if (distanceM <= 0 && distanceM > -senseMarginM) {
+                        bestPassing = bestScoreOfMapEntries(accum.passing, (id, [passingDistanceM]) => {
+                            const inferredM = passingDistanceM - traveledM;
+                            return sensed.has(id) ? undefined : -inferredM;
+                        });
+                    } else if (distanceM >= 0 && distanceM < senseMarginM) {
+                        bestPassing = bestScoreOfMapEntries(accum.passing, (id, [passingDistanceM]) => {
+                            const inferredM = passingDistanceM - traveledM;
+                            return sensed.has(id) ? undefined : inferredM;
+                        });
+                    }
+                    if (bestPassing !== undefined) {
+                        sensed.set(bestPassing, [distanceM, obj]);
+                        continue;
+                    }
+
+                    // If neither strategy matched, then this is a new object.
+                    sensed.set(++counter, [distanceM, obj]);
                 }
 
                 // Cull objects in the passing zone that have exceeded the
