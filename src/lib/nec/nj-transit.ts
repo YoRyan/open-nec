@@ -59,6 +59,8 @@ export function createDestinationSignSelector(e: FrpEngine, destinations: string
     const playerMenu = new ui.ScrollingMenu("Set Destination Signs", menuItems);
     const newDestination$ = frp.compose(
         e.createOnCvChangeStreamFor("Destination"),
+        // Sometimes this fires for other units...
+        frp.filter(_ => e.eng.GetIsEngineWithKey()),
         mapBehavior(playerDestination as frp.Behavior<number>),
         rejectRepeats(),
         frp.hub()
