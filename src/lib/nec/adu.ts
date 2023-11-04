@@ -311,15 +311,16 @@ export function create<A>({
     return frp.compose(
         input$,
         frp.map((input): AduOutput<A> => {
+            const { atcAspect, acsesState, enforcing } = input;
             return {
-                atcAspect: input.atcAspect,
-                acsesState: input.acsesState,
-                enforcing: input.enforcing,
-                aspect: isPositiveStop(atc, input) ? AduAspect.Stop : input.atcAspect,
+                atcAspect,
+                acsesState,
+                enforcing,
+                aspect: isPositiveStop(atc, input) ? AduAspect.Stop : atcAspect,
                 atcAlarm: frp.snapshot(atcAlarm),
-                atcLamp: frp.snapshot(atcLamp) ?? input.enforcing === AduEnforcing.Atc,
+                atcLamp: frp.snapshot(atcLamp) ?? enforcing === AduEnforcing.Atc,
                 acsesAlarm: frp.snapshot(acsesAlarm),
-                acsesLamp: frp.snapshot(acsesLamp) ?? input.enforcing === AduEnforcing.Acses,
+                acsesLamp: frp.snapshot(acsesLamp) ?? enforcing === AduEnforcing.Acses,
                 penaltyBrake: frp.snapshot(atcPenalty) || frp.snapshot(acsesPenalty),
                 vZero: frp.snapshot(vZero),
             };
