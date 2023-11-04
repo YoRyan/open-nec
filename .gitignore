@@ -7,4 +7,6 @@ yarn.lock
 .DS_Store
 
 /BuildAssets.config.ps1
+/build.js
+/build-worker.js
 *.dds

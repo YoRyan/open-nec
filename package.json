@@ -4,15 +4,14 @@
     "lint": "prettier --check .",
     "fix:prettier": "prettier --write .",
     "test": "jest",
-    "watch": "ts-node-esm ./build.ts watch --workers 4",
-    "build": "ts-node-esm ./build.ts build --workers 4",
+    "watch": "tsc && node ./build.js watch --workers 4",
+    "build": "tsc && node ./build.js build --workers 4",
     "package": "cd dist/ && zip -r package.zip Assets/"
   },
   "dependencies": {
     "@colors/colors": "^1.6.0",
     "glob": "^10.2.1",
     "lua-types": "^2.13.1",
-    "ts-node": "^10.9.1",
     "typescript": "^5.0.4",
     "typescript-to-lua": "^1.14.0"
   },
