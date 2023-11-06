@@ -464,7 +464,7 @@ const me = new FrpEngine(() => {
         frp.map(v => v > 0.5),
         frp.merge(
             frp.compose(
-                frp.merge(me.createAiUpdateStream()),
+                me.createAiUpdateStream(),
                 frp.map(_ => false)
             )
         ),
