@@ -5,7 +5,7 @@
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { mapBehavior, rejectRepeats, rejectUndefined } from "lib/frp-extra";
+import { rejectRepeats, rejectUndefined } from "lib/frp-extra";
 import { FrpVehicle } from "lib/frp-vehicle";
 import * as rw from "lib/railworks";
 import * as ui from "lib/ui";
@@ -33,35 +33,21 @@ export function createDestinationSignSelector(e: FrpEngine, destinations: string
     menuItems.push(...destinations);
 
     // If our rail vehicle has a destination encoded in its #, then emit that
-    // one at startup. Unless we are the player and we are resuming from a save;
-    // then use the control value.
-    const playerDestination = () => {
-        const cv = e.rv.GetControlValue("Destination");
-        if (cv === undefined) {
-            return undefined;
-        } else {
-            const i = Math.round(cv);
-            return Math.max(Math.min(i, menuItems.length - 2), -1);
-        }
-    };
-    const firstDestination$ = frp.compose(
+    // one at startup.
+    const rvDestination$ = frp.compose(
         e.createFirstUpdateStream(),
-        frp.map(resume => {
-            const playerCv = e.eng.GetIsEngineWithKey() && resume ? frp.snapshot(playerDestination) : undefined;
-            const startIndex = playerCv ?? getRvNumberDestination(e);
-            return startIndex;
-        }),
+        frp.map(_ => getRvNumberDestination(e)),
         rejectUndefined()
     );
-    // We don't set the player's control value on first load, so if it was set
-    // by rail vehicle # it will be out of sync until they change it, but that's
+    // We don't set the player's control value upon load, so if it was set by
+    // rail vehicle # it will be out of sync until they change it, but that's
     // okay.
     const playerMenu = new ui.ScrollingMenu("Set Destination Signs", menuItems);
     const newDestination$ = frp.compose(
         e.createOnCvChangeStreamFor("Destination"),
         // Sometimes this fires for other units...
         frp.filter(_ => e.eng.GetIsEngineWithKey()),
-        mapBehavior(playerDestination as frp.Behavior<number>),
+        frp.map(v => Math.max(Math.min(Math.round(v), menuItems.length - 2), -1)),
         rejectRepeats(),
         frp.hub()
     );
@@ -70,7 +56,7 @@ export function createDestinationSignSelector(e: FrpEngine, destinations: string
         playerMenu.showPopup();
     });
 
-    const sendToConsist$ = frp.compose(firstDestination$, frp.merge(newDestination$));
+    const sendToConsist$ = frp.compose(rvDestination$, frp.merge(newDestination$));
     sendToConsist$(index => {
         const content = `${index}`;
         e.rv.SendConsistMessage(c.ConsistMessageId.NjtDestination, content, rw.ConsistDirection.Forward);
@@ -92,7 +78,7 @@ export function createDestinationSignSelector(e: FrpEngine, destinations: string
         frp.map(([, content]) => tonumber(content)),
         rejectUndefined()
     );
-    const showDestination$ = frp.compose(readFromConsist$, frp.merge(firstDestination$), frp.merge(newDestination$));
+    const showDestination$ = frp.compose(readFromConsist$, frp.merge(rvDestination$), frp.merge(newDestination$));
     showDestination$(selected => {
         for (let i = 0; i < destinationNodes.length; i++) {
             e.rv.ActivateNode(destinationNodes[i], i === selected);
