@@ -125,7 +125,42 @@ export function create<A>({
     getEvents: (eventStream: frp.Stream<[from: AduInput<A>, to: AduInput<A>]>) => frp.Stream<AduEvent>;
     acsesStepsDown: boolean;
 } & CommonAduOptions): frp.Stream<AduOutput<A>> {
-    const atcAspect = frp.stepper(cs.createCabSignalStream(atc, e, pulseCodeControlValue), atc.restricting);
+    const atcAspectWithDelay$ = frp.compose(
+        cs.createCabSignalStream(atc, e, pulseCodeControlValue),
+        fsm<A | undefined>(undefined),
+        frp.map(([from, to]) => {
+            const aspect = to ?? atc.restricting;
+            const inS =
+                from === undefined || atc.getSuperiority(from) > atc.getSuperiority(aspect)
+                    ? 0
+                    : randomCabSignalDelayS();
+            return { aspect, inS };
+        }),
+        frp.merge(e.createPlayerWithKeyUpdateStream()),
+        frp.fold((accum: { aspect: A; inS: number } | undefined, input) => {
+            if (!("dt" in input)) {
+                // New signal aspect
+                return input;
+            } else if (accum === undefined) {
+                return undefined;
+            } else {
+                // Clock update
+                const { dt } = input;
+                const { aspect, inS } = accum;
+                return { aspect, inS: Math.max(inS - dt, 0) };
+            }
+        }, undefined),
+        frp.map(accum => {
+            if (accum === undefined) {
+                return undefined;
+            } else {
+                const { aspect, inS } = accum;
+                return inS <= 0 ? aspect : undefined;
+            }
+        }),
+        rejectUndefined()
+    );
+    const atcAspect = frp.stepper(atcAspectWithDelay$, atc.restricting);
     const aSpeedoMps = () => Math.abs(e.rv.GetControlValue("SpeedometerMPH") as number) * c.mph.toMps;
     const vZero = frp.liftN(aSpeedoMps => aSpeedoMps < vZeroMps, aSpeedoMps);
 
@@ -326,6 +361,10 @@ export function create<A>({
             };
         })
     );
+}
+
+function randomCabSignalDelayS() {
+    return 3 + 3 * Math.random();
 }
 
 /**
