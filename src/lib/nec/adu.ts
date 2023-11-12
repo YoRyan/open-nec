@@ -130,10 +130,7 @@ export function create<A>({
         fsm<A | undefined>(undefined),
         frp.map(([from, to]) => {
             const aspect = to ?? atc.restricting;
-            const inS =
-                from === undefined || atc.getSuperiority(from) > atc.getSuperiority(aspect)
-                    ? 0
-                    : randomCabSignalDelayS();
+            const inS = from === undefined ? 0 : randomCabSignalDelayS();
             return { aspect, inS };
         }),
         frp.merge(e.createPlayerWithKeyUpdateStream()),
