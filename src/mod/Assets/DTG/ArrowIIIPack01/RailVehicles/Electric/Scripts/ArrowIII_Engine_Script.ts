@@ -7,7 +7,7 @@ import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
 import { mapBehavior, rejectRepeats } from "lib/frp-extra";
-import { SensedDirection } from "lib/frp-vehicle";
+import { SensedDirection, VehicleUpdate } from "lib/frp-vehicle";
 import * as m from "lib/math";
 import * as adu from "lib/nec/njt-adu";
 import * as ps from "lib/power-supply";
@@ -29,10 +29,11 @@ enum HeadLights {
 
 const headLightsFadeS = 0.3;
 const mcLockoutThreshold = 0.1;
-// Match the ramp time present in stock physics.
-const throttleRampS = 5;
 
 const me = new FrpEngine(() => {
+    const isFanRailer = me.rv.GetTotalMass() === 65.6;
+    const throttleRampS = isFanRailer ? 2 : 5;
+
     // Electric power supply
     const electrification = ps.createElectrificationBehaviorWithLua(me, ps.Electrification.Overhead);
     const isPowerAvailable = () => ps.uniModeEngineHasPower(ps.EngineMode.Overhead, electrification);
@@ -209,19 +210,7 @@ const me = new FrpEngine(() => {
         isPowerAvailable,
         masterController
     );
-    const throttle$ = frp.compose(
-        me.createPlayerWithKeyUpdateStream(),
-        frp.fold((last, pu) => {
-            const target = frp.snapshot(throttle);
-            if (target > last) {
-                return Math.min(last + pu.dt / throttleRampS, target);
-            } else if (target < last) {
-                return Math.max(last - pu.dt / throttleRampS, target);
-            } else {
-                return last;
-            }
-        }, 0)
-    );
+    const throttle$ = frp.compose(me.createPlayerWithKeyUpdateStream(), createTargetValueRamp(throttleRampS, throttle));
     throttle$(v => {
         me.rv.SetControlValue("Regulator", v);
     });
@@ -242,35 +231,85 @@ const me = new FrpEngine(() => {
     reverser$(v => {
         me.rv.SetControlValue("Reverser", v);
     });
-    const airBrake$ = frp.compose(
-        me.createPlayerWithKeyUpdateStream(),
-        mapBehavior(
-            frp.liftN(
-                (isPenaltyBrake, input) => (isPenaltyBrake ? 0.6 : input),
-                isPenaltyBrake,
-                () => me.rv.GetControlValue("VirtualBrake") as number
-            )
-        )
-    );
-    airBrake$(v => {
-        me.rv.SetControlValue("TrainBrakeControl", v);
-    });
-    // DTG's "blended braking" algorithm
-    const dynamicBrake$ = frp.compose(
-        me.createPlayerWithKeyUpdateStream(),
-        mapBehavior(
-            frp.liftN(
-                (bpPsi, input) => {
-                    const blended = Math.min((110 - bpPsi) / 16, 1);
-                    return Math.max(blended, input);
-                },
-                () => me.rv.GetControlValue("AirBrakePipePressurePSI") as number,
-                () => me.rv.GetControlValue("VirtualDynamicBrake") as number
-            )
-        )
-    );
-    dynamicBrake$(v => {
-        me.rv.SetControlValue("DynamicBrake", v);
+    const trainBrakeInput = () => me.rv.GetControlValue("VirtualBrake") as number;
+    let blendedBrakes: frp.Behavior<{ air: number; dynamic: number }>;
+    if (isFanRailer) {
+        const fullService = 0.9;
+        const maxReduction = 0.5;
+        const minReduction = 0.012;
+        const dynamicBrakeEffortVsSpeedMph: [speedMph: number, effort: number][] = [
+            [-Infinity, 0],
+            [2, 0],
+            [10, 1],
+            [38, 1],
+            [45, 0.83715],
+            [55, 0.685],
+            [65, 0.58],
+            [75, 0.5023],
+            [80, 0.471],
+            [90, 0.42],
+            [100, 0.377],
+            [110, 0],
+            [Infinity, 0],
+        ];
+        const brakeReduction = frp.liftN(input => Math.min(input / fullService, 1), trainBrakeInput);
+        const dynamicBrake = frp.liftN(
+            (reduction, aSpeedMph) => {
+                for (let i = 0; i < dynamicBrakeEffortVsSpeedMph.length - 2; i++) {
+                    const [s0, e0] = dynamicBrakeEffortVsSpeedMph[i];
+                    const [s1, e1] = dynamicBrakeEffortVsSpeedMph[i + 1];
+                    if (aSpeedMph > s0 && aSpeedMph <= s1) {
+                        const m = e1 === e0 ? 0 : (e1 - e0) / (s1 - s0);
+                        const effort = m === 0 ? e0 : m * (aSpeedMph - s0) + e0;
+                        return reduction * effort;
+                    }
+                }
+                return 0;
+            },
+            brakeReduction,
+            () => Math.abs(me.rv.GetSpeed()) * c.mps.toMph
+        );
+        const dynamicBrakeWithRamp = frp.stepper(
+            frp.compose(me.createPlayerWithKeyUpdateStream(), createTargetValueRamp(throttleRampS, dynamicBrake)),
+            0
+        );
+        const airBrake = frp.liftN(
+            (input, reduction, dynamicBrake) => {
+                if (input >= 1) {
+                    return 1;
+                } else {
+                    const dynamicBrakeReduction = dynamicBrake * (maxReduction - minReduction);
+                    return reduction * maxReduction - dynamicBrakeReduction;
+                }
+            },
+            trainBrakeInput,
+            brakeReduction,
+            dynamicBrakeWithRamp
+        );
+        blendedBrakes = frp.liftN(
+            (air, dynamicBrake, nMultipleUnits) => {
+                return { air, dynamic: dynamicBrake / nMultipleUnits };
+            },
+            airBrake,
+            dynamicBrake,
+            () => Math.round(me.rv.GetConsistLength() / 25.9)
+        );
+    } else {
+        blendedBrakes = frp.liftN(
+            (input, isPenaltyBrake, bpPsi) => {
+                return { air: isPenaltyBrake ? 0.6 : input, dynamic: Math.min((110 - bpPsi) / 16, 1) };
+            },
+            trainBrakeInput,
+            isPenaltyBrake,
+            () => me.rv.GetControlValue("AirBrakePipePressurePSI") as number
+        );
+    }
+    const blendedBrakes$ = frp.compose(me.createPlayerWithKeyUpdateStream(), mapBehavior(blendedBrakes));
+    blendedBrakes$(brakes => {
+        const { air, dynamic } = brakes;
+        me.rv.SetControlValue("TrainBrakeControl", air);
+        me.rv.SetControlValue("DynamicBrake", dynamic);
+        me.rv.SetControlValue("VirtualDynamicBrake", dynamic);
     });
 
     // Pantograph control
@@ -545,3 +584,24 @@ const me = new FrpEngine(() => {
     me.e.BeginUpdate();
 });
 me.setup();
+
+function createTargetValueRamp(
+    rampS: number,
+    target: frp.Behavior<number>
+): (eventStream: frp.Stream<VehicleUpdate>) => frp.Stream<number> {
+    return eventStream => {
+        return frp.compose(
+            eventStream,
+            frp.fold((last, vu) => {
+                const t = frp.snapshot(target);
+                if (t > last) {
+                    return Math.min(last + vu.dt / rampS, t);
+                } else if (t < last) {
+                    return Math.max(last - vu.dt / rampS, t);
+                } else {
+                    return last;
+                }
+            }, 0)
+        );
+    };
+}
