@@ -385,25 +385,32 @@ export function toPulseCode(signalMessage: string) {
  */
 export function toPositiveStopDistanceM(signalMessage: string): number | false | undefined {
     // Signals scripted by Brandon Phelan.
-    const [, , sig, speed] = string.find(signalMessage, "^sig(%d)speed(%d+)$");
-    if (sig !== undefined) {
-        return false;
-    }
-    const [, , stop] = string.find(signalMessage, "^sig7stop(%d+)$");
-    if (stop !== undefined) {
-        return (tonumber(stop as string) ?? 0) * c.ft.toM;
+    {
+        const [, , sig, speed] = string.find(signalMessage, "^sig(%d)speed(%d+)$");
+        if (sig !== undefined) {
+            return false;
+        }
+
+        const [, , stop] = string.find(signalMessage, "^sig7stop(%d+)$");
+        if (stop !== undefined) {
+            return (tonumber(stop as string) ?? 0) * c.ft.toM;
+        }
     }
 
     // Signals scripted by DTG for Amtrak and NJ Transit DLC's.
-    const [, , sig2] = string.find(signalMessage, "^sig(%d+)");
-    if (sig2 !== undefined) {
-        return false;
+    {
+        const [, , sig] = string.find(signalMessage, "^sig(%d+)");
+        if (sig !== undefined) {
+            return false;
+        }
     }
 
     // Signals scripted by DTG for Metro-North DLC's.
-    const [, , code] = string.find(signalMessage, "^[MN](%d%d)");
-    if (code !== undefined) {
-        return false;
+    {
+        const [, , code] = string.find(signalMessage, "^[MN](%d%d)");
+        if (code !== undefined) {
+            return false;
+        }
     }
 
     return undefined;
@@ -418,25 +425,32 @@ export function toPositiveStopDistanceM(signalMessage: string): number | false |
  */
 export function isMnrrAspect(signalMessage: string): boolean | undefined {
     // Signals scripted by Brandon Phelan.
-    const [, , sig] = string.find(signalMessage, "^sig(%d)speed(%d+)$");
-    if (sig !== undefined) {
-        return false;
-    }
-    const [, , stop] = string.find(signalMessage, "^sig7stop(%d+)$");
-    if (stop !== undefined) {
-        return false;
+    {
+        const [, , sig] = string.find(signalMessage, "^sig(%d)speed(%d+)$");
+        if (sig !== undefined) {
+            return false;
+        }
+
+        const [, , stop] = string.find(signalMessage, "^sig7stop(%d+)$");
+        if (stop !== undefined) {
+            return false;
+        }
     }
 
     // Signals scripted by DTG for Amtrak and NJ Transit DLC's.
-    const [, , sig2] = string.find(signalMessage, "^sig(%d+)");
-    if (sig2 !== undefined) {
-        return false;
+    {
+        const [, , sig] = string.find(signalMessage, "^sig(%d+)");
+        if (sig !== undefined) {
+            return false;
+        }
     }
 
     // Signals scripted by DTG for Metro-North DLC's.
-    const [, , code] = string.find(signalMessage, "^[MN](%d%d)");
-    if (code !== undefined) {
-        return true;
+    {
+        const [, , code] = string.find(signalMessage, "^[MN](%d%d)");
+        if (code !== undefined) {
+            return true;
+        }
     }
 
     return undefined;
