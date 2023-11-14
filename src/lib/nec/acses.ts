@@ -68,6 +68,8 @@ const iterateStepM = 0.01;
 
 /**
  * Create a new ACSES instance.
+ * @template A The set of signal aspects to use for the ATC system.
+ * @param atc The description of the ATC system.
  * @param e The player's engine.
  * @param cutIn A behavior that indicates ACSES is cut in.
  * @param stepsDown If true, exceeding the alert curve at any time reveals the
@@ -75,20 +77,25 @@ const iterateStepM = 0.01;
  * @param equipmentSpeedMps The maximum consist speed limit.
  * @param atcCutIn A behavior that indicates the state of the ATC cut in
  * control.
+ * @param atcAspect A behavior that returns the current cab signal aspect.
  * @returns An event stream that communicates all state for this system.
  */
-export function create({
+export function create<A>({
+    atc,
     e,
     cutIn,
     stepsDown,
     equipmentSpeedMps,
     atcCutIn,
+    atcAspect,
 }: {
+    atc: cs.AtcSystem<A>;
     e: FrpEngine;
     cutIn: frp.Behavior<boolean>;
     stepsDown: boolean;
     equipmentSpeedMps: number;
     atcCutIn: frp.Behavior<boolean>;
+    atcAspect: frp.Behavior<A>;
 }): frp.Stream<AcsesState> {
     type PiecesAccum = {
         speedPostViolated: Map<number, boolean>;
@@ -102,6 +109,7 @@ export function create({
     const speedoMps = e.createSpeedometerMpsBehavior();
 
     // Process positive stop signal messages.
+    // (This sensed distance is not saved and resumed.)
     const ptsDistanceM = frp.stepper(
         frp.compose(
             e.createOnSignalMessageStream(),
@@ -110,16 +118,7 @@ export function create({
         ),
         false
     );
-    const enablePts = frp.stepper(
-        frp.compose(
-            e.createOnSignalMessageStream(),
-            frp.map(cs.toPulseCode),
-            rejectUndefined(),
-            frp.map(pc => cs.fourAspectAtc.fromPulseCode(pc)),
-            frp.map(aspect => aspect === cs.FourAspect.Restricting)
-        ),
-        true
-    );
+    const isRestricting = frp.liftN(aspect => aspect === atc.restricting, atcAspect);
 
     // Speed post and signal trackers
     const speedPostIndex$ = frp.compose(
@@ -170,7 +169,7 @@ export function create({
             }
 
             // Add stop signals if the cab signals are at Restricting.
-            if (frp.snapshot(enablePts)) {
+            if (frp.snapshot(isRestricting)) {
                 for (const [, [distanceM, signal]] of frp.snapshot(signalIndex)) {
                     const isStopSignal = signal.proState === rw.ProSignalState.Red;
                     if (isStopSignal && isHazardRightWay(distanceM, playerSpeedMps)) {

@@ -65,6 +65,7 @@ export function create({
     pulseCodeControlValue,
 }: adu.CommonAduOptions): [frp.Stream<AduState>, frp.Stream<AduEvent>] {
     // MNRR aspect indicators
+    // (Doesn't save and resume, but that's okay...)
     const isMnrrAspect = frp.stepper(
         frp.compose(e.createOnSignalMessageStream(), frp.map(cs.isMnrrAspect), rejectUndefined()),
         false
