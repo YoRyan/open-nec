@@ -346,6 +346,7 @@ const me = new FrpEngine(() => {
     });
 
     // Driving screen
+    const speedoDigitsMph = me.createSpeedometerDigitsMphBehavior(3);
     const displayUpdate$ = frp.compose(me.createPlayerWithKeyUpdateStream(), frp.throttle(displayRefreshS));
     const tractiveEffortKlbs$ = frp.compose(
         displayUpdate$,
@@ -374,8 +375,7 @@ const me = new FrpEngine(() => {
         me.rv.SetControlValue("AccelerationMPHPM", accelMphMin);
     });
     displayUpdate$(_ => {
-        const speedoMph = me.rv.GetControlValue("SpeedometerMPH") as number;
-        const [[h, t, u], guide] = m.digits(Math.round(speedoMph), 3);
+        const [[h, t, u], guide] = frp.snapshot(speedoDigitsMph);
         me.rv.SetControlValue("SpeedDigit_hundreds", h);
         me.rv.SetControlValue("SpeedDigit_tens", t);
         me.rv.SetControlValue("SpeedDigit_units", u);
@@ -487,13 +487,16 @@ const me = new FrpEngine(() => {
     let ctslDitchLightEvents$: frp.Stream<DitchLightEvent>;
     if (isCtslEnhancedPack) {
         const ctslHornSequenceS = 13;
-        const ctslHornSequenceSpeedMph = 3;
+        const ctslHornSequenceSpeedOk = frp.liftN(
+            speedoMps => Math.abs(speedoMps) >= 3 * c.mph.toMps,
+            me.createSpeedometerMpsBehavior()
+        );
         const ctslHornSequenceBellOnOff$ = frp.compose(
             me.createPlayerWithKeyUpdateStream(),
             frp.filter(_ => isCtslEnhancedPack),
             frp.fold((remainingS, pu) => {
                 const keyPressed = (me.rv.GetControlValue("HornSequencer") as number) > 0.5;
-                const speedOk = Math.abs(me.rv.GetControlValue("SpeedometerMPH") as number) >= ctslHornSequenceSpeedMph;
+                const speedOk = frp.snapshot(ctslHornSequenceSpeedOk);
                 return keyPressed && speedOk && remainingS <= 0 ? ctslHornSequenceS : Math.max(remainingS - pu.dt, 0);
             }, 0),
             fsm(0),

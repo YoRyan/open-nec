@@ -506,6 +506,7 @@ const me = new FrpEngine(() => {
     });
 
     // Driving displays
+    const speedoDigitsMph = me.createSpeedometerDigitsMphBehavior(3);
     const displayUpdate$ = me.createPlayerWithKeyUpdateStream();
     displayUpdate$(_ => {
         const vehicleOn = (me.rv.GetControlValue("Startup") as number) > 0;
@@ -542,8 +543,7 @@ const me = new FrpEngine(() => {
         }
         me.rv.SetControlValue("SelectLights", ditchLights);
 
-        const speedoMph = me.rv.GetControlValue("SpeedometerMPH") as number;
-        const [[h, t, u], guide] = m.digits(Math.round(speedoMph), 3);
+        const [[h, t, u], guide] = frp.snapshot(speedoDigitsMph);
         me.rv.SetControlValue("SPHundreds", h);
         me.rv.SetControlValue("SPTens", t);
         me.rv.SetControlValue("SPUnits", u);

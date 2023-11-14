@@ -1,8 +1,9 @@
 import * as c from "lib/constants";
 import * as frp from "./frp";
 import { FrpSource } from "./frp-entity";
-import { rejectUndefined } from "./frp-extra";
+import { mapBehavior, rejectUndefined } from "./frp-extra";
 import { FrpVehicle, VehicleCamera, VehicleUpdate } from "./frp-vehicle";
+import * as m from "./math";
 import * as rw from "./railworks";
 
 /**
@@ -115,6 +116,34 @@ export class FrpEngine extends FrpVehicle {
             () => (this.rv.GetControlValue("AWSReset") as number) > 0.5,
             cameraView
         );
+    }
+
+    /**
+     * Create a behavior for the speedometer speed.
+     */
+    createSpeedometerMpsBehavior() {
+        return frp.liftN(
+            speedoMph => speedoMph * c.mph.toMps,
+            () => this.rv.GetControlValue("SpeedometerMPH") as number
+        );
+    }
+
+    /**
+     * Create a behavior for a digital speedometer for the player.
+     * @param width The number of digits supported by the display.
+     */
+    createSpeedometerDigitsMphBehavior(width: number) {
+        return frp.liftN(speedoMps => {
+            const aSpeedoMph = Math.round(Math.abs(speedoMps) * c.mps.toMph);
+            return m.digits(aSpeedoMph, width);
+        }, this.createSpeedometerMpsBehavior());
+    }
+
+    /**
+     * Create a behavior that returns true when the train perceives it is stopped.
+     */
+    createVZeroBehavior() {
+        return frp.liftN(speedoMps => Math.abs(speedoMps) < c.stopSpeed, this.createSpeedometerMpsBehavior());
     }
 
     /**

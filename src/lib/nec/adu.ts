@@ -153,8 +153,8 @@ export function create<A>({
         atcAspectBeforeDelay,
         frp.stepper(atcAspect$, undefined)
     );
-    const aSpeedoMps = () => Math.abs(e.rv.GetControlValue("SpeedometerMPH") as number) * c.mph.toMps;
-    const vZero = frp.liftN(aSpeedoMps => aSpeedoMps < vZeroMps, aSpeedoMps);
+    const aSpeedoMps = frp.liftN(speedoMps => Math.abs(speedoMps), e.createSpeedometerMpsBehavior());
+    const vZero = e.createVZeroBehavior();
 
     const acsesState = frp.stepper(
         acses.create({ e, cutIn: acsesCutIn, stepsDown: acsesStepsDown, equipmentSpeedMps, atcCutIn }),

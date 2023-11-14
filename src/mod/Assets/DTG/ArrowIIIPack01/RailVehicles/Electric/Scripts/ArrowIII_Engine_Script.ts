@@ -49,7 +49,7 @@ const me = new FrpEngine(() => {
     // Safety systems and ADU
     const acknowledge = me.createAcknowledgeBehavior();
     const suppression = () => (me.rv.GetControlValue("VirtualBrake") as number) >= 0.5;
-    const aSpeedoMph = () => Math.abs(me.rv.GetControlValue("SpeedometerMPH") as number);
+    const speedoDigitsMph = me.createSpeedometerDigitsMphBehavior(3);
     const [aduState$, aduEvents$] = adu.create({
         e: me,
         acknowledge,
@@ -62,7 +62,7 @@ const me = new FrpEngine(() => {
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(state => {
         const { clearAspect } = state;
-        const [[h, t, u], guide] = m.digits(Math.round(frp.snapshot(aSpeedoMph)), 3);
+        const [[h, t, u], guide] = frp.snapshot(speedoDigitsMph);
         me.rv.SetControlValue("SpeedH", clearAspect ? h : -1);
         me.rv.SetControlValue("SpeedT", clearAspect ? t : -1);
         me.rv.SetControlValue("SpeedU", clearAspect ? u : -1);

@@ -200,17 +200,24 @@ const me = new FrpEngine(() => {
     });
 
     // Speedometer
-    const speedoMph$ = frp.compose(
+    const aSpeedoMph$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        me.mapGetCvStream("SpeedometerMPH"),
-        frp.map(mph => Math.abs(mph))
+        mapBehavior(me.createSpeedometerDigitsMphBehavior(3))
     );
-    speedoMph$(mph => {
-        const [[h, t, u]] = m.digits(Math.round(mph), 3);
+    aSpeedoMph$(([[h, t, u]]) => {
         me.rv.SetControlValue("SpeedoHundreds", h);
         me.rv.SetControlValue("SpeedoTens", t);
         me.rv.SetControlValue("SpeedoUnits", u);
-        me.rv.SetControlValue("SpeedoDots", Math.floor(mph / 2));
+    });
+    const speedoDots$ = frp.compose(
+        me.createPlayerWithKeyUpdateStream(),
+        mapBehavior(me.createSpeedometerMpsBehavior()),
+        frp.map(mps => mps * c.mps.toMph),
+        frp.map(mph => Math.round(Math.abs(mph))),
+        frp.map(mph => Math.floor(mph / 2))
+    );
+    speedoDots$(d => {
+        me.rv.SetControlValue("SpeedoDots", d);
     });
 
     // Dome light

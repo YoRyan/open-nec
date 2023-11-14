@@ -111,9 +111,16 @@ export function create({
 
     // Excess speed (red tape)
     const excessSpeedMph = frp.liftN(
-        (masSpeedMph, aSpeedoMph) => (masSpeedMph !== undefined && aSpeedoMph > masSpeedMph ? aSpeedoMph : undefined),
+        (masSpeedMph, speedoMps) => {
+            if (masSpeedMph === undefined) {
+                return undefined;
+            } else {
+                const aSpeedoMph = Math.abs(speedoMps * c.mps.toMph);
+                return aSpeedoMph > masSpeedMph ? aSpeedoMph : undefined;
+            }
+        },
         masSpeedMph,
-        () => Math.abs(e.rv.GetControlValue("SpeedometerMPH") as number)
+        e.createSpeedometerMpsBehavior()
     );
 
     // Output state and events

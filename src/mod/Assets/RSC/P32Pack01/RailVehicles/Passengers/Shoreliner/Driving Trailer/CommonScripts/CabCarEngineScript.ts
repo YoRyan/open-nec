@@ -209,13 +209,11 @@ const me = new FrpEngine(() => {
     });
 
     // Speedometer
-    const aSpeedoMph$ = frp.compose(
+    const speedoMph$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        me.mapGetCvStream("SpeedometerMPH"),
-        frp.map(mph => Math.abs(mph))
+        mapBehavior(me.createSpeedometerDigitsMphBehavior(3))
     );
-    aSpeedoMph$(mph => {
-        const [[h, t, u]] = m.digits(mph, 3);
+    speedoMph$(([[h, t, u]]) => {
         me.rv.SetControlValue("SpeedoHundreds", h);
         me.rv.SetControlValue("SpeedoTens", t);
         me.rv.SetControlValue("SpeedoUnits", u);

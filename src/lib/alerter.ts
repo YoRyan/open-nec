@@ -49,7 +49,7 @@ export function create({
         acknowledgeStream,
         frp.map(_ => undefined)
     );
-    const isStopped = () => Math.abs(e.rv.GetControlValue("SpeedometerMPH") as number) < c.stopSpeed;
+    const vZero = e.createVZeroBehavior();
     const startS = countdownS + penaltyS;
     return frp.compose(
         e.createPlayerWithKeyUpdateStream(),
@@ -61,7 +61,7 @@ export function create({
                 return startS;
             } else if (frp.snapshot(acknowledge)) {
                 return startS;
-            } else if (remainingS > 0 && frp.snapshot(isStopped)) {
+            } else if (remainingS > 0 && frp.snapshot(vZero)) {
                 return startS;
             } else {
                 return Math.max(remainingS - input.dt, 0);

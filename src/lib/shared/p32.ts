@@ -359,11 +359,12 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
     // Speedometer
     const aSpeedoMph$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        me.mapGetCvStream("SpeedometerMPH"),
+        mapBehavior(me.createSpeedometerMpsBehavior()),
+        frp.map(mps => mps * c.mps.toMph),
         frp.map(mph => Math.abs(mph))
     );
     aSpeedoMph$(mph => {
-        const [[h, t, u]] = m.digits(mph, 3);
+        const [[h, t, u]] = m.digits(Math.floor(mph), 3);
         me.rv.SetControlValue("SpeedoHundreds", h);
         me.rv.SetControlValue("SpeedoTens", t);
         me.rv.SetControlValue("SpeedoUnits", u);

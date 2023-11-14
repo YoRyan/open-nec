@@ -438,8 +438,7 @@ const me = new FrpEngine(() => {
     // Driving display
     const speedoMphDigits$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
-        me.mapGetCvStream("SpeedometerMPH"),
-        threeDigitDisplay
+        xt.mapBehavior(me.createSpeedometerDigitsMphBehavior(3))
     );
     speedoMphDigits$(([[h, t, u]]) => {
         me.rv.SetControlValue("SpeedoHundreds", h);
