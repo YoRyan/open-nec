@@ -457,43 +457,34 @@ export function isMnrrAspect(signalMessage: string): boolean | undefined {
 }
 
 /**
- * Create a cab aspect stream with optional save and resume functionality.
+ * Read cab signal aspects from custom signal messages, from the rest of the
+ * consist, and from a save state.
  * @template A The set of signal aspects to use for the ATC system.
  * @param atc The description of the ATC system.
  * @param e The player's engine.
  * @param pulseCodeControlValue The name of the control value to use to persist
- * the cab signal pulse code between save states.
+ * the cab signal pulse code across the consist and between save states.
  * @returns The new stream.
  */
-export function createCabSignalStream<A>(
+export function createCabSignalBehavior<A>(
     atc: AtcSystem<A>,
     e: FrpEngine,
     pulseCodeControlValue?: string
-): frp.Stream<A> {
-    const pulseCodeFromResume$: frp.Stream<PulseCode> =
-        pulseCodeControlValue !== undefined
-            ? frp.compose(
-                  e.createOnResumeStream(),
-                  frp.map(() => e.rv.GetControlValue(pulseCodeControlValue) as number),
-                  frp.map(pulseCodeFromResumeValue)
-              )
-            : nullStream;
-    const pulseCodeFromMessage$ = frp.compose(e.createOnSignalMessageStream(), frp.map(toPulseCode), rejectUndefined());
-    const aspect$ = frp.compose(
-        pulseCodeFromResume$,
-        frp.merge(pulseCodeFromMessage$),
-        frp.map(pc => atc.fromPulseCode(pc))
-    );
-
-    // Persist the current pulse code between save states.
+): frp.Behavior<A> {
+    const newPulseCode$ = frp.compose(e.createOnSignalMessageStream(), frp.map(toPulseCode), rejectUndefined());
+    let currentPulseCode: frp.Behavior<PulseCode>;
     if (pulseCodeControlValue !== undefined) {
-        const pulseCodeSave$ = frp.compose(pulseCodeFromMessage$, frp.map(pulseCodeToSaveValue));
-        pulseCodeSave$(v => {
-            e.rv.SetControlValue(pulseCodeControlValue, v);
+        newPulseCode$(pc => {
+            e.rv.SetControlValue(pulseCodeControlValue, pulseCodeToSaveValue(pc));
         });
+        currentPulseCode = frp.liftN(
+            v => pulseCodeFromResumeValue(v),
+            () => e.rv.GetControlValue(pulseCodeControlValue) as number
+        );
+    } else {
+        currentPulseCode = frp.stepper(newPulseCode$, PulseCode.C_0_0);
     }
-
-    return aspect$;
+    return frp.liftN(pc => atc.fromPulseCode(pc), currentPulseCode);
 }
 
 /**

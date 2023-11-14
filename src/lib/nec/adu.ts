@@ -125,39 +125,34 @@ export function create<A>({
     getEvents: (eventStream: frp.Stream<[from: AduInput<A>, to: AduInput<A>]>) => frp.Stream<AduEvent>;
     acsesStepsDown: boolean;
 } & CommonAduOptions): frp.Stream<AduOutput<A>> {
-    const atcAspectWithDelay$ = frp.compose(
-        cs.createCabSignalStream(atc, e, pulseCodeControlValue),
-        fsm<A | undefined>(undefined),
-        frp.map(([from, to]) => {
-            const aspect = to ?? atc.restricting;
-            const inS = from === undefined ? 0 : randomCabSignalDelayS();
-            return { aspect, inS };
+    const atcAspectBeforeDelay = cs.createCabSignalBehavior(atc, e, pulseCodeControlValue);
+    const atcAspect$ = frp.compose(
+        e.createPlayerWithKeyUpdateStream(),
+        frp.map(pu => {
+            const { dt } = pu;
+            const nextAspect = frp.snapshot(atcAspectBeforeDelay);
+            return { nextAspect, dt };
         }),
-        frp.merge(e.createPlayerWithKeyUpdateStream()),
-        frp.fold((accum: { aspect: A; inS: number } | undefined, input) => {
-            if (!("dt" in input)) {
-                // New signal aspect
-                return input;
-            } else if (accum === undefined) {
-                return undefined;
-            } else {
-                // Clock update
-                const { dt } = input;
-                const { aspect, inS } = accum;
-                return { aspect, inS: Math.max(inS - dt, 0) };
-            }
-        }, undefined),
-        frp.map(accum => {
-            if (accum === undefined) {
-                return undefined;
-            } else {
-                const { aspect, inS } = accum;
-                return inS <= 0 ? aspect : undefined;
-            }
-        }),
+        frp.fold(
+            ({ aspect, inS }: { aspect: A; inS: number }, { nextAspect, dt }) => {
+                if (aspect !== nextAspect) {
+                    // New signal aspect
+                    return { aspect: nextAspect, inS: randomCabSignalDelayS() };
+                } else {
+                    // Clock update
+                    return { aspect, inS: Math.max(inS - dt, 0) };
+                }
+            },
+            { aspect: atc.restricting, inS: 0 }
+        ),
+        frp.map(({ aspect, inS }) => (inS <= 0 ? aspect : undefined)),
         rejectUndefined()
     );
-    const atcAspect = frp.stepper(atcAspectWithDelay$, atc.restricting);
+    const atcAspect = frp.liftN(
+        (beforeDelay, afterDelay) => (afterDelay !== undefined ? afterDelay : beforeDelay),
+        atcAspectBeforeDelay,
+        frp.stepper(atcAspect$, undefined)
+    );
     const aSpeedoMps = () => Math.abs(e.rv.GetControlValue("SpeedometerMPH") as number) * c.mph.toMps;
     const vZero = frp.liftN(aSpeedoMps => aSpeedoMps < vZeroMps, aSpeedoMps);
 
