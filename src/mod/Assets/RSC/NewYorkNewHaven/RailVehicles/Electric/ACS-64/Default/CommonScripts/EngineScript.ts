@@ -307,6 +307,12 @@ const me = new FrpEngine(() => {
         me.rv.GetControlMinimum("ThrottleAndBrake") as number,
         me.rv.GetControlMaximum("ThrottleAndBrake") as number,
     ];
+    // Copying the brake pressure-based blended braking used by the rest of DTG's
+    // locomotives.
+    const blendedBrake = frp.liftN(
+        bpPsi => Math.min((110 - bpPsi) / 16, 1),
+        () => me.rv.GetControlValue("AirBrakePipePressurePSI") as number
+    );
     // Scaled from -1 (full dynamic braking) to 1 (full power).
     const throttleAndDynBrakeInput = () => {
         const input = me.rv.GetControlValue("ThrottleAndBrake") as number;
@@ -314,17 +320,18 @@ const me = new FrpEngine(() => {
         return ((input - min) / (max - min)) * 2 - 1;
     };
     const throttleAndDynBrake = frp.liftN(
-        (isPowerAvailable, isPenaltyBrake, airBrake, input) => {
-            if (isPenaltyBrake) {
-                return 0;
-            } else if (!isPowerAvailable || airBrake > 0) {
-                return Math.min(input, 0);
+        (isPowerAvailable, blendedBrake, input) => {
+            let upperLimit: number;
+            if (blendedBrake > 0) {
+                upperLimit = -blendedBrake;
+            } else if (!isPowerAvailable) {
+                upperLimit = 0;
             } else {
-                return input;
+                upperLimit = 1;
             }
+            return Math.min(input, upperLimit);
         },
         isPowerAvailable,
-        isPenaltyBrake,
         airBrake,
         throttleAndDynBrakeInput
     );
