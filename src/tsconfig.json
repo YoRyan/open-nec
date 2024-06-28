@@ -5,7 +5,8 @@
         "types": ["lua-types/5.0", "@typescript-to-lua/language-extensions", "jest"],
         "module": "CommonJS",
         "moduleResolution": "Node10",
-        "target": "ESNext"
+        "target": "ESNext",
+        "resolveJsonModule": true
     },
     "include": ["@types", "lib", "mod", "test"]
 }

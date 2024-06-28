@@ -54,7 +54,7 @@ export async function globBundleFiles() {
             ],
             { withFileTypes: true }
         )),
-        ...(await glob(["@types/**/*", "lib/**/*.ts"], { cwd: "./src", withFileTypes: true })),
+        ...(await glob(["build.json", "@types/**/*", "lib/**/*.ts"], { cwd: "./src", withFileTypes: true })),
     ];
 }
 

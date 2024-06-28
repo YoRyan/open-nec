@@ -1,6 +1,7 @@
 import colors from "@colors/colors";
 import { ChildProcess, fork } from "child_process";
 import * as fsp from "fs/promises";
+import { gitDescribe } from "git-describe";
 import { glob } from "glob";
 import { Path } from "path-scurry";
 import { exit } from "process";
@@ -18,6 +19,8 @@ async function main() {
     const workers = parseInt(values.workers as string);
     const transpiler = workers > 0 ? new MultiProcessTranspiler(workers) : new SingleProcessTranspiler();
 
+    await writeProperties();
+
     const [mode] = positionals;
     switch (mode ?? "build") {
         // Watch mode transpiles files when they get changed.
@@ -31,6 +34,14 @@ async function main() {
             break;
     }
     return 0;
+}
+
+async function writeProperties() {
+    const described = await gitDescribe(".");
+    const version = described.semverString ?? "Unknown";
+
+    const json = JSON.stringify({ version });
+    await fsp.writeFile("src/build.json", json);
 }
 
 async function watch(transpiler: Transpiler) {

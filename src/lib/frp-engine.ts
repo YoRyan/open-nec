@@ -1,3 +1,4 @@
+import * as build from "../build.json";
 import * as c from "lib/constants";
 import * as frp from "./frp";
 import { FrpSource } from "./frp-entity";
@@ -56,6 +57,7 @@ enum CheatsMenuEvent {
 const cheatsTitle = "OpenNEC Cheats (next: Q, pick: Space)";
 const cheatsMenu: [item: string, cheat: Cheat | undefined][] = [
     ["-- Exit --", undefined],
+    [`-- Mod Version ${build.version} --`, undefined],
     ["Rush Power Switch Left", Cheat.PowerMode_0],
     ["Rush Power Switch Right", Cheat.PowerMode_1],
     ["Set Catenary Available", Cheat.PowerCatenary_On],

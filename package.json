@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@colors/colors": "^1.6.0",
+    "git-describe": "^4.1.1",
     "glob": "^10.2.1",
     "lua-types": "^2.13.1",
     "typescript": "^5.0.4",
