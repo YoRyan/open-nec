@@ -5,7 +5,7 @@
 
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
-import { FrpEngine } from "lib/frp-engine";
+import { Cheat, FrpEngine } from "lib/frp-engine";
 import { nullStream, rejectUndefined } from "lib/frp-extra";
 
 /**
