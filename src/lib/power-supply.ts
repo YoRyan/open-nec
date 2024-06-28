@@ -3,7 +3,7 @@
  */
 
 import * as frp from "lib/frp";
-import { FrpEngine } from "lib/frp-engine";
+import { Cheat, FrpEngine } from "lib/frp-engine";
 import { fsm, mapBehavior, once, rejectUndefined } from "lib/frp-extra";
 import * as rw from "lib/railworks";
 import * as ui from "lib/ui";
@@ -99,11 +99,29 @@ export function createDualModeEngineBehavior<A extends EngineMode, B extends Eng
     const playerInitFromSave$ = frp.compose(e.createOnResumeStream(), mapBehavior(positionFromSaveOrConsist));
     const playerInit$ = frp.compose(playerInitFresh$, frp.merge(playerInitFromSave$), once());
 
+    // Note that this doesn't write back to getPlayerMode, so the player has to
+    // move that control, too.
+    const cheatSwitch$ = frp.compose(
+        e.createCheatsStream(),
+        frp.map(cheat => {
+            switch (cheat) {
+                case Cheat.PowerMode_0:
+                    return 0;
+                case Cheat.PowerMode_1:
+                    return 1;
+                default:
+                    return undefined;
+            }
+        }),
+        rejectUndefined()
+    );
+
     const isEngineStarted = () => (e.rv.GetControlValue("Startup") as number) > 0;
     const playerPosition$ = frp.compose(
         e.createPlayerWithKeyUpdateStream(),
         frp.merge(playerInit$),
         frp.merge(instantSwitch),
+        frp.merge(cheatSwitch$),
         frp.fold((position: number | undefined, input) => {
             // Automatic switch
             if (typeof input === "string") {
@@ -315,7 +333,29 @@ export function createElectrificationBehaviorWithLua(
  * @returns The new stream of electrification updates.
  */
 export function createElectrificationDeltaStream(e: FrpEngine): frp.Stream<ElectrificationDelta> {
-    return frp.compose(e.createOnSignalMessageStream(), frp.map(parseElectrificationMessage), rejectUndefined());
+    const fromCheats$ = frp.compose(
+        e.createCheatsStream(),
+        frp.map((cheat): ElectrificationDelta | undefined => {
+            switch (cheat) {
+                case Cheat.PowerCatenary_On:
+                    return [Electrification.Overhead, true];
+                case Cheat.PowerCatenary_Off:
+                    return [Electrification.Overhead, false];
+                case Cheat.PowerThirdRail_On:
+                    return [Electrification.ThirdRail, true];
+                case Cheat.PowerThirdRail_Off:
+                    return [Electrification.ThirdRail, false];
+                default:
+                    return undefined;
+            }
+        })
+    );
+    return frp.compose(
+        e.createOnSignalMessageStream(),
+        frp.map(parseElectrificationMessage),
+        frp.merge(fromCheats$),
+        rejectUndefined()
+    );
 }
 
 /**

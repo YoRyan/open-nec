@@ -190,7 +190,15 @@ export class ScrollingMenu {
     }
 
     private doScroll(move: number) {
-        const selection = Math.max(Math.min(this.selection + move, this.nItems - 1), 0);
+        let selection: number;
+        // Allow wraparounds at the top and bottom of the menu.
+        if (move > 0) {
+            selection = (this.selection + move) % this.nItems;
+        } else {
+            const clampedMove = -(-move % this.nItems);
+            selection = this.selection + clampedMove + (this.selection + clampedMove < 0 ? this.nItems : 0);
+        }
+
         let offset: number;
         if (this.nItems <= scrollingMenuSize) {
             offset = 0;
@@ -200,6 +208,7 @@ export class ScrollingMenu {
         } else {
             offset = Math.min(this.offset, selection);
         }
+
         [this.selection, this.offset] = [selection, offset];
     }
 }

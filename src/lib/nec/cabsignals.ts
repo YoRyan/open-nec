@@ -471,7 +471,42 @@ export function createCabSignalBehavior<A>(
     e: FrpEngine,
     pulseCodeControlValue?: string
 ): frp.Behavior<A> {
-    const newPulseCode$ = frp.compose(e.createOnSignalMessageStream(), frp.map(toPulseCode), rejectUndefined());
+    const cheatPulseCode$ = frp.compose(
+        e.createCheatsStream(),
+        frp.map(cheat => {
+            switch (cheat) {
+                case Cheat.PulseCode_0_0:
+                    return PulseCode.C_0_0;
+                case Cheat.PulseCode_75_0:
+                    return PulseCode.C_75_0;
+                case Cheat.PulseCode_75_75:
+                    return PulseCode.C_75_75;
+                case Cheat.PulseCode_120_0:
+                    return PulseCode.C_120_0;
+                case Cheat.PulseCode_120_120:
+                    return PulseCode.C_120_120;
+                case Cheat.PulseCode_180_0:
+                    return PulseCode.C_180_0;
+                case Cheat.PulseCode_180_180:
+                    return PulseCode.C_180_180;
+                case Cheat.PulseCode_270_0:
+                    return PulseCode.C_270_0;
+                case Cheat.PulseCode_270_270:
+                    return PulseCode.C_270_270;
+                case Cheat.PulseCode_420_0:
+                    return PulseCode.C_420_0;
+                default:
+                    return undefined;
+            }
+        })
+    );
+    const newPulseCode$ = frp.compose(
+        e.createOnSignalMessageStream(),
+        frp.map(toPulseCode),
+        frp.merge(cheatPulseCode$),
+        rejectUndefined()
+    );
+
     let currentPulseCode: frp.Behavior<PulseCode>;
     if (pulseCodeControlValue !== undefined) {
         newPulseCode$(pc => {

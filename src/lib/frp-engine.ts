@@ -5,6 +5,7 @@ import { mapBehavior, rejectUndefined } from "./frp-extra";
 import { FrpVehicle, VehicleCamera, VehicleUpdate } from "./frp-vehicle";
 import * as m from "./math";
 import * as rw from "./railworks";
+import { ScrollingMenu } from "./ui";
 
 /**
  * Represents the in-game "location" of the player.
@@ -24,6 +25,56 @@ export enum PlayerLocation {
     InRearCab,
 }
 
+/**
+ * Represents cheat actions available through the secret menu.
+ */
+export enum Cheat {
+    PowerMode_0,
+    PowerMode_1,
+    PowerCatenary_On,
+    PowerCatenary_Off,
+    PowerThirdRail_On,
+    PowerThirdRail_Off,
+    PulseCode_0_0,
+    PulseCode_75_0,
+    PulseCode_75_75,
+    PulseCode_120_0,
+    PulseCode_120_120,
+    PulseCode_180_0,
+    PulseCode_180_180,
+    PulseCode_270_0,
+    PulseCode_270_270,
+    PulseCode_420_0,
+}
+
+enum CheatsMenuEvent {
+    Show,
+    Next,
+    Select,
+}
+
+const cheatsTitle = "OpenNEC Cheats (next: Q, pick: Space)";
+const cheatsMenu: [item: string, cheat: Cheat | undefined][] = [
+    ["-- Exit --", undefined],
+    ["Rush Power Switch Left", Cheat.PowerMode_0],
+    ["Rush Power Switch Right", Cheat.PowerMode_1],
+    ["Set Catenary Available", Cheat.PowerCatenary_On],
+    ["Set Catenary Unavailable", Cheat.PowerCatenary_Off],
+    ["Set 3rd Rail Available", Cheat.PowerThirdRail_On],
+    ["Set 3rd Rail Unavailable", Cheat.PowerThirdRail_Off],
+    ["Set Signal Restricting (0/0)", Cheat.PulseCode_0_0],
+    ["Set Signal Approach (75/0)", Cheat.PulseCode_75_0],
+    ["Set Signal Approach Med. (75/75)", Cheat.PulseCode_75_75],
+    ["Set Signal Approach Lim. (120/0)", Cheat.PulseCode_120_0],
+    ["Set Signal Cab Speed 60 (270/0)", Cheat.PulseCode_270_0],
+    ["Set Signal Cab Speed 80 (120/120)", Cheat.PulseCode_120_120],
+    ["Set Signal Clear 100 (270/270)", Cheat.PulseCode_270_270],
+    ["Set Signal Clear 125 (180/0)", Cheat.PulseCode_180_0],
+    ["Set Signal Clear 150 (180/180)", Cheat.PulseCode_180_180],
+];
+const cheatsMenuByItem = cheatsMenu.map(([item]) => item);
+const cheatsMenuByCheat = cheatsMenu.map(([, cheat]) => cheat);
+
 export class FrpEngine extends FrpVehicle {
     /**
      * Convenient acces to the methods for an engine.
@@ -34,6 +85,10 @@ export class FrpEngine extends FrpVehicle {
     private readonly playerWithoutKeyUpdateSource = new FrpSource<VehicleUpdate>();
     private readonly signalMessageSource = new FrpSource<string>();
 
+    private readonly cheatsMenu = new ScrollingMenu(cheatsTitle, cheatsMenuByItem);
+    private cheatsMenuIsOpen = false;
+    private readonly cheatsSource = new FrpSource<Cheat>();
+
     constructor(onInit: () => void) {
         super(onInit);
 
@@ -43,6 +98,81 @@ export class FrpEngine extends FrpVehicle {
                 this.playerWithKeyUpdateSource.call(pu);
             } else {
                 this.playerWithoutKeyUpdateSource.call(pu);
+            }
+        });
+
+        const pressedQ$ = frp.compose(
+            this.createOnCvChangeStreamFor("AWSReset"),
+            frp.filter(v => v === 1)
+        );
+        const pressedSpace$ = frp.compose(
+            this.createOnCvChangeStreamFor("Horn"),
+            frp.merge(this.createOnCvChangeStreamFor("VirtualHorn")),
+            frp.filter(v => v === 1)
+        );
+        const cheatsMenuEvent$ = frp.compose(
+            pressedQ$,
+            frp.map(_ => {
+                return { lastQ: this.e.GetSimulationTime() };
+            }),
+            frp.merge(
+                frp.compose(
+                    pressedSpace$,
+                    frp.map(_ => {
+                        return { lastX: this.e.GetSimulationTime() };
+                    })
+                )
+            ),
+            frp.fold(
+                (accum, press) => {
+                    if ("lastQ" in press) {
+                        const { lastQ } = press;
+                        const { lastX } = accum;
+                        return { lastQ, lastX };
+                    } else {
+                        const { lastX } = press;
+                        const { lastQ } = accum;
+                        return { lastQ, lastX };
+                    }
+                },
+                { lastQ: 0, lastX: 0 }
+            ),
+            frp.filter(({ lastQ, lastX }) => Math.abs(lastQ - lastX) < 0.1),
+            frp.map(_ => CheatsMenuEvent.Show),
+            frp.merge(
+                frp.compose(
+                    pressedQ$,
+                    frp.map(_ => CheatsMenuEvent.Next)
+                )
+            ),
+            frp.merge(
+                frp.compose(
+                    pressedSpace$,
+                    frp.map(_ => CheatsMenuEvent.Select)
+                )
+            )
+        );
+        cheatsMenuEvent$(evt => {
+            if (evt === CheatsMenuEvent.Show) {
+                this.cheatsMenu.setSelection(0);
+                this.cheatsMenu.showPopup();
+                this.cheatsMenuIsOpen = true;
+            } else if (evt === CheatsMenuEvent.Next && this.cheatsMenuIsOpen) {
+                this.cheatsMenu.scroll(1);
+            } else if (evt === CheatsMenuEvent.Select && this.cheatsMenuIsOpen) {
+                const cheat = cheatsMenuByCheat[this.cheatsMenu.getSelection()];
+                if (cheat) {
+                    this.cheatsSource.call(cheat);
+                }
+                rw.ScenarioManager.ShowInfoMessageExt(
+                    cheatsTitle,
+                    "It is so ordered.",
+                    1,
+                    rw.MessageBoxPosition.Centre,
+                    rw.MessageBoxSize.Small,
+                    false
+                );
+                this.cheatsMenuIsOpen = false;
             }
         });
     }
@@ -73,6 +203,14 @@ export class FrpEngine extends FrpVehicle {
      */
     createOnSignalMessageStream() {
         return this.signalMessageSource.createStream();
+    }
+
+    /**
+     * Create an event stream that emits cheats selected by the player.
+     * @returns THe new stream of cheats.
+     */
+    createCheatsStream() {
+        return this.cheatsSource.createStream();
     }
 
     /**
