@@ -499,7 +499,7 @@ export class RailVehicle extends RenderedEntity {
      */
     GetIsInTunnel() {
         const [r] = Call(this.fn("GetIsInTunnel"));
-        return r as boolean;
+        return (r as number) === 1;
     }
 
     /**
