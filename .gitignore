@@ -1,6 +1,5 @@
 node_modules
 /dist
-/src/build.json
 
 yarn.lock
 .vscode
@@ -10,4 +9,7 @@ yarn.lock
 /BuildAssets.config.ps1
 /build.js
 /build-worker.js
+/payware
+/src/build.json
+/src/mod/Assets/RSC/AcelaPack01/InputMappers/AcelaExpert.xml
 *.dds
