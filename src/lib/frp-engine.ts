@@ -400,8 +400,8 @@ export class FrpEngine extends FrpVehicle {
     setup() {
         super.setup();
 
-        OnCustomSignalMessage = msg => {
+        OnCustomSignalMessage = this.chain(OnCustomSignalMessage, msg => {
             this.signalMessageSource.call(msg);
-        };
+        });
     }
 }

@@ -347,13 +347,13 @@ export class FrpVehicle extends FrpEntity {
     setup() {
         super.setup();
 
-        OnControlValueChange = (name, _index, value) => {
+        OnControlValueChange = this.chain(OnControlValueChange, (name, _index, value) => {
             this.cvChangeSource.call([name, value]);
-        };
-        OnConsistMessage = (id, content, dir) => {
+        });
+        OnConsistMessage = this.chain(OnConsistMessage, (id, content, dir) => {
             this.consistMessageSource.call([id, content, dir]);
-        };
-        OnCameraEnter = (cabEnd, carriageCam) => {
+        });
+        OnCameraEnter = this.chain(OnCameraEnter, (cabEnd, carriageCam) => {
             let vc;
             if (carriageCam === rw.CameraEnterView.Cab) {
                 vc = cabEnd === rw.CameraEnterCabEnd.Rear ? VehicleCamera.RearCab : VehicleCamera.FrontCab;
@@ -361,9 +361,9 @@ export class FrpVehicle extends FrpEntity {
                 vc = VehicleCamera.Carriage;
             }
             this.vehicleCameraSource.call(vc);
-        };
-        OnCameraLeave = () => {
+        });
+        OnCameraLeave = this.chain(OnCameraLeave, () => {
             this.vehicleCameraSource.call(VehicleCamera.Outside);
-        };
+        });
     }
 }
