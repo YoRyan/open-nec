@@ -91,8 +91,7 @@ const me = new FrpEngine(() => {
         pulseCodeControlValue: "SignalSpeedLimit",
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
-    aduStateHub$(state => {
-        const { aspect } = state;
+    aduStateHub$(({ aspect }) => {
         me.rv.SetControlValue("SigN", aspect === cs.FourAspect.Clear ? 1 : 0);
         me.rv.SetControlValue("SigL", aspect === cs.FourAspect.ApproachLimited ? 1 : 0);
         me.rv.SetControlValue("SigM", aspect === cs.FourAspect.Approach ? 1 : 0);

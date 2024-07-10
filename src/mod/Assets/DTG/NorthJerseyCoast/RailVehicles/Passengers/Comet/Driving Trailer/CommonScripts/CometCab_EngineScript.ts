@@ -163,8 +163,7 @@ const me = new FrpEngine(() => {
         pulseCodeControlValue: "ACSES_SpeedSignal",
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
-    aduStateHub$(state => {
-        const { clearAspect } = state;
+    aduStateHub$(({ clearAspect, masSpeedMph, excessSpeedMph, atcLamp, acsesLamp }) => {
         const [[h, t, u], guide] = frp.snapshot(speedoDigitsMph);
         me.rv.SetControlValue("SpeedH", clearAspect ? h : -1);
         me.rv.SetControlValue("SpeedT", clearAspect ? t : -1);
@@ -174,17 +173,14 @@ const me = new FrpEngine(() => {
         me.rv.SetControlValue("Speed2U", !clearAspect ? u : -1);
         me.rv.SetControlValue("SpeedP", guide);
 
-        const { masSpeedMph } = state;
         if (isAlp45Version) {
             // The green bar animation is broken on this version.
             me.rv.SetControlValue("ACSES_SpeedRed", masSpeedMph ?? 0);
         } else {
-            const { excessSpeedMph } = state;
             me.rv.SetControlValue("ACSES_SpeedGreen", masSpeedMph ?? 0);
             me.rv.SetControlValue("ACSES_SpeedRed", excessSpeedMph ?? 0);
         }
 
-        const { atcLamp, acsesLamp } = state;
         me.rv.SetControlValue("ATC_Node", atcLamp ? 1 : 0);
         me.rv.SetControlValue("ACSES_Node", acsesLamp ? 1 : 0);
     });
@@ -224,9 +220,9 @@ const me = new FrpEngine(() => {
             )
         )
     );
-    alarmsUpdate$(cvs => {
-        me.rv.SetControlValue("AWSWarnCount", cvs.awsWarnCount ? 1 : 0);
-        me.rv.SetControlValue("AWS", cvs.aws ? 1 : 0);
+    alarmsUpdate$(({ awsWarnCount, aws }) => {
+        me.rv.SetControlValue("AWSWarnCount", awsWarnCount ? 1 : 0);
+        me.rv.SetControlValue("AWS", aws ? 1 : 0);
     });
 
     // Manual door control

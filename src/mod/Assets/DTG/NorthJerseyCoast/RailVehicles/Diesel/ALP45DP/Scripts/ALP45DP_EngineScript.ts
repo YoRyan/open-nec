@@ -147,8 +147,7 @@ const me = new FrpEngine(() => {
         pulseCodeControlValue: "ACSES_SpeedSignal",
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
-    aduStateHub$(state => {
-        const { aspect } = state;
+    aduStateHub$(({ aspect, trackSpeedMph, atcLamp, acsesLamp }) => {
         let signal: number;
         if (aspect === AduAspect.Stop) {
             signal = 8;
@@ -167,7 +166,6 @@ const me = new FrpEngine(() => {
         }
         me.rv.SetControlValue("ACSES_SignalDisplay", signal);
 
-        const { trackSpeedMph } = state;
         if (trackSpeedMph !== undefined) {
             const [[h, t, u]] = m.digits(trackSpeedMph, 3);
             me.rv.SetControlValue("ACSES_SpeedH", h);
@@ -179,7 +177,6 @@ const me = new FrpEngine(() => {
             me.rv.SetControlValue("ACSES_SpeedU", -1);
         }
 
-        const { atcLamp, acsesLamp } = state;
         me.rv.SetControlValue("ATC_Node", atcLamp ? 1 : 0);
         me.rv.SetControlValue("ACSES_Node", acsesLamp ? 1 : 0);
     });
@@ -230,11 +227,11 @@ const me = new FrpEngine(() => {
             )
         )
     );
-    alarmsUpdate$(cvs => {
-        me.rv.SetControlValue("AWSWarnCount", cvs.awsWarnCount ? 1 : 0);
-        me.rv.SetControlValue("ACSES_Alert", cvs.acsesAlert ? 1 : 0);
-        me.rv.SetControlValue("ACSES_AlertIncrease", cvs.acsesIncrease ? 1 : 0);
-        me.rv.SetControlValue("ACSES_AlertDecrease", cvs.acsesDecrease ? 1 : 0);
+    alarmsUpdate$(({ awsWarnCount, acsesAlert, acsesIncrease, acsesDecrease }) => {
+        me.rv.SetControlValue("AWSWarnCount", awsWarnCount ? 1 : 0);
+        me.rv.SetControlValue("ACSES_Alert", acsesAlert ? 1 : 0);
+        me.rv.SetControlValue("ACSES_AlertIncrease", acsesIncrease ? 1 : 0);
+        me.rv.SetControlValue("ACSES_AlertDecrease", acsesDecrease ? 1 : 0);
     });
 
     // Throttle, dynamic brake, and air brake controls

@@ -42,8 +42,7 @@ const me = new FrpEngine(() => {
         pulseCodeControlValue: "OverSpeed",
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
-    aduStateHub$(state => {
-        const { aspect, aspectFlashOn } = state;
+    aduStateHub$(({ aspect, aspectFlashOn, trackSpeedMph }) => {
         me.rv.SetControlValue(
             "CabSignal",
             {
@@ -77,7 +76,6 @@ const me = new FrpEngine(() => {
                 : 0
         );
 
-        const { trackSpeedMph } = state;
         const blankTrackSpeed = 9.5;
         me.rv.SetControlValue("TrackSpeed", trackSpeedMph ?? blankTrackSpeed);
     });
@@ -114,10 +112,10 @@ const me = new FrpEngine(() => {
             )
         )
     );
-    alarmsUpdate$(cvs => {
-        me.rv.SetControlValue("AWS", cvs.aws ? 1 : 0);
-        me.rv.SetControlValue("AWSWarnCount", cvs.awsWarnCount ? 1 : 0);
-        me.rv.SetControlValue("OverSpeedAlert", cvs.overSpeedAlert ? 1 : 0);
+    alarmsUpdate$(({ aws, awsWarnCount, overSpeedAlert }) => {
+        me.rv.SetControlValue("AWS", aws ? 1 : 0);
+        me.rv.SetControlValue("AWSWarnCount", awsWarnCount ? 1 : 0);
+        me.rv.SetControlValue("OverSpeedAlert", overSpeedAlert ? 1 : 0);
     });
 
     // Cruise control

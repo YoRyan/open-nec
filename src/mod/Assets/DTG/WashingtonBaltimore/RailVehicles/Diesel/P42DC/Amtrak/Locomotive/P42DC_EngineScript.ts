@@ -42,15 +42,13 @@ const me = new FrpEngine(() => {
         equipmentSpeedMps: 110 * c.mph.toMps,
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
-    aduStateHub$(state => {
-        const { aspect } = state;
+    aduStateHub$(({ aspect, trackSpeedMph }) => {
         me.rv.SetControlValue("ADU00", aspect === cs.FourAspect.Clear ? 1 : 0);
         me.rv.SetControlValue("ADU01", aspect === cs.FourAspect.ApproachLimited ? 1 : 0);
         me.rv.SetControlValue("ADU02", aspect === cs.FourAspect.ApproachLimited ? 1 : 0);
         me.rv.SetControlValue("ADU03", aspect === cs.FourAspect.Approach ? 1 : 0);
         me.rv.SetControlValue("ADU04", aspect === cs.FourAspect.Restricting || aspect === AduAspect.Stop ? 1 : 0);
 
-        const { trackSpeedMph } = state;
         if (trackSpeedMph !== undefined) {
             const [[h, t, u]] = m.digits(trackSpeedMph, 3);
             me.rv.SetControlValue("TrackHundreds", h);
@@ -73,8 +71,8 @@ const me = new FrpEngine(() => {
         frp.hub()
     );
     const alerterState = frp.stepper(alerter$, undefined);
-    alerter$(state => {
-        me.rv.SetControlValue("AlerterVisual", state.alarm ? 1 : 0);
+    alerter$(({ alarm }) => {
+        me.rv.SetControlValue("AlerterVisual", alarm ? 1 : 0);
     });
     // Safety system sounds
     const upgradeEvents$ = frp.compose(

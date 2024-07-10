@@ -125,8 +125,7 @@ const me = new FrpEngine(() => {
         pulseCodeControlValue: "CabSignal",
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
-    aduStateHub$(state => {
-        const { isMnrrAspect, aspect } = state;
+    aduStateHub$(({ isMnrrAspect, aspect, atcLamp, acsesLamp, masSpeedMph, timeToPenaltyS }) => {
         me.rv.SetControlValue(
             "SigText",
             {
@@ -200,11 +199,9 @@ const me = new FrpEngine(() => {
         );
         me.rv.SetControlValue("SigN", isMnrrAspect && aspect === adu.AduAspect.Clear125 ? 1 : 0);
 
-        const { atcLamp, acsesLamp } = state;
         me.rv.SetControlValue("SigModeATC", atcLamp ? 1 : 0);
         me.rv.SetControlValue("SigModeACSES", acsesLamp ? 1 : 0);
 
-        const { masSpeedMph } = state;
         if (masSpeedMph !== undefined) {
             const [[h, t, u]] = m.digits(masSpeedMph, 3);
             me.rv.SetControlValue("SpeedLimit_hundreds", h);
@@ -216,7 +213,6 @@ const me = new FrpEngine(() => {
             me.rv.SetControlValue("SpeedLimit_units", -1);
         }
 
-        const { timeToPenaltyS } = state;
         if (timeToPenaltyS !== undefined) {
             const [[h, t, u]] = m.digits(timeToPenaltyS, 3);
             me.rv.SetControlValue("Penalty_hundreds", h);
@@ -394,8 +390,8 @@ const me = new FrpEngine(() => {
         me.rv.SetControlValue("ScreenParkingBrake", isParkingBrake ? 1 : 0);
         me.rv.SetControlValue("ScreenSuppression", frp.snapshot(suppression) ? 1 : 0);
     });
-    alerter$(state => {
-        me.rv.SetControlValue("ScreenAlerter", state.alarm ? 1 : 0);
+    alerter$(({ alarm }) => {
+        me.rv.SetControlValue("ScreenAlerter", alarm ? 1 : 0);
     });
 
     // Player location for interior lights

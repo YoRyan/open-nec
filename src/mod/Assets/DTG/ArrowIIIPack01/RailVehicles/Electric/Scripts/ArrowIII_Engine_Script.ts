@@ -60,8 +60,7 @@ const me = new FrpEngine(() => {
         pulseCodeControlValue: "ACSES_SpeedSignal",
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
-    aduStateHub$(state => {
-        const { clearAspect } = state;
+    aduStateHub$(({ clearAspect, masSpeedMph, atcLamp, acsesLamp }) => {
         const [[h, t, u], guide] = frp.snapshot(speedoDigitsMph);
         me.rv.SetControlValue("SpeedH", clearAspect ? h : -1);
         me.rv.SetControlValue("SpeedT", clearAspect ? t : -1);
@@ -73,10 +72,8 @@ const me = new FrpEngine(() => {
 
         // The green speed zone behaves like a speedometer, so use the red zone
         // to show MAS.
-        const { masSpeedMph } = state;
         me.rv.SetControlValue("ACSES_SpeedRed", masSpeedMph ?? 0);
 
-        const { atcLamp, acsesLamp } = state;
         me.rv.SetControlValue("ATC_Node", atcLamp ? 1 : 0);
         me.rv.SetControlValue("ACSES_Node", acsesLamp ? 1 : 0);
     });
@@ -127,11 +124,11 @@ const me = new FrpEngine(() => {
             )
         )
     );
-    alarmsUpdate$(cvs => {
-        me.rv.SetControlValue("AWSWarnCount", cvs.awsWarnCount ? 1 : 0);
-        me.rv.SetControlValue("ACSES_Alert", cvs.acsesAlert ? 1 : 0);
-        me.rv.SetControlValue("ACSES_AlertIncrease", cvs.acsesIncrease ? 1 : 0);
-        me.rv.SetControlValue("ACSES_AlertDecrease", cvs.acsesDecrease ? 1 : 0);
+    alarmsUpdate$(({ awsWarnCount, acsesAlert, acsesIncrease, acsesDecrease }) => {
+        me.rv.SetControlValue("AWSWarnCount", awsWarnCount ? 1 : 0);
+        me.rv.SetControlValue("ACSES_Alert", acsesAlert ? 1 : 0);
+        me.rv.SetControlValue("ACSES_AlertIncrease", acsesIncrease ? 1 : 0);
+        me.rv.SetControlValue("ACSES_AlertDecrease", acsesDecrease ? 1 : 0);
     });
 
     // Directional lockout for the master controller

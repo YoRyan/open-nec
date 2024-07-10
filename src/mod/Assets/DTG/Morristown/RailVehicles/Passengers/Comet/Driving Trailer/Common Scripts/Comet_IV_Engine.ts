@@ -174,10 +174,9 @@ const me = new FrpEngine(() => {
         pulseCodeControlValue: "ACSES_SpeedSignal",
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
-    aduStateHub$(state => {
+    aduStateHub$(({ masSpeedMph }) => {
         // Almost nothing works with this ADU; we only have the green digits to
         // manipulate.
-        const { masSpeedMph } = state;
         if (masSpeedMph !== undefined) {
             const [[h, t, u], guide] = m.digits(Math.round(masSpeedMph), 3);
             me.rv.SetControlValue("SpeedH", h);
@@ -240,11 +239,11 @@ const me = new FrpEngine(() => {
             )
         )
     );
-    alarmsUpdate$(cvs => {
-        me.rv.SetControlValue("AWSWarnCount", cvs.awsWarnCount ? 1 : 0);
-        me.rv.SetControlValue("ACSES_Alert", cvs.acsesAlert ? 1 : 0);
-        me.rv.SetControlValue("ACSES_AlertIncrease", cvs.acsesIncrease ? 1 : 0);
-        me.rv.SetControlValue("ACSES_AlertDecrease", cvs.acsesDecrease ? 1 : 0);
+    alarmsUpdate$(({ awsWarnCount, acsesAlert, acsesIncrease, acsesDecrease }) => {
+        me.rv.SetControlValue("AWSWarnCount", awsWarnCount ? 1 : 0);
+        me.rv.SetControlValue("ACSES_Alert", acsesAlert ? 1 : 0);
+        me.rv.SetControlValue("ACSES_AlertIncrease", acsesIncrease ? 1 : 0);
+        me.rv.SetControlValue("ACSES_AlertDecrease", acsesDecrease ? 1 : 0);
     });
 
     // Manual door control

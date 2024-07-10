@@ -63,8 +63,7 @@ const me = new FrpEngine(() => {
         pulseCodeControlValue: "SignalSpeedLimit",
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
-    aduStateHub$(state => {
-        const { aspect, aspectFlashOn } = state;
+    aduStateHub$(({ aspect, aspectFlashOn, trackSpeedMph, atcLamp, acsesLamp }) => {
         me.rv.SetControlValue(
             "SigN",
             ((aspect === cs.AmtrakAspect.CabSpeed60 || aspect === cs.AmtrakAspect.CabSpeed80) && aspectFlashOn) ||
@@ -106,7 +105,6 @@ const me = new FrpEngine(() => {
             }[aspect]
         );
 
-        const { trackSpeedMph } = state;
         if (trackSpeedMph !== undefined) {
             const [[h, t, u]] = m.digits(trackSpeedMph, 3);
             me.rv.SetControlValue("TSHundreds", h);
@@ -118,7 +116,6 @@ const me = new FrpEngine(() => {
             me.rv.SetControlValue("TSUnits", -1);
         }
 
-        const { atcLamp, acsesLamp } = state;
         let lamp: number;
         if (atcLamp) {
             lamp = 0;
@@ -163,9 +160,9 @@ const me = new FrpEngine(() => {
             )
         )
     );
-    alarmSounds$(cvs => {
-        me.rv.SetControlValue("TMS", cvs.tms ? 1 : 0);
-        me.rv.SetControlValue("AWSWarnCount", cvs.awsWarnCount ? 1 : 0);
+    alarmSounds$(({ tms, awsWarnCount }) => {
+        me.rv.SetControlValue("TMS", tms ? 1 : 0);
+        me.rv.SetControlValue("AWSWarnCount", awsWarnCount ? 1 : 0);
     });
 
     // Throttle, dynamic brake, and air brake controls

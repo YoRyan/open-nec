@@ -65,8 +65,7 @@ const me = new FrpEngine(() => {
         pulseCodeControlValue: "CurrentMNRRSignal",
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
-    aduStateHub$(state => {
-        const { aspect } = state;
+    aduStateHub$(({ aspect }) => {
         me.rv.SetControlValue("SigN", aspect === cs.FourAspect.Clear ? 1 : 0);
         me.rv.SetControlValue("SigL", aspect === cs.FourAspect.ApproachLimited ? 1 : 0);
         me.rv.SetControlValue("SigM", aspect === cs.FourAspect.Approach ? 1 : 0);
@@ -92,7 +91,7 @@ const me = new FrpEngine(() => {
     });
     const alerterAlarm$ = frp.compose(
         alerter$,
-        frp.map(state => state.alarm)
+        frp.map(({ alarm }) => alarm)
     );
     alerterAlarm$(play => {
         me.rv.SetControlValue("AWS", play ? 1 : 0);

@@ -68,8 +68,7 @@ const me = new FrpEngine(() => {
         pulseCodeControlValue: "ACSES_SpeedMax",
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
-    aduStateHub$(state => {
-        const { aspect } = state;
+    aduStateHub$(({ aspect }) => {
         const [ss, sd] = {
             [cs.NjTransitAspect.Clear]: [120, 1],
             [cs.NjTransitAspect.CabSpeed80]: [80, 2],
@@ -130,11 +129,11 @@ const me = new FrpEngine(() => {
             )
         )
     );
-    alarmsUpdate$(cvs => {
-        me.rv.SetControlValue("AWSWarnCount", cvs.awsWarnCount ? 1 : 0);
-        me.rv.SetControlValue("ACSES_Alert", cvs.acsesAlert ? 1 : 0);
-        me.rv.SetControlValue("ACSES_AlertIncrease", cvs.acsesIncrease ? 1 : 0);
-        me.rv.SetControlValue("ACSES_AlertDecrease", cvs.acsesDecrease ? 1 : 0);
+    alarmsUpdate$(({ awsWarnCount, acsesAlert, acsesIncrease, acsesDecrease }) => {
+        me.rv.SetControlValue("AWSWarnCount", awsWarnCount ? 1 : 0);
+        me.rv.SetControlValue("ACSES_Alert", acsesAlert ? 1 : 0);
+        me.rv.SetControlValue("ACSES_AlertIncrease", acsesIncrease ? 1 : 0);
+        me.rv.SetControlValue("ACSES_AlertDecrease", acsesDecrease ? 1 : 0);
     });
 
     // Throttle, dynamic brake, and air brake controls

@@ -98,8 +98,7 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
         pulseCodeControlValue: "SignalSpeedLimit",
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
-    aduStateHub$(state => {
-        const { aspect } = state;
+    aduStateHub$(({ aspect, trackSpeedMph }) => {
         me.rv.SetControlValue("SigN", aspect === cs.FourAspect.Clear ? 1 : 0);
         me.rv.SetControlValue("SigL", aspect === cs.FourAspect.ApproachLimited ? 1 : 0);
         me.rv.SetControlValue("SigM", aspect === cs.FourAspect.Approach ? 1 : 0);
@@ -116,7 +115,6 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
             }[aspect]
         );
 
-        const { trackSpeedMph } = state;
         if (trackSpeedMph !== undefined) {
             const [[h, t, u]] = m.digits(trackSpeedMph, 3);
             me.rv.SetControlValue("TrackHundreds", h);
@@ -139,8 +137,8 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
         frp.hub()
     );
     const alerterState = frp.stepper(alerter$, undefined);
-    alerter$(state => {
-        me.rv.SetControlValue("AlerterVisual", state.alarm ? 1 : 0);
+    alerter$(({ alarm }) => {
+        me.rv.SetControlValue("AlerterVisual", alarm ? 1 : 0);
     });
     // Safety system sounds
     const upgradeEvents$ = frp.compose(
@@ -164,9 +162,9 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
             )
         )
     );
-    alarmsUpdate$(cvs => {
-        me.rv.SetControlValue("AWS", cvs.aws ? 1 : 0);
-        me.rv.SetControlValue("AWSWarnCount", cvs.awsWarnCount ? 1 : 0);
+    alarmsUpdate$(({ aws, awsWarnCount }) => {
+        me.rv.SetControlValue("AWS", aws ? 1 : 0);
+        me.rv.SetControlValue("AWSWarnCount", awsWarnCount ? 1 : 0);
     });
 
     // Throttle, dynamic brake, and air brake controls

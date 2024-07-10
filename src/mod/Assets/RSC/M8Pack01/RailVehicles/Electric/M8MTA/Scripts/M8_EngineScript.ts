@@ -153,8 +153,7 @@ const me = new FrpEngine(() => {
         pulseCodeControlValue: "SignalSpeedLimit",
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
-    aduStateHub$(state => {
-        const { aspect } = state;
+    aduStateHub$(({ aspect, trackSpeedMph }) => {
         me.rv.SetControlValue("SigN", aspect === cs.FourAspect.Clear ? 1 : 0);
         me.rv.SetControlValue("SigL", aspect === cs.FourAspect.ApproachLimited ? 1 : 0);
         me.rv.SetControlValue("SigM", aspect === cs.FourAspect.Approach ? 1 : 0);
@@ -172,7 +171,6 @@ const me = new FrpEngine(() => {
             }[aspect]
         );
 
-        const { trackSpeedMph } = state;
         if (trackSpeedMph !== undefined) {
             const [[h, t, u]] = m.digits(trackSpeedMph, 3);
             me.rv.SetControlValue("TrackSpeedHundreds", h);
@@ -207,7 +205,7 @@ const me = new FrpEngine(() => {
     });
     const alerterAlarm$ = frp.compose(
         alerter$,
-        frp.map(state => state.alarm)
+        frp.map(({ alarm }) => alarm)
     );
     alerterAlarm$(play => {
         me.rv.SetControlValue("AWS", play ? 1 : 0);

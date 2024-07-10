@@ -150,8 +150,7 @@ const me = new FrpEngine(() => {
         pulseCodeControlValue: "CurrentAmtrakSignal",
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
-    aduStateHub$(state => {
-        const { aspect, aspectFlashOn } = state;
+    aduStateHub$(({ aspect, aspectFlashOn, trackSpeedMph, atcLamp, acsesLamp }) => {
         me.rv.SetControlValue(
             "SigGreen",
             ((aspect === cs.AmtrakAspect.CabSpeed60 || aspect === cs.AmtrakAspect.CabSpeed80) && aspectFlashOn) ||
@@ -193,7 +192,6 @@ const me = new FrpEngine(() => {
             }[aspect]
         );
 
-        const { trackSpeedMph } = state;
         if (trackSpeedMph !== undefined) {
             const [[h, t, u]] = m.digits(trackSpeedMph, 3);
             me.rv.SetControlValue("TSHundreds", h);
@@ -205,7 +203,6 @@ const me = new FrpEngine(() => {
             me.rv.SetControlValue("TSUnits", -1);
         }
 
-        const { atcLamp, acsesLamp } = state;
         let lamp: number;
         if (atcLamp) {
             lamp = 0;
