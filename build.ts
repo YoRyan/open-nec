@@ -160,12 +160,19 @@ class MultiProcessTranspiler implements Transpiler {
         } as Job);
 
         const startMs = nowTime();
-        await new Promise<void>(resolve => {
-            worker.on("message", resolve);
-        });
+        try {
+            await new Promise<void>((resolve, reject) => {
+                worker.on("message", resolve);
+                worker.on("error", reject);
+                worker.on("exit", reject);
+            });
+            this.returnWorker(worker);
+        } catch {
+            this.workersToSpawn++;
+        } finally {
+            worker.removeAllListeners();
+        }
         const endMs = nowTime();
-
-        this.returnWorker(worker);
         return endMs - startMs;
     }
     private async getWorker() {
