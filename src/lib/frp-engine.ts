@@ -253,7 +253,7 @@ export class FrpEngine extends FrpVehicle {
                 const isOutside = cameraView === VehicleCamera.Outside || cameraView === VehicleCamera.Carriage;
                 return awsReset || isOutside;
             },
-            () => (this.rv.GetControlValue("AWSReset") as number) > 0.5,
+            () => (this.rv.GetControlValue("AWSReset") as number) > 0,
             cameraView
         );
     }
