@@ -77,7 +77,7 @@ const me = new FrpEngine(() => {
         atcCutIn: frp.liftN((cutIn, powered) => cutIn && powered, atcCutIn, isPoweredOn),
         acsesCutIn: frp.liftN((cutIn, powered) => cutIn && powered, acsesCutIn, isPoweredOn),
         equipmentSpeedMps: 125 * c.mph.toMps,
-        pulseCodeControlValue: "MaximumSpeedLimit",
+        pulseCodeControlValue: "SignalSpeedLimit",
     });
     const aduState = frp.stepper(aduState$, undefined);
     const aduUpdate$ = frp.compose(

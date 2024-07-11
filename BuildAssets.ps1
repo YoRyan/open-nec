@@ -86,6 +86,10 @@ ExtractFromZip "$RailWorks\Assets\Reppo\AEM7\AEM7Assets.ap" `
     "RailVehicles/Scripts/AEM7_EngineScript.out" `
     ".\payware\Assets\Reppo\AEM7\RailVehicles\Scripts\AEM7_EngineScript.out"
 
+ExtractFromZip "$RailWorks\Assets\Reppo\E60CP\E60CPAssets.ap" `
+    "RailVehicles/Scripts/E60_EngineScript.out" `
+    ".\payware\Assets\Reppo\E60CP\RailVehicles\Scripts\E60_EngineScript.out"
+
 # Step 2: Build our new assets.
 
 function FindModPaths {

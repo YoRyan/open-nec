@@ -93,6 +93,7 @@ function printDiagnostics(diagnostics: ts.Diagnostic[]) {
 async function injectPaywareScripts(lua: string) {
     const pathMap = new Map<string, string>([
         ["REPPO_AEM7_ENGINESCRIPT", "./payware/Assets/Reppo/AEM7/RailVehicles/Scripts/AEM7_EngineScript.out"],
+        ["REPPO_E60_ENGINESCRIPT", "./payware/Assets/Reppo/E60CP/RailVehicles/Scripts/E60_EngineScript.out"],
     ]);
     for (const [constant, path] of pathMap.entries()) {
         if (lua.includes(constant)) {
