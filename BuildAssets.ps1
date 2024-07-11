@@ -82,6 +82,10 @@ UnSerz ".\payware\Assets\RSC\AcelaPack01\InputMappers\AcelaExpert.bin" `
 </Map>
 "@) | Set-Content -Path ".\src\mod\Assets\RSC\AcelaPack01\InputMappers\AcelaExpert.xml"
 
+ExtractFromZip "$RailWorks\Assets\Reppo\AEM7\AEM7Assets.ap" `
+    "RailVehicles/Scripts/AEM7_EngineScript.out" `
+    ".\payware\Assets\Reppo\AEM7\RailVehicles\Scripts\AEM7_EngineScript.out"
+
 # Step 2: Build our new assets.
 
 function FindModPaths {

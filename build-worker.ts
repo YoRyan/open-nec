@@ -35,8 +35,9 @@ export async function transpile(job: Job) {
         const luaPath = path.join("./dist", path.relative("./mod", tf.outPath));
         const dirPath = path.dirname(luaPath);
         const outPath = path.join(dirPath, path.basename(luaPath, ".lua") + ".out");
+        const outText = await injectPaywareScripts(tf.lua);
         await fsp.mkdir(dirPath, { recursive: true });
-        await fsp.writeFile(outPath, tf.lua);
+        await fsp.writeFile(outPath, outText);
         // Make multiple copies of the final output if needed.
         await copyOutput(path.relative("./dist", outPath));
     }
@@ -87,6 +88,27 @@ function printDiagnostics(diagnostics: ts.Diagnostic[]) {
             })
         );
     }
+}
+
+async function injectPaywareScripts(lua: string) {
+    const pathMap = new Map<string, string>([
+        ["REPPO_AEM7_ENGINESCRIPT", "./payware/Assets/Reppo/AEM7/RailVehicles/Scripts/AEM7_EngineScript.out"],
+    ]);
+    for (const [constant, path] of pathMap.entries()) {
+        if (lua.includes(constant)) {
+            lua = lua.replaceAll(constant, embedLuaBytecode(await fsp.readFile(path)));
+        }
+    }
+    return lua;
+}
+
+function embedLuaBytecode(bytes: Buffer) {
+    var str = '"';
+    for (const n of bytes) {
+        str += "\\" + n;
+    }
+    str += '"';
+    return str;
 }
 
 async function copyOutput(relativeOutPath: string) {
