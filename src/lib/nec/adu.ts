@@ -258,7 +258,9 @@ export function create<A>({
                     case TimerMode.NotStarted:
                         return overspeed ? [TimerMode.Running, atcCountdownS] : TimerMode.NotStarted;
                     case TimerMode.Expired:
-                        return overspeed ? TimerMode.Expired : TimerMode.NotStarted;
+                        const suppress = frp.snapshot(suppression);
+                        const ack = frp.snapshot(acknowledge);
+                        return !overspeed && suppress && ack ? TimerMode.NotStarted : TimerMode.Expired;
                     default:
                         if (overspeed) {
                             const [, leftS] = accum;
@@ -296,7 +298,8 @@ export function create<A>({
                 if (isPenalty) {
                     const belowTarget = frp.snapshot(acsesBelowTargetSpeed);
                     const suppress = frp.snapshot(suppression);
-                    return !(belowTarget && suppress);
+                    const ack = frp.snapshot(acknowledge);
+                    return !(belowTarget && suppress && ack);
                 } else {
                     const aboveCurve = frp.snapshot(acsesAbovePenaltyCurve);
                     return aboveCurve;
