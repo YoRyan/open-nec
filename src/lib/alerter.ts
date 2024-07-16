@@ -55,13 +55,18 @@ export function create({
         e.createPlayerWithKeyUpdateStream(),
         frp.merge(acknowledgeStream$),
         frp.fold((remainingS, input) => {
-            if (!frp.snapshot(cutIn)) {
+            if (!frp.snapshot(cutIn)) return startS;
+
+            const ack = input === undefined || frp.snapshot(acknowledge);
+            if (remainingS <= 0) {
+                if (ack && frp.snapshot(vZero)) {
+                    return startS;
+                } else {
+                    return 0;
+                }
+            } else if (ack) {
                 return startS;
-            } else if (input === undefined) {
-                return startS;
-            } else if (frp.snapshot(acknowledge)) {
-                return startS;
-            } else if (remainingS > 0 && frp.snapshot(vZero)) {
+            } else if (frp.snapshot(vZero)) {
                 return startS;
             } else {
                 return Math.max(remainingS - input.dt, 0);
