@@ -62,7 +62,7 @@ const me = new FrpEngine(() => {
         atcCutIn,
         acsesCutIn: () => false,
         equipmentSpeedMps: 80 * c.mph.toMps,
-        pulseCodeControlValue: "CurrentMNRRSignal",
+        pulseCodeControlValue: "SignalSpeedLimit",
     });
     const aduStateHub$ = frp.compose(aduState$, frp.hub());
     aduStateHub$(({ aspect }) => {
