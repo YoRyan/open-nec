@@ -228,9 +228,11 @@ export function createBrakeLightStreamForWagon(v: FrpVehicle): frp.Stream<boolea
  * @param playerLow A behavior that indicates the player selected low-platform
  * doors.
  */
-export function setLowPlatformDoorsForEngine(eng: FrpEngine, aiLow: boolean, playerLow?: frp.Behavior<boolean>) {
-    playerLow ??= () => (eng.rv.GetControlValue("Reverser") as number) === 0;
-
+export function setLowPlatformDoorsForEngine(
+    eng: FrpEngine,
+    aiLow: boolean,
+    playerLow: frp.Behavior<boolean> = () => (eng.rv.GetControlValue("Reverser") as number) === 0
+) {
     // Send consist messages.
     const playerSend$ = frp.compose(eng.createPlayerWithKeyUpdateStream(), mapBehavior(playerLow));
     const send$ = frp.compose(

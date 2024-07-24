@@ -305,8 +305,7 @@ export class FrpEngine extends FrpVehicle {
      * @returns A transformer that maps bell triggers to the final bell state
      * control value.
      */
-    mapAutoBellStream(useVirtual?: boolean): (eventStream: frp.Stream<any>) => frp.Stream<number> {
-        useVirtual ??= false;
+    mapAutoBellStream(useVirtual: boolean = false): (eventStream: frp.Stream<any>) => frp.Stream<number> {
         return eventStream => {
             const turnOn$ = frp.compose(
                 eventStream,

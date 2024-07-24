@@ -367,9 +367,10 @@ export function createElectrificationDeltaStream(e: FrpEngine): frp.Stream<Elect
  * HEP.
  * @returns A stream that indicates HEP is available.
  */
-export function createHepStream(e: FrpEngine, hepOn?: frp.Behavior<boolean>): frp.Stream<boolean> {
-    hepOn ??= () => (e.rv.GetControlValue("Startup") as number) > 0;
-
+export function createHepStream(
+    e: FrpEngine,
+    hepOn: frp.Behavior<boolean> = () => (e.rv.GetControlValue("Startup") as number) > 0
+): frp.Stream<boolean> {
     const startupS = 10;
     const player$ = frp.compose(
         e.createPlayerWithKeyUpdateStream(),

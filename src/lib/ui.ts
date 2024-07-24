@@ -121,9 +121,7 @@ export class ScrollingMenu {
      * @param items A list of player-friendly labels for the menu.
      * @param initSelection The initial selection. Defaults to the first item.
      */
-    constructor(title: string, items: string[], initSelection?: number) {
-        initSelection ??= 0;
-
+    constructor(title: string, items: string[], initSelection: number = 0) {
         this.title = title;
         this.items = items;
         this.nItems = items.length;
