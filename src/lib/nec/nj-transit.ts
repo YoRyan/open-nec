@@ -25,34 +25,51 @@ const destinationNodes = [
  * Read and set destination signs for NJT rolling stock. Also creates a nice
  * selection menu for the player.
  * @param e The engine or cab car.
- * @param desinations An array of destination names to present to the player. Do
- * not include -1, the no-sign item.
+ * @param desinations An array of destination names to present to the player.
  */
 export function createDestinationSignSelector(e: FrpEngine, destinations: string[] = destinationNames) {
-    const menuItems = ["(no sign)"];
-    menuItems.push(...destinations);
-
     // If our rail vehicle has a destination encoded in its #, then emit that
     // one at startup.
     const rvDestination$ = frp.compose(
         e.createFirstUpdateStream(),
         frp.map(_ => getRvNumberDestination(e)),
-        rejectUndefined()
+        rejectUndefined(),
+        frp.hub()
     );
     // We don't set the player's control value upon load, so if it was set by
     // rail vehicle # it will be out of sync until they change it, but that's
     // okay.
-    const playerMenu = new ui.ScrollingMenu("Set Destination Signs", menuItems);
-    const newDestination$ = frp.compose(
+    const playerMenu = new ui.ScrollingMenu("Set Destination Signs", destinations);
+    const wrapDestination$ = frp.compose(
         e.createOnCvChangeStreamFor("Destination"),
-        // Sometimes this fires for other units...
-        frp.filter(_ => e.eng.GetIsEngineWithKey()),
-        frp.map(v => Math.max(Math.min(Math.round(v), menuItems.length - 2), -1)),
-        rejectRepeats(),
+        frp.map(v => Math.round(v)),
+        frp.map(v => {
+            if (v < 1) {
+                return destinations.length;
+            } else if (v > destinations.length) {
+                return 1;
+            } else {
+                return undefined;
+            }
+        }),
+        rejectUndefined(),
         frp.hub()
     );
+    const newDestination$ = frp.compose(
+        e.createOnCvChangeStreamFor("Destination"),
+        frp.map(v => Math.round(v)),
+        frp.filter(v => v >= 1 && v <= destinations.length),
+        rejectRepeats(),
+        frp.merge(wrapDestination$),
+        // Sometimes this fires for other units...
+        frp.filter(_ => e.eng.GetIsEngineWithKey()),
+        frp.hub()
+    );
+    wrapDestination$(v => {
+        e.rv.SetControlValue("Destination", v);
+    });
     newDestination$(index => {
-        playerMenu.setSelection(index + 1);
+        playerMenu.setSelection(index - 1);
         playerMenu.showPopup();
     });
 
@@ -81,7 +98,7 @@ export function createDestinationSignSelector(e: FrpEngine, destinations: string
     const showDestination$ = frp.compose(readFromConsist$, frp.merge(rvDestination$), frp.merge(newDestination$));
     showDestination$(selected => {
         for (let i = 0; i < destinationNodes.length; i++) {
-            e.rv.ActivateNode(destinationNodes[i], i === selected);
+            e.rv.ActivateNode(destinationNodes[i], i === selected - 1);
         }
     });
 }
@@ -89,7 +106,7 @@ export function createDestinationSignSelector(e: FrpEngine, destinations: string
 function getRvNumberDestination(v: FrpVehicle) {
     const [, , letter] = string.find(v.rv.GetRVNumber(), "^(%a)");
     if (letter !== undefined) {
-        return string.byte(string.upper(letter as string)) - string.byte("A");
+        return string.byte(string.upper(letter as string)) - string.byte("A") + 1;
     } else {
         return undefined;
     }
