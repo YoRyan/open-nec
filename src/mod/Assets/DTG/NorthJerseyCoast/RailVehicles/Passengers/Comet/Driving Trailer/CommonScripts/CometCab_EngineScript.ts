@@ -190,14 +190,7 @@ const me = new FrpEngine(() => {
     });
     const aduState = frp.stepper(aduStateHub$, undefined);
     // Alerter
-    const alerterReset$ = frp.compose(
-        me.createOnCvChangeStream(),
-        frp.filter(([name]) => name === "ThrottleAndBrake" || name === "VirtualBrake")
-    );
-    const alerterState = frp.stepper(
-        ale.create({ e: me, acknowledge, acknowledgeStream: alerterReset$, cutIn: alerterCutIn }),
-        undefined
-    );
+    const alerterState = frp.stepper(ale.create({ e: me, acknowledge, cutIn: alerterCutIn }), undefined);
     // Safety system sounds
     const upgradeSound$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),
@@ -228,6 +221,9 @@ const me = new FrpEngine(() => {
         me.rv.SetControlValue("AWSWarnCount", awsWarnCount ? 1 : 0);
         me.rv.SetControlValue("AWS", aws ? 1 : 0);
     });
+
+    // Set platform door height.
+    fx.setLowPlatformDoorsForEngine(me, false);
 
     // Manual door control
     njt.createManualDoorsPopup(me);
@@ -630,9 +626,6 @@ const me = new FrpEngine(() => {
     doorsOpenLight$(on => {
         me.rv.ActivateNode("LightsRed", on);
     });
-
-    // Set platform door height.
-    fx.setLowPlatformDoorsForEngine(me, false);
 
     // Destination signs
     njt.createDestinationSignSelector(me);

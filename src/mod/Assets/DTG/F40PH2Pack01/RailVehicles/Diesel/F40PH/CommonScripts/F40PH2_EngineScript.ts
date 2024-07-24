@@ -88,14 +88,7 @@ const me = new FrpEngine(() => {
     });
     const aduState = frp.stepper(aduStateHub$, undefined);
     // Alerter
-    const alerterReset$ = frp.compose(
-        me.createOnCvChangeStream(),
-        frp.filter(([name]) => name === "VirtualThrottle" || name === "VirtualBrake")
-    );
-    const alerterState = frp.stepper(
-        ale.create({ e: me, acknowledge, acknowledgeStream: alerterReset$, cutIn: alerterCutIn }),
-        undefined
-    );
+    const alerterState = frp.stepper(ale.create({ e: me, acknowledge, cutIn: alerterCutIn }), undefined);
     // Safety system sounds
     const upgradeSound$ = frp.compose(
         me.createPlayerWithKeyUpdateStream(),

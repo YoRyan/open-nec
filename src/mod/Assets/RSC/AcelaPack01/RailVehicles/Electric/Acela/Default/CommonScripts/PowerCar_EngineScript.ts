@@ -297,7 +297,19 @@ const me = new FrpEngine(() => {
     // Alerter
     const alerterReset$ = frp.compose(
         me.createOnCvChangeStream(),
-        frp.filter(([name]) => name === "VirtualThrottle" || name === "VirtualBrake")
+        frp.filter(([name, value]) => {
+            switch (name) {
+                case "VirtualThrottle":
+                case "TrainBrakeControl":
+                case "Horn":
+                case "Bell":
+                    return true;
+                case "Headlights":
+                    return value > 0.5 && value < 1.5;
+                default:
+                    return false;
+            }
+        })
     );
     const alerterState = frp.stepper(
         ale.create({ e: me, acknowledge, acknowledgeStream: alerterReset$, cutIn: alerterCutIn }),

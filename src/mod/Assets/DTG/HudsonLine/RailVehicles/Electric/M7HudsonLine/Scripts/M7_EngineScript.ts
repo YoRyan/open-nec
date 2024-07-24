@@ -73,11 +73,7 @@ const me = new FrpEngine(() => {
     });
     const aduState = frp.stepper(aduStateHub$, undefined);
     // Alerter
-    const alerterReset$ = me.createOnCvChangeStreamFor("ThrottleAndBrake");
-    const alerter$ = frp.compose(
-        ale.create({ e: me, acknowledge, acknowledgeStream: alerterReset$, cutIn: alerterCutIn }),
-        frp.hub()
-    );
+    const alerter$ = frp.compose(ale.create({ e: me, acknowledge, cutIn: alerterCutIn }), frp.hub());
     const alerterState = frp.stepper(alerter$, undefined);
     // Safety system sounds
     // Unfortunately, we cannot display the AWS symbol without also playing the

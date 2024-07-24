@@ -37,11 +37,29 @@ export function create({
 }: {
     e: FrpEngine;
     acknowledge: frp.Behavior<boolean>;
-    acknowledgeStream: frp.Stream<any>;
+    acknowledgeStream?: frp.Stream<any>;
     cutIn: frp.Behavior<boolean>;
     countdownS?: number;
     penaltyS?: number;
 }): frp.Stream<AlerterState> {
+    acknowledgeStream ??= frp.compose(
+        e.createOnCvChangeStream(),
+        frp.filter(([name]) => {
+            switch (name) {
+                case "ThrottleAndBrake":
+                case "VirtualThrottle":
+                case "TrainBrakeControl":
+                case "VirtualBrake":
+                case "Horn":
+                case "VirtualHorn":
+                case "Bell":
+                case "VirtualBell":
+                    return true;
+                default:
+                    return false;
+            }
+        })
+    );
     countdownS ??= defaultCountdownS;
     penaltyS ??= defaultPenaltyS;
 

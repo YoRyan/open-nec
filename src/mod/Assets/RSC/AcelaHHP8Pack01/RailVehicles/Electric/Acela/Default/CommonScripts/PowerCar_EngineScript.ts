@@ -217,10 +217,19 @@ const me = new FrpEngine(() => {
     // Alerter
     const alerterReset$ = frp.compose(
         me.createOnCvChangeStream(),
-        frp.filter(
-            ([name]) =>
-                name === (isFanRailer ? "NewVirtualThrottle" : "VirtualThrottle") || name === "TrainBrakeControl"
-        )
+        frp.filter(([name, value]) => {
+            switch (name) {
+                case isFanRailer ? "NewVirtualThrottle" : "VirtualThrottle":
+                case "TrainBrakeControl":
+                case "Horn":
+                case "Bell":
+                    return true;
+                case "Headlights":
+                    return value > 0.5 && value < 1.5;
+                default:
+                    return false;
+            }
+        })
     );
     const alerterState = frp.stepper(
         ale.create({ e: me, acknowledge, acknowledgeStream: alerterReset$, cutIn: alerterCutIn }),

@@ -62,14 +62,7 @@ const me = new FrpEngine(() => {
     });
     const aduState = frp.stepper(aduStateHub$, undefined);
     // Alerter
-    const alerterReset$ = frp.compose(
-        me.createOnCvChangeStream(),
-        frp.filter(([name]) => name === "ThrottleAndBrake" || name === "TrainBrakeControl")
-    );
-    const alerter$ = frp.compose(
-        ale.create({ e: me, acknowledge, acknowledgeStream: alerterReset$, cutIn: alerterCutIn }),
-        frp.hub()
-    );
+    const alerter$ = frp.compose(ale.create({ e: me, acknowledge, cutIn: alerterCutIn }), frp.hub());
     const alerterState = frp.stepper(alerter$, undefined);
     alerter$(({ alarm }) => {
         me.rv.SetControlValue("AlerterVisual", alarm ? 1 : 0);
