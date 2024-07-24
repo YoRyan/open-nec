@@ -79,7 +79,11 @@ const me = new FrpEngine(() => {
 
     // Safety systems and ADU
     const acknowledge = me.createAcknowledgeBehavior();
-    const suppression = () => (me.rv.GetControlValue("TrainBrakeControl") as number) >= 0.4;
+    const suppression = frp.liftN(
+        (bp, lever) => bp || lever,
+        me.createBrakePressureSuppressionBehavior(),
+        () => (me.rv.GetControlValue("TrainBrakeControl") as number) >= 0.4
+    );
     const [aduState$, aduEvents$] = adu.create({
         atc: cs.metroNorthAtc,
         e: me,

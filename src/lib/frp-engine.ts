@@ -259,6 +259,17 @@ export class FrpEngine extends FrpVehicle {
     }
 
     /**
+     * Read suppression state from the brake pipe pressure. Requires a
+     * well-behaved air brake simulation that cuts out at 110 psi.
+     */
+    createBrakePressureSuppressionBehavior() {
+        return () => {
+            const psi = this.rv.GetControlValue("AirBrakePipePressurePSI") as number;
+            return psi <= 110 - 17;
+        };
+    }
+
+    /**
      * Create a behavior for the speedometer speed.
      */
     createSpeedometerMpsBehavior() {

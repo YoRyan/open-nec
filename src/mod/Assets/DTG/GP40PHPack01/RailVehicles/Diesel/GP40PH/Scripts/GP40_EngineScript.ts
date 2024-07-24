@@ -46,6 +46,9 @@ const me = new FrpEngine(() => {
 
     // Safety systems and ADU
     const acknowledge = me.createAcknowledgeBehavior();
+    // There's no suppression detent, so we'd ordinarily incorporate brake pipe
+    // pressure here, but that isn't a reliable indicator due to the cut out
+    // being 90 psi.
     const suppression = () => (me.rv.GetControlValue("VirtualBrake") as number) >= 0.5;
     const speedoDigitsMph = me.createSpeedometerDigitsMphBehavior(3);
     const [aduState$, aduEvents$] = adu.create({

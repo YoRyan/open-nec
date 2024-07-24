@@ -126,7 +126,11 @@ export function onInit(me: FrpEngine, version: Version) {
 
     // Safety systems and ADU
     const acknowledge = me.createAcknowledgeBehavior();
-    const suppression = () => (me.rv.GetControlValue("VirtualBrake") as number) > 0.5;
+    const suppression = frp.liftN(
+        (bp, lever) => bp || lever,
+        me.createBrakePressureSuppressionBehavior(),
+        () => (me.rv.GetControlValue("VirtualBrake") as number) > 0.5
+    );
     const speedoDigitsMph = me.createSpeedometerDigitsMphBehavior(3);
     const equipmentSpeedMps = (version === Version.Marc ? 125 : 100) * c.mph.toMps;
     const [aduState$, aduEvents$] = adu.create({
