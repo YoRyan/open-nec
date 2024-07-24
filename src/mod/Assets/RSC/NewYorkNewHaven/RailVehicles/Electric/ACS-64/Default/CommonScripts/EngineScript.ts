@@ -230,11 +230,10 @@ const me = new FrpEngine(() => {
         me.createOnCvChangeStream(),
         frp.filter(([name]) => name === "ThrottleAndBrake" || name === "VirtualBrake")
     );
-    const alerter$ = frp.compose(
+    const alerterState = frp.stepper(
         ale.create({ e: me, acknowledge, acknowledgeStream: alerterReset$, cutIn: alerterCutIn }),
-        frp.hub()
+        undefined
     );
-    const alerterState = frp.stepper(alerter$, undefined);
     // Safety system sounds
     const isAlarm = frp.liftN(
         (aduState, alerterState) => (aduState?.atcAlarm || aduState?.acsesAlarm || alerterState?.alarm) ?? false,
@@ -383,15 +382,42 @@ const me = new FrpEngine(() => {
         me.rv.SetControlValue("SpeedDigit_tens", t);
         me.rv.SetControlValue("SpeedDigit_units", u);
         me.rv.SetControlValue("SpeedDigit_guide", guide);
-
-        const isWheelSlip = (me.rv.GetControlValue("Wheelslip") as number) > 1;
-        me.rv.SetControlValue("ScreenWheelslip", isWheelSlip ? 1 : 0);
-        const isParkingBrake = (me.rv.GetControlValue("HandBrake") as number) > 0;
-        me.rv.SetControlValue("ScreenParkingBrake", isParkingBrake ? 1 : 0);
-        me.rv.SetControlValue("ScreenSuppression", frp.snapshot(suppression) ? 1 : 0);
     });
-    alerter$(({ alarm }) => {
-        me.rv.SetControlValue("ScreenAlerter", alarm ? 1 : 0);
+    const tempSuppression = () => me.rv.GetAcceleration() < -0.9 * c.mph.toMps;
+    const suppressIndicator = frp.liftN(
+        (temporaryFlash, permanent) => temporaryFlash || permanent,
+        frp.stepper(
+            frp.compose(
+                me.createPlayerWithKeyUpdateStream(),
+                fx.behaviorStopwatchS(tempSuppression),
+                frp.map(timeS => timeS !== undefined && timeS % 2 < 1)
+            ),
+            false
+        ),
+        suppression
+    );
+    const indicatorsUpdate$ = frp.compose(
+        displayUpdate$,
+        mapBehavior(
+            frp.liftN(
+                (suppressIndicator, alerterState) => {
+                    return {
+                        suppression: suppressIndicator,
+                        alerter: alerterState?.alarm ?? false,
+                        wheelSlip: (me.rv.GetControlValue("Wheelslip") as number) > 1,
+                        parkingBrake: (me.rv.GetControlValue("HandBrake") as number) > 0,
+                    };
+                },
+                suppressIndicator,
+                alerterState
+            )
+        )
+    );
+    indicatorsUpdate$(({ suppression, alerter, wheelSlip, parkingBrake }) => {
+        me.rv.SetControlValue("ScreenSuppression", suppression ? 1 : 0);
+        me.rv.SetControlValue("ScreenAlerter", alerter ? 1 : 0);
+        me.rv.SetControlValue("ScreenWheelslip", wheelSlip ? 1 : 0);
+        me.rv.SetControlValue("ScreenParkingBrake", parkingBrake ? 1 : 0);
     });
 
     // Player location for interior lights
