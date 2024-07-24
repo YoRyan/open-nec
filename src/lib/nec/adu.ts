@@ -126,26 +126,24 @@ export function create<A>({
     acsesStepsDown: boolean;
 } & CommonAduOptions): frp.Stream<AduOutput<A>> {
     const atcAspectBeforeDelay = cs.createCabSignalBehavior(atc, e, pulseCodeControlValue);
+    // Need to use GetSimulationTime() here so that our delay is affected by
+    // time acceleration.
     const atcAspect$ = frp.compose(
         e.createPlayerWithKeyUpdateStream(),
-        frp.map(pu => {
-            const { dt } = pu;
-            const nextAspect = frp.snapshot(atcAspectBeforeDelay);
-            return { nextAspect, dt };
-        }),
+        mapBehavior(atcAspectBeforeDelay),
         frp.fold(
-            ({ aspect, inS }: { aspect: A; inS: number }, { nextAspect, dt }) => {
+            ({ aspect, atS }: { aspect: A; atS: number }, nextAspect) => {
                 if (aspect !== nextAspect) {
                     // New signal aspect
-                    return { aspect: nextAspect, inS: randomCabSignalDelayS() };
+                    return { aspect: nextAspect, atS: e.e.GetSimulationTime() + randomCabSignalDelayS() };
                 } else {
-                    // Clock update
-                    return { aspect, inS: Math.max(inS - dt, 0) };
+                    // Nothing to do
+                    return { aspect, atS };
                 }
             },
-            { aspect: atc.restricting, inS: 0 }
+            { aspect: atc.restricting, atS: 0 }
         ),
-        frp.map(({ aspect, inS }) => (inS <= 0 ? aspect : undefined)),
+        frp.map(({ aspect, atS }) => (e.e.GetSimulationTime() >= atS ? aspect : undefined)),
         rejectUndefined()
     );
     const atcAspect = frp.liftN(
