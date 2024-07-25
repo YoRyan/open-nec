@@ -25,4 +25,6 @@ export enum ConsistMessageId {
     BrakeLight = 10101,
     NjtDestination = 10100,
     LowPlatforms = 10146,
+    DoorsLeft = 121011,
+    DoorsRight = 121021,
 }

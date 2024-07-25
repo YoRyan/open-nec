@@ -505,6 +505,7 @@ const me = new FrpEngine(() => {
     // Miscellaneous NJT features
     njt.createDestinationSignSelector(me);
     njt.createManualDoorsPopup(me);
+    njt.createConsistDoorsOpenStream(me);
 
     // Set in-cab vehicle number.
     readRvNumber();

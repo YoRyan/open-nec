@@ -5,10 +5,19 @@
 import * as c from "lib/constants";
 import * as frp from "lib/frp";
 import { FrpEngine } from "lib/frp-engine";
-import { rejectRepeats, rejectUndefined } from "lib/frp-extra";
+import { fsm, mapBehavior, rejectRepeats, rejectUndefined } from "lib/frp-extra";
 import { FrpVehicle } from "lib/frp-vehicle";
 import * as rw from "lib/railworks";
 import * as ui from "lib/ui";
+
+/**
+ * Represents door open/close events transmitted through the consist by NJ
+ * Transit coaches.
+ */
+export enum DoorsEvent {
+    Opening = "1",
+    Closed = "-1",
+}
 
 export const destinationNames = ["Trenton", "New York", "Long Branch", "Hoboken", "Dover", "Bay Head"];
 
@@ -171,8 +180,75 @@ function createManualDoorsStream(
                 stayOpen: false,
             }
         ),
-        frp.map(accum => accum.position)
+        frp.map(({ position }) => position)
     );
+}
+
+/**
+ * Notify the player engine of the consist's door open status by communicating
+ * this coach's status, and/or by forwarding messages through the consist.
+ *
+ * Note that unlike the vanilla scripts, we don't bother tracking the number of
+ * coaches with open doors or on which side they've opened, as this information
+ * is not necessary and can easily get out of sync if the player changes the
+ * makeup of the train.
+ * @param v The vehicle.
+ * @param doorsOpen A manual doors behavior that indicates the positions of the
+ * coach's left and right doors.
+ * @returns A stream of door events produced by this vehicle, or received from
+ * the rest of the consist.
+ */
+export function createConsistDoorsOpenStream(
+    v: FrpVehicle,
+    doorsOpen?: frp.Behavior<[number, number]>
+): frp.Stream<boolean> {
+    const forward$ = frp.compose(
+        v.createOnConsistMessageStream(),
+        frp.filter(([id]) => id === c.ConsistMessageId.DoorsLeft || id === c.ConsistMessageId.DoorsRight)
+    );
+    forward$(msg => {
+        v.rv.SendConsistMessage(...msg);
+    });
+
+    const fromConsist$ = frp.compose(
+        v.createOnConsistMessageStream(),
+        frp.filter(([id]) => id === c.ConsistMessageId.DoorsLeft || id === c.ConsistMessageId.DoorsRight),
+        frp.map(([, msg]) => msg === DoorsEvent.Opening)
+    );
+
+    if (doorsOpen !== undefined) {
+        const events$ = frp.compose(
+            v.createPlayerUpdateStream(),
+            mapBehavior(doorsOpen),
+            fsm<[number, number]>([0, 0]),
+            frp.map(([[fromL, fromR], [toL, toR]]) => {
+                if (fromL <= 0 && toL > 0) {
+                    return DoorsEvent.Opening;
+                } else if (fromR <= 0 && toR > 0) {
+                    return DoorsEvent.Opening;
+                } else if (fromL > 0 && toL <= 0) {
+                    return DoorsEvent.Closed;
+                } else if (fromR > 0 && toR <= 0) {
+                    return DoorsEvent.Closed;
+                } else {
+                    return undefined;
+                }
+            }),
+            rejectUndefined(),
+            frp.hub()
+        );
+        events$(event => {
+            v.rv.SendConsistMessage(c.ConsistMessageId.DoorsLeft, event, rw.ConsistDirection.Forward);
+            v.rv.SendConsistMessage(c.ConsistMessageId.DoorsLeft, event, rw.ConsistDirection.Backward);
+        });
+        return frp.compose(
+            events$,
+            frp.map(event => event === DoorsEvent.Opening),
+            frp.merge(fromConsist$)
+        );
+    } else {
+        return fromConsist$;
+    }
 }
 
 /**

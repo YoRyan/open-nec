@@ -249,6 +249,9 @@ const me = new FrpEngine(() => {
         me.rv.SetTime("Doors_R", position * 2);
     });
 
+    // Send door open status.
+    njt.createConsistDoorsOpenStream(me, passengerDoors);
+
     // Center door control
     const aiCenterDoors$ = frp.compose(
         me.createAiUpdateStream(),

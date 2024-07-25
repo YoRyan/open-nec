@@ -655,6 +655,12 @@ const me = new FrpEngine(() => {
         me.rv.ActivateNode("LightsBlue", on);
     });
 
+    // Door closed lamp
+    const doorsOpen$ = njt.createConsistDoorsOpenStream(me);
+    doorsOpen$(open => {
+        me.rv.SetControlValue("DoorsCount", open ? 1 : 0);
+    });
+
     // Set platform door height.
     fx.createLowPlatformStreamForEngine(me, false);
 

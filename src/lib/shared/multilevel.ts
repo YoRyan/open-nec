@@ -250,6 +250,9 @@ export function onInit(me: FrpEngine, version: Version) {
         me.rv.SetTime("Doors_R", position);
     });
 
+    // Send door open status.
+    njt.createConsistDoorsOpenStream(me, passengerDoors);
+
     // Throttle, dynamic brake, and air brake controls
     const isPenaltyBrake = frp.liftN(
         (aduState, alerterState) => (aduState?.penaltyBrake || alerterState?.penaltyBrake) ?? false,
