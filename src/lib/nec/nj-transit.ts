@@ -126,11 +126,11 @@ export function createManualDoorsBehavior(
     openTimeS: number = 1
 ): frp.Behavior<[left: number, right: number]> {
     const leftDoor = frp.stepper(
-        createManualDoorsStream(v, openTimeS, () => (v.rv.GetControlValue("DoorsOpenCloseLeft") as number) > 0.5),
+        createManualDoorsStream(v, openTimeS, () => (v.rv.GetControlValue("DoorsOpenCloseLeft") as number) > 0),
         0
     );
     const rightDoor = frp.stepper(
-        createManualDoorsStream(v, openTimeS, () => (v.rv.GetControlValue("DoorsOpenCloseRight") as number) > 0.5),
+        createManualDoorsStream(v, openTimeS, () => (v.rv.GetControlValue("DoorsOpenCloseRight") as number) > 0),
         0
     );
     return frp.liftN((left, right) => [left, right], leftDoor, rightDoor);
@@ -147,7 +147,7 @@ function createManualDoorsStream(
     };
 
     const manualEnabled = () => (v.rv.GetControlValue("DoorsManual") as number) > 0.5;
-    const manualClose = () => (v.rv.GetControlValue("DoorsManualClose") as number) >= 1;
+    const manualClose = () => (v.rv.GetControlValue("DoorsManualClose") as number) > 0.5;
     return frp.compose(
         v.createUpdateStream(),
         frp.fold(
