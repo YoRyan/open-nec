@@ -500,7 +500,7 @@ const me = new FrpEngine(() => {
     fx.createBrakeLightStreamForEngine(me);
 
     // Set platform door height.
-    fx.setLowPlatformDoorsForEngine(me, true);
+    fx.createLowPlatformStreamForEngine(me, true);
 
     // Miscellaneous NJT features
     njt.createDestinationSignSelector(me);

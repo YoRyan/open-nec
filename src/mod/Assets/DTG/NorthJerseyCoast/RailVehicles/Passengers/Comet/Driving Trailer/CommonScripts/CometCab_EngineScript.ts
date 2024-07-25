@@ -223,7 +223,8 @@ const me = new FrpEngine(() => {
     });
 
     // Set platform door height.
-    fx.setLowPlatformDoorsForEngine(me, false);
+    const lowPlatform$ = fx.createLowPlatformStreamForEngine(me);
+    const isLowPlatform = frp.stepper(lowPlatform$, false);
 
     // Manual door control
     njt.createManualDoorsPopup(me);
@@ -246,6 +247,32 @@ const me = new FrpEngine(() => {
     });
     rightDoor$(position => {
         me.rv.SetTime("Doors_R", position * 2);
+    });
+
+    // Center door control
+    const aiCenterDoors$ = frp.compose(
+        me.createAiUpdateStream(),
+        frp.map(_ => false)
+    );
+    const leftCenterDoor$ = frp.compose(
+        me.createPlayerUpdateStream(),
+        mapBehavior(frp.liftN(([open], isLowPlatform) => open >= 1 && isLowPlatform, passengerDoors, isLowPlatform)),
+        frp.merge(aiCenterDoors$),
+        rejectRepeats()
+    );
+    const rightCenterDoor$ = frp.compose(
+        me.createPlayerUpdateStream(),
+        mapBehavior(frp.liftN(([, open], isLowPlatform) => open >= 1 && isLowPlatform, passengerDoors, isLowPlatform)),
+        frp.merge(aiCenterDoors$),
+        rejectRepeats()
+    );
+    leftCenterDoor$(open => {
+        me.rv.ActivateNode("LeftDoors02", !open);
+        me.rv.ActivateNode("LeftDoors03", !open);
+    });
+    rightCenterDoor$(open => {
+        me.rv.ActivateNode("RightDoors01", !open);
+        me.rv.ActivateNode("RightDoors02", !open);
     });
 
     // Throttle, dynamic brake, and air brake controls

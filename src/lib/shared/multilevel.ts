@@ -535,7 +535,7 @@ export function onInit(me: FrpEngine, version: Version) {
     });
 
     // Set platform door height.
-    fx.setLowPlatformDoorsForEngine(me, false);
+    fx.createLowPlatformStreamForEngine(me);
 
     // Destination signs
     const destinations =

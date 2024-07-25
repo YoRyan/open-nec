@@ -6,7 +6,7 @@ import * as c from "./constants";
 import * as frp from "./frp";
 import { FrpEngine } from "./frp-engine";
 import { FrpEntity } from "./frp-entity";
-import { mapBehavior, rejectRepeats, rejectUndefined } from "./frp-extra";
+import { mapBehavior, nullStream, rejectRepeats, rejectUndefined } from "./frp-extra";
 import { FrpVehicle, VehicleUpdate } from "./frp-vehicle";
 import * as ps from "./power-supply";
 import * as rw from "./railworks";
@@ -224,21 +224,31 @@ export function createBrakeLightStreamForWagon(v: FrpVehicle): frp.Stream<boolea
  * Set the the low- and high-platform modes of the Amfleet I enhancement pack
  * (and future compatible equipment).
  * @param eng The engine.
- * @param aiLow Use low-platform doors for AI trains.
+ * @param aiLow If provided, this loco will, when under control of the AI,
+ * transmit messages to the rest of the consist setting the low- (true) or high-
+ * (false) platform mode. If undefined, the loco will simply read and forward
+ * messages, like a wagon.
  * @param playerLow A behavior that indicates the player selected low-platform
  * doors.
  */
-export function setLowPlatformDoorsForEngine(
+export function createLowPlatformStreamForEngine(
     eng: FrpEngine,
-    aiLow: boolean,
+    aiLow?: boolean,
     playerLow: frp.Behavior<boolean> = () => (eng.rv.GetControlValue("Reverser") as number) === 0
-) {
+): frp.Stream<boolean> {
+    const playerLow$ = frp.compose(eng.createPlayerWithKeyUpdateStream(), mapBehavior(playerLow), frp.hub());
+
     // Send consist messages.
-    const playerSend$ = frp.compose(eng.createPlayerWithKeyUpdateStream(), mapBehavior(playerLow));
+    const aiSend$ =
+        aiLow === undefined
+            ? nullStream
+            : frp.compose(
+                  eng.createAiUpdateStream(),
+                  frp.map(_ => aiLow)
+              );
     const send$ = frp.compose(
-        eng.createAiUpdateStream(),
-        frp.map(_ => aiLow),
-        frp.merge(playerSend$),
+        playerLow$,
+        frp.merge(aiSend$),
         rejectRepeats(),
         frp.map(low => (low ? "1" : "0"))
     );
@@ -247,15 +257,32 @@ export function setLowPlatformDoorsForEngine(
         eng.rv.SendConsistMessage(c.ConsistMessageId.LowPlatforms, msg, rw.ConsistDirection.Backward);
     });
 
-    // Also forward messages in case other engines separate the player's engine
-    // from the rest of the consist.
-    const forward$ = frp.compose(
-        eng.createOnConsistMessageStream(),
+    return frp.compose(playerLow$, frp.merge(createLowPlatformStreamForWagon(eng)));
+}
+
+/**
+ * Create a low platform door stream for undriveable rail vehicles. Forwards low
+ * platform status across the consist.
+ * @param v The rail vehicle.
+ * @returns The new stream, which emits true if in low platform mode.
+ */
+export function createLowPlatformStreamForWagon(v: FrpVehicle): frp.Stream<boolean> {
+    // Parse and forward consist messages.
+    const consistMessage$ = frp.compose(
+        v.createOnConsistMessageStream(),
         frp.filter(([id]) => id === c.ConsistMessageId.LowPlatforms)
     );
-    forward$(([, content, direction]) => {
-        eng.rv.SendConsistMessage(c.ConsistMessageId.LowPlatforms, content, direction);
+    const fromConsist$ = frp.compose(
+        consistMessage$,
+        frp.map(([, content]) => content === "1")
+    );
+    consistMessage$(([, content, direction]) => {
+        v.rv.SendConsistMessage(c.ConsistMessageId.LowPlatforms, content, direction);
     });
+
+    // It may take another state change for the low platform status to be
+    // transmitted by the player engine, but that's acceptable.
+    return fromConsist$;
 }
 
 /**

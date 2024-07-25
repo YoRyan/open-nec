@@ -706,7 +706,7 @@ const me = new FrpEngine(() => {
     });
 
     // Set platform door height.
-    fx.setLowPlatformDoorsForEngine(me, false);
+    fx.createLowPlatformStreamForEngine(me, false);
 
     // Miscellaneous NJT features
     njt.createDestinationSignSelector(me);

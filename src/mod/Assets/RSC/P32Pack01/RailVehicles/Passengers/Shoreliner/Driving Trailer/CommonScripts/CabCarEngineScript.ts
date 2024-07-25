@@ -297,7 +297,7 @@ const me = new FrpEngine(() => {
     });
 
     // Set platform door height.
-    fx.setLowPlatformDoorsForEngine(me, true);
+    fx.createLowPlatformStreamForEngine(me);
 
     // Enable updates.
     me.e.BeginUpdate();

@@ -387,7 +387,7 @@ export function onInit(me: FrpEngine, isAmtrak: boolean) {
     fx.createBrakeLightStreamForEngine(me);
 
     // Set platform door height.
-    fx.setLowPlatformDoorsForEngine(me, true);
+    fx.createLowPlatformStreamForEngine(me, true);
 
     // Enable updates.
     me.e.BeginUpdate();
